@@ -35,16 +35,16 @@ ModelEma = ModelEmaV2
 python main_md17.py \
     --output-dir 'models/md17/equiformer/se_l2/target@aspirin/lr@5e-4_wd@1e-6_epochs@1500_w-f2e@80_dropout@0.0_exp@32_l2mae-loss' \
     --model-name 'graph_attention_transformer_nonlinear_exp_l2_md17' \
-    --input-irreps '64x0e' \
+    --input-irreps '64x0e' \ # None default
     --target 'aspirin' \
     --data-path 'datasets/md17' \
-    --epochs 1500 \
+    --epochs 1500 \ # 1000 default
     --lr 5e-4 \
-    --batch-size 8 \
-    --weight-decay 1e-6 \
-    --num-basis 32 \
-    --energy-weight 1 \
-    --force-weight 80
+    --batch-size 8 \ 
+    --weight-decay 1e-6 \ # 5e-3 default
+    --num-basis 32 \ # 128 default
+    --energy-weight 1 \ # 0.2 default
+    --force-weight 80 # 0.8 default
 """
 
 
@@ -64,6 +64,8 @@ def get_args_parser():
     )
     parser.add_argument("--output-dir", type=str, default=None)
     # network architecture
+    # graph_attention_transformer_nonlinear_exp_l2_md17
+    # dot_product_attention_transformer_exp_l2_md17
     parser.add_argument(
         "--model-name",
         type=str,
@@ -74,8 +76,8 @@ def get_args_parser():
     parser.add_argument("--num-basis", type=int, default=128)
     # training hyper-parameters
     parser.add_argument("--epochs", type=int, default=1000)
-    parser.add_argument("--batch-size", type=int, default=1)  # 8 -> 1
-    parser.add_argument("--eval-batch-size", type=int, default=2)  # 24 -> 2
+    parser.add_argument("--batch-size", type=int, default=8)  # 8 -> 1
+    parser.add_argument("--eval-batch-size", type=int, default=24)  # 24 -> 2
     parser.add_argument("--model-ema", action="store_true")
     parser.set_defaults(model_ema=False)
     parser.add_argument("--model-ema-decay", type=float, default=0.9999, help="")
@@ -122,6 +124,7 @@ def get_args_parser():
         help="SGD momentum (default: 0.9)",
     )
     parser.add_argument(
+        # 1e-6
         "--weight-decay", type=float, default=5e-3, help="weight decay (default: 5e-3)"
     )
     # learning rate schedule parameters (timm)
@@ -633,12 +636,14 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
 
     update_val_result, update_test_result = False, False
 
+    print(f'Trying to update best results for epoch {epoch}')
     new_loss = _compute_weighted_error(
         args, val_err["energy"].avg, val_err["force"].avg
     )
     prev_loss = _compute_weighted_error(
         args, best_metrics["val_energy_err"], best_metrics["val_force_err"]
     )
+    print(f' New loss val: {new_loss}, prev loss: {prev_loss}')
     if new_loss < prev_loss:
         best_metrics["val_energy_err"] = val_err["energy"].avg
         best_metrics["val_force_err"] = val_err["force"].avg
@@ -646,6 +651,7 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
         update_val_result = True
 
     if test_err is None:
+        print(f' Test error is None, skipping updating best val for epoch {epoch}')
         return update_val_result, update_test_result
 
     new_loss = _compute_weighted_error(
@@ -654,6 +660,7 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
     prev_loss = _compute_weighted_error(
         args, best_metrics["test_energy_err"], best_metrics["test_force_err"]
     )
+    print(f' New loss test: {new_loss}, prev loss: {prev_loss}')
     if new_loss < prev_loss:
         best_metrics["test_energy_err"] = test_err["energy"].avg
         best_metrics["test_force_err"] = test_err["force"].avg
@@ -827,6 +834,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     args.output_dir = "models/md17/equiformer/se_l2/target@aspirin/lr@5e-4_wd@1e-6_epochs@1500_w-f2e@80_dropout@0.0_exp@32_l2mae-loss"
+    # graph_attention_transformer_nonlinear_exp_l2_md17
+    # dot_product_attention_transformer_exp_l2_md17
     args.model_name = "graph_attention_transformer_nonlinear_exp_l2_md17"
     args.input_irreps = "64x0e"
     args.target = "aspirin"
@@ -834,6 +843,7 @@ if __name__ == "__main__":
     args.epochs = 1500
     args.lr = 5e-4
     args.batch_size = 1
+    args.eval_batch_size = 2
     args.weight_decay = 1e-6
     args.num_basis = 32
     args.energy_weight = 1

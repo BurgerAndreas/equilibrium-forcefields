@@ -1,0 +1,121 @@
+
+# @package _global_
+# ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
+
+defaults:
+  # if _self_ is the first entry, compositions will overwrite this config
+  # if _self_ is the last entry, this config will overwrite compositions (default)
+  # https://hydra.cc/docs/1.3/upgrades/1.0_to_1.1/default_composition_order/
+  - _self_
+  # disable the output_subdir and logging of hydra
+  - override /hydra/hydra_logging@_group_: null
+  - override /hydra/job_logging@_group_: null
+
+# disable the output_subdir and logging of hydra
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+
+# (str)
+output_dir: null
+# (str)
+model_name: "transformer_ti"
+# (str)
+input_irreps: null
+# (float)
+radius: 2.0
+# (int)
+num_basis: 32
+# (int)
+output_channels: 1
+# (int)
+epochs: 300
+# (int)
+batch_size: 128
+# (int)
+model_ema: False
+# (int)
+no_model_ema: False
+# (float)
+model_ema_decay: 0.9999
+#      (float)
+model_ema_force_cpu: False
+# (float)
+drop_path: 0.0
+# 'Optimizer (default: adamw' (str)
+opt: "adamw"
+# Optimizer Epsilon (default: 1e-8 (float)
+opt_eps: 1e-8
+# Optimizer Betas (default: None (float)
+opt_betas: null
+# Clip gradient norm (default: None (float)
+clip_grad: null
+# SGD momentum (default: 0.9 (float)
+momentum: 0.9
+# weight decay (default: 0.01 (float)
+weight_decay: 0.01
+# 'LR scheduler (default: cosine' (str)
+sched: "cosine"
+# learning rate (default: 5e-4 (float)
+lr: 5e-4
+# learning rate noise on/off epoch percentages (float)
+lr_noise: null
+# learning rate noise limit percent (default: 0.67 (float)
+lr_noise_pct: 0.67
+# learning rate noise std-dev (default: 1.0 (float)
+lr_noise_std: 1.0
+# warmup learning rate (default: 1e-6 (float)
+warmup_lr: 1e-6
+# lower lr bound for cyclic schedulers that hit 0 (1e-5 (float)
+min_lr: 1e-5
+# epoch interval to decay LR (float)
+decay_epochs: 30
+# epochs to warmup LR (int)
+warmup_epochs: 5
+# epochs to cooldown LR at min_lr (int)
+cooldown_epochs: 10
+# patience epochs for Plateau LR scheduler (default: 10 (int)
+patience_epochs: 10
+# LR decay rate (default: 0.1 (float)
+decay_rate: 0.1
+# (int)
+print_freq: 100
+# (int)
+target: 7
+# (str)
+data_path: "data/qm9"
+# (str)
+feature_type: "one_hot"
+# (str)
+compute_stats: False
+# (str)
+no_standardize: False
+# (str)
+loss: "l1"
+# (int)
+seed: 0
+# (int)
+workers: 4
+# Pin CPU memory in DataLoader for more efficient (sometimes (int)
+pin_mem: False
+# (int)
+no_pin_mem: False
+# Disable FP16 training.     (int)
+no_amp: False
+# number of distributed processes     (int)
+world_size: 1
+# url used to set up distributed training     (int)
+dist_url: "env://"
+
+
+
+# variables we can access in our code
+job_name: 'results'
+# job_name: ${hydra:job.name}
+config_name: ${hydra:job.config_name}
+# Stores the command line arguments overrides
+override_dirname: ${hydra:job.override_dirname}
+# Changes the current working directory to the output directory for each job
+# hydra.job.chdir: False

@@ -44,6 +44,8 @@ pip install torch_geometric pyg_lib torch_scatter torch_sparse torch_cluster tor
 
 pip install torchdeq
 
+pip install hydra-core wandb omegaconf
+
 ```
 
 

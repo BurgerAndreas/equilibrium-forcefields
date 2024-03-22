@@ -282,6 +282,9 @@ class L2MAELoss(torch.nn.Module):
 
 def main(args, model=None):
 
+    # create output directory
+    if args.output_dir is not None:
+        os.makedirs(args.output_dir, exist_ok=True)
     _log = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
     _log.info(args)
 
@@ -944,7 +947,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     
-    from deq_equiformer.logging_utils import init_wandb
+    from deqff.logging_utils import init_wandb
     init_wandb(args)
 
     main(args)

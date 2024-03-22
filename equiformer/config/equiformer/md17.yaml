@@ -49,7 +49,7 @@ momentum: 0.9
 weight_decay: 5e-3
 # 'LR scheduler (default: cosine' (str)
 sched: "cosine"
-# learning rate (default: 5e-4 (float)
+# learning rate (default: 5e-4 or 1.5e-4) (float)
 lr: 5e-4
 # learning rate noise on/off epoch percentages (float)
 lr_noise: null

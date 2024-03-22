@@ -52,7 +52,7 @@ class DEQDotProductAttentionTransformerMD17(nets.dp_attention_transformer_md17.D
     Modified from equiformer.nets.dp_attention_transformer_md17.DotProductAttentionTransformerMD17
     """
 
-    def __init__(self, deq_mode=True, **kwargs):
+    def __init__(self, deq_mode=True, deq_kwargs=None, **kwargs):
         super(DEQDotProductAttentionTransformerMD17, self).__init__(**kwargs)
         # implicit layer
         # self.mfn = nn.ModuleList([
@@ -64,7 +64,8 @@ class DEQDotProductAttentionTransformerMD17(nets.dp_attention_transformer_md17.D
         # DEQ specific
 
         self.deq_mode = deq_mode
-        self.deq = get_deq(**kwargs)
+        self.deq = get_deq(**deq_kwargs)
+        # self.deq = get_deq(f_solver='broyden', f_max_iter=20, f_tol=1e-6)
         # self.register_buffer('z_aux', self._init_z())
 
         # from DEQ INR example
@@ -269,6 +270,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    deq_kwargs={},
     **kwargs
 ):
     # dot_product_attention_transformer_exp_l2_md17
@@ -302,6 +304,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
         atomref=atomref,
         # DEQ specific
         deq_mode=True,
+        deq_kwargs=deq_kwargs,
     )
     return model
 

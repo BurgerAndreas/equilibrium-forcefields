@@ -117,6 +117,7 @@ def main(args, model=None):
         atomref=None,
         drop_path=args.drop_path,
         num_layers=args.num_layers,
+        deq_kwargs=args.deq_kwargs,
     )
     print(f"model {args.model_name} created")
     # _log.info(model)
@@ -212,6 +213,7 @@ def main(args, model=None):
         return
 
     global_step = 0
+    start_time = time.perf_counter()
     for epoch in range(args.epochs):
 
         epoch_start_time = time.perf_counter()
@@ -324,6 +326,8 @@ def main(args, model=None):
                 # allows us to plot against epoch
                 # in the custom plots, click edit and select a custom x-axis
                 "epoch": epoch, 
+                "time_train": time.perf_counter() - start_time,
+                "time_per_epoch": time.perf_counter() - epoch_start_time,
             }
         if test_err is not None:
             logs["test_e_mae"] = test_err["energy"].avg

@@ -49,11 +49,11 @@ from equiformer.nets.registry import register_model
 
 class DEQGraphAttentionTransformerMD17(nets.graph_attention_transformer_md17.GraphAttentionTransformerMD17):
 
-    def __init__(self, deq_mode=True, **kwargs):
+    def __init__(self, deq_mode=True, deq_kwargs={}, **kwargs):
         super().__init__(**kwargs)
 
         self.deq_mode = deq_mode
-        self.deq = get_deq(**kwargs)
+        self.deq = get_deq(**deq_kwargs)
 
 
     @torch.enable_grad()
@@ -130,6 +130,7 @@ def deq_graph_attention_transformer_nonlinear_l2_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    deq_kwargs={},
     **kwargs
 ):
     model = DEQGraphAttentionTransformerMD17(
@@ -159,5 +160,6 @@ def deq_graph_attention_transformer_nonlinear_l2_md17(
         atomref=atomref,
         # DEQ specific
         deq_mode=True,
+        deq_kwargs=deq_kwargs,
     )
     return model

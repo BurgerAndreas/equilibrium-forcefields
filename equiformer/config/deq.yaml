@@ -13,3 +13,20 @@ model_is_deq: True
 deq_mode: True
 num_layers: 2
 # batch_size: 16
+
+# deq args
+deq_kwargs:
+  # https://torchdeq.readthedocs.io/en/latest/torchdeq/core.html#torchdeq.core.get_deq
+  # 'broyden' anderson newton
+  # (str, optional) – The forward solver function. Default 'fixed_point_iter'
+  f_solver: 'fixed_point_iter'.
+  # (str, optional) – The backward solver function. Default 'fixed_point_iter'.
+  b_solver: 'fixed_point_iter'
+  # f_tol (float, optional) – The forward pass solver stopping criterion. Default 1e-3.
+  f_tol: 1e-3
+  # b_tol (float, optional) – The backward pass solver stopping criterion. Default 1e-6.
+  b_tol: 1e-6
+  # f_max_iter (int, optional) – Maximum number of iterations (NFE) for the forward solver. Default 40.
+  f_max_iter: 40
+  # b_max_iter (int, optional) – Maximum number of iterations (NFE) for the backward solver. Default 40
+  b_max_iter: 40

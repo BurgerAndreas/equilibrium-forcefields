@@ -9,6 +9,8 @@ models1
 wandb
 outputs
 
+slurm-*.out
+
 ###########################################
 
 # Byte-compiled / optimized / DLL files

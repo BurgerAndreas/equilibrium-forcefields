@@ -9,7 +9,7 @@ defaults:
   - _self_
 
 # overwrite basem config
-model_name: "deq_${model_name}"
+model_is_deq: True
 deq_mode: True
 num_layers: 2
 # batch_size: 16

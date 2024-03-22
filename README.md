@@ -1,8 +1,14 @@
 # equilibrium-forcefields
 Scaling Force Fields with Equivariant Deep Equilibrium Models
 
-memory-efficient backpropagation via implicit differentiation
-larger batch sizes
+Perks of Equilibrium Models:
+- memory-efficient backpropagation via implicit differentiation -> less memory use -> larger batch sizes
+
+## Quickstart
+
+```bash
+python scripts/deq_equiformer.py
+```
 
 ## TODO
 

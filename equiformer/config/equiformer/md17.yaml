@@ -110,6 +110,7 @@ meas_force: True
 wandb: True
 wandb_run_name: null
 slurm_job_id: null
+model_is_deq: False
 
 
 # variables we can access in our code

@@ -116,7 +116,7 @@ class DEQGraphAttentionTransformerMD17(nets.graph_attention_transformer_md17.Gra
         return energy, forces
 
 # copy from deq_dp_attention_transformer_md17.py
-from deq_dp_attention_transformer_md17 import DEQDotProductAttentionTransformerMD17
+from deq2ff.deq_dp_attention_transformer_md17 import DEQDotProductAttentionTransformerMD17
 
 DEQGraphAttentionTransformerMD17.forward = DEQDotProductAttentionTransformerMD17.forward 
 DEQGraphAttentionTransformerMD17.encode = DEQDotProductAttentionTransformerMD17.encode 

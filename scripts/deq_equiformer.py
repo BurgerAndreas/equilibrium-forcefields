@@ -9,6 +9,12 @@ import numpy as np
 from torch_geometric.loader import DataLoader
 
 import os
+import sys
+
+# add the root of the project to the path so it can find equiformer
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+print("root_dir:", root_dir)
+sys.path.append(root_dir)
 
 # from logger import FileLogger
 from pathlib import Path
@@ -53,10 +59,10 @@ import wandb
 uses equiformer/main_md17.py
 """
 
-from deq_dp_attention_transformer_md17 import *
-from deq_graph_attention_transformer_md17 import *
+from deq2ff.deq_dp_attention_transformer_md17 import *
+from deq2ff.deq_graph_attention_transformer_md17 import *
 
-@hydra.main(config_name="deq", config_path="equiformer/config", version_base="1.3")
+@hydra.main(config_name="deq", config_path="../equiformer/config", version_base="1.3")
 def hydra_wrapper(args: DictConfig) -> None:
     """Run training loop.
     
@@ -80,7 +86,7 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     print('args:', args)
 
-    from logging_utils import init_wandb
+    from deq2ff.logging_utils import init_wandb
     init_wandb(args)
 
     main(args)

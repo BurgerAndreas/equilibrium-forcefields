@@ -18,23 +18,24 @@ def init_wandb(args: OmegaConf):
     args.slurm_job_id = os.environ.get("SLURM_JOB_ID", None)
     args = set_gpu_name(args)
 
+    if args.model_is_deq is True:
+        args.model_name = f'deq_{args.model_name}'
+
 
     if args.wandb_run_name is None:
         # args.wandb_run_name = args.data_path.split("/")[-1]
-        model_name = args.model_name
-        # omegaconf.errors.InterpolationResolutionError: Recursive interpolation detected
-        args.wandb_run_name = model_name
+        args.wandb_run_name = args.model_name
     
     if args.wandb == False:
         # wandb.init(mode="disabled")
         os.environ["WANDB_DISABLED"] = "true"
 
     # to dict
+    # omegaconf.errors.InterpolationResolutionError: Recursive interpolation detected
     args = OmegaConf.structured(OmegaConf.to_yaml(args))
     # args = OmegaConf.create(args)
     args_wandb = OmegaConf.to_container(args, resolve=True)
-
-    print("args passed to wandb:", args)
+    print("args passed to wandb:", args_wandb)
 
     # wandb.run.name = name_from_config(args)
     wandb.init(

@@ -911,7 +911,7 @@ def evaluate(
 
 
 
-@hydra.main(config_name="md17", config_path="equiformer/config/equiformer", version_base="1.3")
+@hydra.main(config_name="md17", config_path="config/equiformer", version_base="1.3")
 def hydra_wrapper(args: DictConfig) -> None:
     """Run training loop.
     
@@ -944,7 +944,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     
-    from logging_utils import init_wandb
+    from deq_equiformer.logging_utils import init_wandb
     init_wandb(args)
 
     main(args)

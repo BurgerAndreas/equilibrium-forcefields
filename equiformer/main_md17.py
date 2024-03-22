@@ -36,6 +36,7 @@ from omegaconf import DictConfig
 ModelEma = ModelEmaV2
 
 """
+Original command:
 python main_md17.py \
     --output-dir 'models/md17/equiformer/se_l2/target@aspirin/lr@5e-4_wd@1e-6_epochs@1500_w-f2e@80_dropout@0.0_exp@32_l2mae-loss' \
     --model-name 'graph_attention_transformer_nonlinear_exp_l2_md17' \
@@ -50,219 +51,6 @@ python main_md17.py \
     --energy-weight 1 \ # 0.2 default
     --force-weight 80 # 0.8 default
 """
-
-
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-
-def get_args_parser():
-    parser = argparse.ArgumentParser(
-        "Training equivariant networks on MD17", add_help=False
-    )
-    parser.add_argument("--output-dir", type=str, default=None)
-    # network architecture
-    # graph_attention_transformer_nonlinear_exp_l2_md17
-    # dot_product_attention_transformer_exp_l2_md17
-    parser.add_argument(
-        "--model-name",
-        type=str,
-        default="graph_attention_transformer_nonlinear_l2_md17",
-    )
-    parser.add_argument("--input-irreps", type=str, default=None)
-    parser.add_argument("--radius", type=float, default=5.0)
-    parser.add_argument("--num-basis", type=int, default=128)
-    # training hyper-parameters
-    parser.add_argument("--epochs", type=int, default=1000)
-    parser.add_argument("--batch-size", type=int, default=8)  # 8 -> 1
-    parser.add_argument("--eval-batch-size", type=int, default=24)  # 24 -> 2
-    parser.add_argument("--model-ema", action="store_true")
-    parser.set_defaults(model_ema=False)
-    parser.add_argument("--model-ema-decay", type=float, default=0.9999, help="")
-    parser.add_argument(
-        "--model-ema-force-cpu", action="store_true", default=False, help=""
-    )
-    # regularization
-    parser.add_argument("--drop-path", type=float, default=0.0)
-    # optimizer (timm)
-    parser.add_argument(
-        "--opt",
-        default="adamw",
-        type=str,
-        metavar="OPTIMIZER",
-        help='Optimizer (default: "adamw"',
-    )
-    parser.add_argument(
-        "--opt-eps",
-        default=1e-8,
-        type=float,
-        metavar="EPSILON",
-        help="Optimizer Epsilon (default: 1e-8)",
-    )
-    parser.add_argument(
-        "--opt-betas",
-        default=None,
-        type=float,
-        nargs="+",
-        metavar="BETA",
-        help="Optimizer Betas (default: None, use opt default)",
-    )
-    parser.add_argument(
-        "--clip-grad",
-        type=float,
-        default=None,
-        metavar="NORM",
-        help="Clip gradient norm (default: None, no clipping)",
-    )
-    parser.add_argument(
-        "--momentum",
-        type=float,
-        default=0.9,
-        metavar="M",
-        help="SGD momentum (default: 0.9)",
-    )
-    parser.add_argument(
-        # 1e-6
-        "--weight-decay", type=float, default=5e-3, help="weight decay (default: 5e-3)"
-    )
-    # learning rate schedule parameters (timm)
-    parser.add_argument(
-        "--sched",
-        default="cosine",
-        type=str,
-        metavar="SCHEDULER",
-        help='LR scheduler (default: "cosine"',
-    )
-    parser.add_argument(
-        "--lr",
-        type=float,
-        default=5e-4,
-        metavar="LR",
-        help="learning rate (default: 5e-4)",
-    )
-    parser.add_argument(
-        "--lr-noise",
-        type=float,
-        nargs="+",
-        default=None,
-        metavar="pct, pct",
-        help="learning rate noise on/off epoch percentages",
-    )
-    parser.add_argument(
-        "--lr-noise-pct",
-        type=float,
-        default=0.67,
-        metavar="PERCENT",
-        help="learning rate noise limit percent (default: 0.67)",
-    )
-    parser.add_argument(
-        "--lr-noise-std",
-        type=float,
-        default=1.0,
-        metavar="STDDEV",
-        help="learning rate noise std-dev (default: 1.0)",
-    )
-    parser.add_argument(
-        "--warmup-lr",
-        type=float,
-        default=1e-6,
-        metavar="LR",
-        help="warmup learning rate (default: 1e-6)",
-    )
-    parser.add_argument(
-        "--min-lr",
-        type=float,
-        default=1e-6,
-        metavar="LR",
-        help="lower lr bound for cyclic schedulers that hit 0 (1e-6)",
-    )
-
-    parser.add_argument(
-        "--decay-epochs",
-        type=float,
-        default=30,
-        metavar="N",
-        help="epoch interval to decay LR",
-    )
-    parser.add_argument(
-        "--warmup-epochs",
-        type=int,
-        default=10,
-        metavar="N",
-        help="epochs to warmup LR, if scheduler supports",
-    )
-    parser.add_argument(
-        "--cooldown-epochs",
-        type=int,
-        default=10,
-        metavar="N",
-        help="epochs to cooldown LR at min_lr, after cyclic schedule ends",
-    )
-    parser.add_argument(
-        "--patience-epochs",
-        type=int,
-        default=10,
-        metavar="N",
-        help="patience epochs for Plateau LR scheduler (default: 10",
-    )
-    parser.add_argument(
-        "--decay-rate",
-        "--dr",
-        type=float,
-        default=0.1,
-        metavar="RATE",
-        help="LR decay rate (default: 0.1)",
-    )
-    # logging
-    parser.add_argument("--print-freq", type=int, default=100)
-    # task and dataset
-    parser.add_argument("--target", type=str, default="aspirin")
-    parser.add_argument("--data-path", type=str, default="datasets/md17")
-    parser.add_argument("--train-size", type=int, default=950)
-    parser.add_argument("--val-size", type=int, default=50)
-    parser.add_argument("--compute-stats", action="store_true", dest="compute_stats")
-    parser.set_defaults(compute_stats=False)
-    parser.add_argument(
-        "--test-interval",
-        type=int,
-        default=10,
-        help="epoch interval to evaluate on the testing set",
-    )
-    parser.add_argument(
-        "--test-max-iter",
-        type=int,
-        default=1000,
-        help="max iteration to evaluate on the testing set",
-    )
-    parser.add_argument("--energy-weight", type=float, default=0.2)
-    parser.add_argument("--force-weight", type=float, default=0.8)
-    # random
-    parser.add_argument("--seed", type=int, default=1)
-    parser.add_argument("--num_layers", type=int, default=6)
-    # data loader config
-    parser.add_argument("--workers", type=int, default=4)
-    parser.add_argument(
-        "--pin-mem",
-        action="store_true",
-        help="Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.",
-    )
-    parser.add_argument("--no-pin-mem", action="store_false", dest="pin_mem", help="")
-    parser.set_defaults(pin_mem=True)
-    # evaluation
-    parser.add_argument("--checkpoint-path", type=str, default=None)
-    parser.add_argument("--evaluate", action="store_true", dest="evaluate")
-    # parser.add_argument("--meas_force", default=True, action="store_true")
-    parser.add_argument("--meas_force", type=str2bool, nargs='?',
-                        const=True, default=True,
-                        help="Include force in loss calculation.")
-    parser.set_defaults(evaluate=False)
-    return parser
 
 
 # from https://github.com/Open-Catalyst-Project/ocp/blob/main/ocpmodels/modules/loss.py#L7
@@ -925,6 +713,9 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     Usage with slurm:
         sbatch scripts/slurm_launcher.slrm deq_equiformer.py +machine=vector
+    
+    To reprocude the paper results:
+        python deq_equiformer.py input_irreps='64x0e' weight_decay=1e-6 num_basis=32 energy_weight=1 force_weight=80
     """
 
     # graph_attention_transformer_nonlinear_exp_l2_md17
@@ -932,17 +723,12 @@ def hydra_wrapper(args: DictConfig) -> None:
     # args.model_name = "graph_attention_transformer_nonlinear_exp_l2_md17"
 
     args.output_dir = "models/md17/equiformer/se_l2/target@aspirin/lr@5e-4_wd@1e-6_epochs@1500_w-f2e@80_dropout@0.0_exp@32_l2mae-loss"
-    args.input_irreps = "64x0e"
-    args.target = "aspirin"
-    args.data_path = "datasets/md17"
-    args.epochs = 1500
-    args.lr = 5e-4
-    args.batch_size = 1
-    args.eval_batch_size = 2
-    args.weight_decay = 1e-6
-    args.num_basis = 32
-    args.energy_weight = 1
-    args.force_weight = 80
+    # args.input_irreps = "64x0e"
+    # args.epochs = 1500
+    # args.weight_decay = 1e-6
+    # args.num_basis = 32
+    # args.energy_weight = 1
+    # args.force_weight = 80
 
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)

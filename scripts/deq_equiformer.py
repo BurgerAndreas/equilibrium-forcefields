@@ -93,26 +93,9 @@ def hydra_wrapper(args: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    # from equiformer.main_md17 import get_args_parser
 
-    # parser = argparse.ArgumentParser(
-    #     "Training equivariant networks on MD17", parents=[get_args_parser()]
-    # )
-    # args = parser.parse_args()
-
-    # args.model_name = "deq_dot_product_attention_transformer_exp_l2_md17"
-    # args.deq_mode = True
-    # args.num_layers = 2 # 6 -> 1
-    # args.meas_force = True 
-
-    # args.output_dir = "models/md17/deq-equiformer/test1"
-    # print("args:", args.model_name)
 
     # TODO try to overfit on tiny subset of data
     # args.train_size = 100
-
-    # from equiformer.main_md17 import main
-
-    # main(args)
 
     hydra_wrapper()

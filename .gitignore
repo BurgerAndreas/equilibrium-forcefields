@@ -6,6 +6,9 @@ ocp
 models/*
 models1
 
+wandb
+outputs
+
 ###########################################
 
 # Byte-compiled / optimized / DLL files

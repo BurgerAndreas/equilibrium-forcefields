@@ -947,7 +947,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     
-    from deqff.logging_utils import init_wandb
+    from deq2ff.logging_utils import init_wandb
     init_wandb(args)
 
     main(args)

@@ -22,7 +22,8 @@ echo `date`: Job $SLURM_JOB_ID is allocated resource
 # bash scripts/slurm_lora.sh
 echo "Inside slurm_launcher.slrm ($0). received arguments: $@"
 
-export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/equilibrium-forcefields/train
+# export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/equilibrium-forcefields/train
+export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/equilibrium-forcefields
 if [[ $1 == *"test"* ]]; then
     echo "Found test in the filename. Changing the scriptdir to /h/burgeran/equilibrium-forcefields/equilibrium-forcefields/test"
     export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/tests
@@ -32,30 +33,29 @@ fi
 echo "Submitting ${SCRIPTDIR}/$@"
 
 # V1
-# /h/burgeran/equilibrium-forcefields/venv10/bin/python accelerate launch ${SCRIPTDIR}/"$@"
+# /h/burgeran/venv10/bin/python ${SCRIPTDIR}/"$@"
 
 # V2 - works!
-source /h/burgeran/equilibrium-forcefields/venv10/bin/activate
-/h/burgeran/equilibrium-forcefields/venv10/bin/accelerate launch ${SCRIPTDIR}/"$@"
+source /h/burgeran/venv10/bin/activate
+/h/burgeran/venv10/bin/python ${SCRIPTDIR}/"$@"
 
 # V3
-# /h/burgeran/equilibrium-forcefields/venv10/bin/accelerate-launch ${SCRIPTDIR}/"$@"
+# /h/burgeran/venv10/bin/accelerate-launch ${SCRIPTDIR}/"$@"
 
 # V4
-# source ~/equilibrium-forcefields/venv10/bin/activate
-# accelerate launch ${SCRIPTDIR}/"$@"
+# source ~/venv10/bin/activate
+# python ${SCRIPTDIR}/"$@"
 # deactivate
 
 echo `date`: "Job $SLURM_JOB_ID finished running, exit code: $?"
 
-date=$(date '+%Y-%m-%d')
-archive=$HOME/finished_jobs/$date/$SLURM_JOB_ID
-mkdir -p $archive
+# date=$(date '+%Y-%m-%d')
+# archive=$HOME/finished_jobs/$date/$SLURM_JOB_ID
+# mkdir -p $archive
 
-echo archive $archive
+# echo archive $archive
 # cp ./$SLURM_JOB_ID.out $archive/job.out
 # cp ./$SLURM_JOB_ID.err $archive/job.err
 
 # usage: 
-# sbatch scripts/slurm_min.slrm train_spllora.py +machine=vector return_embedding=4 wandb_run_name="spllorae4" train_batch_size=16
-# sbatch scripts/slurm_min.slrm train_spllora.py +machine=vector wandb_run_name="spllorabs16" train_batch_size=16
+# sbatch scripts/slurm_launcher.slrm deq_equiformer.py +machine=vector batch_size=16

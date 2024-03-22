@@ -21,7 +21,9 @@ def init_wandb(args: OmegaConf):
 
     if args.wandb_run_name is None:
         # args.wandb_run_name = args.data_path.split("/")[-1]
-        args.wandb_run_name = args.model_name
+        model_name = args.model_name
+        # omegaconf.errors.InterpolationResolutionError: Recursive interpolation detected
+        args.wandb_run_name = model_name
     
     if args.wandb == False:
         # wandb.init(mode="disabled")

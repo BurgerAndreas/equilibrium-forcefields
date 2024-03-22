@@ -41,10 +41,13 @@ cd ../../..
 pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse -y
 pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
 pip install torch_geometric pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu121.html
+# pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu118
+# pip install torch_geometric pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
 
-pip install scikit-image 
+pip install scikit-image matplotlib
 
 pip install torchdeq
+pip install e3nn==0.4.4 timm==0.4.12
 
 pip install hydra-core wandb omegaconf
 

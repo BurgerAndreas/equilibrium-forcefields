@@ -506,6 +506,7 @@ def main(args, model=None):
                 ),
             )
 
+        # log once per epoch
         info_str = "Epoch: [{epoch}] Target: [{target}] train_e_MAE: {train_e_mae:.5f}, train_f_MAE: {train_f_mae:.5f}, ".format(
             epoch=epoch,
             target=args.target,
@@ -523,16 +524,21 @@ def main(args, model=None):
         _log.info(info_str)
 
         # log to wandb
-        wandb.log(
-            {
+        logs = {
                 "train_e_mae": train_err["energy"].avg,
                 "train_f_mae": train_err["force"].avg,
                 "val_e_mae": val_err["energy"].avg,
                 "val_f_mae": val_err["force"].avg,
-                "test_e_mae": test_err["energy"].avg if test_err is not None else None,
-                "test_f_mae": test_err["force"].avg if test_err is not None else None,
                 "lr": optimizer.param_groups[0]["lr"],
-            },
+                # allows us to plot against epoch
+                # in the custom plots, click edit and select a custom x-axis
+                "epoch": epoch, 
+            }
+        if test_err is not None:
+            logs["test_e_mae"] = test_err["energy"].avg
+            logs["test_f_mae"] = test_err["force"].avg
+        wandb.log(
+            logs,
             # step=epoch,
             step=global_step,
         )

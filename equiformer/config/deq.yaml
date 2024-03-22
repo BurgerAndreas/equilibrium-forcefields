@@ -12,3 +12,4 @@ defaults:
 model_name: "deq_${model_name}"
 deq_mode: True
 num_layers: 2
+# batch_size: 16

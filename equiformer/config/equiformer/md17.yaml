@@ -11,6 +11,8 @@ defaults:
 # (str)
 output_dir: null
 # (str)
+# dot_product_attention_transformer_exp_l2_md17
+# graph_attention_transformer_nonlinear_l2_md17 # paper
 model_name: "graph_attention_transformer_nonlinear_l2_md17"
 # (str)
 input_irreps: null

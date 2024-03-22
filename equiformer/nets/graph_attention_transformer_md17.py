@@ -350,11 +350,11 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
         node_features = atom_embedding + edge_degree_embedding
         node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
 
-        print(f'\nInitial: {node_features.shape}')
+        # print(f'\nInitial: {node_features.shape}')
         # irreps_block_output = self.irreps_node_embedding
         # 21, 480 -> 21, 480
         for blknum, blk in enumerate(self.blocks):
-            print(f'Block {blknum}: {node_features.shape}')
+            # print(f'Block {blknum}: {node_features.shape}')
             node_features = blk(
                 node_input=node_features,
                 node_attr=node_attr,
@@ -364,7 +364,7 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
                 edge_scalars=edge_length_embedding,
                 batch=batch,
             )
-        print(f' After blocks: {node_features.shape}')
+        # print(f' After blocks: {node_features.shape}')
 
         # Final block: 21, 480 -> 21, 512
         # irreps_block_output = self.irreps_feature
@@ -377,16 +377,16 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
             edge_scalars=edge_length_embedding,
             batch=batch,
         )
-        print(f'After final block: {node_features.shape}')
+        # print(f'After final block: {node_features.shape}')
 
         # 21, 512 -> 21, 512
         node_features = self.norm(node_features, batch=batch)
-        print(f'After norm: {node_features.shape}')
+        # print(f'After norm: {node_features.shape}')
 
 
         if self.out_dropout is not None:
             node_features = self.out_dropout(node_features)
-            print(f'After out_dropout: {node_features.shape}')
+            # print(f'After out_dropout: {node_features.shape}')
         
         # outputs
         # 21, 512 -> 21, 1
@@ -402,11 +402,11 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
             )
         else:
             outputs = self.head(node_features)
-        print(f'outputs after head: {outputs.shape}')
+        # print(f'outputs after head: {outputs.shape}')
 
         # 21, 1 -> 1, 1
         outputs = self.scale_scatter(outputs, batch, dim=0)
-        print(f'outputs after scale: {outputs.shape}')
+        # print(f'outputs after scale: {outputs.shape}')
 
         if self.scale is not None:
             outputs = self.scale * outputs

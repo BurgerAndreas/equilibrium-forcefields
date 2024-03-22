@@ -335,7 +335,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
 #################################################################
 
 
-@hydra.main(config_name="md17", config_path="equiformer/config", version_base="1.3")
+@hydra.main(config_name="deq", config_path="equiformer/config", version_base="1.3")
 def hydra_wrapper(args: DictConfig) -> None:
     """Run training loop.
     
@@ -349,15 +349,19 @@ def hydra_wrapper(args: DictConfig) -> None:
     """
 
     args.model_name = "deq_dot_product_attention_transformer_exp_l2_md17"
-    args.deq_mode = True
-    args.num_layers = 2 # 6 -> 1
-    args.meas_force = True 
+    # args.deq_mode = True
+    # args.num_layers = 2 # 6 -> 1
+    # args.meas_force = True 
 
     args.output_dir = "models/md17/deq-equiformer/test1"
-    print("args:", args.model_name)
 
     from equiformer.main_md17 import main
 
+    print('args:', args)
+
+    from logging_utils import init_wandb
+    init_wandb(args)
+    
     main(args)
 
 

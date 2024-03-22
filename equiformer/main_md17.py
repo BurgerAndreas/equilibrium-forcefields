@@ -28,6 +28,10 @@ from equiformer.optim_factory import create_optimizer
 
 from equiformer.engine import AverageMeter, compute_stats
 
+import hydra
+import wandb
+import omegaconf
+from omegaconf import DictConfig
 
 ModelEma = ModelEmaV2
 
@@ -416,13 +420,14 @@ def main(args, model=None):
         )
         return
 
+    global_step = 0
     for epoch in range(args.epochs):
 
         epoch_start_time = time.perf_counter()
 
         lr_scheduler.step(epoch)
 
-        train_err, train_loss = train_one_epoch(
+        train_err, train_loss, global_step = train_one_epoch(
             args=args,
             model=model,
             criterion=criterion,
@@ -430,6 +435,7 @@ def main(args, model=None):
             optimizer=optimizer,
             device=device,
             epoch=epoch,
+            global_step=global_step,
             model_ema=model_ema,
             print_freq=args.print_freq,
             logger=_log,
@@ -516,6 +522,21 @@ def main(args, model=None):
         info_str += "Time: {:.2f}s".format(time.perf_counter() - epoch_start_time)
         _log.info(info_str)
 
+        # log to wandb
+        wandb.log(
+            {
+                "train_e_mae": train_err["energy"].avg,
+                "train_f_mae": train_err["force"].avg,
+                "val_e_mae": val_err["energy"].avg,
+                "val_f_mae": val_err["force"].avg,
+                "test_e_mae": test_err["energy"].avg if test_err is not None else None,
+                "test_f_mae": test_err["force"].avg if test_err is not None else None,
+                "lr": optimizer.param_groups[0]["lr"],
+            },
+            # step=epoch,
+            step=global_step,
+        )
+
         info_str = "Best -- val_epoch={}, test_epoch={}, ".format(
             best_metrics["val_epoch"], best_metrics["test_epoch"]
         )
@@ -526,6 +547,18 @@ def main(args, model=None):
             best_metrics["test_energy_err"], best_metrics["test_force_err"]
         )
         _log.info(info_str)
+
+        # log to wandb
+        wandb.log(
+            {
+                "best_val_e_mae": best_metrics["val_energy_err"],
+                "best_val_f_mae": best_metrics["val_force_err"],
+                "best_test_e_mae": best_metrics["test_energy_err"],
+                "best_test_f_mae": best_metrics["test_force_err"],
+            },
+            # step=epoch,
+            step=global_step,
+        )
 
         # evaluation with EMA
         if model_ema is not None:
@@ -598,10 +631,28 @@ def main(args, model=None):
             info_str += "val_e_MAE: {:.5f}, val_f_MAE: {:.5f}, ".format(
                 ema_val_err["energy"].avg, ema_val_err["force"].avg
             )
+            wandb.log(
+                {
+                    "EMA_val_e_mae": ema_val_err["energy"].avg,
+                    "EMA_val_f_mae": ema_val_err["force"].avg,
+                },
+                # step=epoch,
+                step=global_step,
+            )
+
             if (epoch + 1) % args.test_interval == 0:
                 info_str += "test_e_MAE: {:.5f}, test_f_MAE: {:.5f}, ".format(
                     ema_test_err["energy"].avg, ema_test_err["force"].avg
                 )
+                wandb.log(
+                    {
+                        "EMA_test_e_mae": ema_test_err["energy"].avg,
+                        "EMA_test_f_mae": ema_test_err["force"].avg,
+                    },
+                    # step=epoch,
+                    step=global_step,
+                )
+
             info_str += "Time: {:.2f}s".format(time.perf_counter() - epoch_start_time)
             _log.info(info_str)
 
@@ -615,6 +666,19 @@ def main(args, model=None):
                 best_ema_metrics["test_energy_err"], best_ema_metrics["test_force_err"]
             )
             _log.info(info_str)
+
+            # log to wandb
+            wandb.log(
+                {
+                    "EMA_best_val_e_mae": best_ema_metrics["val_energy_err"],
+                    "EMA_best_val_f_mae": best_ema_metrics["val_force_err"],
+                    "EMA_best_test_e_mae": best_ema_metrics["test_energy_err"],
+                    "EMA_best_test_f_mae": best_ema_metrics["test_force_err"],
+                },
+                # step=epoch,
+                step=global_step,
+            )
+
 
     # evaluate on the whole testing set
     test_err, test_loss = evaluate(
@@ -678,6 +742,7 @@ def train_one_epoch(
     optimizer: torch.optim.Optimizer,
     device: torch.device,
     epoch: int,
+    global_step: int,
     model_ema: Optional[ModelEma] = None,
     print_freq: int = 100,
     logger=None,
@@ -755,7 +820,20 @@ def train_one_epoch(
             info_str += "lr={:.2e}".format(optimizer.param_groups[0]["lr"])
             logger.info(info_str)
 
-    return mae_metrics, loss_metrics
+            # log to wandb
+            wandb.log(
+                {
+                    "train_loss": loss.item(),
+                    "train_e_mae": mae_metrics["energy"].avg,
+                    "train_f_mae": mae_metrics["force"].avg,
+                    "lr": optimizer.param_groups[0]["lr"],
+                },
+                step=global_step,
+            )
+
+        global_step += 1
+
+    return mae_metrics, loss_metrics, global_step
 
 
 def evaluate(
@@ -826,17 +904,25 @@ def evaluate(
     return mae_metrics, loss_metrics
 
 
-if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        "Training equivariant networks on MD17", parents=[get_args_parser()]
-    )
-    args = parser.parse_args()
+@hydra.main(config_name="md17", config_path="equiformer/config/equiformer", version_base="1.3")
+def hydra_wrapper(args: DictConfig) -> None:
+    """Run training loop.
+    
+    Usage:
+        python deq_equiformer.py
+        python deq_equiformer.py batch_size=8
+        python deq_equiformer.py +machine=vector
 
-    args.output_dir = "models/md17/equiformer/se_l2/target@aspirin/lr@5e-4_wd@1e-6_epochs@1500_w-f2e@80_dropout@0.0_exp@32_l2mae-loss"
+    Usage with slurm:
+        sbatch scripts/slurm_launcher.slrm deq_equiformer.py +machine=vector
+    """
+
     # graph_attention_transformer_nonlinear_exp_l2_md17
     # dot_product_attention_transformer_exp_l2_md17
-    args.model_name = "graph_attention_transformer_nonlinear_exp_l2_md17"
+    # args.model_name = "graph_attention_transformer_nonlinear_exp_l2_md17"
+
+    args.output_dir = "models/md17/equiformer/se_l2/target@aspirin/lr@5e-4_wd@1e-6_epochs@1500_w-f2e@80_dropout@0.0_exp@32_l2mae-loss"
     args.input_irreps = "64x0e"
     args.target = "aspirin"
     args.data_path = "datasets/md17"
@@ -851,4 +937,20 @@ if __name__ == "__main__":
 
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    
+    from logging_utils import init_wandb
+    init_wandb(args)
+
     main(args)
+
+if __name__ == "__main__":
+
+    # parser = argparse.ArgumentParser(
+    #     "Training equivariant networks on MD17", parents=[get_args_parser()]
+    # )
+    # args = parser.parse_args()
+
+    # graph_attention_transformer_nonlinear_exp_l2_md17
+    # dot_product_attention_transformer_exp_l2_md17
+    
+    hydra_wrapper()

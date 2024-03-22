@@ -1,0 +1,128 @@
+{
+    "os": "Linux-6.5.0-18-generic-x86_64-with-glibc2.35",
+    "python": "3.9.19",
+    "heartbeatAt": "2024-03-22T13:54:03.297818",
+    "startedAt": "2024-03-22T13:54:02.977905",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/ssd/gen/equilibrium-forcefields/deq_equiformer_dp_attention.py",
+    "codePathLocal": "deq_equiformer_dp_attention.py",
+    "codePath": "deq_equiformer_dp_attention.py",
+    "git": {
+        "remote": "git@github.com:BurgerAndreas/equilibrium-forcefields.git",
+        "commit": "628b2000f1e796a8f7d7c7ea644b4e981ce22291"
+    },
+    "email": "andreas.burger@mail.utoronto.ca",
+    "root": "/ssd/gen/equilibrium-forcefields",
+    "host": "andreasb-lenovo",
+    "username": "andreasburger",
+    "executable": "/home/andreasburger/miniforge3/envs/deq/bin/python",
+    "cpu_count": 10,
+    "cpu_count_logical": 16,
+    "cpu_freq": {
+        "current": 2182.29725,
+        "min": 800.0,
+        "max": 4275.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 4039.294,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 800.0,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 4064.097,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 1366.317,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 4100.219,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 4112.401,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 4104.384,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 3313.756,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 3997.138,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 4062.914,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 3742.676,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 800.0,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 3271.37,
+            "min": 800.0,
+            "max": 3300.0
+        },
+        {
+            "current": 2599.889,
+            "min": 800.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1851.745,
+            "min": 800.0,
+            "max": 3300.0
+        },
+        {
+            "current": 2450.009,
+            "min": 800.0,
+            "max": 3300.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 467.8895797729492,
+            "used": 376.1101531982422
+        }
+    },
+    "gpu": "NVIDIA GeForce RTX 3060",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3060",
+            "memory_total": 12884901888
+        }
+    ],
+    "memory": {
+        "total": 31.066184997558594
+    }
+}

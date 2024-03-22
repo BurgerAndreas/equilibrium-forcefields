@@ -1,0 +1,127 @@
+import hydra
+import wandb
+import omegaconf
+from omegaconf import OmegaConf
+import numpy as np
+
+import os
+import sys
+
+import torch
+
+from equiformer.config.paths import ROOT_DIR
+
+def init_wandb(args: OmegaConf):
+    """init shared across all methods"""
+
+    # add params to wandb
+    args.slurm_job_id = os.environ.get("SLURM_JOB_ID", None)
+    args = set_gpu_name(args)
+
+
+    if args.wandb_run_name is None:
+        # args.wandb_run_name = args.data_path.split("/")[-1]
+        args.wandb_run_name = args.model_name
+    
+    if args.wandb == False:
+        # wandb.init(mode="disabled")
+        os.environ["WANDB_DISABLED"] = "true"
+
+    # to dict
+    args = OmegaConf.structured(OmegaConf.to_yaml(args))
+    # args = OmegaConf.create(args)
+    args_wandb = OmegaConf.to_container(args, resolve=True)
+
+    print("args passed to wandb:", args)
+
+    # wandb.run.name = name_from_config(args)
+    wandb.init(
+        project="EquilibriumEquiFormer",
+        # entity="andreas-burger",
+        name=args.wandb_run_name,
+        config=args_wandb,
+        # reinit=True,
+    )
+
+def final_logging(args):
+    """Log final information."""
+    args.slurm_job_id = os.environ.get("SLURM_JOB_ID", None)
+    # for name, value in os.environ.items():
+
+    if args.slurm_job_id is not None:
+        # find file in slurm-<job_id>.out in ROOT_DIR
+        slurm_file = f"slurm-{args.slurm_job_id}.out"
+        slurm_file = os.path.join(ROOT_DIR, slurm_file)
+        if os.path.exists(slurm_file):
+            wandb.save(slurm_file, base_path=ROOT_DIR)
+            print(f"Saved {slurm_file} to wandb.")
+        else:
+            print(f"Could not find {slurm_file}.")
+
+
+
+IGNORE_OVERRIDES = [
+    "resume_from_checkpoint",
+    "output_dir",
+    "logging_dir",
+    "checkpointing_steps",
+    "override_dirname",
+    "wandb_project",
+    "wandb_entity",
+    "wandb_run_name",
+    "num_train_epochs",
+    "machine",
+    "basemodel",
+]
+
+
+def name_from_config(args: omegaconf.DictConfig) -> str:
+    """Generate a name for the model based on the config.
+    Name is intended to be used as a file name for saving checkpoints and outputs.
+    """
+    try:
+        mname = args.wandb_run_name
+        # override format: 'pretrain_dataset=bridge,steps=10,use_wandb=False'
+        override_names = ""
+        if args.override_dirname:
+            for arg in args.override_dirname.split(","):
+                # make sure we ignore some overrides
+                if np.any([ignore in arg for ignore in IGNORE_OVERRIDES]):
+                    continue
+                else:
+                    override = arg.replace("+", "").replace("_", "")
+                    override = override.replace("=", "-").replace(".", "")
+                    override_names += "_" + override
+    except Exception as error:
+        print("\nname_from_config() failed:", error)
+        print("args:", args)
+        raise error
+    # logger.info("name_from_config() mname: %s, override_names: %s", mname, override_names)
+    return mname + override_names
+
+def set_gpu_name(args):
+    """Set wandb.run.name."""
+    try:
+        gpu_name = torch.cuda.get_device_name(0)
+        gpu_name = (
+            gpu_name.replace("NVIDIA", "").replace("GeForce", "").replace(" ", "")
+        )
+        args.gpu_name = gpu_name
+    except:
+        pass
+    return args
+
+def set_wandb_name(args, initial_global_step, global_step=None):
+    """Set wandb.run.name."""
+    try:
+        gpu_name = torch.cuda.get_device_name(0)
+        gpu_name = (
+            gpu_name.replace("NVIDIA", "").replace("GeForce", "").replace(" ", "")
+        )
+        run_name = name_from_config(args)
+        run_name += f"-{gpu_name}-{initial_global_step}"
+        if (global_step is not None) and (global_step != initial_global_step):
+            run_name += f"-{global_step}"
+        wandb.run.name = run_name
+    except:
+        pass

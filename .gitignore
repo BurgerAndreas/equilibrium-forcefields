@@ -3,6 +3,11 @@ datasets/*
 equiformer/datasets/oc20
 ocp
 
+models/*
+models1
+
+###########################################
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -127,7 +132,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
-env/
+# env/
 venv/
 ENV/
 env.bak/

@@ -23,10 +23,14 @@ echo `date`: Job $SLURM_JOB_ID is allocated resource
 echo "Inside slurm_launcher.slrm ($0). received arguments: $@"
 
 # export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/equilibrium-forcefields/train
-export SCRIPTDIR=/h/burgeran/equilibrium-forcefields
+export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/equiformer
 if [[ $1 == *"test"* ]]; then
     echo "Found test in the filename. Changing the scriptdir to /h/burgeran/equilibrium-forcefields/test"
     export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/tests
+fi
+if [[ $1 == *"deq"* ]]; then
+    echo "Found test in the filename. Changing the scriptdir to /h/burgeran/equilibrium-forcefields/test"
+    export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/scripts
 fi
 
 # hand over all arguments to the script

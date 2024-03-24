@@ -74,12 +74,16 @@ config_dir = os.path.join(root_dir, "equiformer/config")
 def do_test(args_base: DictConfig) -> None:
     # https://github.com/locuslab/torchdeq/blob/4f6bd5fa66dd991cad74fcc847c88061764cf8db/torchdeq/grad.py#L155
     deq_kwargs_sweep = [
-        {"ift": False, "grad": 1},
-        {"ift": False, "grad": 3},
-        {"ift": True, "grad": 1},
-        {},
-        # {}, # add another to test the same basemodel (equiformer) for rounding errors
+        {"grad": 1},
+        {"grad": 3},
+        {"grad": 10},
+        {"ift": True},
     ]
+
+    # test the same basemodel (equiformer) for rounding errors
+    # deq_kwargs_sweep = [
+    #     {}, {},
+    # ]
 
     args_base = OmegaConf.structured(OmegaConf.to_yaml(args_base))
     # args_base = omegaconf.OmegaConf.resolve(args_base)
@@ -254,6 +258,8 @@ def do_test(args_base: DictConfig) -> None:
         for j in range(i+1, len(log_energy)):
             print('')
             print(f' {deq_kwargs_sweep[i]}  |  {deq_kwargs_sweep[j]}')
+            if deq_kwargs_sweep[i] == deq_kwargs_sweep[j]:
+                print('Same model -> difference is due to rounding errors or randomness (e-7)')
             print(f'energy difference: {difference(log_energy[i], log_energy[j])}   (magnitude: {absscale(log_energy[i])})')
             print(f'force difference:  {difference(log_force[i], log_force[j])}   (magnitude: {absscale(log_force[i])})')
             print(f'loss_e difference: {difference(log_loss_e[i], log_loss_e[j])}   (magnitude: {absscale(log_loss_e[i])})')

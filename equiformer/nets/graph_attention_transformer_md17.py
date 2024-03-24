@@ -425,12 +425,23 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
 
         return energy, forces
 
+# 11 -> all the same
+# irreps_node_attr="1x0e"
+# fc_neurons=[64, 64]
+# num_heads=4
+# irreps_pre_attn=None,
+# norm_layer="layer",
+# proj_drop=0.0,
+# out_drop=0.0,
+# drop_path_rate=0.0,
+# scale=None,
 
 @register_model
 def graph_attention_transformer_l2_md17(
     irreps_in,
     radius,
     num_basis=128,
+    num_layers=6,
     atomref=None,
     task_mean=None,
     task_std=None,
@@ -439,7 +450,7 @@ def graph_attention_transformer_l2_md17(
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
         irreps_node_embedding="128x0e+64x1e+32x2e",
-        num_layers=6,
+        num_layers=num_layers,
         irreps_node_attr="1x0e",
         irreps_sh="1x0e+1x1e+1x2e",
         max_radius=radius,
@@ -474,12 +485,13 @@ def graph_attention_transformer_nonlinear_l2_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    num_layers=6,
     **kwargs
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
         irreps_node_embedding="128x0e+64x1e+32x2e",
-        num_layers=6,
+        num_layers=num_layers,
         irreps_node_attr="1x0e",
         irreps_sh="1x0e+1x1e+1x2e",
         max_radius=radius,
@@ -514,12 +526,13 @@ def graph_attention_transformer_nonlinear_l2_e3_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    num_layers=6,
     **kwargs
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
         irreps_node_embedding="128x0e+32x0o+32x1e+32x1o+16x2e+16x2o",
-        num_layers=6,
+        num_layers=num_layers,
         irreps_node_attr="1x0e",
         irreps_sh="1x0e+1x1o+1x2e",
         max_radius=radius,
@@ -554,12 +567,13 @@ def graph_attention_transformer_nonlinear_bessel_l2_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    num_layers=6,
     **kwargs
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
         irreps_node_embedding="128x0e+64x1e+32x2e",
-        num_layers=6,
+        num_layers=num_layers,
         irreps_node_attr="1x0e",
         irreps_sh="1x0e+1x1e+1x2e",
         max_radius=radius,
@@ -595,12 +609,13 @@ def graph_attention_transformer_nonlinear_exp_l2_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    num_layers=6,
     **kwargs
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
         irreps_node_embedding="128x0e+64x1e+32x2e",
-        num_layers=6,
+        num_layers=num_layers,
         irreps_node_attr="1x0e",
         irreps_sh="1x0e+1x1e+1x2e",
         max_radius=radius,
@@ -636,12 +651,13 @@ def graph_attention_transformer_nonlinear_exp_l3_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    num_layers=6,
     **kwargs
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
         irreps_node_embedding="128x0e+64x1e+64x2e+32x3e",
-        num_layers=6,
+        num_layers=num_layers,
         irreps_node_attr="1x0e",
         irreps_sh="1x0e+1x1e+1x2e+1x3e",
         max_radius=radius,
@@ -677,12 +693,13 @@ def graph_attention_transformer_nonlinear_attn_exp_l3_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    num_layers=6,
     **kwargs
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
         irreps_node_embedding="128x0e+64x1e+64x2e+32x3e",
-        num_layers=6,
+        num_layers=num_layers,
         irreps_node_attr="1x0e",
         irreps_sh="1x0e+1x1e+1x2e+1x3e",
         max_radius=radius,
@@ -719,12 +736,13 @@ def graph_attention_transformer_nonlinear_exp_l3_e3_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    num_layers=6,
     **kwargs
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
         irreps_node_embedding="128x0e+64x0o+32x1e+32x1o+32x2e+32x2o+16x3e+16x3o",
-        num_layers=6,
+        num_layers=num_layers,
         irreps_node_attr="1x0e",
         irreps_sh="1x0e+1x1o+1x2e+1x3o",
         max_radius=radius,
@@ -760,12 +778,13 @@ def graph_attention_transformer_nonlinear_bessel_l3_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    num_layers=6,
     **kwargs
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
         irreps_node_embedding="128x0e+64x1e+64x2e+32x3e",
-        num_layers=6,
+        num_layers=num_layers,
         irreps_node_attr="1x0e",
         irreps_sh="1x0e+1x1e+1x2e+1x3e",
         max_radius=radius,
@@ -801,12 +820,13 @@ def graph_attention_transformer_nonlinear_bessel_l3_e3_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    num_layers=6,
     **kwargs
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
         irreps_node_embedding="128x0e+64x0o+32x1e+32x1o+32x2e+32x2o+16x3e+16x3o",
-        num_layers=6,
+        num_layers=num_layers,
         irreps_node_attr="1x0e",
         irreps_sh="1x0e+1x1o+1x2e+1x3o",
         max_radius=radius,

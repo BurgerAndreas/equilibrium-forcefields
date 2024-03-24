@@ -1,11 +1,12 @@
 import torch
+import torch.nn as nn
 from torch_cluster import radius_graph
 from torch_scatter import scatter
 
-import e3nn
 from e3nn import o3
-from e3nn.util.jit import compile_mode
-from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
+# import e3nn
+# from e3nn.util.jit import compile_mode
+# from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
 
 import torch_geometric
 import math
@@ -461,6 +462,7 @@ def graph_attention_transformer_l2_md17(
         scale=None,
         atomref=atomref,
     )
+    print(f'! Ignoring kwargs: {kwargs}')
     return model
 
 
@@ -500,6 +502,7 @@ def graph_attention_transformer_nonlinear_l2_md17(
         scale=None,
         atomref=atomref,
     )
+    print(f'! Ignoring kwargs: {kwargs}')
     return model
 
 
@@ -539,6 +542,7 @@ def graph_attention_transformer_nonlinear_l2_e3_md17(
         scale=None,
         atomref=atomref,
     )
+    print(f'! Ignoring kwargs: {kwargs}')
     return model
 
 
@@ -579,6 +583,7 @@ def graph_attention_transformer_nonlinear_bessel_l2_md17(
         scale=None,
         atomref=atomref,
     )
+    print(f'! Ignoring kwargs: {kwargs}')
     return model
 
 
@@ -619,6 +624,7 @@ def graph_attention_transformer_nonlinear_exp_l2_md17(
         scale=None,
         atomref=atomref,
     )
+    print(f'! Ignoring kwargs: {kwargs}')
     return model
 
 
@@ -659,6 +665,7 @@ def graph_attention_transformer_nonlinear_exp_l3_md17(
         scale=None,
         atomref=atomref,
     )
+    print(f'! Ignoring kwargs: {kwargs}')
     return model
 
 
@@ -700,6 +707,7 @@ def graph_attention_transformer_nonlinear_attn_exp_l3_md17(
         scale=None,
         atomref=atomref,
     )
+    print(f'! Ignoring kwargs: {kwargs}')
     return model
 
 
@@ -740,6 +748,7 @@ def graph_attention_transformer_nonlinear_exp_l3_e3_md17(
         scale=None,
         atomref=atomref,
     )
+    print(f'! Ignoring kwargs: {kwargs}')
     return model
 
 
@@ -780,6 +789,7 @@ def graph_attention_transformer_nonlinear_bessel_l3_md17(
         scale=None,
         atomref=atomref,
     )
+    print(f'! Ignoring kwargs: {kwargs}')
     return model
 
 
@@ -820,4 +830,5 @@ def graph_attention_transformer_nonlinear_bessel_l3_e3_md17(
         scale=None,
         atomref=atomref,
     )
+    print(f'! Ignoring kwargs: {kwargs}')
     return model

@@ -39,10 +39,10 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 
-import e3nn
 from e3nn import o3
-from e3nn.util.jit import compile_mode
-from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
+# import e3nn
+# from e3nn.util.jit import compile_mode
+# from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
 
 from equiformer.nets.registry import register_model
 
@@ -52,8 +52,10 @@ class DEQDotProductAttentionTransformerMD17(nets.dp_attention_transformer_md17.D
     Modified from equiformer.nets.dp_attention_transformer_md17.DotProductAttentionTransformerMD17
     """
 
-    def __init__(self, deq_mode=True, deq_kwargs=None, **kwargs):
-        super(DEQDotProductAttentionTransformerMD17, self).__init__(**kwargs)
+    def __init__(self, deq_mode=True, deq_kwargs={}, **kwargs):
+        # print(f'DEQDotProductAttentionTransformerMD17 passed kwargs: {kwargs}')
+        super().__init__(**kwargs)
+
         # implicit layer
         # self.mfn = nn.ModuleList([
         #     MFNLinear(d_hidden, d_hidden) for _ in range(n_layer)
@@ -211,7 +213,7 @@ class DEQDotProductAttentionTransformerMD17(nets.dp_attention_transformer_md17.D
 
         return energy, forces
 
-    def forward(self, node_atom, pos, batch, z=None):
+    def forward(self, node_atom, pos, batch, z=None, return_grad=False):
         """Forward pass of the DEQ model."""
 
         # encode
@@ -242,6 +244,7 @@ class DEQDotProductAttentionTransformerMD17(nets.dp_attention_transformer_md17.D
         # z: list[torch.tensor shape [42, 480]]
         if self.deq_mode:
             solver_kwargs = {"f_max_iter": 0} if reuse else {}
+            # returns the sampled fixed point trajectory (tracked gradients)
             # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
             z_pred, info = self.deq(f, node_features, solver_kwargs=solver_kwargs)
 
@@ -251,12 +254,17 @@ class DEQDotProductAttentionTransformerMD17(nets.dp_attention_transformer_md17.D
         # decode
         # outputs: list[Tuple(energy: torch.tensor [2, 1], force: torch.tensor [42, 3])]
         # outputs = [self.out(z) for z in z_pred]
-        outputs = [self.decode(node_features=z, u=u, batch=batch, pos=pos) for z in z_pred]
+            
+        # outputs = [self.decode(node_features=z, u=u, batch=batch, pos=pos) for z in z_pred]
+        # energy = outputs[-1][0]
+        # force = outputs[-1][1] 
 
-        energy = outputs[-1][0]
-        force = outputs[-1][1] 
+        energy, force = self.decode(node_features=z_pred[-1], u=u, batch=batch, pos=pos)
 
         # return outputs, z_pred[-1]
+        if return_grad:
+            # z_pred = sampled fixed point trajectory (tracked gradients)
+            return energy, force, z_pred
         return energy, force
 
 
@@ -270,6 +278,26 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    irreps_node_attr="1x0e",
+    basis_type="exp",
+    # most import for parameter count?
+    fc_neurons=[64, 64],
+    irreps_node_embedding="128x0e+64x1e+32x2e",
+    irreps_sh="1x0e+1x1e+1x2e",
+    irreps_feature="512x0e",
+    irreps_head="32x0e+16x1e+8x2e",
+    num_heads=4,
+    irreps_mlp_mid="384x0e+192x1e+96x2e",
+    # 
+    irreps_pre_attn=None,
+    rescale_degree=False,
+    nonlinear_message=False,
+    norm_layer="layer",
+    alpha_drop=0.0,
+    proj_drop=0.0,
+    out_drop=0.0,
+    drop_path_rate=0.0,
+    scale=None,
     deq_kwargs={},
     **kwargs
 ):
@@ -277,34 +305,35 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     model = DEQDotProductAttentionTransformerMD17(
         irreps_in=irreps_in,
         num_layers=num_layers,
-        irreps_node_attr="1x0e",
+        irreps_node_attr=irreps_node_attr,
         max_radius=radius,
         number_of_basis=num_basis,
-        basis_type="exp",
+        basis_type=basis_type,
         # most import for parameter count?
-        fc_neurons=[64, 64],
-        irreps_node_embedding="128x0e+64x1e+32x2e",
-        irreps_sh="1x0e+1x1e+1x2e",
-        irreps_feature="512x0e",
-        irreps_head="32x0e+16x1e+8x2e",
-        num_heads=4,
-        irreps_mlp_mid="384x0e+192x1e+96x2e",
+        fc_neurons=fc_neurons,
+        irreps_node_embedding=irreps_node_embedding,
+        irreps_sh=irreps_sh,
+        irreps_feature=irreps_feature,
+        irreps_head=irreps_head,
+        num_heads=num_heads,
+        irreps_mlp_mid=irreps_mlp_mid,
         # 
-        irreps_pre_attn=None,
-        rescale_degree=False,
-        nonlinear_message=False,
-        norm_layer="layer",
-        alpha_drop=0.0,
-        proj_drop=0.0,
-        out_drop=0.0,
-        drop_path_rate=0.0,
+        irreps_pre_attn=irreps_pre_attn,
+        rescale_degree=rescale_degree,
+        nonlinear_message=nonlinear_message,
+        norm_layer=norm_layer,
+        alpha_drop=alpha_drop,
+        proj_drop=proj_drop,
+        out_drop=out_drop,
+        drop_path_rate=drop_path_rate,
         mean=task_mean,
         std=task_std,
-        scale=None,
+        scale=scale,
         atomref=atomref,
         # DEQ specific
         deq_mode=True,
         deq_kwargs=deq_kwargs,
     )
+    print(f'! Ignoring kwargs: {kwargs}')
     return model
 

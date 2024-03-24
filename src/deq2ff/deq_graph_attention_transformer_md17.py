@@ -38,11 +38,10 @@ import skimage
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-
-import e3nn
 from e3nn import o3
-from e3nn.util.jit import compile_mode
-from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
+# import e3nn
+# from e3nn.util.jit import compile_mode
+# from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
 
 from equiformer.nets.registry import register_model
 
@@ -50,6 +49,7 @@ from equiformer.nets.registry import register_model
 class DEQGraphAttentionTransformerMD17(nets.graph_attention_transformer_md17.GraphAttentionTransformerMD17):
 
     def __init__(self, deq_mode=True, deq_kwargs={}, **kwargs):
+        # print(f'DEQGraphAttentionTransformerMD17 passed kwargs: {kwargs}')
         super().__init__(**kwargs)
 
         self.deq_mode = deq_mode
@@ -75,12 +75,12 @@ class DEQGraphAttentionTransformerMD17(nets.graph_attention_transformer_md17.Gra
 
         # 21, 512 -> 21, 512
         node_features = self.norm(node_features, batch=batch)
-        print(f'After norm: {node_features.shape}')
+        # print(f'After norm: {node_features.shape}')
 
 
         if self.out_dropout is not None:
             node_features = self.out_dropout(node_features)
-            print(f'After out_dropout: {node_features.shape}')
+            # print(f'After out_dropout: {node_features.shape}')
         
         # outputs
         # 21, 512 -> 21, 1
@@ -130,36 +130,55 @@ def deq_graph_attention_transformer_nonlinear_l2_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    irreps_node_embedding="128x0e+64x1e+32x2e",
+    num_layers=6,
+    irreps_node_attr="1x0e",
+    irreps_sh="1x0e+1x1e+1x2e",
+    fc_neurons=[64, 64],
+    irreps_feature="512x0e",
+    irreps_head="32x0e+16x1e+8x2e",
+    num_heads=4,
+    irreps_pre_attn=None,
+    rescale_degree=False,
+    nonlinear_message=True,
+    irreps_mlp_mid="384x0e+192x1e+96x2e",
+    norm_layer="layer",
+    alpha_drop=0.2,
+    proj_drop=0.0,
+    out_drop=0.0,
+    drop_path_rate=0.0,
+    scale=None,
     deq_kwargs={},
     **kwargs
 ):
     model = DEQGraphAttentionTransformerMD17(
         irreps_in=irreps_in,
-        irreps_node_embedding="128x0e+64x1e+32x2e",
-        num_layers=6,
-        irreps_node_attr="1x0e",
-        irreps_sh="1x0e+1x1e+1x2e",
+        irreps_node_embedding=irreps_node_embedding,
+        num_layers=num_layers,
+        irreps_node_attr=irreps_node_attr,
+        irreps_sh=irreps_sh,
         max_radius=radius,
         number_of_basis=num_basis,
-        fc_neurons=[64, 64],
-        irreps_feature="512x0e",
-        irreps_head="32x0e+16x1e+8x2e",
-        num_heads=4,
-        irreps_pre_attn=None,
-        rescale_degree=False,
-        nonlinear_message=True,
-        irreps_mlp_mid="384x0e+192x1e+96x2e",
-        norm_layer="layer",
-        alpha_drop=0.2,
-        proj_drop=0.0,
-        out_drop=0.0,
-        drop_path_rate=0.0,
+        fc_neurons=fc_neurons,
+        irreps_feature=irreps_feature,
+        irreps_head=irreps_head,
+        num_heads=num_heads,
+        irreps_pre_attn=irreps_pre_attn,
+        rescale_degree=rescale_degree,
+        nonlinear_message=nonlinear_message,
+        irreps_mlp_mid=irreps_mlp_mid,
+        norm_layer=norm_layer,
+        alpha_drop=alpha_drop,
+        proj_drop=proj_drop,
+        out_drop=out_drop,
+        drop_path_rate=drop_path_rate,
         mean=task_mean,
         std=task_std,
-        scale=None,
+        scale=scale,
         atomref=atomref,
         # DEQ specific
         deq_mode=True,
         deq_kwargs=deq_kwargs,
     )
+    print(f' ! Ignore passed kwargs: {kwargs}')
     return model

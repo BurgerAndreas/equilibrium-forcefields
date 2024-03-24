@@ -23,7 +23,10 @@ def init_wandb(args: OmegaConf):
 
     if args.wandb_run_name is None:
         # args.wandb_run_name = args.data_path.split("/")[-1]
-        args.wandb_run_name = args.model_name
+        model_name = args.model_name.split("_attention_transformer")
+        model_name = model_name[0] + model_name[-1]
+        model_name = model_name.replace("_exp_l2", "")
+        args.wandb_run_name = model_name
     args.wandb_run_name = name_from_config(args)
     
     if args.wandb == False:
@@ -94,6 +97,7 @@ def name_from_config(args: omegaconf.DictConfig) -> str:
                 else:
                     override = arg.replace("+", "").replace("_", "")
                     override = override.replace("=", "-").replace(".", "")
+                    override = override.replace("deqkwargs", "")
                     override_names += "_" + override
     except Exception as error:
         print("\nname_from_config() failed:", error)

@@ -12,9 +12,9 @@ import os
 import sys
 
 # add the root of the project to the path so it can find equiformer
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-print("root_dir:", root_dir)
-sys.path.append(root_dir)
+# root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# print("root_dir:", root_dir)
+# sys.path.append(root_dir)
 
 # from logger import FileLogger
 from pathlib import Path
@@ -59,6 +59,7 @@ import wandb
 uses equiformer/main_md17.py
 """
 
+import deq2ff
 from deq2ff.deq_dp_attention_transformer_md17 import *
 from deq2ff.deq_graph_attention_transformer_md17 import *
 

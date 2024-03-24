@@ -1,11 +1,12 @@
 import torch
+import torch.nn as nn
 from torch_cluster import radius_graph
 from torch_scatter import scatter
 
-import e3nn
 from e3nn import o3
-from e3nn.util.jit import compile_mode
-from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
+# import e3nn
+# from e3nn.util.jit import compile_mode
+# from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
 
 import torch_geometric
 import math
@@ -258,7 +259,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
 
         for blknum, blk in enumerate(self.blocks):
-            print(f'Block {blknum}: {node_features.shape}')
+            # print(f'Block {blknum}: {node_features.shape}')
             node_features = blk(
                 node_input=node_features,
                 node_attr=node_attr,
@@ -268,7 +269,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
                 edge_scalars=edge_length_embedding,
                 batch=batch,
             )
-        print(f' After blocks: {node_features.shape}')
+        # print(f' After blocks: {node_features.shape}')
 
         node_features = self.final_block(
             node_input=node_features,
@@ -279,7 +280,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
             edge_scalars=edge_length_embedding,
             batch=batch,
         )
-        print(f'After final block: {node_features.shape}')
+        # print(f'After final block: {node_features.shape}')
 
         node_features = self.norm(node_features, batch=batch)
         if self.out_dropout is not None:
@@ -312,35 +313,55 @@ def dot_product_attention_transformer_exp_l2_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    num_layers=6,
+    irreps_node_attr="1x0e",
+    irreps_node_embedding="128x0e+64x1e+32x2e",
+    irreps_sh="1x0e+1x1e+1x2e",
+    fc_neurons=[64, 64],
+    basis_type="exp",
+    irreps_feature="512x0e",
+    irreps_head="32x0e+16x1e+8x2e",
+    num_heads=4,
+    irreps_pre_attn=None,
+    rescale_degree=False,
+    nonlinear_message=False,
+    irreps_mlp_mid="384x0e+192x1e+96x2e",
+    norm_layer="layer",
+    alpha_drop=0.0,
+    proj_drop=0.0,
+    out_drop=0.0,
+    drop_path_rate=0.0,
+    scale=None,
     **kwargs
 ):
     model = DotProductAttentionTransformerMD17(
         irreps_in=irreps_in,
-        irreps_node_embedding="128x0e+64x1e+32x2e",
-        num_layers=6,
-        irreps_node_attr="1x0e",
-        irreps_sh="1x0e+1x1e+1x2e",
+        irreps_node_embedding=irreps_node_embedding,
+        num_layers=num_layers,
+        irreps_node_attr=irreps_node_attr,
+        irreps_sh=irreps_sh,
         max_radius=radius,
         number_of_basis=num_basis,
-        fc_neurons=[64, 64],
-        basis_type="exp",
-        irreps_feature="512x0e",
-        irreps_head="32x0e+16x1e+8x2e",
-        num_heads=4,
-        irreps_pre_attn=None,
-        rescale_degree=False,
-        nonlinear_message=False,
-        irreps_mlp_mid="384x0e+192x1e+96x2e",
-        norm_layer="layer",
-        alpha_drop=0.0,
-        proj_drop=0.0,
-        out_drop=0.0,
-        drop_path_rate=0.0,
+        fc_neurons=fc_neurons,
+        basis_type=basis_type,
+        irreps_feature=irreps_feature,
+        irreps_head=irreps_head,
+        num_heads=num_heads,
+        irreps_pre_attn=irreps_pre_attn,
+        rescale_degree=rescale_degree,
+        nonlinear_message=nonlinear_message,
+        irreps_mlp_mid=irreps_mlp_mid,
+        norm_layer=norm_layer,
+        alpha_drop=alpha_drop,
+        proj_drop=proj_drop,
+        out_drop=out_drop,
+        drop_path_rate=drop_path_rate,
         mean=task_mean,
         std=task_std,
-        scale=None,
+        scale=scale,
         atomref=atomref,
     )
+    print(f'! Ignoring kwargs: {kwargs}')
     return model
 
 
@@ -352,33 +373,53 @@ def dot_product_attention_transformer_exp_l3_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
+    irreps_node_embedding="128x0e+64x1e+64x2e+32x3e",
+    num_layers=6,
+    irreps_node_attr="1x0e",
+    irreps_sh="1x0e+1x1e+1x2e+1x3e",
+    fc_neurons=[64, 64],
+    basis_type="exp",
+    irreps_feature="512x0e",
+    irreps_head="32x0e+16x1e+16x2e+8x3e",
+    num_heads=4,
+    irreps_pre_attn=None,
+    rescale_degree=False,
+    nonlinear_message=False,
+    irreps_mlp_mid="384x0e+192x1e+192x2e+96x3e",
+    norm_layer="layer",
+    alpha_drop=0.0,
+    proj_drop=0.0,
+    out_drop=0.0,
+    drop_path_rate=0.0,
+    scale=None,
     **kwargs
 ):
     model = DotProductAttentionTransformerMD17(
         irreps_in=irreps_in,
-        irreps_node_embedding="128x0e+64x1e+64x2e+32x3e",
+        irreps_node_embedding=irreps_node_embedding,
         num_layers=6,
-        irreps_node_attr="1x0e",
-        irreps_sh="1x0e+1x1e+1x2e+1x3e",
+        irreps_node_attr=irreps_node_attr,
+        irreps_sh=irreps_sh,
         max_radius=radius,
         number_of_basis=num_basis,
-        fc_neurons=[64, 64],
-        basis_type="exp",
-        irreps_feature="512x0e",
-        irreps_head="32x0e+16x1e+16x2e+8x3e",
-        num_heads=4,
-        irreps_pre_attn=None,
-        rescale_degree=False,
-        nonlinear_message=False,
-        irreps_mlp_mid="384x0e+192x1e+192x2e+96x3e",
-        norm_layer="layer",
-        alpha_drop=0.0,
-        proj_drop=0.0,
-        out_drop=0.0,
-        drop_path_rate=0.0,
+        fc_neurons=fc_neurons,
+        basis_type=basis_type,
+        irreps_feature=irreps_feature,
+        irreps_head=irreps_head,
+        num_heads=num_heads,
+        irreps_pre_attn=irreps_pre_attn,
+        rescale_degree=rescale_degree,
+        nonlinear_message=nonlinear_message,
+        irreps_mlp_mid=irreps_mlp_mid,
+        norm_layer=norm_layer,
+        alpha_drop=alpha_drop,
+        proj_drop=proj_drop,
+        out_drop=out_drop,
+        drop_path_rate=drop_path_rate,
         mean=task_mean,
         std=task_std,
-        scale=None,
+        scale=scale,
         atomref=atomref,
     )
+    print(f'! Ignoring kwargs: {kwargs}')
     return model

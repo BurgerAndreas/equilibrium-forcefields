@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 import equiformer.datasets.pyg.md17 as md17_dataset
 
@@ -108,17 +107,29 @@ def main(args, model=None):
 
     """ Network """
     create_model = model_entrypoint(args.model_name)
-    model = create_model(
-        irreps_in=args.input_irreps,
-        radius=args.radius,
-        num_basis=args.num_basis,
-        task_mean=mean,
-        task_std=std,
-        atomref=None,
-        drop_path=args.drop_path,
-        num_layers=args.num_layers,
-        deq_kwargs=args.deq_kwargs,
-    )
+    if args.model_is_deq == True:
+        model = create_model(
+            irreps_in=args.input_irreps,
+            radius=args.radius,
+            num_basis=args.num_basis,
+            task_mean=mean,
+            task_std=std,
+            atomref=None,
+            drop_path=args.drop_path,
+            num_layers=args.num_layers,
+            deq_kwargs=args.deq_kwargs,
+        )
+    else:
+        model = create_model(
+            irreps_in=args.input_irreps,
+            radius=args.radius,
+            num_basis=args.num_basis,
+            task_mean=mean,
+            task_std=std,
+            atomref=None,
+            drop_path=args.drop_path,
+            num_layers=args.num_layers,
+        )
     print(f"model {args.model_name} created")
     # _log.info(model)
     # else:
@@ -575,6 +586,11 @@ def train_one_epoch(
         if meas_force == True:
             loss_f = criterion(pred_dy, (data.dy / task_std))
             loss += args.force_weight * loss_f
+        else:
+            pred_dy = torch.zeros_like(pred_y)
+            pred_dy = torch.full_like(pred_y, float("nan"))
+            loss_f = torch.zeros_like(loss_e)
+            loss_f = torch.full_like(loss_e, float("nan"))
 
         # If you use trajectory sampling, fp_correction automatically
         # aligns the tensors and applies your loss function.

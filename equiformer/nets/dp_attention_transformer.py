@@ -256,6 +256,7 @@ class DPTransBlock(torch.nn.Module):
             proj_drop=proj_drop,
         )
 
+        # regularization
         self.drop_path = GraphDropPath(drop_path_rate) if drop_path_rate > 0.0 else None
 
         self.norm_2 = get_norm_layer(norm_layer)(self.irreps_node_input)
@@ -266,6 +267,9 @@ class DPTransBlock(torch.nn.Module):
             irreps_mlp_mid=self.irreps_mlp_mid,
             proj_drop=proj_drop,
         )
+
+        # Feed forward network shortcut
+        # for the last block, if we want to output scalars only (no higher l's)
         self.ffn_shortcut = None
         if self.irreps_node_input != self.irreps_node_output:
             self.ffn_shortcut = FullyConnectedTensorProductRescale(
@@ -287,33 +291,38 @@ class DPTransBlock(torch.nn.Module):
         batch,
         **kwargs
     ):
-
+        """
+        1. Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
+        2. Use pre-norm architecture
+        """
         node_output = node_input
         node_features = node_input
-        node_features = self.norm_1(node_features, batch=batch)
+        node_features = self.norm_1(node_features, batch=batch) # batch unused
         # norm_1_output = node_features
         node_features = self.dpa(
             node_input=node_features,
-            node_attr=node_attr,
+            node_attr=node_attr, # node_attr unused
             edge_src=edge_src,
             edge_dst=edge_dst,
             edge_attr=edge_attr,
             edge_scalars=edge_scalars,
-            batch=batch,
+            batch=batch, # batch unused
         )
 
         if self.drop_path is not None:
+            # uses batch. TODO
             node_features = self.drop_path(node_features, batch)
         node_output = node_output + node_features
 
         node_features = node_output
-        node_features = self.norm_2(node_features, batch=batch)
+        node_features = self.norm_2(node_features, batch=batch) # batch unused
         node_features = self.ffn(node_features, node_attr)
         if self.ffn_shortcut is not None:
             node_output = self.ffn_shortcut(node_output, node_attr)
 
         if self.drop_path is not None:
-            node_features = self.drop_path(node_features, batch)
+            # uses batch. TODO
+            node_features = self.drop_path(node_features, batch) 
         node_output = node_output + node_features
 
         return node_output
@@ -330,7 +339,7 @@ class DotProductAttentionTransformer(torch.nn.Module):
         max_radius=5.0,
         number_of_basis=128,
         fc_neurons=[64, 64],
-        irreps_feature="512x0e",
+        irreps_feature="512x0e", 
         irreps_head="32x0e+16x1o+8x2e",
         num_heads=4,
         irreps_pre_attn=None,
@@ -411,6 +420,9 @@ class DotProductAttentionTransformer(torch.nn.Module):
 
     def build_blocks(self):
         for i in range(self.num_layers):
+            # last block outputs scalaras only (l0, no higher l's)
+            # irreps_node_embedding -> irreps_feature
+            # "128x0e+64x1e+32x2e" -> "512x0e"
             if i != (self.num_layers - 1):
                 irreps_block_output = self.irreps_node_embedding
             else:
@@ -419,6 +431,7 @@ class DotProductAttentionTransformer(torch.nn.Module):
                 irreps_node_input=self.irreps_node_embedding,
                 irreps_node_attr=self.irreps_node_attr,
                 irreps_edge_attr=self.irreps_edge_attr,
+                # output: which l's?
                 irreps_node_output=irreps_block_output,
                 fc_neurons=self.fc_neurons,
                 irreps_head=self.irreps_head,

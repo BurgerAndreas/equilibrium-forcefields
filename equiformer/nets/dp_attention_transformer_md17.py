@@ -47,6 +47,7 @@ from .graph_attention_transformer import (
 )
 from .dp_attention_transformer import ScaleFactor, DotProductAttention, DPTransBlock
 
+import copy
 
 _RESCALE = True
 _USE_BIAS = True
@@ -63,6 +64,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         self,
         irreps_in="64x0e",
         irreps_node_embedding="128x0e+64x1e+32x2e",
+        irreps_feature="512x0e",
         num_layers=6,
         irreps_node_attr="1x0e",
         irreps_sh="1x0e+1x1e+1x2e",
@@ -70,7 +72,6 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         number_of_basis=128,
         basis_type="gaussian",
         fc_neurons=[64, 64],
-        irreps_feature="512x0e",
         irreps_head="32x0e+16x1o+8x2e",
         num_heads=4,
         irreps_pre_attn=None,
@@ -153,10 +154,12 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         self.blocks = torch.nn.ModuleList()
         self.build_blocks()
 
+        # Layer Norm
         self.norm = get_norm_layer(self.norm_layer)(self.irreps_feature)
         self.out_dropout = None
         if self.out_drop != 0.0:
             self.out_dropout = EquivariantDropout(self.irreps_feature, self.out_drop)
+        # Output head
         self.head = torch.nn.Sequential(
             LinearRS(self.irreps_feature, self.irreps_feature, rescale=_RESCALE),
             Activation(self.irreps_feature, acts=[torch.nn.SiLU()]),
@@ -167,18 +170,26 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         self.apply(self._init_weights)
 
     def build_blocks(self):
+        """N blocks of: Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
+        Last block outputs scalars (l0) only.
+        """
         for i in range(self.num_layers):
+            # last layer is different which will screw up DEQ
+            # last block outputs scalaras only (l0 only, no higher l's)
+            # irreps_node_embedding -> irreps_feature
+            # "128x0e+64x1e+32x2e" -> "512x0e"
             if i != (self.num_layers - 1):
-                # last layer is different which will screw up DEQ
-                # [21, 512]
+                # input == output == [num_atoms, 512]
                 irreps_block_output = self.irreps_node_embedding
             else:
-                # [21, 480]
+                # [num_atoms, 480]
                 irreps_block_output = self.irreps_feature
+            # Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
             blk = DPTransBlock(
                 irreps_node_input=self.irreps_node_embedding,
                 irreps_node_attr=self.irreps_node_attr,
                 irreps_edge_attr=self.irreps_edge_attr,
+                # output: which l's?
                 irreps_node_output=irreps_block_output,
                 fc_neurons=self.fc_neurons,
                 irreps_head=self.irreps_head,
@@ -236,30 +247,49 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
     @torch.enable_grad()
     def forward(self, node_atom, pos, batch, **kwargs) -> torch.Tensor:
 
+        # pos = node feature matrix
         pos = pos.requires_grad_(True)
 
+        # atom type z_i
+        atom_embedding, atom_attr, atom_onehot = self.atom_embed(node_atom)
+
+        # get graph edges based on radius
         edge_src, edge_dst = radius_graph(
-            pos, r=self.max_radius, batch=batch, max_num_neighbors=1000
+            x=pos, r=self.max_radius, batch=batch, max_num_neighbors=1000
         )
         edge_vec = pos.index_select(0, edge_src) - pos.index_select(0, edge_dst)
+        # radial basis function embedding of edge length
+        edge_length = edge_vec.norm(dim=1)
+        edge_length_embedding = self.rbf(edge_length)
+        # spherical harmonics embedding of edge vector
         edge_sh = o3.spherical_harmonics(
             l=self.irreps_edge_attr,
             x=edge_vec,
             normalize=True,
             normalization="component",
         )
-
-        atom_embedding, atom_attr, atom_onehot = self.atom_embed(node_atom)
-        edge_length = edge_vec.norm(dim=1)
-        edge_length_embedding = self.rbf(edge_length)
+        # Constant One, r_ij -> Linear, Depthwise TP, Linear, Scaled Scatter
         edge_degree_embedding = self.edge_deg_embed(
+            # atom_embedding is just used for the shape
             atom_embedding, edge_sh, edge_length_embedding, edge_src, edge_dst, batch
         )
+
+        # node_features = x
         node_features = atom_embedding + edge_degree_embedding
+
+        # node_attr = ? TODO
+        # node_attr = torch.ones_like(node_features.narrow(dim=1, start=0, length=1))
         node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
 
         for blknum, blk in enumerate(self.blocks):
-            # print(f'Block {blknum}: {node_features.shape}')
+            # print(f'Block {blknum} node_features: {node_features.shape}')
+            # print(f' Block {blknum} node_attr: {node_attr.shape}')
+            # print(f' Block {blknum} edge_src: {edge_src.shape}')
+            # print(f' Block {blknum} edge_dst: {edge_dst.shape}')
+            # print(f' Block {blknum} edge_sh: {edge_sh.shape}')
+            # print(f' Block {blknum} edge_length_embedding: {edge_length_embedding.shape}')
+            node_features_prev = node_features.clone().detach()
+            node_attr_prev = node_attr.clone().detach()
             node_features = blk(
                 node_input=node_features,
                 node_attr=node_attr,
@@ -267,8 +297,15 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
                 edge_dst=edge_dst,
                 edge_attr=edge_sh,
                 edge_scalars=edge_length_embedding,
+                # drop_path = GraphDropPath(drop_path_rate) uses batch
+                # TODO: check if our kwargs use drop_path
                 batch=batch,
             )
+            # print(f' Block {blknum} node_attr stayed the same: {torch.allclose(node_attr_prev, node_attr)}')
+            # print(f' {torch.mean(torch.abs(node_attr_prev - node_attr))}')
+            # print(f' Block {blknum} node_attr == 1: {torch.allclose(node_attr, torch.ones_like(node_attr))}')
+            # print(f' Block {blknum} node_features stayed the same: {torch.allclose(node_features_prev, node_features)}')
+            # print(f' {torch.mean(torch.abs(node_features_prev - node_features))}')
         # print(f' After blocks: {node_features.shape}')
 
         node_features = self.final_block(
@@ -282,9 +319,12 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         )
         # print(f'After final block: {node_features.shape}')
 
+        # Layer Norm
         node_features = self.norm(node_features, batch=batch)
         if self.out_dropout is not None:
             node_features = self.out_dropout(node_features)
+        
+        # output head
         outputs = self.head(node_features)
         outputs = self.scale_scatter(outputs, batch, dim=0)
 

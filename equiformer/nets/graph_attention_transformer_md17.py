@@ -345,7 +345,8 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
         atom_embedding, atom_attr, atom_onehot = self.atom_embed(node_atom)
         edge_length = edge_vec.norm(dim=1)
         edge_length_embedding = self.rbf(edge_length)
-        edge_degree_embedding = self.edge_deg_embed(
+        edge_degree_embedding = self.edge_deg_embed( 
+            # atom_embedding is just used for the shape
             atom_embedding, edge_sh, edge_length_embedding, edge_src, edge_dst, batch
         )
         node_features = atom_embedding + edge_degree_embedding

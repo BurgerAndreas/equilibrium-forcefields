@@ -12,6 +12,12 @@ python scripts/deq_equiformer.py
 python equiformer/main_md17.py num_layers=2
 ```
 
+On a slurm cluster:
+```bash
+sbatch scripts/slurm_launcher.slrm deq_equiformer.py
+# sbatch scripts/slurm_launcher.slrm main_md17.py num_layers=2
+```
+
 ## TODO
 
 - [ ] Energy as gradient of the force via @torch.enable_grad() of forward w.r.t pos (see dp_attention_transformer_md17.py)
@@ -54,16 +60,28 @@ Not too important right now since it only increases speed in time but not nimber
 Jo, das klingt auch viel versprechend
 
 - exact gradient with torch autograd
-- force weglassen, nur energy in loss
+- - default: grad=1 Phantom Gradient (running 1 function step at the fixed point and differentiating it as the backward pass)
+- - ift=True for exact implicit differentiation
+- - grad=10, f_max_iter=0 for exact Back Progapagation Through Time (BPTT) with PyTorch autograd (should give the same result as IFT, use as a sanity check)
+
+- force weglassen, nur energy in loss meas_force=False
+
 - fixed point error (do we converge to a fixed point)?
 - - Broyden solver NaN: numerical instability?
 - - f_stop_mode='rel' (default) or 'abs'?
+
 - Broyden solver NaN: numerical instability?
+
 - DEQ paper: use of (layer)norm?
+
 - DEQ torch norm tricks
+
 - exploding weights or activations?
+
 - equformer num_layers=2 fuer vergleichbarkeit
+
 - equiformer equivariance test (model(x) == model(rot(x)))
+
 - initalize z0=0 (why do others do it and how can we do it)
 
 

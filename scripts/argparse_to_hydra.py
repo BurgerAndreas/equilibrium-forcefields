@@ -83,7 +83,9 @@ def argparse_to_hydra(
                     argument = "".join(argument)
                     argument = argument.replace("parser.add_argument(", "")
                     argument = argument.replace("\n", "")
-                    argument = argument.replace(")", ",")
+                    if argument[-1] == ")":
+                        argument[-1] = ","
+                    # argument = argument.replace(")", ",")
                     # print('  argument:', argument)
 
                     # get the type (if it exists)

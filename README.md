@@ -8,6 +8,8 @@ Perks of Equilibrium Models:
 
 ```bash
 python scripts/deq_equiformer.py
+# baseline equiformer
+python equiformer/main_md17.py num_layers=2
 ```
 
 ## TODO
@@ -30,26 +32,39 @@ forward():
     )
 ```
 
-max out GPU memory via batch_size
-1 Können wor versuchen, aber ist glaube ich nicht das wichtigste
+- max out GPU memory via batch_size \
+Können wor versuchen, aber ist glaube ich nicht das wichtigste
 
-Try anderson and broyden solver (now: fixed_point_iter)
-2. Das würde am der convergence in number of epochs nichts ändern, da die ja alle zum gleichen fixpoint iteroeren sollen
+- Try anderson and broyden solver (now: fixed_point_iter) \
+Das würde am der convergence in number of epochs nichts ändern, da die ja alle zum gleichen fixpoint iteroeren sollen
 
 Try exact gradients or only calculate the loss w.r.t energy?
-3. Exact gradients ist wichtig zu testen, auch der Vergleich zu backprop un sicher zu stellen, dass alles richtig funktioniert
+Exact gradients ist wichtig zu testen, auch der Vergleich zu backprop um sicher zu stellen, dass alles richtig funktioniert
 
-Ist der force gradient exakt? 
--> yes (see dp_attention_transformer_md17.py)
+- Ist der force gradient exakt? 
+-> yes? (see dp_attention_transformer_md17.py). Does torch use deq grad for autodiff?
 
-find optimal hyperparameters (at least learning_rate)
-4. Jo, das ist definitiv wichtig
+- find optimal hyperparameters (at least learning_rate)
+Jo, das ist definitiv wichtig
 
-think about fix point reuse (not sure if the MD dataset is temporally ordered. At least need to change shuffeling and batching in the dataloader)
-5. Not too important right now since it only increases speed in time but not nimber of epochs and it will be difficult to implement
+- think about fix point reuse (not sure if the MD dataset is temporally ordered. At least need to change shuffeling and batching in the dataloader)
+Not too important right now since it only increases speed in time but not nimber of epochs and it will be difficult to implement
 
-max out GPU memory via network parameters
-6. Jo, das klingt auch viel versprechend
+- max out GPU memory via network parameters \
+Jo, das klingt auch viel versprechend
+
+- exact gradient with torch autograd
+- force weglassen, nur energy in loss
+- fixed point error (do we converge to a fixed point)?
+- - Broyden solver NaN: numerical instability?
+- - f_stop_mode='rel' (default) or 'abs'?
+- Broyden solver NaN: numerical instability?
+- DEQ paper: use of (layer)norm?
+- DEQ torch norm tricks
+- exploding weights or activations?
+- equformer num_layers=2 fuer vergleichbarkeit
+- equiformer equivariance test (model(x) == model(rot(x)))
+- initalize z0=0 (why do others do it and how can we do it)
 
 
 ## Experiments to run

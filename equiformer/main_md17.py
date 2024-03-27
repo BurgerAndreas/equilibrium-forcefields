@@ -34,6 +34,12 @@ from omegaconf import DictConfig
 
 ModelEma = ModelEmaV2
 
+# silence:
+# UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. 
+# Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+
 """
 Original command:
 python main_md17.py \
@@ -66,6 +72,13 @@ class L2MAELoss(torch.nn.Module):
         elif self.reduction == "sum":
             return torch.sum(dists)
 
+def get_force_placeholder(dy, loss_e):
+    """if meas_force is False, return a placeholder for force prediction and loss_f"""
+    # pred_dy = torch.zeros_like(data.dy)
+    pred_dy = torch.full_like(dy, float("nan"))
+    # loss_f = torch.zeros_like(loss_e)
+    loss_f = torch.full_like(loss_e, float("nan"))
+    return pred_dy, loss_f
 
 def main(args, model=None):
 
@@ -131,18 +144,10 @@ def main(args, model=None):
             num_layers=args.num_layers,
         )
     print(f"model {args.model_name} created")
-    # _log.info(model)
-    # else:
-    #     model = model(
-    #         irreps_in=args.input_irreps,
-    #         max_radius=args.radius,
-    #         number_of_basis=args.num_basis,
-    #         mean=mean,
-    #         std=std,
-    #         atomref=None,
-    #         drop_path=args.drop_path,
-    #     )
-    #     _log.info("Using the provided model")
+
+    # watch gradients, weights, and activations
+    # https://docs.wandb.ai/ref/python/watch
+    wandb.watch(model, log="all", log_freq=100)
 
     if args.checkpoint_path is not None:
         state_dict = torch.load(args.checkpoint_path, map_location="cpu")
@@ -209,6 +214,8 @@ def main(args, model=None):
         "test_energy_err": float("inf"),
     }
 
+    global_step = 0
+
     if args.evaluate:
         test_err, test_loss = evaluate(
             args=args,
@@ -220,10 +227,11 @@ def main(args, model=None):
             logger=_log,
             print_progress=True,
             max_iter=-1,
+            global_step=global_step,
+            datasplit='test',
         )
         return
 
-    global_step = 0
     start_time = time.perf_counter()
     for epoch in range(args.epochs):
 
@@ -255,6 +263,8 @@ def main(args, model=None):
             print_freq=args.print_freq,
             logger=_log,
             print_progress=False,
+            global_step=global_step,
+            datasplit='val',
         )
 
         if (epoch + 1) % args.test_interval == 0:
@@ -268,6 +278,8 @@ def main(args, model=None):
                 logger=_log,
                 print_progress=True,
                 max_iter=args.test_max_iter,
+                global_step=global_step,
+                datasplit='test',
             )
         else:
             test_err, test_loss = None, None
@@ -383,6 +395,8 @@ def main(args, model=None):
                 print_freq=args.print_freq,
                 logger=_log,
                 print_progress=False,
+                global_step=global_step,
+                datasplit='ema_val',
             )
 
             if (epoch + 1) % args.test_interval == 0:
@@ -396,6 +410,8 @@ def main(args, model=None):
                     logger=_log,
                     print_progress=True,
                     max_iter=args.test_max_iter,
+                    global_step=global_step,
+                    datasplit='ema_test',
                 )
             else:
                 ema_test_err, ema_test_loss = None, None
@@ -502,7 +518,9 @@ def main(args, model=None):
         print_freq=args.print_freq,
         logger=_log,
         print_progress=True,
-        max_iter=-1,
+        max_iter=-1, # -1 means evaluate the whole dataset
+        global_step=global_step,
+        datasplit='test_all',
     )
 
 
@@ -577,7 +595,7 @@ def train_one_epoch(
         data = data.to(device)
 
         # energy, force
-        pred_y, pred_dy = model(node_atom=data.z, pos=data.pos, batch=data.batch)
+        pred_y, pred_dy = model(node_atom=data.z, pos=data.pos, batch=data.batch, step=global_step, datasplit='train')
         # if deq_mode and reuse:
         #     z_star = z_pred.detach()
 
@@ -587,10 +605,7 @@ def train_one_epoch(
             loss_f = criterion(pred_dy, (data.dy / task_std))
             loss += args.force_weight * loss_f
         else:
-            pred_dy = torch.zeros_like(pred_y)
-            pred_dy = torch.full_like(pred_y, float("nan"))
-            loss_f = torch.zeros_like(loss_e)
-            loss_f = torch.full_like(loss_e, float("nan"))
+            pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
 
         # If you use trajectory sampling, fp_correction automatically
         # aligns the tensors and applies your loss function.
@@ -607,6 +622,7 @@ def train_one_epoch(
         energy_err = pred_y.detach() * task_std + task_mean - data.y
         energy_err = torch.mean(torch.abs(energy_err)).item()
         mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
+        
         force_err = pred_dy.detach() * task_std - data.dy
         force_err = torch.mean(
             torch.abs(force_err)
@@ -663,6 +679,8 @@ def evaluate(
     logger=None,
     print_progress=False,
     max_iter=-1,
+    global_step=None,
+    datasplit=None,
 ):
 
     model.eval()
@@ -680,10 +698,13 @@ def evaluate(
         for step, data in enumerate(data_loader):
 
             data = data.to(device)
-            pred_y, pred_dy = model(node_atom=data.z, pos=data.pos, batch=data.batch)
+            pred_y, pred_dy = model(node_atom=data.z, pos=data.pos, batch=data.batch, step=global_step, datasplit=datasplit)
 
             loss_e = criterion(pred_y, ((data.y - task_mean) / task_std))
-            loss_f = criterion(pred_dy, (data.dy / task_std))
+            if args.meas_force == True:
+                loss_f = criterion(pred_dy, (data.dy / task_std))
+            else:
+                pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
 
             loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
             loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])

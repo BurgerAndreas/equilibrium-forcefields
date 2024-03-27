@@ -45,8 +45,8 @@ opt_betas: null
 clip_grad: null
 # SGD momentum (default: 0.9 (float)
 momentum: 0.9
-# weight decay (default: 5e-3 (float)
-weight_decay: 5e-3
+# weight decay (default: 5e-3 (float) # 1e-6 for paper
+weight_decay: 5e-3 
 # 'LR scheduler (default: cosine' (str)
 sched: "cosine"
 # learning rate (default: 5e-4 or 1.5e-4) (float)
@@ -88,9 +88,9 @@ test_interval: 10
 # max iteration to evaluate on the testing set (int)
 test_max_iter: 1000
 # (float)
-energy_weight: 0.2
+energy_weight: 0.2 # 1
 # (float)
-force_weight: 0.8
+force_weight: 0.8 # 80
 # (int)
 seed: 1
 # (int)

@@ -38,6 +38,7 @@ import skimage
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+import wandb
 
 from e3nn import o3
 # import e3nn
@@ -45,6 +46,7 @@ from e3nn import o3
 # from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
 
 from equiformer.nets.registry import register_model
+import deq2ff.deq_utils as deq_utils
 
 
 class DEQDotProductAttentionTransformerMD17(nets.dp_attention_transformer_md17.DotProductAttentionTransformerMD17):
@@ -213,7 +215,7 @@ class DEQDotProductAttentionTransformerMD17(nets.dp_attention_transformer_md17.D
 
         return energy, forces
 
-    def forward(self, node_atom, pos, batch, z=None, return_grad=False):
+    def forward(self, node_atom, pos, batch, z=None, return_grad=False, step=None, datasplit=None):
         """Forward pass of the DEQ model."""
 
         # encode
@@ -250,6 +252,9 @@ class DEQDotProductAttentionTransformerMD17(nets.dp_attention_transformer_md17.D
 
         else:
             z_pred = [f(z)]
+
+        if step is not None:
+            deq_utils.log_fixed_point_error(info, step, datasplit)
 
         # decode
         # outputs: list[Tuple(energy: torch.tensor [2, 1], force: torch.tensor [42, 3])]

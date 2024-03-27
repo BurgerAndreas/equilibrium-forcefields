@@ -234,7 +234,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
     # the gradient of energy is following the implementation here:
     # https://github.com/Open-Catalyst-Project/ocp/blob/main/ocpmodels/models/spinconv.py#L186
     @torch.enable_grad()
-    def forward(self, node_atom, pos, batch) -> torch.Tensor:
+    def forward(self, node_atom, pos, batch, **kwargs) -> torch.Tensor:
 
         pos = pos.requires_grad_(True)
 

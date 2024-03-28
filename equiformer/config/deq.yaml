@@ -13,8 +13,12 @@ model_is_deq: True
 deq_mode: True
 num_layers: 2
 # batch_size: 16
+torchdeq_norm: True
 
-# deq args
+z_is_node_features: True
+irreps_node_embedding_injection: "64x0e+32x1e+16x2e"
+
+# passed to torchdeq
 deq_kwargs:
   # https://torchdeq.readthedocs.io/en/latest/torchdeq/core.html#torchdeq.core.get_deq
   # 'broyden' anderson newton

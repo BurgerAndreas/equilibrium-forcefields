@@ -71,21 +71,21 @@ meas_force=False
 
 - fixed point error (do we converge to a fixed point)?
 - - Broyden solver NaN: numerical instability?
-- - `f_stop_mode='rel'` (default) or `'abs'`?
+- - `f_stop_mode='rel'` or `'abs'`? set `deq_kwargs.f_max_iter=100 deq_kwargs.b_max_iter=100`
 
 - Broyden solver NaN: numerical instability?
 
 - DEQ paper: use of (layer)norm?
 
-- DEQ torch norm tricks
+- DEQ torch norm tricks (e.g. see https://github.com/locuslab/torchdeq/blob/main/deq-zoo/ignn/graphclassification/layers.py)
 
-- exploding weights or activations?
+- exploding weights, gradients, activations?
+- [ ] how should the weights, gradients, activations look like?
 
 - equiformer equivariance test (model(x) == model(rot(x)))
 
 - initalize z0=0 (why do others do it and how can we do it)
 
-- normalization tricks (e.g. see https://github.com/locuslab/torchdeq/blob/main/deq-zoo/ignn/graphclassification/layers.py)
 
 
 ## Experiments to run

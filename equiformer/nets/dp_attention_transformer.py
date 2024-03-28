@@ -116,6 +116,7 @@ class DotProductAttention(torch.nn.Module):
         self.merge_dst = LinearRS(
             self.irreps_node_input, self.irreps_pre_attn, bias=False
         )
+        # key and value = FullyConnectedTensorProductRescale
         self.key_value = SeparableFCTP(
             self.irreps_pre_attn,
             self.irreps_edge_attr,
@@ -177,6 +178,7 @@ class DotProductAttention(torch.nn.Module):
         attn = scatter(attn, index=edge_dst, dim=0, dim_size=node_input.shape[0])
         attn = self.heads2vec(attn)
 
+        # ?
         if self.rescale_degree:
             degree = torch_geometric.utils.degree(
                 edge_dst, num_nodes=node_input.shape[0], dtype=node_input.dtype
@@ -298,6 +300,7 @@ class DPTransBlock(torch.nn.Module):
         node_output = node_input
         node_features = node_input
         node_features = self.norm_1(node_features, batch=batch) # batch unused
+
         # norm_1_output = node_features
         node_features = self.dpa(
             node_input=node_features,

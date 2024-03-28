@@ -29,7 +29,7 @@ batch_size=1, num_layers=2, RTX3060, target=aspiring ~ 170s per epoch -> 1k epoc
 
 Md17
 - Energies and forces for molecular dynamics trajectories of eight organic molecules. Level of theory DFT: PBE+vdW-TS
-- Each molecule has >100k samples, but we use <1k samples for training
+- Each molecule has >100k samples, but we use only <1k samples for training
 - https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.datasets.MD17.html
 - Machine learning of accurate energy-conserving molecular force fields
 

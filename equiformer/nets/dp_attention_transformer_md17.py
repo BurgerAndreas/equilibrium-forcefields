@@ -175,7 +175,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         """
         for i in range(self.num_layers):
             # last layer is different which will screw up DEQ
-            # last block outputs scalaras only (l0 only, no higher l's)
+            # last block outputs scalars only (l0 only, no higher l's)
             # irreps_node_embedding -> irreps_feature
             # "128x0e+64x1e+32x2e" -> "512x0e"
             if i != (self.num_layers - 1):
@@ -185,6 +185,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
                 # [num_atoms, 480]
                 irreps_block_output = self.irreps_feature
             # Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
+            # extra 'input injection' (= everything except node_features) used in DotProductAttention
             blk = DPTransBlock(
                 irreps_node_input=self.irreps_node_embedding,
                 irreps_node_attr=self.irreps_node_attr,

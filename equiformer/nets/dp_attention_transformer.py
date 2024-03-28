@@ -299,17 +299,17 @@ class DPTransBlock(torch.nn.Module):
         """
         node_output = node_input
         node_features = node_input
-        node_features = self.norm_1(node_features, batch=batch) # batch unused
+        node_features = self.norm_1(node_features, batch=batch)  # batch unused
 
         # norm_1_output = node_features
         node_features = self.dpa(
             node_input=node_features,
-            node_attr=node_attr, # node_attr unused
+            node_attr=node_attr,  # node_attr unused
             edge_src=edge_src,
             edge_dst=edge_dst,
             edge_attr=edge_attr,
             edge_scalars=edge_scalars,
-            batch=batch, # batch unused
+            batch=batch,  # batch unused
         )
 
         if self.drop_path is not None:
@@ -318,14 +318,14 @@ class DPTransBlock(torch.nn.Module):
         node_output = node_output + node_features
 
         node_features = node_output
-        node_features = self.norm_2(node_features, batch=batch) # batch unused
+        node_features = self.norm_2(node_features, batch=batch)  # batch unused
         node_features = self.ffn(node_features, node_attr)
         if self.ffn_shortcut is not None:
             node_output = self.ffn_shortcut(node_output, node_attr)
 
         if self.drop_path is not None:
             # uses batch. TODO
-            node_features = self.drop_path(node_features, batch) 
+            node_features = self.drop_path(node_features, batch)
         node_output = node_output + node_features
 
         return node_output
@@ -342,7 +342,7 @@ class DotProductAttentionTransformer(torch.nn.Module):
         max_radius=5.0,
         number_of_basis=128,
         fc_neurons=[64, 64],
-        irreps_feature="512x0e", 
+        irreps_feature="512x0e",
         irreps_head="32x0e+16x1o+8x2e",
         num_heads=4,
         irreps_pre_attn=None,

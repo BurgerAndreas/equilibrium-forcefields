@@ -12,7 +12,7 @@ setuptools.setup(
     name="deq2ff",
     # https://setuptools.pypa.io/en/latest/userguide/quickstart.html#package-discovery
     packages=["deq2ff"],  # same as name
-    package_dir={'': 'src'}, # empty string means the root package
+    package_dir={"": "src"},  # empty string means the root package
     # package_dir={'deq2ff': 'src/deq2ff'},
     # package_dir={'deq2ff':'src'},
     # package_dir={'deq2ff': 'deq2ff'},

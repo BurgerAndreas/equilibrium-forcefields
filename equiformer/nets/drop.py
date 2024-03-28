@@ -18,7 +18,7 @@ def drop_path(x, drop_prob: float = 0.0, training: bool = False):
     changing the layer and argument names to 'drop path' rather than mix DropConnect as a layer name and use
     'survival rate' as the argument.
     Sample-wise stochastic depth is a regularization technique for networks with residual connections that probabilistically drops samples after the transformation function in each residual block.
-    "stochastic depth" means dropping the entire conv and only keeping the residual. 
+    "stochastic depth" means dropping the entire conv and only keeping the residual.
     """
     if drop_prob == 0.0 or not training:
         return x
@@ -50,7 +50,7 @@ class GraphDropPath(nn.Module):
     """
     Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
     Sample-wise stochastic depth is a regularization technique for networks with residual connections that probabilistically drops samples after the transformation function in each residual block.
-    "stochastic depth" means dropping the entire conv and only keeping the residual. 
+    "stochastic depth" means dropping the entire conv and only keeping the residual.
     Consider batch for graph data when dropping paths.
     """
 

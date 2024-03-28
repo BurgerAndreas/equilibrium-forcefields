@@ -8,7 +8,7 @@ When testing the same basemodel (equiformer):
     -> loss_f = 0 (rounding errors)
 """
 
-import argparse 
+import argparse
 import datetime
 import itertools
 import pickle
@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 import sys, os
+
 # sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 import equiformer.datasets.pyg.md17 as md17_dataset
@@ -53,15 +54,17 @@ from deq2ff.deq_graph_attention_transformer_md17 import *
 ModelEma = ModelEmaV2
 
 
-
 def difference(a, b):
     return torch.mean(torch.abs(a - b))
+
 
 def absscale(a):
     return torch.mean(torch.abs(a))
 
+
 import warnings
-# /torch/jit/_check.py:177: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. 
+
+# /torch/jit/_check.py:177: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`.
 # Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
 # warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=Warning)
@@ -69,6 +72,7 @@ warnings.filterwarnings("ignore", category=Warning)
 # load args from hydra config
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 config_dir = os.path.join(root_dir, "equiformer/config")
+
 
 @hydra.main(config_name="deq", config_path=config_dir, version_base="1.3")
 def do_test(args_base: DictConfig) -> None:
@@ -89,7 +93,7 @@ def do_test(args_base: DictConfig) -> None:
     # args_base = omegaconf.OmegaConf.resolve(args_base)
     # args_base = OmegaConf.to_container(args_base, resolve=True) # convert to dict
 
-    print('args_base:\n', args_base)
+    print("args_base:\n", args_base)
 
     log_energy = []
     log_force = []
@@ -100,19 +104,19 @@ def do_test(args_base: DictConfig) -> None:
     prev_input = None
     prev_nn_weights = None
 
-    print('')
+    print("")
     for deq_kwargs in deq_kwargs_sweep:
 
         args = args_base.copy()
         for k, v in deq_kwargs.items():
             args[k] = v
-        
+
         # basemodel or deq
         if len(deq_kwargs) == 0:
             args.model_is_deq = False
         if args.model_is_deq == True:
-            args.model_name = f'deq_{args.model_name}'
-        print(f'\nmodel_name: {args.model_name}')
+            args.model_name = f"deq_{args.model_name}"
+        print(f"\nmodel_name: {args.model_name}")
 
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
@@ -163,13 +167,13 @@ def do_test(args_base: DictConfig) -> None:
                 drop_path=args.drop_path,
                 num_layers=args.num_layers,
             )
-        print(f'model parameters: {sum(p.numel() for p in model.parameters())}')
+        print(f"model parameters: {sum(p.numel() for p in model.parameters())}")
 
         try:
             if prev_nn_weights is not None:
                 model.load_state_dict(prev_nn_weights)
         except Exception as e:
-            print(f' prev_nn_weights: {prev_nn_weights.keys()}')
+            print(f" prev_nn_weights: {prev_nn_weights.keys()}")
             raise e
         prev_nn_weights = copy.deepcopy(model.state_dict())
 
@@ -228,7 +232,9 @@ def do_test(args_base: DictConfig) -> None:
 
             # check that the data is the same
             if prev_input is not None:
-                assert torch.allclose(prev_input, data.z), f'{difference(prev_input, data.z)}'
+                assert torch.allclose(
+                    prev_input, data.z
+                ), f"{difference(prev_input, data.z)}"
             prev_input = data.z
 
             # energy, force
@@ -242,29 +248,38 @@ def do_test(args_base: DictConfig) -> None:
             loss_f = criterion(pred_dy, (data.dy / task_std))
             loss += args.force_weight * loss_f
 
-
             # log
             log_energy.append(pred_y.detach())
             log_force.append(pred_dy.detach())
             log_loss_e.append(loss_e.detach())
             log_loss_f.append(loss_f.detach())
             # log_grad.append(args.grad)
-            
 
             break
 
     # check
     for i in range(len(log_energy)):
-        for j in range(i+1, len(log_energy)):
-            print('')
-            print(f' {deq_kwargs_sweep[i]}  |  {deq_kwargs_sweep[j]}')
+        for j in range(i + 1, len(log_energy)):
+            print("")
+            print(f" {deq_kwargs_sweep[i]}  |  {deq_kwargs_sweep[j]}")
             if deq_kwargs_sweep[i] == deq_kwargs_sweep[j]:
-                print('Same model -> difference is due to rounding errors or randomness (e-7)')
-            print(f'energy difference: {difference(log_energy[i], log_energy[j])}   (magnitude: {absscale(log_energy[i])})')
-            print(f'force difference:  {difference(log_force[i], log_force[j])}   (magnitude: {absscale(log_force[i])})')
-            print(f'loss_e difference: {difference(log_loss_e[i], log_loss_e[j])}   (magnitude: {absscale(log_loss_e[i])})')
-            print(f'loss_f difference: {difference(log_loss_f[i], log_loss_f[j])}   (magnitude: {absscale(log_loss_f[i])})')
+                print(
+                    "Same model -> difference is due to rounding errors or randomness (e-7)"
+                )
+            print(
+                f"energy difference: {difference(log_energy[i], log_energy[j])}   (magnitude: {absscale(log_energy[i])})"
+            )
+            print(
+                f"force difference:  {difference(log_force[i], log_force[j])}   (magnitude: {absscale(log_force[i])})"
+            )
+            print(
+                f"loss_e difference: {difference(log_loss_e[i], log_loss_e[j])}   (magnitude: {absscale(log_loss_e[i])})"
+            )
+            print(
+                f"loss_f difference: {difference(log_loss_f[i], log_loss_f[j])}   (magnitude: {absscale(log_loss_f[i])})"
+            )
             # print(f'grad: {log_grad[i] == log_grad[j]}')
+
 
 if __name__ == "__main__":
     do_test()

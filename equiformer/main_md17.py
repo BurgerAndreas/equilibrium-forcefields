@@ -35,9 +35,10 @@ from omegaconf import DictConfig
 ModelEma = ModelEmaV2
 
 # silence:
-# UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. 
+# UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`.
 # Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
 import warnings
+
 warnings.filterwarnings("ignore", category=UserWarning)
 
 """
@@ -72,6 +73,7 @@ class L2MAELoss(torch.nn.Module):
         elif self.reduction == "sum":
             return torch.sum(dists)
 
+
 def get_force_placeholder(dy, loss_e):
     """if meas_force is False, return a placeholder for force prediction and loss_f"""
     # pred_dy = torch.zeros_like(data.dy)
@@ -80,6 +82,7 @@ def get_force_placeholder(dy, loss_e):
     loss_f = torch.full_like(loss_e, float("nan"))
     return pred_dy, loss_f
 
+
 def main(args, model=None):
 
     # create output directory
@@ -87,7 +90,7 @@ def main(args, model=None):
         os.makedirs(args.output_dir, exist_ok=True)
 
     _log = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
-    _log.info(f'args passed to {__file__} main():\n {args}')
+    _log.info(f"args passed to {__file__} main():\n {args}")
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -229,7 +232,7 @@ def main(args, model=None):
             print_progress=True,
             max_iter=-1,
             global_step=global_step,
-            datasplit='test',
+            datasplit="test",
         )
         return
 
@@ -265,7 +268,7 @@ def main(args, model=None):
             logger=_log,
             print_progress=False,
             global_step=global_step,
-            datasplit='val',
+            datasplit="val",
         )
 
         if (epoch + 1) % args.test_interval == 0:
@@ -280,7 +283,7 @@ def main(args, model=None):
                 print_progress=True,
                 max_iter=args.test_max_iter,
                 global_step=global_step,
-                datasplit='test',
+                datasplit="test",
             )
         else:
             test_err, test_loss = None, None
@@ -342,17 +345,17 @@ def main(args, model=None):
 
         # log to wandb
         logs = {
-                "train_e_mae": train_err["energy"].avg,
-                "train_f_mae": train_err["force"].avg,
-                "val_e_mae": val_err["energy"].avg,
-                "val_f_mae": val_err["force"].avg,
-                "lr": optimizer.param_groups[0]["lr"],
-                # allows us to plot against epoch
-                # in the custom plots, click edit and select a custom x-axis
-                "epoch": epoch, 
-                "time_train": time.perf_counter() - start_time,
-                "time_per_epoch": time.perf_counter() - epoch_start_time,
-            }
+            "train_e_mae": train_err["energy"].avg,
+            "train_f_mae": train_err["force"].avg,
+            "val_e_mae": val_err["energy"].avg,
+            "val_f_mae": val_err["force"].avg,
+            "lr": optimizer.param_groups[0]["lr"],
+            # allows us to plot against epoch
+            # in the custom plots, click edit and select a custom x-axis
+            "epoch": epoch,
+            "time_train": time.perf_counter() - start_time,
+            "time_per_epoch": time.perf_counter() - epoch_start_time,
+        }
         if test_err is not None:
             logs["test_e_mae"] = test_err["energy"].avg
             logs["test_f_mae"] = test_err["force"].avg
@@ -397,7 +400,7 @@ def main(args, model=None):
                 logger=_log,
                 print_progress=False,
                 global_step=global_step,
-                datasplit='ema_val',
+                datasplit="ema_val",
             )
 
             if (epoch + 1) % args.test_interval == 0:
@@ -412,7 +415,7 @@ def main(args, model=None):
                     print_progress=True,
                     max_iter=args.test_max_iter,
                     global_step=global_step,
-                    datasplit='ema_test',
+                    datasplit="ema_test",
                 )
             else:
                 ema_test_err, ema_test_loss = None, None
@@ -508,7 +511,6 @@ def main(args, model=None):
                 step=global_step,
             )
 
-
     # evaluate on the whole testing set
     test_err, test_loss = evaluate(
         args=args,
@@ -519,9 +521,9 @@ def main(args, model=None):
         print_freq=args.print_freq,
         logger=_log,
         print_progress=True,
-        max_iter=-1, # -1 means evaluate the whole dataset
+        max_iter=-1,  # -1 means evaluate the whole dataset
         global_step=global_step,
-        datasplit='test_all',
+        datasplit="test_all",
     )
 
 
@@ -531,14 +533,14 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
 
     update_val_result, update_test_result = False, False
 
-    print(f'Trying to update best results for epoch {epoch}')
+    print(f"Trying to update best results for epoch {epoch}")
     new_loss = _compute_weighted_error(
         args, val_err["energy"].avg, val_err["force"].avg
     )
     prev_loss = _compute_weighted_error(
         args, best_metrics["val_energy_err"], best_metrics["val_force_err"]
     )
-    print(f' New loss val: {new_loss}, prev loss: {prev_loss}')
+    print(f" New loss val: {new_loss}, prev loss: {prev_loss}")
     if new_loss < prev_loss:
         best_metrics["val_energy_err"] = val_err["energy"].avg
         best_metrics["val_force_err"] = val_err["force"].avg
@@ -546,7 +548,7 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
         update_val_result = True
 
     if test_err is None:
-        print(f' Test error is None, skipping updating best val for epoch {epoch}')
+        print(f" Test error is None, skipping updating best val for epoch {epoch}")
         return update_val_result, update_test_result
 
     new_loss = _compute_weighted_error(
@@ -555,7 +557,7 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
     prev_loss = _compute_weighted_error(
         args, best_metrics["test_energy_err"], best_metrics["test_force_err"]
     )
-    print(f' New loss test: {new_loss}, prev loss: {prev_loss}')
+    print(f" New loss test: {new_loss}, prev loss: {prev_loss}")
     if new_loss < prev_loss:
         best_metrics["test_energy_err"] = test_err["energy"].avg
         best_metrics["test_force_err"] = test_err["force"].avg
@@ -596,7 +598,13 @@ def train_one_epoch(
         data = data.to(device)
 
         # energy, force
-        pred_y, pred_dy = model(node_atom=data.z, pos=data.pos, batch=data.batch, step=global_step, datasplit='train')
+        pred_y, pred_dy = model(
+            node_atom=data.z,
+            pos=data.pos,
+            batch=data.batch,
+            step=global_step,
+            datasplit="train",
+        )
         # if deq_mode and reuse:
         #     z_star = z_pred.detach()
 
@@ -623,7 +631,7 @@ def train_one_epoch(
         energy_err = pred_y.detach() * task_std + task_mean - data.y
         energy_err = torch.mean(torch.abs(energy_err)).item()
         mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
-        
+
         force_err = pred_dy.detach() * task_std - data.dy
         force_err = torch.mean(
             torch.abs(force_err)
@@ -699,7 +707,13 @@ def evaluate(
         for step, data in enumerate(data_loader):
 
             data = data.to(device)
-            pred_y, pred_dy = model(node_atom=data.z, pos=data.pos, batch=data.batch, step=global_step, datasplit=datasplit)
+            pred_y, pred_dy = model(
+                node_atom=data.z,
+                pos=data.pos,
+                batch=data.batch,
+                step=global_step,
+                datasplit=datasplit,
+            )
 
             loss_e = criterion(pred_y, ((data.y - task_mean) / task_std))
             if args.meas_force == True:
@@ -743,11 +757,10 @@ def evaluate(
     return mae_metrics, loss_metrics
 
 
-
 @hydra.main(config_name="md17", config_path="config/equiformer", version_base="1.3")
 def hydra_wrapper(args: DictConfig) -> None:
     """Run training loop.
-    
+
     Usage:
         python deq_equiformer.py
         python deq_equiformer.py batch_size=8
@@ -755,7 +768,7 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     Usage with slurm:
         sbatch scripts/slurm_launcher.slrm deq_equiformer.py +machine=vector
-    
+
     To reprocude the paper results:
         python deq_equiformer.py input_irreps='64x0e' weight_decay=1e-6 num_basis=32 energy_weight=1 force_weight=80
     """
@@ -774,11 +787,13 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    
+
     from deq2ff.logging_utils import init_wandb
+
     init_wandb(args)
 
     main(args)
+
 
 if __name__ == "__main__":
 
@@ -789,5 +804,5 @@ if __name__ == "__main__":
 
     # graph_attention_transformer_nonlinear_exp_l2_md17
     # dot_product_attention_transformer_exp_l2_md17
-    
+
     hydra_wrapper()

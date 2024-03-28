@@ -11,6 +11,7 @@ import torch
 
 from equiformer.config.paths import ROOT_DIR
 
+
 def init_wandb(args: OmegaConf):
     """init shared across all methods"""
 
@@ -19,7 +20,7 @@ def init_wandb(args: OmegaConf):
     args = set_gpu_name(args)
 
     if args.model_is_deq is True:
-        args.model_name = f'deq_{args.model_name}'
+        args.model_name = f"deq_{args.model_name}"
 
     if args.wandb_run_name is None:
         # args.wandb_run_name = args.data_path.split("/")[-1]
@@ -28,7 +29,7 @@ def init_wandb(args: OmegaConf):
         model_name = model_name.replace("_exp_l2", "")
         args.wandb_run_name = model_name
     args.wandb_run_name = name_from_config(args)
-    
+
     if args.wandb == False:
         # wandb.init(mode="disabled")
         os.environ["WANDB_DISABLED"] = "true"
@@ -49,9 +50,10 @@ def init_wandb(args: OmegaConf):
         # reinit=True,
     )
 
-    print('wandb run name:', args.wandb_run_name)
-    print('wandb run id:', wandb.run.id)
+    print("wandb run name:", args.wandb_run_name)
+    print("wandb run id:", wandb.run.id)
     return wandb.run.id
+
 
 def final_logging(args):
     """Log final information."""
@@ -67,7 +69,6 @@ def final_logging(args):
             print(f"Saved {slurm_file} to wandb.")
         else:
             print(f"Could not find {slurm_file}.")
-
 
 
 IGNORE_OVERRIDES = [
@@ -110,6 +111,7 @@ def name_from_config(args: omegaconf.DictConfig) -> str:
     # logger.info("name_from_config() mname: %s, override_names: %s", mname, override_names)
     return mname + override_names
 
+
 def set_gpu_name(args):
     """Set wandb.run.name."""
     try:
@@ -121,6 +123,7 @@ def set_gpu_name(args):
     except:
         pass
     return args
+
 
 def set_wandb_name(args, initial_global_step, global_step=None):
     """Set wandb.run.name."""

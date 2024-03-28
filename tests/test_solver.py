@@ -1,6 +1,3 @@
-
-
-
 """
 /ssd/gen/equilibrium-forcefields/scripts/deq_equiformer.py deq_kwargs.f_solver='broyden' deq_kwargs.b_solver='broyden'
 

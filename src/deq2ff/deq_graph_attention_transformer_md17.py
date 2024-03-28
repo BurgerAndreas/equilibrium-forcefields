@@ -39,6 +39,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from e3nn import o3
+
 # import e3nn
 # from e3nn.util.jit import compile_mode
 # from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
@@ -46,15 +47,15 @@ from e3nn import o3
 from equiformer.nets.registry import register_model
 
 
-class DEQGraphAttentionTransformerMD17(nets.graph_attention_transformer_md17.GraphAttentionTransformerMD17):
-
+class DEQGraphAttentionTransformerMD17(
+    nets.graph_attention_transformer_md17.GraphAttentionTransformerMD17
+):
     def __init__(self, deq_mode=True, deq_kwargs={}, **kwargs):
         # print(f'DEQGraphAttentionTransformerMD17 passed kwargs: {kwargs}')
         super().__init__(**kwargs)
 
         self.deq_mode = deq_mode
         self.deq = get_deq(**deq_kwargs)
-
 
     @torch.enable_grad()
     def decode(self, node_features, u, batch, pos):
@@ -77,11 +78,10 @@ class DEQGraphAttentionTransformerMD17(nets.graph_attention_transformer_md17.Gra
         node_features = self.norm(node_features, batch=batch)
         # print(f'After norm: {node_features.shape}')
 
-
         if self.out_dropout is not None:
             node_features = self.out_dropout(node_features)
             # print(f'After out_dropout: {node_features.shape}')
-        
+
         # outputs
         # 21, 512 -> 21, 1
         if self.use_attn_head:
@@ -115,12 +115,18 @@ class DEQGraphAttentionTransformerMD17(nets.graph_attention_transformer_md17.Gra
 
         return energy, forces
 
-# copy from deq_dp_attention_transformer_md17.py
-from deq2ff.deq_dp_attention_transformer_md17 import DEQDotProductAttentionTransformerMD17
 
-DEQGraphAttentionTransformerMD17.forward = DEQDotProductAttentionTransformerMD17.forward 
-DEQGraphAttentionTransformerMD17.encode = DEQDotProductAttentionTransformerMD17.encode 
-DEQGraphAttentionTransformerMD17.deq_implicit_layer = DEQDotProductAttentionTransformerMD17.deq_implicit_layer 
+# copy from deq_dp_attention_transformer_md17.py
+from deq2ff.deq_dp_attention_transformer_md17 import (
+    DEQDotProductAttentionTransformerMD17,
+)
+
+DEQGraphAttentionTransformerMD17.forward = DEQDotProductAttentionTransformerMD17.forward
+DEQGraphAttentionTransformerMD17.encode = DEQDotProductAttentionTransformerMD17.encode
+DEQGraphAttentionTransformerMD17.deq_implicit_layer = (
+    DEQDotProductAttentionTransformerMD17.deq_implicit_layer
+)
+
 
 @register_model
 def deq_graph_attention_transformer_nonlinear_l2_md17(
@@ -149,7 +155,7 @@ def deq_graph_attention_transformer_nonlinear_l2_md17(
     drop_path_rate=0.0,
     scale=None,
     deq_kwargs={},
-    **kwargs
+    **kwargs,
 ):
     model = DEQGraphAttentionTransformerMD17(
         irreps_in=irreps_in,
@@ -180,5 +186,5 @@ def deq_graph_attention_transformer_nonlinear_l2_md17(
         deq_mode=True,
         deq_kwargs=deq_kwargs,
     )
-    print(f' ! Ignore passed kwargs: {kwargs}')
+    print(f" ! Ignore passed kwargs: {kwargs}")
     return model

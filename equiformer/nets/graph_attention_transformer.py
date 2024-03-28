@@ -879,6 +879,7 @@ class ScaledScatter(torch.nn.Module):
 
 class EdgeDegreeEmbeddingNetwork(torch.nn.Module):
     """Constant One, r_ij -> Linear, Depthwise TP, Linear, Scaled Scatter."""
+
     def __init__(
         self, irreps_node_embedding, irreps_edge_attr, fc_neurons, avg_aggregate_num
     ):
@@ -909,7 +910,7 @@ class EdgeDegreeEmbeddingNetwork(torch.nn.Module):
         # DTP
         edge_features = self.dw(node_features[edge_src], edge_attr, weight)
         # Linear
-        edge_features = self.proj(edge_features) 
+        edge_features = self.proj(edge_features)
         # scale
         node_features = self.scale_scatter(
             edge_features, edge_dst, dim=0, dim_size=node_features.shape[0]

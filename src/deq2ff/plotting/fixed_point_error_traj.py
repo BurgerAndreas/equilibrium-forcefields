@@ -17,7 +17,9 @@ def main(run_id: str):
     # rel_fixed_point_error_traj on the y-axis
     # solver_step on the x-axis
     # train_step as the hue
-    df = df.melt(id_vars=["solver_step", "train_step"], value_vars=["rel_fixed_point_error_traj"])
+    df = df.melt(
+        id_vars=["solver_step", "train_step"], value_vars=["rel_fixed_point_error_traj"]
+    )
     print(df)
 
     sns.lineplot(data=df, x="solver_step", y="value", hue="train_step")

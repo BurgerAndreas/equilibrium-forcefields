@@ -4,6 +4,7 @@ from torch_cluster import radius_graph
 from torch_scatter import scatter
 
 from e3nn import o3
+
 # import e3nn
 # from e3nn.util.jit import compile_mode
 # from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
@@ -345,9 +346,14 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
         atom_embedding, atom_attr, atom_onehot = self.atom_embed(node_atom)
         edge_length = edge_vec.norm(dim=1)
         edge_length_embedding = self.rbf(edge_length)
-        edge_degree_embedding = self.edge_deg_embed( 
+        edge_degree_embedding = self.edge_deg_embed(
             # atom_embedding is just used for the shape
-            atom_embedding, edge_sh, edge_length_embedding, edge_src, edge_dst, batch
+            atom_embedding,
+            edge_sh,
+            edge_length_embedding,
+            edge_src,
+            edge_dst,
+            batch,
         )
         node_features = atom_embedding + edge_degree_embedding
         node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
@@ -385,11 +391,10 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
         node_features = self.norm(node_features, batch=batch)
         # print(f'After norm: {node_features.shape}')
 
-
         if self.out_dropout is not None:
             node_features = self.out_dropout(node_features)
             # print(f'After out_dropout: {node_features.shape}')
-        
+
         # outputs
         # 21, 512 -> 21, 1
         if self.use_attn_head:
@@ -426,6 +431,7 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
 
         return energy, forces
 
+
 # 11 -> all the same
 # irreps_node_attr="1x0e"
 # fc_neurons=[64, 64]
@@ -437,6 +443,7 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
 # drop_path_rate=0.0,
 # scale=None,
 
+
 @register_model
 def graph_attention_transformer_l2_md17(
     irreps_in,
@@ -446,7 +453,7 @@ def graph_attention_transformer_l2_md17(
     atomref=None,
     task_mean=None,
     task_std=None,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
@@ -474,7 +481,7 @@ def graph_attention_transformer_l2_md17(
         scale=None,
         atomref=atomref,
     )
-    print(f'! Ignoring kwargs: {kwargs}')
+    print(f"! Ignoring kwargs: {kwargs}")
     return model
 
 
@@ -487,7 +494,7 @@ def graph_attention_transformer_nonlinear_l2_md17(
     task_mean=None,
     task_std=None,
     num_layers=6,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
@@ -515,7 +522,7 @@ def graph_attention_transformer_nonlinear_l2_md17(
         scale=None,
         atomref=atomref,
     )
-    print(f'! Ignoring kwargs: {kwargs}')
+    print(f"! Ignoring kwargs: {kwargs}")
     return model
 
 
@@ -528,7 +535,7 @@ def graph_attention_transformer_nonlinear_l2_e3_md17(
     task_mean=None,
     task_std=None,
     num_layers=6,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
@@ -556,7 +563,7 @@ def graph_attention_transformer_nonlinear_l2_e3_md17(
         scale=None,
         atomref=atomref,
     )
-    print(f'! Ignoring kwargs: {kwargs}')
+    print(f"! Ignoring kwargs: {kwargs}")
     return model
 
 
@@ -569,7 +576,7 @@ def graph_attention_transformer_nonlinear_bessel_l2_md17(
     task_mean=None,
     task_std=None,
     num_layers=6,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
@@ -598,7 +605,7 @@ def graph_attention_transformer_nonlinear_bessel_l2_md17(
         scale=None,
         atomref=atomref,
     )
-    print(f'! Ignoring kwargs: {kwargs}')
+    print(f"! Ignoring kwargs: {kwargs}")
     return model
 
 
@@ -611,7 +618,7 @@ def graph_attention_transformer_nonlinear_exp_l2_md17(
     task_mean=None,
     task_std=None,
     num_layers=6,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
@@ -640,7 +647,7 @@ def graph_attention_transformer_nonlinear_exp_l2_md17(
         scale=None,
         atomref=atomref,
     )
-    print(f'! Ignoring kwargs: {kwargs}')
+    print(f"! Ignoring kwargs: {kwargs}")
     return model
 
 
@@ -653,7 +660,7 @@ def graph_attention_transformer_nonlinear_exp_l3_md17(
     task_mean=None,
     task_std=None,
     num_layers=6,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
@@ -682,7 +689,7 @@ def graph_attention_transformer_nonlinear_exp_l3_md17(
         scale=None,
         atomref=atomref,
     )
-    print(f'! Ignoring kwargs: {kwargs}')
+    print(f"! Ignoring kwargs: {kwargs}")
     return model
 
 
@@ -695,7 +702,7 @@ def graph_attention_transformer_nonlinear_attn_exp_l3_md17(
     task_mean=None,
     task_std=None,
     num_layers=6,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
@@ -725,7 +732,7 @@ def graph_attention_transformer_nonlinear_attn_exp_l3_md17(
         scale=None,
         atomref=atomref,
     )
-    print(f'! Ignoring kwargs: {kwargs}')
+    print(f"! Ignoring kwargs: {kwargs}")
     return model
 
 
@@ -738,7 +745,7 @@ def graph_attention_transformer_nonlinear_exp_l3_e3_md17(
     task_mean=None,
     task_std=None,
     num_layers=6,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
@@ -767,7 +774,7 @@ def graph_attention_transformer_nonlinear_exp_l3_e3_md17(
         scale=None,
         atomref=atomref,
     )
-    print(f'! Ignoring kwargs: {kwargs}')
+    print(f"! Ignoring kwargs: {kwargs}")
     return model
 
 
@@ -780,7 +787,7 @@ def graph_attention_transformer_nonlinear_bessel_l3_md17(
     task_mean=None,
     task_std=None,
     num_layers=6,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
@@ -809,7 +816,7 @@ def graph_attention_transformer_nonlinear_bessel_l3_md17(
         scale=None,
         atomref=atomref,
     )
-    print(f'! Ignoring kwargs: {kwargs}')
+    print(f"! Ignoring kwargs: {kwargs}")
     return model
 
 
@@ -822,7 +829,7 @@ def graph_attention_transformer_nonlinear_bessel_l3_e3_md17(
     task_mean=None,
     task_std=None,
     num_layers=6,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformerMD17(
         irreps_in=irreps_in,
@@ -851,5 +858,5 @@ def graph_attention_transformer_nonlinear_bessel_l3_e3_md17(
         scale=None,
         atomref=atomref,
     )
-    print(f'! Ignoring kwargs: {kwargs}')
+    print(f"! Ignoring kwargs: {kwargs}")
     return model

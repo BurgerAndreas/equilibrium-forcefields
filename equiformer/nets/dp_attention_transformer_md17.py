@@ -4,6 +4,7 @@ from torch_cluster import radius_graph
 from torch_scatter import scatter
 
 from e3nn import o3
+
 # import e3nn
 # from e3nn.util.jit import compile_mode
 # from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
@@ -272,7 +273,12 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         # Constant One, r_ij -> Linear, Depthwise TP, Linear, Scaled Scatter
         edge_degree_embedding = self.edge_deg_embed(
             # atom_embedding is just used for the shape
-            atom_embedding, edge_sh, edge_length_embedding, edge_src, edge_dst, batch
+            atom_embedding,
+            edge_sh,
+            edge_length_embedding,
+            edge_src,
+            edge_dst,
+            batch,
         )
 
         # node_features = x
@@ -324,7 +330,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         node_features = self.norm(node_features, batch=batch)
         if self.out_dropout is not None:
             node_features = self.out_dropout(node_features)
-        
+
         # output head
         outputs = self.head(node_features)
         outputs = self.scale_scatter(outputs, batch, dim=0)
@@ -373,7 +379,7 @@ def dot_product_attention_transformer_exp_l2_md17(
     out_drop=0.0,
     drop_path_rate=0.0,
     scale=None,
-    **kwargs
+    **kwargs,
 ):
     model = DotProductAttentionTransformerMD17(
         irreps_in=irreps_in,
@@ -402,7 +408,7 @@ def dot_product_attention_transformer_exp_l2_md17(
         scale=scale,
         atomref=atomref,
     )
-    print(f'! Ignoring kwargs: {kwargs}')
+    print(f"! Ignoring kwargs: {kwargs}")
     return model
 
 
@@ -433,7 +439,7 @@ def dot_product_attention_transformer_exp_l3_md17(
     out_drop=0.0,
     drop_path_rate=0.0,
     scale=None,
-    **kwargs
+    **kwargs,
 ):
     model = DotProductAttentionTransformerMD17(
         irreps_in=irreps_in,
@@ -462,5 +468,5 @@ def dot_product_attention_transformer_exp_l3_md17(
         scale=scale,
         atomref=atomref,
     )
-    print(f'! Ignoring kwargs: {kwargs}')
+    print(f"! Ignoring kwargs: {kwargs}")
     return model

@@ -64,15 +64,17 @@ from deq2ff.deq_dp_attention_transformer_md17 import *
 from deq2ff.deq_graph_attention_transformer_md17 import *
 
 # silence:
-# UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. 
+# UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`.
 # Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
 import warnings
+
 warnings.filterwarnings("ignore", category=UserWarning)
+
 
 @hydra.main(config_name="deq", config_path="../equiformer/config", version_base="1.3")
 def hydra_wrapper(args: DictConfig) -> None:
     """Run training loop.
-    
+
     Usage:
         python deq_equiformer.py
         python deq_equiformer.py batch_size=8
@@ -85,20 +87,20 @@ def hydra_wrapper(args: DictConfig) -> None:
     # args.model_name = "deq_dot_product_attention_transformer_exp_l2_md17"
     # args.deq_mode = True
     # args.num_layers = 2 # 6 -> 1
-    # args.meas_force = True 
+    # args.meas_force = True
 
     args.output_dir = "models/md17/deq-equiformer/test1"
 
     from equiformer.main_md17 import main
 
     from deq2ff.logging_utils import init_wandb
+
     init_wandb(args)
 
     main(args)
 
 
 if __name__ == "__main__":
-
 
     # TODO try to overfit on tiny subset of data
     # args.train_size = 100

@@ -41,6 +41,7 @@ from tqdm import tqdm
 import wandb
 
 from e3nn import o3
+
 # import e3nn
 # from e3nn.util.jit import compile_mode
 # from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
@@ -57,7 +58,11 @@ from equiformer.nets.tensor_product_rescale import (
     irreps2gate,
 )
 from equiformer.nets.fast_activation import Activation, Gate
-from equiformer.nets.drop import EquivariantDropout, EquivariantScalarsDropout, GraphDropPath
+from equiformer.nets.drop import (
+    EquivariantDropout,
+    EquivariantScalarsDropout,
+    GraphDropPath,
+)
 
 from equiformer.nets.gaussian_rbf import GaussianRadialBasisLayer
 
@@ -65,7 +70,11 @@ from equiformer.nets.gaussian_rbf import GaussianRadialBasisLayer
 from ocpmodels.models.gemnet.layers.radial_basis import RadialBasis
 
 from equiformer.nets.expnorm_rbf import ExpNormalSmearing
-from equiformer.nets.dp_attention_transformer import ScaleFactor, DotProductAttention, DPTransBlock
+from equiformer.nets.dp_attention_transformer import (
+    ScaleFactor,
+    DotProductAttention,
+    DPTransBlock,
+)
 from equiformer.nets.graph_attention_transformer import (
     get_norm_layer,
     FullyConnectedTensorProductRescaleNorm,
@@ -81,7 +90,12 @@ from equiformer.nets.graph_attention_transformer import (
     EdgeDegreeEmbeddingNetwork,
 )
 
-from equiformer.nets.dp_attention_transformer_md17 import _RESCALE, _MAX_ATOM_TYPE, _AVG_DEGREE, _AVG_NUM_NODES
+from equiformer.nets.dp_attention_transformer_md17 import (
+    _RESCALE,
+    _MAX_ATOM_TYPE,
+    _AVG_DEGREE,
+    _AVG_NUM_NODES,
+)
 
 import deq2ff.deq_utils as deq_utils
 
@@ -92,35 +106,38 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
     """
 
     def __init__(
-            self, deq_mode=True, torchdeq_norm=True, deq_kwargs={}, 
-            z_is_node_features=True, # True=V1, False=V2
-            irreps_node_embedding_injection=None, 
-            irreps_in="64x0e",
-            irreps_node_embedding="128x0e+64x1e+32x2e",
-            irreps_feature="512x0e",
-            num_layers=6,
-            irreps_node_attr="1x0e",
-            irreps_sh="1x0e+1x1e+1x2e",
-            max_radius=5.0,
-            number_of_basis=128,
-            basis_type="gaussian",
-            fc_neurons=[64, 64],
-            irreps_head="32x0e+16x1o+8x2e",
-            num_heads=4,
-            irreps_pre_attn=None,
-            rescale_degree=False,
-            nonlinear_message=False,
-            irreps_mlp_mid="128x0e+64x1e+32x2e",
-            norm_layer="layer",
-            alpha_drop=0.2,
-            proj_drop=0.0,
-            out_drop=0.0,
-            drop_path_rate=0.0,
-            mean=None,
-            std=None,
-            scale=None,
-            atomref=None,
-        ):
+        self,
+        deq_mode=True,
+        torchdeq_norm=True,
+        deq_kwargs={},
+        z_is_node_features=True,  # True=V1, False=V2
+        irreps_node_embedding_injection=None,
+        irreps_in="64x0e",
+        irreps_node_embedding="128x0e+64x1e+32x2e",
+        irreps_feature="512x0e",
+        num_layers=6,
+        irreps_node_attr="1x0e",
+        irreps_sh="1x0e+1x1e+1x2e",
+        max_radius=5.0,
+        number_of_basis=128,
+        basis_type="gaussian",
+        fc_neurons=[64, 64],
+        irreps_head="32x0e+16x1o+8x2e",
+        num_heads=4,
+        irreps_pre_attn=None,
+        rescale_degree=False,
+        nonlinear_message=False,
+        irreps_mlp_mid="128x0e+64x1e+32x2e",
+        norm_layer="layer",
+        alpha_drop=0.2,
+        proj_drop=0.0,
+        out_drop=0.0,
+        drop_path_rate=0.0,
+        mean=None,
+        std=None,
+        scale=None,
+        atomref=None,
+    ):
         # print(f'DEQDotProductAttentionTransformerMD17 passed kwargs: {kwargs}')
 
         super().__init__()
@@ -129,9 +146,13 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         if z_is_node_features is True:
             # V1
             # node_features are initialized as the output of the encoder
-            self.irreps_node_injection = o3.Irreps(irreps_node_embedding) # output of encoder
-            self.irreps_node_z = o3.Irreps(irreps_node_embedding) # input to block
-            self.irreps_node_embedding = o3.Irreps(irreps_node_embedding) # output of block
+            self.irreps_node_injection = o3.Irreps(
+                irreps_node_embedding
+            )  # output of encoder
+            self.irreps_node_z = o3.Irreps(irreps_node_embedding)  # input to block
+            self.irreps_node_embedding = o3.Irreps(
+                irreps_node_embedding
+            )  # output of block
         else:
             # V2
             # node features are initialized as 0
@@ -139,12 +160,16 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             # encoder = atom_embed() and edge_deg_embed()
             # both encoder shapes are defined by irreps_node_embedding
             # input to self.blocks is the concat of node_input and node_injection
-            self.irreps_node_injection = o3.Irreps(irreps_node_embedding_injection) # output of encoder
-            self.irreps_node_embedding = o3.Irreps(irreps_node_embedding) # output of block
+            self.irreps_node_injection = o3.Irreps(
+                irreps_node_embedding_injection
+            )  # output of encoder
+            self.irreps_node_embedding = o3.Irreps(
+                irreps_node_embedding
+            )  # output of block
             irreps_node_z = self.irreps_node_embedding + self.irreps_node_injection
             irreps_node_z = irreps_node_z.simplify()
-            self.irreps_node_z = o3.Irreps(irreps_node_z) # input to block
-        
+            self.irreps_node_z = o3.Irreps(irreps_node_z)  # input to block
+
         self.max_radius = max_radius
         self.number_of_basis = number_of_basis
         self.alpha_drop = alpha_drop
@@ -180,7 +205,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         self.atom_embed = NodeEmbeddingNetwork(
             # self.irreps_out_encoder,
             self.irreps_node_injection,
-            _MAX_ATOM_TYPE
+            _MAX_ATOM_TYPE,
         )
         self.basis_type = basis_type
         if self.basis_type == "gaussian":
@@ -245,9 +270,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         # to have weight/spectral normalization. (for better stability)
         # Using norm_type='none' in `kwargs` can also skip it.
         if torchdeq_norm:
-            apply_norm(self.blocks, norm_type='weight_norm')
+            apply_norm(self.blocks, norm_type="weight_norm")
             # apply_norm(self.blocks, norm_type='spectral_norm')
-    
+
     def build_blocks(self):
         """N blocks of: Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
         Last block outputs scalars (l0) only.
@@ -293,7 +318,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
     # Since our z = node_features is coming from the encoder
     # def _init_z(self):
     #     return torch.zeros(1, self.d_hidden)
-    
+
     def _init_weights(self, m):
         if isinstance(m, torch.nn.Linear):
             if m.bias is not None:
@@ -327,7 +352,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
                     no_wd_list.append(global_parameter_name)
 
         return set(no_wd_list)
-    
+
     def init_z(self, node_features_injection):
         # return torch.zeros(1, self.irreps_feature.dim)
         return torch.zeros_like(node_features_injection)
@@ -360,8 +385,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         node_features = atom_embedding + edge_degree_embedding
         node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
 
-        # atom_embedding torch.Size([168, 480]) 
-        # edge_degree_embedding torch.Size([168, 480]) 
+        # atom_embedding torch.Size([168, 480])
+        # edge_degree_embedding torch.Size([168, 480])
 
         return (
             node_features,
@@ -373,7 +398,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             batch,
             pos,
         )
-    
+
     @torch.enable_grad()
     def deq_implicit_layer(
         self,
@@ -445,7 +470,16 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
 
         return energy, forces
 
-    def forward(self, node_atom, pos, batch, z=None, return_grad=False, step=None, datasplit=None):
+    def forward(
+        self,
+        node_atom,
+        pos,
+        batch,
+        z=None,
+        return_grad=False,
+        step=None,
+        datasplit=None,
+    ):
         """Forward pass of the DEQ model."""
 
         # encode
@@ -464,8 +498,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         if self.z_is_node_features == True:
             node_features = node_features_injection
         else:
-            node_features = self.init_z(node_features_injection) # TODO: check if this is correct
-            
+            node_features = self.init_z(
+                node_features_injection
+            )  # TODO: check if this is correct
+
         reuse = True
         if z is None:
             # z = torch.zeros(x.shape[0], self.d_hidden).to(x)
@@ -477,7 +513,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
 
         # f = lambda z: self.mfn_forward(z, u)
         u = (node_attr, edge_src, edge_dst, edge_sh, edge_length_embedding, batch)
-        f = lambda node_features: self.deq_implicit_layer(node_features, u, node_features_injection)
+        f = lambda node_features: self.deq_implicit_layer(
+            node_features, u, node_features_injection
+        )
 
         # z: list[torch.tensor shape [42, 480]]
         if self.deq_mode:
@@ -495,10 +533,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         # decode
         # outputs: list[Tuple(energy: torch.tensor [2, 1], force: torch.tensor [42, 3])]
         # outputs = [self.out(z) for z in z_pred]
-            
+
         # outputs = [self.decode(node_features=z, u=u, batch=batch, pos=pos) for z in z_pred]
         # energy = outputs[-1][0]
-        # force = outputs[-1][1] 
+        # force = outputs[-1][1]
 
         energy, force = self.decode(node_features=z_pred[-1], u=u, batch=batch, pos=pos)
 
@@ -507,7 +545,6 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             # z_pred = sampled fixed point trajectory (tracked gradients)
             return energy, force, z_pred
         return energy, force
-
 
 
 @register_model
@@ -525,12 +562,12 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     fc_neurons=[64, 64],
     irreps_node_embedding_injection="64x0e+32x1e+16x2e",
     irreps_node_embedding="128x0e+64x1e+32x2e",
-    irreps_feature="512x0e", # scalars only
+    irreps_feature="512x0e",  # scalars only
     irreps_sh="1x0e+1x1e+1x2e",
     irreps_head="32x0e+16x1e+8x2e",
     num_heads=4,
     irreps_mlp_mid="384x0e+192x1e+96x2e",
-    # 
+    #
     irreps_pre_attn=None,
     rescale_degree=False,
     nonlinear_message=False,
@@ -543,7 +580,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     deq_kwargs={},
     torchdeq_norm=True,
     z_is_node_features=True,
-    **kwargs
+    **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17
     model = DEQDotProductAttentionTransformerMD17(
@@ -562,7 +599,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
         irreps_head=irreps_head,
         num_heads=num_heads,
         irreps_mlp_mid=irreps_mlp_mid,
-        # 
+        #
         irreps_pre_attn=irreps_pre_attn,
         rescale_degree=rescale_degree,
         nonlinear_message=nonlinear_message,
@@ -581,6 +618,5 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
         torchdeq_norm=torchdeq_norm,
         z_is_node_features=z_is_node_features,
     )
-    print(f'! Ignoring kwargs: {kwargs}')
+    print(f"! Ignoring kwargs: {kwargs}")
     return model
-

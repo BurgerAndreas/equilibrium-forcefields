@@ -11,6 +11,8 @@ outputs
 
 slurm-*.out
 
+torchdeq
+
 ###########################################
 
 # Byte-compiled / optimized / DLL files

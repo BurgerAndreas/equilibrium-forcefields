@@ -38,7 +38,7 @@ def init_wandb(args: OmegaConf):
     args = OmegaConf.structured(OmegaConf.to_yaml(args))
     # args = OmegaConf.create(args)
     args_wandb = OmegaConf.to_container(args, resolve=True)
-    print("args passed to wandb:", args_wandb)
+    # print("args passed to wandb:\n", args_wandb)
 
     # wandb.run.name = name_from_config(args)
     wandb.init(
@@ -48,6 +48,10 @@ def init_wandb(args: OmegaConf):
         config=args_wandb,
         # reinit=True,
     )
+
+    print('wandb run name:', args.wandb_run_name)
+    print('wandb run id:', wandb.run.id)
+    return wandb.run.id
 
 def final_logging(args):
     """Log final information."""

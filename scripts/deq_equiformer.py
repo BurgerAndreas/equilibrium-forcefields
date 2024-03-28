@@ -91,8 +91,6 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     from equiformer.main_md17 import main
 
-    print('args:\n', args)
-
     from deq2ff.logging_utils import init_wandb
     init_wandb(args)
 

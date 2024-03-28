@@ -1,5 +1,8 @@
 import torch
 import wandb
+import pandas as pd
+
+log_every_steps = 1000
 
 def log_fixed_point_error(info, step, dataset=None):
     """Log fixed point error to wandb."""
@@ -14,7 +17,27 @@ def log_fixed_point_error(info, step, dataset=None):
         n = ''
     else:
         n = f'_{dataset}'
+
     if len(f_abs_trace) > 0:
+        # log the final fixed point error
         wandb.log({f"abs_fixed_point_error{n}": f_abs_trace[-1].item()}, step=step)
         wandb.log({f"rel_fixed_point_error{n}": f_rel_trace[-1].item()}, step=step)
+        if step % log_every_steps == 0:
+            # log the fixed point error along the solver trajectory
+            # https://github.com/wandb/wandb/issues/3966
+            data_dict = {
+                f"abs_fixed_point_error_traj{n}": pd.Series(f_abs_trace.detach().cpu().numpy()),
+                f"rel_fixed_point_error_traj{n}": pd.Series(f_rel_trace.detach().cpu().numpy()),
+                "solver_step": pd.Series(range(len(f_abs_trace))),
+                "train_step": pd.Series([step] * len(f_abs_trace)),
+            }
+            table = wandb.Table(dataframe=pd.DataFrame(data_dict))
+            wandb.log({'fixed_point_error_traj': table}, step=step)
+            # get the values later
+            # api = wandb.Api()
+            # run = api.run("run_id")
+            # artifact = run.logged_artifacts()[0]
+            # table = artifact.get("fixed_point_error_traj")
+            # dict_table = {column: table.get_column(column) for column in table.columns}
+            # df = pd.DataFrame(dict_table)
     return

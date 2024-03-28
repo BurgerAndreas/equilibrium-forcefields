@@ -85,8 +85,9 @@ def main(args, model=None):
     # create output directory
     if args.output_dir is not None:
         os.makedirs(args.output_dir, exist_ok=True)
+
     _log = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
-    _log.info(args)
+    _log.info(f'args passed to {__file__} main():\n {args}')
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)

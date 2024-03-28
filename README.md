@@ -60,15 +60,18 @@ Not too important right now since it only increases speed in time but not nimber
 Jo, das klingt auch viel versprechend
 
 - exact gradient with torch autograd
-- - default: grad=1 Phantom Gradient (running 1 function step at the fixed point and differentiating it as the backward pass)
-- - ift=True for exact implicit differentiation
-- - grad=10, f_max_iter=0 for exact Back Progapagation Through Time (BPTT) with PyTorch autograd (should give the same result as IFT, use as a sanity check)
+- - [x] default: `deq_kwargs.grad=1` Phantom Gradient (running 1 function step at the fixed point and differentiating it as the backward pass)
+- - [x] `deq_kwargs.ift=True` or `deq_kwargs.grad='ift'` for exact implicit differentiation
+- - [x] `deq_kwargs.grad=10 deq_kwargs.f_max_iter=0` for exact Back Progapagation Through Time (BPTT) with PyTorch autograd (should give the same result as IFT, use as a sanity check)
 
-- force weglassen, nur energy in loss meas_force=False
+- [x] ignore force, only energy in loss\ 
+meas_force=False
+
+- equiformer num_layers=2 fuer vergleichbarkeit
 
 - fixed point error (do we converge to a fixed point)?
 - - Broyden solver NaN: numerical instability?
-- - f_stop_mode='rel' (default) or 'abs'?
+- - `f_stop_mode='rel'` (default) or `'abs'`?
 
 - Broyden solver NaN: numerical instability?
 
@@ -78,19 +81,16 @@ Jo, das klingt auch viel versprechend
 
 - exploding weights or activations?
 
-- equformer num_layers=2 fuer vergleichbarkeit
-
 - equiformer equivariance test (model(x) == model(rot(x)))
 
 - initalize z0=0 (why do others do it and how can we do it)
+
+- normalization tricks (e.g. see https://github.com/locuslab/torchdeq/blob/main/deq-zoo/ignn/graphclassification/layers.py)
 
 
 ## Experiments to run
 
 Try exact gradients
-deq_kwargs.ift=True
-
-deq_kwargs.grad=2
 
 
 Only calculate the loss w.r.t energy

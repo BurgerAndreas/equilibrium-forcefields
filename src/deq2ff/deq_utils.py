@@ -14,6 +14,7 @@ def log_fixed_point_error(info, step, dataset=None):
         n = ''
     else:
         n = f'_{dataset}'
-    wandb.log({f"abs_fixed_point_error{n}": f_abs_trace[-1].item()}, step=step)
-    wandb.log({f"rel_fixed_point_error{n}": f_rel_trace[-1].item()}, step=step)
+    if len(f_abs_trace) > 0:
+        wandb.log({f"abs_fixed_point_error{n}": f_abs_trace[-1].item()}, step=step)
+        wandb.log({f"rel_fixed_point_error{n}": f_rel_trace[-1].item()}, step=step)
     return

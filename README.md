@@ -15,8 +15,10 @@ python equiformer/main_md17.py num_layers=2
 On a slurm cluster:
 ```bash
 sbatch scripts/slurm_launcher.slrm deq_equiformer.py
-sbatch scripts/slurm_launcher.slrm deq_equiformer.py z_is_node_features=True # V1
-# sbatch scripts/slurm_launcher.slrm main_md17.py num_layers=2
+# V1
+sbatch scripts/slurm_launcher.slrm deq_equiformer.py model_kwargs.init_z_from_enc=True 
+# baseline equiformer
+sbatch scripts/slurm_launcher.slrm main_md17.py num_layers=2
 ```
 
 ## TODO

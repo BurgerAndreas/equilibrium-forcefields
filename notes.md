@@ -33,3 +33,21 @@ Md17
 - https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.datasets.MD17.html
 - Machine learning of accurate energy-conserving molecular force fields
 
+
+## E3NN
+
+"128x0e+64x1e+32x2e"
+oe.Irreps() -> 128*1 + 64*3 + 32*5 = 480
+
+128x0e+64x1e+32x2e+64x0e+32x1e+16x2e
+
+for group element g ∈ SO(3), there are (2L+1)-by-(2L+1) irreps matrices DL(g) called Wigner-D matrices 
+acting on (2L + 1)-dimensional vectors
+
+concatenate multiple type-L vectors to form SE(3)-equivariant irreps features
+
+feature = flatten([
+    (l0^1), (l0^2), ..., 
+    (l1^1_x, l1^1_y, l1^1_z), (l1^2_x, l1^2_y, l1^2_z), ..., 
+    (l2^1_a, l2^1_b, l2^1_c, l2^1_d, l2^1_e), (l2^2_a, l2^2_b, l2^2_c, l2^2_d, l2^2_e), ...
+])

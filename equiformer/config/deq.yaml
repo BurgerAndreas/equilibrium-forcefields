@@ -10,13 +10,14 @@ defaults:
 
 # overwrite basemodel config
 model_is_deq: True
-deq_mode: True
-num_layers: 2
 # batch_size: 16
-torchdeq_norm: True
 
-z_is_node_features: True
-irreps_node_embedding_injection: "64x0e+32x1e+16x2e"
+# passed into model
+model_kwargs:
+  deq_mode: True
+  num_layers: 2
+  torchdeq_norm: True
+  init_z_from_enc: False
 
 # passed to torchdeq
 deq_kwargs:

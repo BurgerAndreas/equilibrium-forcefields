@@ -124,30 +124,12 @@ def main(args, model=None):
 
     """ Network """
     create_model = model_entrypoint(args.model_name)
-    if args.model_is_deq == True:
-        model = create_model(
-            irreps_in=args.input_irreps,
-            radius=args.radius,
-            num_basis=args.num_basis,
-            task_mean=mean,
-            task_std=std,
-            atomref=None,
-            drop_path=args.drop_path,
-            num_layers=args.num_layers,
-            deq_kwargs=args.deq_kwargs,
-        )
-    else:
-        model = create_model(
-            irreps_in=args.input_irreps,
-            radius=args.radius,
-            num_basis=args.num_basis,
-            task_mean=mean,
-            task_std=std,
-            atomref=None,
-            drop_path=args.drop_path,
-            num_layers=args.num_layers,
-        )
-    print(f"model {args.model_name} created")
+    model = create_model(
+        task_mean=mean,
+        task_std=std,
+        **args.model_kwargs
+    )
+    print(f"model {args.model_name} created with kwargs {args.model_kwargs}")
 
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch

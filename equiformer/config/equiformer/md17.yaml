@@ -7,6 +7,20 @@ defaults:
   # https://hydra.cc/docs/1.3/upgrades/1.0_to_1.1/default_composition_order/
   - _self_
 
+# passed into model
+model_kwargs:
+  # (str)
+  irreps_in: null
+  # (float)
+  radius: 5.0
+  # (int)
+  num_basis: 128
+  # ? 
+  atomref: null
+  # (float)
+  drop_path: 0.0
+  # (int)
+  num_layers: 6
 
 # (str)
 output_dir: null
@@ -15,12 +29,6 @@ output_dir: null
 # graph_attention_transformer_nonlinear_l2_md17 # paper
 # model_name: "graph_attention_transformer_nonlinear_l2_md17"
 model_name: "dot_product_attention_transformer_exp_l2_md17"
-# (str)
-input_irreps: null
-# (float)
-radius: 5.0
-# (int)
-num_basis: 128
 # (int)
 epochs: 1000
 # (int)
@@ -33,8 +41,6 @@ model_ema: False
 model_ema_decay: 0.9999
 #      (float)
 model_ema_force_cpu: False
-# (float)
-drop_path: 0.0
 # 'Optimizer (default: adamw' (str)
 opt: "adamw"
 # Optimizer Epsilon (default: 1e-8 (float)
@@ -94,8 +100,6 @@ force_weight: 0.8 # 80
 # (int)
 seed: 1
 # (int)
-num_layers: 6
-# (int)
 workers: 4
 # Pin CPU memory in DataLoader for more efficient (sometimes (int)
 pin_mem: False
@@ -112,7 +116,6 @@ wandb: True
 wandb_run_name: null
 slurm_job_id: null
 model_is_deq: False
-
 
 # variables we can access in our code
 job_name: 'results'

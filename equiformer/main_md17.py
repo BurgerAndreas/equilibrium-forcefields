@@ -133,7 +133,7 @@ def main(args, model=None):
 
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch
-    wandb.watch(model, log="all", log_freq=100)
+    wandb.watch(model, log="all", log_freq=args.log_every_step_major)
 
     if args.checkpoint_path is not None:
         state_dict = torch.load(args.checkpoint_path, map_location="cpu")
@@ -341,6 +341,7 @@ def main(args, model=None):
         if test_err is not None:
             logs["test_e_mae"] = test_err["energy"].avg
             logs["test_f_mae"] = test_err["force"].avg
+        # if global_step % args.log_every_step_minor == 0:
         wandb.log(
             logs,
             # step=epoch,
@@ -358,7 +359,7 @@ def main(args, model=None):
         )
         _log.info(info_str)
 
-        # log to wandb
+        # if global_step % args.log_every_step_major == 0:
         wandb.log(
             {
                 "best_val_e_mae": best_metrics["val_energy_err"],
@@ -644,16 +645,17 @@ def train_one_epoch(
             info_str += "lr={:.2e}".format(optimizer.param_groups[0]["lr"])
             logger.info(info_str)
 
-            # log to wandb
-            wandb.log(
-                {
-                    "train_loss": loss.item(),
-                    "train_e_mae": mae_metrics["energy"].avg,
-                    "train_f_mae": mae_metrics["force"].avg,
-                    "lr": optimizer.param_groups[0]["lr"],
-                },
-                step=global_step,
-            )
+        # if step % args.log_every_step_minor == 0:
+        #     # log to wandb
+        #     wandb.log(
+        #         {
+        #             "train_loss": loss.item(),
+        #             "train_e_mae": mae_metrics["energy"].avg,
+        #             "train_f_mae": mae_metrics["force"].avg,
+        #             "lr": optimizer.param_groups[0]["lr"],
+        #         },
+        #         step=global_step,
+        #     )
 
         global_step += 1
 

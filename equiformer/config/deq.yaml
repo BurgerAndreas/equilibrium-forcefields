@@ -16,7 +16,8 @@ model_is_deq: True
 model_kwargs:
   deq_mode: True
   num_layers: 2
-  torchdeq_norm: True
+  # weight, spectral, both, or none
+  torchdeq_norm: 'weight'
   init_z_from_enc: False
 
 # passed to torchdeq

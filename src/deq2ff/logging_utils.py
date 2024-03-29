@@ -85,6 +85,13 @@ IGNORE_OVERRIDES = [
     "basemodel",
 ]
 
+REPLACE = {
+    "dot_product": "dp",
+    "deq": "DEQ",
+    "deqkwargs": "",
+    "modelkwargs": "",
+}
+
 
 def name_from_config(args: omegaconf.DictConfig) -> str:
     """Generate a name for the model based on the config.
@@ -109,7 +116,10 @@ def name_from_config(args: omegaconf.DictConfig) -> str:
         print("args:", args)
         raise error
     # logger.info("name_from_config() mname: %s, override_names: %s", mname, override_names)
-    return mname + override_names
+    _name = mname + override_names
+    for key, value in REPLACE.items():
+        _name = _name.replace(key, value)
+    return _name
 
 
 def set_gpu_name(args):

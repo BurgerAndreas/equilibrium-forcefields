@@ -60,8 +60,9 @@ uses equiformer/main_md17.py
 """
 
 import deq2ff
-from deq2ff.deq_dp_attention_transformer_md17 import *
-from deq2ff.deq_graph_attention_transformer_md17 import *
+from deq2ff.deq_dp_md17 import deq_dot_product_attention_transformer_exp_l2_md17
+from deq2ff.deq_graph_md17 import deq_graph_attention_transformer_nonlinear_l2_md17
+from deq2ff.deq_dp_md17_noforce import deq_dot_product_attention_transformer_exp_l2_md17_noforce
 
 # silence:
 # UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`.

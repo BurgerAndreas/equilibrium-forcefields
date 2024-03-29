@@ -117,7 +117,7 @@ class DEQGraphAttentionTransformerMD17(
 
 
 # copy from deq_dp_attention_transformer_md17.py
-from deq2ff.deq_dp_attention_transformer_md17 import (
+from deq2ff.deq_dp_md17 import (
     DEQDotProductAttentionTransformerMD17,
 )
 

@@ -129,7 +129,7 @@ def main(args, model=None):
         task_std=std,
         **args.model_kwargs
     )
-    print(f"model {args.model_name} created with kwargs {args.model_kwargs}")
+    print(f"model {args.model_name} created with kwargs \n {args.model_kwargs}")
 
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch

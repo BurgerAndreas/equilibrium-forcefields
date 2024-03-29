@@ -12,15 +12,18 @@ import torch
 from equiformer.config.paths import ROOT_DIR
 
 
-def init_wandb(args: OmegaConf):
-    """init shared across all methods"""
-
-    # add params to wandb
+def fix_args(args: OmegaConf):
     args.slurm_job_id = os.environ.get("SLURM_JOB_ID", None)
     args = set_gpu_name(args)
 
     if args.model_is_deq is True:
-        args.model_name = f"deq_{args.model_name}"
+        if args.model_name[:3] != "deq":
+            args.model_name = f"deq_{args.model_name}"
+
+    if args.noforcemodel is True:
+        if args.model_name[-7:] != "noforce":
+            args.model_name = f"{args.model_name}_noforce"
+        args.meas_force = False
 
     if args.wandb_run_name is None:
         # args.wandb_run_name = args.data_path.split("/")[-1]
@@ -29,6 +32,13 @@ def init_wandb(args: OmegaConf):
         model_name = model_name.replace("_exp_l2", "")
         args.wandb_run_name = model_name
     args.wandb_run_name = name_from_config(args)
+    
+    return args
+
+def init_wandb(args: OmegaConf):
+    """init shared across all methods"""
+
+    args = fix_args(args)
 
     if args.wandb == False:
         # wandb.init(mode="disabled")
@@ -88,6 +98,8 @@ IGNORE_OVERRIDES = [
 REPLACE = {
     "dot_product": "dp",
     "deq": "DEQ",
+    "initzfromenc-True": "V1",
+    "initzfromenc-False": "V2",
     "deqkwargs": "",
     "modelkwargs": "",
 }

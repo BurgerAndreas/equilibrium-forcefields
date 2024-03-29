@@ -48,8 +48,8 @@ import copy
 from equiformer.main_md17 import L2MAELoss
 
 import deq2ff
-from deq2ff.deq_dp_attention_transformer_md17 import *
-from deq2ff.deq_graph_attention_transformer_md17 import *
+from deq2ff.deq_dp_md17 import *
+from deq2ff.deq_graph_md17 import *
 
 ModelEma = ModelEmaV2
 

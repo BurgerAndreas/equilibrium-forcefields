@@ -12,6 +12,10 @@ defaults:
 model_is_deq: True
 # batch_size: 16
 
+# meas_force: False
+# should be the same, but custom autograd might interfere with torchdeq grad
+noforcemodel: False
+
 # passed into model
 model_kwargs:
   deq_mode: True

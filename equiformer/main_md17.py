@@ -645,17 +645,17 @@ def train_one_epoch(
             info_str += "lr={:.2e}".format(optimizer.param_groups[0]["lr"])
             logger.info(info_str)
 
-        # if step % args.log_every_step_minor == 0:
-        #     # log to wandb
-        #     wandb.log(
-        #         {
-        #             "train_loss": loss.item(),
-        #             "train_e_mae": mae_metrics["energy"].avg,
-        #             "train_f_mae": mae_metrics["force"].avg,
-        #             "lr": optimizer.param_groups[0]["lr"],
-        #         },
-        #         step=global_step,
-        #     )
+        if step % args.log_every_step_minor == 0:
+            # log to wandb
+            wandb.log(
+                {
+                    "train_loss": loss.item(),
+                    "train_e_mae": mae_metrics["energy"].avg,
+                    "train_f_mae": mae_metrics["force"].avg,
+                    "lr": optimizer.param_groups[0]["lr"],
+                },
+                step=global_step,
+            )
 
         global_step += 1
 

@@ -27,11 +27,19 @@ TorchDEQ
 deq_dot_product_attention_transformer_exp_l2_md17
 batch_size=1, num_layers=2, RTX3060, target=aspiring ~ 170s per epoch -> 1k epochs = 48 hours = 2 days
 
-Md17
+## Datasets
+see Allegro paper for great summary
+
+### MD 17
+- use revised version!
+- 10 small, organic molecules at DFT accuracy
 - Energies and forces for molecular dynamics trajectories of eight organic molecules. Level of theory DFT: PBE+vdW-TS
 - Each molecule has >100k samples, but we use only <1k samples for training
 - https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.datasets.MD17.html
 - Machine learning of accurate energy-conserving molecular force fields
+
+### QM9
+- 133,885 structures with up to 9 heavy elements and consisting of species H, C, N, O, F in relaxed geometries. Structures are provided together with a series of properties computed at the DFT/B3LYP/6-31G(2df,p) level of theor
 
 
 ## E3NN
@@ -51,3 +59,19 @@ feature = flatten([
     (l1^1_x, l1^1_y, l1^1_z), (l1^2_x, l1^2_y, l1^2_z), ..., 
     (l2^1_a, l2^1_b, l2^1_c, l2^1_d, l2^1_e), (l2^2_a, l2^2_b, l2^2_c, l2^2_d, l2^2_e), ...
 ])
+
+
+
+## Allegro
+- https://github.com/mir-group/allegro
+- https://github.com/mir-group/nequip
+- Large-scale Atomic/Molecular Massively Parallel Simulator (LAMMPS) Molecular Dynamics Simulator
+- free and open-source software
+
+Does not directly implement any datasets?
+
+How to incorporate the datasets:
+- https://github.com/mir-group/nequip/discussions/305#discussioncomment-5056437
+- https://nequip.readthedocs.io/en/latest/howto/dataset.html#prepare-dataset-and-specify-in-yaml-config
+
+1layer and 3-layer Allegro networks have 7,375,237 and 17,926,533 parameters

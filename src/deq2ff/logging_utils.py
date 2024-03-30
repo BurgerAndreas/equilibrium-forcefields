@@ -102,6 +102,11 @@ REPLACE = {
     "initzfromenc-False": "V2",
     "deqkwargs": "",
     "modelkwargs": "",
+    "_attention_transformer": "",
+    "_md17": "",
+    "_dp": "",
+    "_l2": "",
+    "_graph_nonlinear": " GraphNonLinear",
 }
 
 
@@ -110,6 +115,9 @@ def name_from_config(args: omegaconf.DictConfig) -> str:
     Name is intended to be used as a file name for saving checkpoints and outputs.
     """
     try:
+        # model name format:
+        # deq_dot_product_attention_transformer_exp_l2_md17
+        # deq_graph_attention_transformer_nonlinear_l2_md17
         mname = args.wandb_run_name
         # override format: 'pretrain_dataset=bridge,steps=10,use_wandb=False'
         override_names = ""

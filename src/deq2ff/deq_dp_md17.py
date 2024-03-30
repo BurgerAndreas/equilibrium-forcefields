@@ -107,11 +107,13 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
 
     def __init__(
         self,
+        # added
         deq_mode=True,
         torchdeq_norm='weight',
         deq_kwargs={},
-        init_z_from_enc=True,  # True=V1, False=V2
+        init_z_from_enc=False,  # True=V1, False=V2
         irreps_node_embedding_injection="64x0e+32x1e+16x2e",
+        # original
         irreps_in="64x0e",
         # 128*1 + 64*3 + 32*5 = 480
         irreps_node_embedding="128x0e+64x1e+32x2e",
@@ -139,9 +141,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         scale=None,
         atomref=None,
     ):
-        # print(f'DEQDotProductAttentionTransformerMD17 passed kwargs: {kwargs}')
-
         super().__init__()
+
+        #################################################################
+        # Added
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -174,6 +177,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             irreps_node_z = self.irreps_node_embedding + self.irreps_node_injection
             irreps_node_z.simplify()
             self.irreps_node_z = o3.Irreps(irreps_node_z).simplify()  # input to block
+        #################################################################
 
         self.max_radius = max_radius
         self.number_of_basis = number_of_basis
@@ -270,7 +274,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
 
         # from DEQ INR example
         # https://colab.research.google.com/drive/12HiUnde7qLadeZGGtt7FITnSnbUmJr-I?usp=sharing#scrollTo=RGgPMQLT6IHc
-        # or see: https://github.com/locuslab/torchdeq/blob/main/deq-zoo/ignn/graphclassification/layers.py
+        # https://github.com/locuslab/torchdeq/blob/main/deq-zoo/ignn/graphclassification/layers.py
         # This function automatically decorates weights in your DEQ layer
         # to have weight/spectral normalization. (for better stability)
         # Using norm_type='none' in `kwargs` can also skip it.
@@ -279,6 +283,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         if ('spectral' in torchdeq_norm) or ('both' in torchdeq_norm):
             # register_norm_module(DEQDotProductAttentionTransformerMD17, 'spectral_norm', names=['blocks'], dims=[0])
             apply_norm(self.blocks, norm_type='spectral_norm')
+        #################################################################
 
     def build_blocks(self):
         """N blocks of: Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
@@ -467,6 +472,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         node_features = self.norm(node_features, batch=batch)
         if self.out_dropout is not None:
             node_features = self.out_dropout(node_features)
+
+        # outputs
+            # [num_atoms*batch_size, irreps_dim] -> [num_atoms*batch_size, 1]
         outputs = self.head(node_features)
         outputs = self.scale_scatter(outputs, batch, dim=0)
 

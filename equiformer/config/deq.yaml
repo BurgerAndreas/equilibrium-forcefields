@@ -21,8 +21,20 @@ model_kwargs:
   deq_mode: True
   num_layers: 2
   # weight, spectral, both, or none
-  torchdeq_norm: 'weight'
+  # https://github.com/locuslab/torchdeq/blob/4f6bd5fa66dd991cad74fcc847c88061764cf8db/torchdeq/norm/base_norm.py#L90C23-L90C32
+  torchdeq_norm: 
+    norm_type: 'weight_norm'
+    clip: False # norm_clip
+    clip_value: 1.0
+    # sn_n_power_iters: 1
   init_z_from_enc: False
+
+# regularization
+# jac_reg: False
+# jac_loss_weight: 0.0
+# jac_loss_freq: 0.0
+# jac_incremental: 0.0
+# torchdeq.loss.jac_reg(f0, z0, vecs=1, create_graph=True)
 
 # passed to torchdeq
 deq_kwargs:

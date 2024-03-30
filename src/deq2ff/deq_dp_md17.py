@@ -39,6 +39,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 import wandb
+import omegaconf
 
 from e3nn import o3
 
@@ -109,7 +110,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         self,
         # added
         deq_mode=True,
-        torchdeq_norm='weight',
+        torchdeq_norm=omegaconf.OmegaConf.create({'norm_type': 'weight_norm'}),
         deq_kwargs={},
         init_z_from_enc=False,  # True=V1, False=V2
         irreps_node_embedding_injection="64x0e+32x1e+16x2e",
@@ -278,11 +279,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         # This function automatically decorates weights in your DEQ layer
         # to have weight/spectral normalization. (for better stability)
         # Using norm_type='none' in `kwargs` can also skip it.
-        if ('weight' in torchdeq_norm) or ('both' in torchdeq_norm):
-            apply_norm(self.blocks, norm_type="weight_norm")
-        if ('spectral' in torchdeq_norm) or ('both' in torchdeq_norm):
+        if torchdeq_norm.norm_type not in [None, 'none', False]:
+            apply_norm(self.blocks, **torchdeq_norm)
             # register_norm_module(DEQDotProductAttentionTransformerMD17, 'spectral_norm', names=['blocks'], dims=[0])
-            apply_norm(self.blocks, norm_type='spectral_norm')
         #################################################################
 
     def build_blocks(self):
@@ -603,7 +602,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     drop_path_rate=0.0,
     scale=None,
     deq_kwargs={},
-    torchdeq_norm=True,
+    torchdeq_norm=omegaconf.OmegaConf.create({'norm_type': 'weight_norm'}),
     init_z_from_enc=True,
     **kwargs,
 ):

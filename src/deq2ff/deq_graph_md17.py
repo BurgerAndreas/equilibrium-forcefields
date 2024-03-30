@@ -38,6 +38,9 @@ import skimage
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+import wandb
+import omegaconf
+
 from e3nn import o3
 
 # import e3nn
@@ -244,6 +247,7 @@ def deq_graph_attention_transformer_nonlinear_l2_md17(
     scale=None,
     # DEQ specific
     deq_kwargs={},
+    torchdeq_norm=omegaconf.OmegaConf.create({'norm_type': 'weight_norm'}),
     init_z_from_enc=False,  # True=V1, False=V2
     irreps_node_embedding_injection="64x0e+32x1e+16x2e",
     **kwargs,
@@ -276,6 +280,7 @@ def deq_graph_attention_transformer_nonlinear_l2_md17(
         # DEQ specific
         deq_mode=True,
         deq_kwargs=deq_kwargs,
+        torchdeq_norm=torchdeq_norm,
         init_z_from_enc=init_z_from_enc, 
         irreps_node_embedding_injection=irreps_node_embedding_injection,
     )

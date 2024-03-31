@@ -193,6 +193,8 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTra
             irreps_node_attr = self.irreps_node_attr,
             irreps_out = self.irreps_feature,
         )
+        self.apply(self._init_weights)
+        print(f'\nInitialized decoder projection head with {sum(p.numel() for p in self.final_block.parameters() if p.requires_grad)} parameters.')
 
     def build_blocks(self):
         """N blocks of: Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork

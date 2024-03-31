@@ -98,6 +98,7 @@ IGNORE_OVERRIDES = [
     "num_train_epochs",
     "machine",
     "basemodel",
+    "wandb_group",
 ]
 
 REPLACE = {

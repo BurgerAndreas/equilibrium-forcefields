@@ -261,6 +261,7 @@ def deq_decprojhead_dot_product_attention_transformer_exp_l2_md17(
     deq_kwargs={},
     torchdeq_norm=omegaconf.OmegaConf.create({'norm_type': 'weight_norm'}),
     init_z_from_enc=True,
+    dec_proj='LinearRescaleHead',
     **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17
@@ -298,6 +299,7 @@ def deq_decprojhead_dot_product_attention_transformer_exp_l2_md17(
         deq_kwargs=deq_kwargs,
         torchdeq_norm=torchdeq_norm,
         init_z_from_enc=init_z_from_enc,
+        dec_proj=dec_proj,
     )
     print(f"! Ignoring kwargs: {kwargs}")
     return model

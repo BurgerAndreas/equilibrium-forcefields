@@ -76,5 +76,5 @@ if __name__ == '__main__':
     model = MyModel()
     success = run(model, eval=False)
     print(f'train success: {success}')
-    run(model, eval=True)
+    success = run(model, eval=True)
     print(f'eval success: {success}')

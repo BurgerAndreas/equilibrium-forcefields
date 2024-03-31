@@ -540,11 +540,6 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         # because if final_block does not use DotProductAttention, edge_sh and edge_length_embedding are not used
         # but why are they used in prior blocks if model.eval()?
 
-        if datasplit == 'val':
-            print(f'- datasplit: {datasplit} -', flush=True)
-            print(f'dec_proj: {self.dec_proj}', flush=True)
-            print(f'decode: node_features.requires_grad: {node_features.requires_grad}', flush=True)
-
         node_features = self.final_block(
             node_input=node_features,
             node_attr=node_attr,
@@ -554,16 +549,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             edge_scalars=edge_length_embedding, # requires_grad
             batch=batch,
         )
-        
-        if datasplit == 'val':
-            print(f'after final_block: node_features.requires_grad: {node_features.requires_grad}', flush=True)
 
         node_features = self.norm(node_features, batch=batch)
         if self.out_dropout is not None:
             node_features = self.out_dropout(node_features)
-
-        if datasplit == 'val':
-            print(f'after out_dropout: node_features.requires_grad: {node_features.requires_grad}', flush=True)
 
         # outputs
             # [num_atoms*batch_size, irreps_dim] -> [num_atoms*batch_size, 1]

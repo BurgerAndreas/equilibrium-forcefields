@@ -242,11 +242,13 @@ def main(args, model=None):
             meas_force=args.meas_force,
         )
 
+        optimizer.zero_grad()
         val_err, val_loss = evaluate(
             args=args,
             model=model,
             criterion=criterion,
             data_loader=val_loader,
+            optimizer=optimizer,
             device=device,
             print_freq=args.print_freq,
             logger=_log,
@@ -254,6 +256,7 @@ def main(args, model=None):
             global_step=global_step,
             datasplit="val",
         )
+        optimizer.zero_grad()
 
         if (epoch + 1) % args.test_interval == 0:
             test_err, test_loss = evaluate(
@@ -261,6 +264,7 @@ def main(args, model=None):
                 model=model,
                 criterion=criterion,
                 data_loader=test_loader,
+                optimizer=optimizer,
                 device=device,
                 print_freq=args.print_freq,
                 logger=_log,
@@ -269,6 +273,7 @@ def main(args, model=None):
                 global_step=global_step,
                 datasplit="test",
             )
+            optimizer.zero_grad()
         else:
             test_err, test_loss = None, None
 
@@ -380,6 +385,7 @@ def main(args, model=None):
                 model=model_ema.module,
                 criterion=criterion,
                 data_loader=val_loader,
+                optimizer=optimizer,
                 device=device,
                 print_freq=args.print_freq,
                 logger=_log,
@@ -387,6 +393,7 @@ def main(args, model=None):
                 global_step=global_step,
                 datasplit="ema_val",
             )
+            optimizer.zero_grad()
 
             if (epoch + 1) % args.test_interval == 0:
                 ema_test_err, _ = evaluate(
@@ -394,6 +401,7 @@ def main(args, model=None):
                     model=model_ema.module,
                     criterion=criterion,
                     data_loader=test_loader,
+                    optimizer=optimizer,
                     device=device,
                     print_freq=args.print_freq,
                     logger=_log,
@@ -402,6 +410,7 @@ def main(args, model=None):
                     global_step=global_step,
                     datasplit="ema_test",
                 )
+                optimizer.zero_grad()
             else:
                 ema_test_err, ema_test_loss = None, None
 
@@ -497,11 +506,13 @@ def main(args, model=None):
             )
 
     # evaluate on the whole testing set
+    optimizer.zero_grad()
     test_err, test_loss = evaluate(
         args=args,
         model=model,
         criterion=criterion,
         data_loader=test_loader,
+        optimizer=optimizer,
         device=device,
         print_freq=args.print_freq,
         logger=_log,
@@ -510,6 +521,8 @@ def main(args, model=None):
         global_step=global_step,
         datasplit="test_all",
     )
+    optimizer.zero_grad()
+
 
 
 def update_best_results(args, best_metrics, val_err, test_err, epoch):
@@ -669,6 +682,7 @@ def evaluate(
     model: torch.nn.Module,
     criterion: torch.nn.Module,
     data_loader: Iterable,
+    optimizer: torch.optim.Optimizer,
     device: torch.device,
     print_freq: int = 100,
     logger=None,
@@ -677,9 +691,12 @@ def evaluate(
     global_step=None,
     datasplit=None,
 ):
+    print(f'--- evaluate() with datasplit={datasplit} ---')
 
-    model.eval()
-    criterion.eval()
+    if args.eval_mode is True:
+        model.eval()
+        criterion.eval()
+
     loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
     mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
 
@@ -688,57 +705,58 @@ def evaluate(
     task_mean = model.task_mean
     task_std = model.task_std
 
-    with torch.no_grad():
+    # with torch.no_grad(): # TODO why does this work with forces?
 
-        for step, data in enumerate(data_loader):
+    for step, data in enumerate(data_loader):
 
-            data = data.to(device)
-            pred_y, pred_dy = model(
-                node_atom=data.z,
-                pos=data.pos,
-                batch=data.batch,
-                step=global_step,
-                datasplit=datasplit,
+        data = data.to(device)
+        pred_y, pred_dy = model(
+            node_atom=data.z,
+            pos=data.pos,
+            batch=data.batch,
+            step=global_step,
+            datasplit=datasplit,
+        )
+        loss_e = criterion(pred_y, ((data.y - task_mean) / task_std))
+        if args.meas_force == True:
+            loss_f = criterion(pred_dy, (data.dy / task_std))
+        else:
+            pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
+
+        optimizer.zero_grad()
+
+        loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
+        loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
+
+        energy_err = pred_y.detach() * task_std + task_mean - data.y
+        energy_err = torch.mean(torch.abs(energy_err)).item()
+        mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
+        force_err = pred_dy.detach() * task_std - data.dy
+        force_err = torch.mean(
+            torch.abs(force_err)
+        ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
+        mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
+
+        # logging
+        if (
+            step % print_freq == 0 or step == len(data_loader) - 1
+        ) and print_progress:
+            w = time.perf_counter() - start_time
+            e = (step + 1) / len(data_loader)
+            info_str = "[{step}/{length}] \t".format(
+                step=step, length=len(data_loader)
             )
+            info_str += "e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
+                e_mae=mae_metrics["energy"].avg,
+                f_mae=mae_metrics["force"].avg,
+            )
+            info_str += "time/step={time_per_step:.0f}ms".format(
+                time_per_step=(1e3 * w / e / len(data_loader))
+            )
+            logger.info(info_str)
 
-            loss_e = criterion(pred_y, ((data.y - task_mean) / task_std))
-            if args.meas_force == True:
-                loss_f = criterion(pred_dy, (data.dy / task_std))
-            else:
-                pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
-
-            loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
-            loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
-
-            energy_err = pred_y.detach() * task_std + task_mean - data.y
-            energy_err = torch.mean(torch.abs(energy_err)).item()
-            mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
-            force_err = pred_dy.detach() * task_std - data.dy
-            force_err = torch.mean(
-                torch.abs(force_err)
-            ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
-            mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
-
-            # logging
-            if (
-                step % print_freq == 0 or step == len(data_loader) - 1
-            ) and print_progress:
-                w = time.perf_counter() - start_time
-                e = (step + 1) / len(data_loader)
-                info_str = "[{step}/{length}] \t".format(
-                    step=step, length=len(data_loader)
-                )
-                info_str += "e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
-                    e_mae=mae_metrics["energy"].avg,
-                    f_mae=mae_metrics["force"].avg,
-                )
-                info_str += "time/step={time_per_step:.0f}ms".format(
-                    time_per_step=(1e3 * w / e / len(data_loader))
-                )
-                logger.info(info_str)
-
-            if ((step + 1) >= max_iter) and (max_iter != -1):
-                break
+        if ((step + 1) >= max_iter) and (max_iter != -1):
+            break
 
     return mae_metrics, loss_metrics
 

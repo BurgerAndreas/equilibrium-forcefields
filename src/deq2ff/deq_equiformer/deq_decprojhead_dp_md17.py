@@ -26,7 +26,6 @@ from equiformer.optim_factory import create_optimizer
 from equiformer.engine import AverageMeter, compute_stats
 
 import torch
-import torch.nn as nn
 from torch_cluster import radius_graph
 from torch_scatter import scatter
 
@@ -101,7 +100,7 @@ from equiformer.nets.dp_attention_transformer_md17 import (
 import deq2ff.deq_utils as deq_utils
 
     
-class FCTPProjection(nn.Module):
+class FCTPProjection(torch.nn.Module):
     """See ffn_shortcut in DPTransBlock"""
     def __init__(self, irreps_in, irreps_node_attr, irreps_out, rescale=True):
         super().__init__()
@@ -117,7 +116,7 @@ class FCTPProjection(nn.Module):
         """node_input = node_features"""
         return self.proj(node_input, node_attr)
     
-class FFResidualFCTPProjection(nn.Module):
+class FFResidualFCTPProjection(torch.nn.Module):
     def __init__(self, irreps_in, irreps_node_attr, irreps_out, rescale=True, irreps_mlp_mid=None, norm_layer="layer"):
         super().__init__()
         self.rescale = rescale
@@ -156,7 +155,7 @@ class FFResidualFCTPProjection(nn.Module):
         # optionally add drop_path
         return node_output + node_features
 
-class FFProjection(nn.Module):
+class FFProjection(torch.nn.Module):
     def __init__(self, irreps_in, irreps_node_attr, irreps_out, irreps_mlp_mid=None, rescale=True):
         super().__init__()
         self.rescale = rescale
@@ -181,7 +180,7 @@ class FFProjection(nn.Module):
         """node_input = node_features"""
         return self.ffn(node_input, node_attr)
 
-class LinearRescaleHead(nn.Module):
+class LinearRescaleHead(torch.nn.Module):
     """Output head self.head"""
     def __init__(self, irreps_in, irreps_node_attr, irreps_out, rescale=True):
         super().__init__()
@@ -189,7 +188,7 @@ class LinearRescaleHead(nn.Module):
         self.irreps_node_input = o3.Irreps(irreps_in)
         # self.irreps_node_attr = o3.Irreps(irreps_node_attr)
         self.irreps_node_output = o3.Irreps(irreps_out)
-        self.head = torch.nn.Sequential(
+        self.proj = torch.nn.Sequential(
             LinearRS(self.irreps_node_input, self.irreps_node_input, rescale=rescale),
             Activation(self.irreps_node_input, acts=[torch.nn.SiLU()]),
             LinearRS(self.irreps_node_input, self.irreps_node_output, rescale=rescale),
@@ -197,13 +196,13 @@ class LinearRescaleHead(nn.Module):
 
     def forward(self, node_input, **kwargs):
         """node_input = node_features"""
-        return self.head(node_input)
+        return self.proj(node_input)
 
 
 
 from .deq_dp_md17 import DEQDotProductAttentionTransformerMD17
 
-class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTransformerMD17):
+class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTransformerMD17, torch.nn.Module):
     """
     DEQDotProductAttentionTransformerMD17 but with final_block moved from the decoder to the implicit layer.
     "LinearRescaleHead", 
@@ -216,15 +215,18 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTra
         dec_proj,
         **kwargs,
     ):
+        assert kwargs['input_injection'] in ['first_layer', 'every_layer'], \
+            f"Only `input_injection='first_layer' | 'last_layer'` is supported, got {kwargs['input_injection']}"
         super().__init__(**kwargs)
 
         # decoder_proj
+        self.dec_proj = dec_proj
         self.final_block = eval(dec_proj)(
             irreps_in = self.irreps_node_embedding,
             irreps_node_attr = self.irreps_node_attr,
             irreps_out = self.irreps_feature,
         )
-        self.apply(self._init_weights)
+        self.final_block.apply(self._init_weights)
         print(f'\nInitialized decoder projection head `{dec_proj}` with {sum(p.numel() for p in self.final_block.parameters() if p.requires_grad)} parameters.')
 
     def build_blocks(self):
@@ -234,6 +236,13 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTra
         for i in range(self.num_layers):
             irreps_node_input = self.irreps_node_z
             irreps_block_output = self.irreps_node_embedding
+
+            if self.input_injection == 'first_layer':
+                if i > 0:
+                    # no input injection
+                    irreps_node_input = self.irreps_node_embedding
+                    irreps_block_output = self.irreps_node_embedding
+
             # Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
             # extra stuff (= everything except node_features) is used for KV in DotProductAttention
             blk = DPTransBlock(
@@ -256,6 +265,7 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTra
                 norm_layer=self.norm_layer,
             )
             self.blocks.append(blk)
+        print(f'\nInitialized {len(self.blocks)} blocks of `DPTransBlock`.')
 
 
 

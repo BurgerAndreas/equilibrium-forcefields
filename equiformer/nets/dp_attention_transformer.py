@@ -290,8 +290,8 @@ class DPTransBlock(torch.nn.Module):
         node_attr,
         edge_src,
         edge_dst,
-        edge_attr,
-        edge_scalars,
+        edge_attr, # requires_grad
+        edge_scalars, # requires_grad
         batch,
         **kwargs
     ):

@@ -116,6 +116,8 @@ evaluate: False
 # Include force in loss calculation. (str2bool)
 meas_force: True
 
+eval_mode: True
+
 wandb: True
 wandb_run_name: null
 wandb_group: null

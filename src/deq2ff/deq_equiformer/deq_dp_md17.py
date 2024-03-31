@@ -264,6 +264,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         self.scale_scatter = ScaledScatter(_AVG_NUM_NODES)
 
         self.apply(self._init_weights)
+        self.dec_proj = None
 
         #################################################################
         # DEQ specific
@@ -343,6 +344,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
                 self.blocks.append(blk)
             else:
                 self.final_block = blk
+        print(f'\nInitialized {len(self.blocks)} blocks of `DPTransBlock`.')
 
     def _init_weights(self, m):
         if isinstance(m, torch.nn.Linear):
@@ -421,6 +423,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         # atom_embedding torch.Size([168, 480])
         # edge_degree_embedding torch.Size([168, 480])
 
+        # requires_grad: node_features, edge_sh, edge_length_embedding
         return (
             node_features,
             node_attr,
@@ -436,14 +439,13 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
     def deq_implicit_layer(
         self,
         node_features, 
-        u,
+        node_attr, edge_src, edge_dst, edge_sh, edge_length_embedding, batch,
         node_features_injection,
     ):
         """
         Same as deq_implicit_layer but with input injection summarized in u.
         Basically the middle third of DotProductAttentionTransformerMD17.forward()
         """
-        node_attr, edge_src, edge_dst, edge_sh, edge_length_embedding, batch = u
 
         # [num_atoms*batch_size, 480]
         if self.input_injection == False:
@@ -473,9 +475,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
                 )
         elif self.input_injection == 'first_layer':
             # input injection only at the first layer
+            # node features does not require_grad until concat with injection
+            node_features = torch.cat([node_features, node_features_injection], dim=1)
             for blknum, blk in enumerate(self.blocks):
-                if blknum == 0:
-                    node_features = torch.cat([node_features, node_features_injection], dim=1)
                 node_features = blk(
                     node_input=node_features,
                     node_attr=node_attr,
@@ -499,6 +501,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
                     edge_scalars=edge_length_embedding,
                     batch=batch,
                 )
+        
+        else:
+            raise ValueError(f"Invalid input_injection: {self.input_injection}")
     
 
         return node_features
@@ -525,25 +530,40 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         # return node_features
 
     @torch.enable_grad()
-    def decode(self, node_features, u, batch, pos):
+    def decode(self, node_features, node_attr, edge_src, edge_dst, edge_sh, edge_length_embedding, batch, pos, datasplit=None):
         """Decode the node features into energy and forces (scalars).
         Basically the last third of DotProductAttentionTransformerMD17.forward()
         """
+        # TODO: 
+        # if model.eval() -> node_features.requires_grad is False
+        # if also using decprojhead -> autograd error
+        # because if final_block does not use DotProductAttention, edge_sh and edge_length_embedding are not used
+        # but why are they used in prior blocks if model.eval()?
 
-        node_attr, edge_src, edge_dst, edge_sh, edge_length_embedding, _ = u
+        if datasplit == 'val':
+            print(f'- datasplit: {datasplit} -', flush=True)
+            print(f'dec_proj: {self.dec_proj}', flush=True)
+            print(f'decode: node_features.requires_grad: {node_features.requires_grad}', flush=True)
+
         node_features = self.final_block(
             node_input=node_features,
             node_attr=node_attr,
             edge_src=edge_src,
             edge_dst=edge_dst,
-            edge_attr=edge_sh,
-            edge_scalars=edge_length_embedding,
+            edge_attr=edge_sh, # requires_grad
+            edge_scalars=edge_length_embedding, # requires_grad
             batch=batch,
         )
+        
+        if datasplit == 'val':
+            print(f'after final_block: node_features.requires_grad: {node_features.requires_grad}', flush=True)
 
         node_features = self.norm(node_features, batch=batch)
         if self.out_dropout is not None:
             node_features = self.out_dropout(node_features)
+
+        if datasplit == 'val':
+            print(f'after out_dropout: node_features.requires_grad: {node_features.requires_grad}', flush=True)
 
         # outputs
             # [num_atoms*batch_size, irreps_dim] -> [num_atoms*batch_size, 1]
@@ -555,6 +575,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
 
         energy = outputs
         # https://github.com/Open-Catalyst-Project/ocp/blob/main/ocpmodels/models/spinconv.py#L321-L328
+        # shape: [num_atoms*batch_size, 3]
         forces = -1 * (
             torch.autograd.grad(
                 energy,
@@ -564,7 +585,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
                 pos, 
                 grad_outputs=torch.ones_like(energy),
                 create_graph=True,
-                allow_unused=True, # TODO
+                # allow_unused=True, # TODO
             )[0]
         )
 
@@ -613,9 +634,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         reset_norm(self.blocks)
 
         # f = lambda z: self.mfn_forward(z, u)
-        u = (node_attr, edge_src, edge_dst, edge_sh, edge_length_embedding, batch)
         f = lambda node_features: self.deq_implicit_layer(
-            node_features, u, node_features_injection
+            node_features, node_attr, edge_src, edge_dst, edge_sh, edge_length_embedding, batch, node_features_injection
         )
 
         # z: list[torch.tensor shape [42, 480]]
@@ -624,9 +644,14 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             # returns the sampled fixed point trajectory (tracked gradients)
             # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
             z_pred, info = self.deq(f, node_features, solver_kwargs=solver_kwargs)
+            # TODO deq() does not set z.requires_grad_() by default
+            # which leads to no gradients for z in model.eval()
+            # ift=True, hook_ift=True does
+            # https://github.com/locuslab/torchdeq/blob/4f6bd5fa66dd991cad74fcc847c88061764cf8db/torchdeq/grad.py#L185
 
         else:
             z_pred = [f(z)]
+            raise ValueError('DEQ mode must be True')
 
         if step is not None:
             deq_utils.log_fixed_point_error(info, step, datasplit)
@@ -639,8 +664,18 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         # outputs = [self.decode(node_features=z, u=u, batch=batch, pos=pos) for z in z_pred]
         # energy = outputs[-1][0]
         # force = outputs[-1][1]
+            
+        if not z_pred[-1].requires_grad:
+            print('!'*60)
+            print(f'before decode: z_pred[-1] node_features.requires_grad: {z_pred[-1].requires_grad}', flush=True)
+            print(f'datasplit: {datasplit}', flush=True)
+            print('!'*60)
 
-        energy, force = self.decode(node_features=z_pred[-1], u=u, batch=batch, pos=pos)
+        energy, force = self.decode(
+            node_features=z_pred[-1], node_attr=node_attr, edge_src=edge_src, edge_dst=edge_dst, 
+            edge_sh=edge_sh, edge_length_embedding=edge_length_embedding, batch=batch, pos=pos, 
+            datasplit=datasplit
+        )
 
         # return outputs, z_pred[-1]
         if return_grad:

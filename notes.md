@@ -75,3 +75,24 @@ How to incorporate the datasets:
 - https://nequip.readthedocs.io/en/latest/howto/dataset.html#prepare-dataset-and-specify-in-yaml-config
 
 1layer and 3-layer Allegro networks have 7,375,237 and 17,926,533 parameters
+
+
+## Others
+
+Clifford Group Equivariant Networks (NeurIPS 2023 Oral)
+- a three-dimensional n-body experiment, a four-dimensional Lorentz-equivariant high-energy physics experiment, and a five-dimensional convex hull experiment
+- MLP-like architecture and use it in a message-passing graph network
+
+Geometric Algebra Transformer (Neurips 2023)
+- GATr is equivariant with respect to E(3)
+- n-body modeling, wall-shear-stress estimation on large arterial meshes, robotic motion planning
+
+Equivariant Flow Matching 
+- two many-particle systems, DW4 and LJ13, pair-wise double-well and Lennard-Jones interactions with 4 and 13 particles
+- LJ55 large Lennard-Jones cluster with 55 particles
+- small molecule alanine dipeptide (Figure 3a) in Cartesian coordinates. The objective is to train a Boltzmann Generator capable of sampling from the equilibrium Boltzmann distribution defined by the semi-empirical GFN2-xTB force-field
+
+E(n) equivariant normalizing flows
+-
+
+EGNN: E(n) equivariant graph neural networks

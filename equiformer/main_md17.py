@@ -151,6 +151,8 @@ def main(args, model=None):
         )
 
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    wandb.run.summary["Model Parameters"] = n_parameters
+    # wandb.config.update({"Model Parameters": n_parameters})
     _log.info("Number of params: {}".format(n_parameters))
 
     """ Optimizer and LR Scheduler """

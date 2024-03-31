@@ -28,6 +28,8 @@ model_kwargs:
     clip_value: 1.0
     # sn_n_power_iters: 1
   init_z_from_enc: False
+  # "LinearRescaleHead", "ResidualFFProjection", "FFProjection", "ResidualFCTPProjection", "FCTPProjection", 
+  dec_proj: None
 
 # regularization
 # jac_reg: False

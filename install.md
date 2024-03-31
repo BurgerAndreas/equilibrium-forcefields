@@ -9,8 +9,17 @@ mamba activate deq
 # get the data from the Open Catalyst Project
 git clone git@github.com:Open-Catalyst-Project/ocp.git
 cd ocp
+# equiformer_v2 requires v0.0.3 v0.1.0
+git checkout v0.1.0
 mamba env update --name deq --file env.common.yml --prune
 pip install -e .
+pre-commit install
+# extra packages
+pip install setuptools==57.4.0
+pip install demjson 
+# pip install demjson3
+pip install lmdb==1.1.1
+pip install "ray[tune]"
 # Structure to Energy and Forces (S2EF) task
 # 3.4GB (17GB uncompressed)
 python scripts/download_data.py --task s2ef --split "2M" --num-workers 8 --ref-energy
@@ -40,7 +49,10 @@ cd ../../..
 # https://github.com/pyg-team/pytorch_geometric/issues/999#issuecomment-606565132
 pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse -y
 pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
-pip install torch_geometric pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu121.html
+pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu121.html
+# OCP requires torch-geometric<=2.0.4
+pip install torch-geometric==2.0.4
+# pip install torch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1 --index-url https://data.pyg.org/whl/torch-1.11.0+cu115.html
 # pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu118
 # pip install torch_geometric pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
 

@@ -262,8 +262,9 @@ class DPTransBlock(torch.nn.Module):
         self.drop_path = GraphDropPath(drop_path_rate) if drop_path_rate > 0.0 else None
 
         self.norm_2 = get_norm_layer(norm_layer)(self.irreps_node_input)
+        # ~20k params
         self.ffn = FeedForwardNetwork(
-            irreps_node_input=self.irreps_node_input,  # self.concat_norm_output.irreps_out,
+            irreps_node_input=self.irreps_node_input, 
             irreps_node_attr=self.irreps_node_attr,
             irreps_node_output=self.irreps_node_output,
             irreps_mlp_mid=self.irreps_mlp_mid,
@@ -274,6 +275,7 @@ class DPTransBlock(torch.nn.Module):
         # for the last block, if we want to output scalars only (no higher l's)
         self.ffn_shortcut = None
         if self.irreps_node_input != self.irreps_node_output:
+            # ~30k params
             self.ffn_shortcut = FullyConnectedTensorProductRescale(
                 self.irreps_node_input,
                 self.irreps_node_attr,
@@ -297,6 +299,7 @@ class DPTransBlock(torch.nn.Module):
         1. Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
         2. Use pre-norm architecture
         """
+        # residual connection
         node_output = node_input
         node_features = node_input
         node_features = self.norm_1(node_features, batch=batch)  # batch unused
@@ -316,9 +319,11 @@ class DPTransBlock(torch.nn.Module):
             # uses batch. TODO
             node_features = self.drop_path(node_features, batch)
         node_output = node_output + node_features
-
+        
         node_features = node_output
         node_features = self.norm_2(node_features, batch=batch)  # batch unused
+        
+        # optionally reduce irreps dim 
         node_features = self.ffn(node_features, node_attr)
         if self.ffn_shortcut is not None:
             node_output = self.ffn_shortcut(node_output, node_attr)

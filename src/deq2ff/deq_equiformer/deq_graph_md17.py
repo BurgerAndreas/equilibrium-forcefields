@@ -78,7 +78,7 @@ from equiformer.nets.graph_attention_transformer import (
 
 import deq2ff.deq_utils as deq_utils
 
-from deq2ff.deq_dp_md17 import DEQDotProductAttentionTransformerMD17
+from deq2ff.deq_equiformer.deq_dp_md17 import DEQDotProductAttentionTransformerMD17
 
 # class DEQGraphAttentionTransformerMD17(torch.nn.Module):
 class DEQGraphAttentionTransformerMD17(DEQDotProductAttentionTransformerMD17):

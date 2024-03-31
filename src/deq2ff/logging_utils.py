@@ -16,6 +16,10 @@ def fix_args(args: OmegaConf):
     args.slurm_job_id = os.environ.get("SLURM_JOB_ID", None)
     args = set_gpu_name(args)
 
+    if args.model_kwargs.dec_proj is not None:
+        if  "decprojhead" not in args.model_name:
+            args.model_name = f"decprojhead_{args.model_name}"
+
     if args.model_is_deq is True:
         if args.model_name[:3] != "deq":
             args.model_name = f"deq_{args.model_name}"
@@ -53,6 +57,7 @@ def init_wandb(args: OmegaConf):
 
     # wandb.run.name = name_from_config(args)
     wandb.init(
+        group=args.wandb_group,
         project="EquilibriumEquiFormer",
         # entity="andreas-burger",
         name=args.wandb_run_name,
@@ -107,6 +112,7 @@ REPLACE = {
     "_dp": "",
     "_l2": "",
     "_graph_nonlinear": " GraphNonLinear",
+    "_decprojhead": " ProjHead",
 }
 
 

@@ -112,7 +112,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         deq_mode=True,
         torchdeq_norm=omegaconf.OmegaConf.create({'norm_type': 'weight_norm'}),
         deq_kwargs={},
-        init_z_from_enc=False,  # True=V1, False=V2
+        input_injection='first_layer',  # False=V1, 'first_layer'=V2
         irreps_node_embedding_injection="64x0e+32x1e+16x2e",
         # original
         irreps_in="64x0e",
@@ -149,8 +149,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.init_z_from_enc = init_z_from_enc
-        if init_z_from_enc is True:
+        self.input_injection = input_injection
+        if input_injection is False:
             # V1
             # node_features are initialized as the output of the encoder
             self.irreps_node_injection = o3.Irreps(
@@ -160,7 +160,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             self.irreps_node_embedding = o3.Irreps(
                 irreps_node_embedding
             )  # output of block
-        else:
+        elif self.input_injection in ['first_layer', 'every_layer', True]:
             # V2
             # node features are initialized as 0
             # and the node features from the encoder are used as input injection
@@ -293,15 +293,31 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             # last block outputs scalars only (l0 only, no higher l's)
             # irreps_node_embedding -> irreps_feature
             # "128x0e+64x1e+32x2e" -> "512x0e"
-            if i != (self.num_layers - 1):
-                irreps_node_input = self.irreps_node_z
-                irreps_block_output = self.irreps_node_embedding
-            else:
+            if i >= (self.num_layers - 1):
                 # last block
                 # as of now we do not concat the node_features_input_injection 
                 # onto the node_features for the decoder
                 irreps_node_input = self.irreps_node_embedding
                 irreps_block_output = self.irreps_feature
+            else:
+                irreps_node_input = self.irreps_node_z
+                irreps_block_output = self.irreps_node_embedding
+
+            if self.input_injection == 'first_layer':
+                if i == 0:
+                    pass
+                    # first layer unchanged
+                elif i >= (self.num_layers - 1):
+                    # last layer unchanged
+                    pass
+                    # irreps_node_input = self.irreps_node_embedding
+                    # irreps_block_output = self.irreps_feature
+                else:
+                    # no input injection
+                    irreps_node_input = self.irreps_node_embedding
+                    irreps_block_output = self.irreps_node_embedding
+                
+            
             # Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
             # extra stuff (= everything except node_features) is used for KV in DotProductAttention
             blk = DPTransBlock(
@@ -380,7 +396,6 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         Input injection.
         Basically the first third of DotProductAttentionTransformerMD17.forward()
         """
-        pos = pos.requires_grad_(True)
 
         edge_src, edge_dst = radius_graph(
             pos, r=self.max_radius, batch=batch, max_num_neighbors=1000
@@ -420,9 +435,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
     @torch.enable_grad()
     def deq_implicit_layer(
         self,
-        node_features, # [num_atoms*batch_size, 480]
+        node_features, 
         u,
-        node_features_injection=None,
+        node_features_injection,
     ):
         """
         Same as deq_implicit_layer but with input injection summarized in u.
@@ -430,26 +445,84 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         """
         node_attr, edge_src, edge_dst, edge_sh, edge_length_embedding, batch = u
 
-
-        if self.init_z_from_enc == True:
-            node_features_in = node_features
-        else:
-            # inject node_features_injection
-            # TODO does not seem right
+        # [num_atoms*batch_size, 480]
+        if self.input_injection == False:
+            # no injection becomes the input
+            for blknum, blk in enumerate(self.blocks):
+                node_features = blk(
+                    node_input=node_features,
+                    node_attr=node_attr,
+                    edge_src=edge_src,
+                    edge_dst=edge_dst,
+                    edge_attr=edge_sh,
+                    edge_scalars=edge_length_embedding,
+                    batch=batch,
+                )
+        elif self.input_injection == 'every_layer':
+            # input injection at every layer
+            for blknum, blk in enumerate(self.blocks):
+                node_features = torch.cat([node_features, node_features_injection], dim=1)
+                node_features = blk(
+                    node_input=node_features,
+                    node_attr=node_attr,
+                    edge_src=edge_src,
+                    edge_dst=edge_dst,
+                    edge_attr=edge_sh,
+                    edge_scalars=edge_length_embedding,
+                    batch=batch,
+                )
+        elif self.input_injection == 'first_layer':
+            # input injection only at the first layer
+            for blknum, blk in enumerate(self.blocks):
+                if blknum == 0:
+                    node_features = torch.cat([node_features, node_features_injection], dim=1)
+                node_features = blk(
+                    node_input=node_features,
+                    node_attr=node_attr,
+                    edge_src=edge_src,
+                    edge_dst=edge_dst,
+                    edge_attr=edge_sh,
+                    edge_scalars=edge_length_embedding,
+                    batch=batch,
+                )
+        
+        elif self.input_injection == 'legacy':
             node_features_in = torch.cat([node_features, node_features_injection], dim=1)
+            # # print("node_features.shape", node_features.shape)
+            for blknum, blk in enumerate(self.blocks):
+                node_features = blk(
+                    node_input=node_features_in,
+                    node_attr=node_attr,
+                    edge_src=edge_src,
+                    edge_dst=edge_dst,
+                    edge_attr=edge_sh,
+                    edge_scalars=edge_length_embedding,
+                    batch=batch,
+                )
+    
 
-        # print("node_features.shape", node_features.shape)
-        for blknum, blk in enumerate(self.blocks):
-            node_features = blk(
-                node_input=node_features_in,
-                node_attr=node_attr,
-                edge_src=edge_src,
-                edge_dst=edge_dst,
-                edge_attr=edge_sh,
-                edge_scalars=edge_length_embedding,
-                batch=batch,
-            )
         return node_features
+    
+        # if self.input_injection == True:
+        #     node_features_in = node_features
+        # else:
+        #     # inject node_features_injection
+        #     # TODO does not seem right
+        #     # print("cat node_features.shape", node_features.shape)
+        #     node_features_in = torch.cat([node_features, node_features_injection], dim=1)
+
+        # # print("node_features.shape", node_features.shape)
+        # for blknum, blk in enumerate(self.blocks):
+        #     node_features = blk(
+        #         node_input=node_features_in,
+        #         node_attr=node_attr,
+        #         edge_src=edge_src,
+        #         edge_dst=edge_dst,
+        #         edge_attr=edge_sh,
+        #         edge_scalars=edge_length_embedding,
+        #         batch=batch,
+        #     )
+        # return node_features
 
     @torch.enable_grad()
     def decode(self, node_features, u, batch, pos):
@@ -485,9 +558,13 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         forces = -1 * (
             torch.autograd.grad(
                 energy,
-                pos,
+                # diff with respect to pos
+                # if you get 'One of the differentiated Tensors appears to not have been used in the graph'
+                # then because pos is not 'used' to calculate the energy
+                pos, 
                 grad_outputs=torch.ones_like(energy),
                 create_graph=True,
+                allow_unused=True, # TODO
             )[0]
         )
 
@@ -504,6 +581,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         datasplit=None,
     ):
         """Forward pass of the DEQ model."""
+        pos = pos.requires_grad_(True)
 
         # encode
         # u = self.encode(x)
@@ -518,7 +596,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             pos,
         ) = self.encode(node_atom=node_atom, pos=pos, batch=batch)
 
-        if self.init_z_from_enc == True:
+        if self.input_injection == False:
             node_features = node_features_injection
         else:
             node_features = self.init_z(
@@ -603,7 +681,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     scale=None,
     deq_kwargs={},
     torchdeq_norm=omegaconf.OmegaConf.create({'norm_type': 'weight_norm'}),
-    init_z_from_enc=True,
+    input_injection=True,
     **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17
@@ -640,7 +718,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
         deq_mode=True,
         deq_kwargs=deq_kwargs,
         torchdeq_norm=torchdeq_norm,
-        init_z_from_enc=init_z_from_enc,
+        input_injection=input_injection,
     )
     print(f"! Ignoring kwargs: {kwargs}")
     return model

@@ -248,7 +248,7 @@ def deq_graph_attention_transformer_nonlinear_l2_md17(
     # DEQ specific
     deq_kwargs={},
     torchdeq_norm=omegaconf.OmegaConf.create({'norm_type': 'weight_norm'}),
-    init_z_from_enc=False,  # True=V1, False=V2
+    input_injection='first_layer',  # False=V1, 'first_layer'=V2
     irreps_node_embedding_injection="64x0e+32x1e+16x2e",
     **kwargs,
 ):
@@ -281,7 +281,7 @@ def deq_graph_attention_transformer_nonlinear_l2_md17(
         deq_mode=True,
         deq_kwargs=deq_kwargs,
         torchdeq_norm=torchdeq_norm,
-        init_z_from_enc=init_z_from_enc, 
+        input_injection=input_injection, 
         irreps_node_embedding_injection=irreps_node_embedding_injection,
     )
     print(f" ! Ignore passed kwargs: {kwargs}")

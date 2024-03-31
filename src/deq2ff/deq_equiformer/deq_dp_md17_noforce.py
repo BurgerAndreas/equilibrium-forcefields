@@ -160,7 +160,7 @@ class DEQDotProductAttentionTransformerMD17NoForce(DEQDotProductAttentionTransfo
         node_attr, edge_src, edge_dst, edge_sh, edge_length_embedding, batch = u
 
 
-        if self.init_z_from_enc == True:
+        if self.input_injection == False: # V1
             node_features_in = node_features
         else:
             # inject node_features_injection
@@ -257,7 +257,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17_noforce(
     scale=None,
     deq_kwargs={},
     torchdeq_norm=True,
-    init_z_from_enc=True,
+    input_injection='first_layer',
     **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17
@@ -294,7 +294,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17_noforce(
         deq_mode=True,
         deq_kwargs=deq_kwargs,
         torchdeq_norm=torchdeq_norm,
-        init_z_from_enc=init_z_from_enc,
+        input_injection=input_injection,
     )
     print(f"! Ignoring kwargs: {kwargs}")
     return model

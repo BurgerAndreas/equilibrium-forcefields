@@ -117,9 +117,44 @@ class FCTPProjection(nn.Module):
         """node_input = node_features"""
         return self.proj(node_input, node_attr)
     
-class ResidualFCTPProjection(FCTPProjection):
-    def forward(self, node_input, node_attr, **kwargs):
-        return node_input + self.proj(node_input, node_attr)
+class FFResidualFCTPProjection(nn.Module):
+    def __init__(self, irreps_in, irreps_node_attr, irreps_out, rescale=True, irreps_mlp_mid=None, norm_layer="layer"):
+        super().__init__()
+        self.rescale = rescale
+        self.irreps_node_input = o3.Irreps(irreps_in)
+        self.irreps_node_attr = o3.Irreps(irreps_node_attr)
+        self.irreps_node_output = o3.Irreps(irreps_out)
+        self.irreps_mlp_mid = (
+            o3.Irreps(irreps_mlp_mid)
+            if irreps_mlp_mid is not None
+            else self.irreps_node_input
+        )
+        # layer
+        self.norm_layer = get_norm_layer(norm_layer)(self.irreps_node_input)
+        self.ffn = FeedForwardNetwork(
+            irreps_node_input=self.irreps_node_input, 
+            irreps_node_attr=self.irreps_node_attr,
+            irreps_node_output=self.irreps_node_output,
+            irreps_mlp_mid=self.irreps_mlp_mid,
+            # proj_drop=proj_drop,
+        )
+        self.ffn_shortcut = FullyConnectedTensorProductRescale(
+            self.irreps_node_input,
+            self.irreps_node_attr,
+            self.irreps_node_output,
+            bias=True,
+            rescale=rescale,
+        )
+
+    def forward(self, node_input, node_attr, batch, **kwargs):
+        node_output = node_input
+        node_features = node_input
+        node_features = self.norm_layer(node_features, batch=batch)
+        node_features = self.ffn(node_features, node_attr)
+        if self.ffn_shortcut is not None:
+            node_output = self.ffn_shortcut(node_output, node_attr)
+        # optionally add drop_path
+        return node_output + node_features
 
 class FFProjection(nn.Module):
     def __init__(self, irreps_in, irreps_node_attr, irreps_out, irreps_mlp_mid=None, rescale=True):
@@ -145,10 +180,6 @@ class FFProjection(nn.Module):
     def forward(self, node_input, node_attr, **kwargs):
         """node_input = node_features"""
         return self.ffn(node_input, node_attr)
-
-class ResidualFFProjection(FFProjection):
-    def forward(self, node_features, node_attr, **kwargs):
-        return node_features + self.ffn(node_features, node_attr)
 
 class LinearRescaleHead(nn.Module):
     """Output head self.head"""
@@ -182,7 +213,7 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTra
 
     def __init__(
         self,
-        dec_proj='FFProjection',
+        dec_proj,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -194,7 +225,7 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTra
             irreps_out = self.irreps_feature,
         )
         self.apply(self._init_weights)
-        print(f'\nInitialized decoder projection head with {sum(p.numel() for p in self.final_block.parameters() if p.requires_grad)} parameters.')
+        print(f'\nInitialized decoder projection head `{dec_proj}` with {sum(p.numel() for p in self.final_block.parameters() if p.requires_grad)} parameters.')
 
     def build_blocks(self):
         """N blocks of: Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
@@ -260,7 +291,7 @@ def deq_decprojhead_dot_product_attention_transformer_exp_l2_md17(
     scale=None,
     deq_kwargs={},
     torchdeq_norm=omegaconf.OmegaConf.create({'norm_type': 'weight_norm'}),
-    init_z_from_enc=True,
+    input_injection='first_layer',
     dec_proj='LinearRescaleHead',
     **kwargs,
 ):
@@ -298,7 +329,7 @@ def deq_decprojhead_dot_product_attention_transformer_exp_l2_md17(
         deq_mode=True,
         deq_kwargs=deq_kwargs,
         torchdeq_norm=torchdeq_norm,
-        init_z_from_enc=init_z_from_enc,
+        input_injection=input_injection,
         dec_proj=dec_proj,
     )
     print(f"! Ignoring kwargs: {kwargs}")

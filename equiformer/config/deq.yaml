@@ -27,9 +27,9 @@ model_kwargs:
     clip: False # norm_clip
     clip_value: 1.0
     # sn_n_power_iters: 1
-  init_z_from_enc: False
-  # "LinearRescaleHead", "ResidualFFProjection", "FFProjection", "ResidualFCTPProjection", "FCTPProjection", 
-  dec_proj: None
+  input_injection: 'first_layer'
+  # "LinearRescaleHead", "FFResidualFCTPProjection", "FFProjection", "FCTPProjection", 
+  dec_proj: null
 
 # regularization
 # jac_reg: False

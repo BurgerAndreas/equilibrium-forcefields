@@ -31,12 +31,19 @@ batch_size=1, num_layers=2, RTX3060, target=aspiring ~ 170s per epoch -> 1k epoc
 see Allegro paper for great summary
 
 ### MD 17
+- Machine Learning of Accurate Energy-Conserving Molecular Force Fields
 - use revised version!
 - 10 small, organic molecules at DFT accuracy
 - Energies and forces for molecular dynamics trajectories of eight organic molecules. Level of theory DFT: PBE+vdW-TS
 - Each molecule has >100k samples, but we use only <1k samples for training
 - https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.datasets.MD17.html
-- Machine learning of accurate energy-conserving molecular force fields
+- total time of simulation was 200 ps for aspirin and 100 ps for the rest of the molecules, and for all the cases the NVT ensemble was used with a time step of 0.5 fs
+
+Equiformer uses the non-revised version: equiformer/datasets/pyg/md17.py
+
+### MD 22
+- Accurate global machine learning force fields for molecules with hundreds of atoms
+- http://www.sgdml.org/#datasets
 
 ### QM9
 - 133,885 structures with up to 9 heavy elements and consisting of species H, C, N, O, F in relaxed geometries. Structures are provided together with a series of properties computed at the DFT/B3LYP/6-31G(2df,p) level of theor

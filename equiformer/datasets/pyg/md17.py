@@ -15,6 +15,8 @@ class MD17(InMemoryDataset):
     See http://www.quantum-machine.org/gdml/#datasets for details.
     """
 
+    print(f'\nWarning: Using the original MD17 dataset. Please consider using the revised version (equiformer/datasets/pyg/md17.py).\n')
+
     raw_url = "http://www.quantum-machine.org/gdml/data/npz/"
 
     molecule_files = dict(
@@ -31,6 +33,7 @@ class MD17(InMemoryDataset):
     # We note that the file names have been changed.
     # For example, `aspirin_dft` -> `md17_aspirin`
     # See https://github.com/pyg-team/pytorch_geometric/commit/213f0ff95140eb1a1fbf7d99b012d458ef360f71#diff-a85570faabaf1806684e5b6654deed3863273bbe703f237846accd11948f4675
+    # https://github.com/pyg-team/pytorch_geometric/pull/6734
     molecule_files = dict(
         aspirin="md17_aspirin.npz",
         benzene="md17_benzene2017.npz",
@@ -128,9 +131,8 @@ class MD17(InMemoryDataset):
 
 # From https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L54
 def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=None):
-    assert (train_size is None) + (val_size is None) + (
-        test_size is None
-    ) <= 1, "Only one of train_size, val_size, test_size is allowed to be None."
+    assert (train_size is None) + (val_size is None) + (test_size is None) <= 1, \
+        "Only one of train_size, val_size, test_size is allowed to be None."
     is_float = (
         isinstance(train_size, float),
         isinstance(val_size, float),
@@ -174,6 +176,7 @@ def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=
     if order is None:
         idxs = np.random.default_rng(seed).permutation(idxs)
 
+    # ids are sampled consecutively -> important for fixed-point reuse
     idx_train = idxs[:train_size]
     idx_val = idxs[train_size : train_size + val_size]
     idx_test = idxs[train_size + val_size : total]
@@ -234,6 +237,7 @@ def get_md17_datasets(root, dataset_arg, train_size, val_size, test_size, seed):
         splits=None,
     )
 
+    # idx are consecutive -> important for fixed-point reuse
     train_dataset = Subset(all_dataset, idx_train)
     val_dataset = Subset(all_dataset, idx_val)
     test_dataset = Subset(all_dataset, idx_test)

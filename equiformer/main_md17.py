@@ -83,7 +83,7 @@ def get_force_placeholder(dy, loss_e):
     return pred_dy, loss_f
 
 
-def main(args, model=None):
+def main(args):
 
     # create output directory
     if args.output_dir is not None:
@@ -591,20 +591,32 @@ def train_one_epoch(
     task_mean = model.task_mean
     task_std = model.task_std
 
-    # z_star = None
+    # fixed-point reuse
+    fixedpoint = None
     for step, data in enumerate(data_loader):
         data = data.to(device)
 
-        # energy, force
-        pred_y, pred_dy = model(
-            node_atom=data.z,
-            pos=data.pos,
-            batch=data.batch,
-            step=global_step,
-            datasplit="train",
-        )
-        # if deq_mode and reuse:
-        #     z_star = z_pred.detach()
+        # fixed-point reuse
+        if 'fpreuse' in args and args.fpreuse:
+            pred_y, pred_dy, fixedpoint = model(
+                node_atom=data.z,
+                pos=data.pos,
+                batch=data.batch,
+                step=global_step,
+                datasplit="train",
+                return_fixedpoint=True,
+                fixedpoint=fixedpoint,
+            )
+        else:
+            # energy, force
+            pred_y, pred_dy = model(
+                node_atom=data.z,
+                pos=data.pos,
+                batch=data.batch,
+                step=global_step,
+                datasplit="train",
+                fixedpoint=None,
+            )
 
         loss_e = criterion(pred_y, ((data.y - task_mean) / task_std))
         loss = args.energy_weight * loss_e

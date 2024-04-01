@@ -285,6 +285,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         if torchdeq_norm.norm_type not in [None, 'none', False]:
             apply_norm(self.blocks, **torchdeq_norm)
             # register_norm_module(DEQDotProductAttentionTransformerMD17, 'spectral_norm', names=['blocks'], dims=[0])
+        
+        # parameters in transformer blocks / deq implicit layers
+        n_parameters = sum(p.numel() for p in self.blocks.parameters() if p.requires_grad)
+        wandb.run.summary["DEQLayer Parameters"] = n_parameters
         #################################################################
 
     def build_blocks(self):
@@ -319,7 +323,6 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
                     # no input injection
                     irreps_node_input = self.irreps_node_embedding
                     irreps_block_output = self.irreps_node_embedding
-                
             
             # Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
             # extra stuff (= everything except node_features) is used for KV in DotProductAttention
@@ -588,9 +591,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         pos,
         batch,
         z=None,
-        return_grad=False,
         step=None,
         datasplit=None,
+        return_fixedpoint=False,
+        fixedpoint=None,
     ):
         """Forward pass of the DEQ model."""
         pos = pos.requires_grad_(True)
@@ -616,11 +620,11 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             ) 
 
         reuse = True
-        if z is None:
+        if fixedpoint is None:
             # z = torch.zeros(x.shape[0], self.d_hidden).to(x)
             reuse = False
         else:
-            node_features = z
+            node_features = fixedpoint
 
         reset_norm(self.blocks)
 
@@ -669,9 +673,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         )
 
         # return outputs, z_pred[-1]
-        if return_grad:
+        if return_fixedpoint:
             # z_pred = sampled fixed point trajectory (tracked gradients)
-            return energy, force, z_pred
+            return energy, force, z_pred[-1].detach()
         return energy, force
 
 

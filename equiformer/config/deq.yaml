@@ -12,6 +12,9 @@ defaults:
 model_is_deq: True
 # batch_size: 16
 
+# reuse fixed point of previous step
+fpreuse: False
+
 # meas_force: False
 # should be the same, but custom autograd might interfere with torchdeq grad
 noforcemodel: False

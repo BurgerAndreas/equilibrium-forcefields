@@ -163,10 +163,15 @@ def main(args):
     )  # torch.nn.L1Loss()  #torch.nn.MSELoss() # torch.nn.L1Loss()
 
     """ Data Loader """
+    if 'fpreuse' in args and args.fpreuse:
+        shuffle = False
+        print(f'Using fixed-point reuse, shuffle={shuffle}')
+    else:
+        shuffle = True
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
-        shuffle=True,
+        shuffle=shuffle,
         num_workers=args.workers,
         pin_memory=args.pin_mem,
         drop_last=True,

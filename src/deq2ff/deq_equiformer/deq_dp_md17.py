@@ -160,7 +160,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             self.irreps_node_embedding = o3.Irreps(
                 irreps_node_embedding
             )  # output of block
-        elif self.input_injection in ['first_layer', 'every_layer', True]:
+        elif self.input_injection in ['first_layer', 'every_layer', True, 'legacy']:
             # V2
             # node features are initialized as 0
             # and the node features from the encoder are used as input injection
@@ -178,6 +178,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             irreps_node_z = self.irreps_node_embedding + self.irreps_node_injection
             irreps_node_z.simplify()
             self.irreps_node_z = o3.Irreps(irreps_node_z).simplify()  # input to block
+        else:
+            raise ValueError(f"Invalid input_injection: {input_injection}")
         #################################################################
 
         self.max_radius = max_radius

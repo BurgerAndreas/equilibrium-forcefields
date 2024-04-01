@@ -28,7 +28,7 @@ model_kwargs:
     clip_value: 1.0
     # sn_n_power_iters: 1
   input_injection: 'first_layer'
-  # "LinearRescaleHead", "FFResidualFCTPProjection", "FFProjection", "FCTPProjection"
+  # "FFResidualFCTPProjection", "FFProjection", "FCTPProjection"
   dec_proj: null
 
 # regularization

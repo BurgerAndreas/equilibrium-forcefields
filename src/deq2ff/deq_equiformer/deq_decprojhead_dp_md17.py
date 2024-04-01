@@ -181,7 +181,9 @@ class FFProjection(torch.nn.Module):
         return self.ffn(node_input, node_attr)
 
 class LinearRescaleHead(torch.nn.Module):
-    """Output head self.head"""
+    """Output head self.head
+    Only works for scalars
+    """
     def __init__(self, irreps_in, irreps_node_attr, irreps_out, rescale=True):
         super().__init__()
         self.rescale = rescale
@@ -190,8 +192,10 @@ class LinearRescaleHead(torch.nn.Module):
         self.irreps_node_output = o3.Irreps(irreps_out)
         self.proj = torch.nn.Sequential(
             LinearRS(self.irreps_node_input, self.irreps_node_input, rescale=rescale),
-            Activation(self.irreps_node_input, acts=[torch.nn.SiLU()]),
+            # one activation function per irreps l
+            Activation(self.irreps_node_input, acts=[torch.nn.SiLU()]*len(self.irreps_node_input)),
             LinearRS(self.irreps_node_input, self.irreps_node_output, rescale=rescale),
+            # out=o3.Irreps("1x0e")
         )
 
     def forward(self, node_input, **kwargs):

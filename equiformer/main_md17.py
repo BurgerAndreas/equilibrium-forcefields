@@ -163,7 +163,7 @@ def main(args):
     )  # torch.nn.L1Loss()  #torch.nn.MSELoss() # torch.nn.L1Loss()
 
     """ Data Loader """
-    if 'fpreuse' in args and args.fpreuse:
+    if 'fpreuse_train' in args and args.fpreuse_train:
         shuffle = False
         print(f'Using fixed-point reuse, shuffle={shuffle}')
     else:
@@ -602,7 +602,7 @@ def train_one_epoch(
         data = data.to(device)
 
         # fixed-point reuse
-        if 'fpreuse' in args and args.fpreuse:
+        if 'fpreuse_train' in args and args.fpreuse_train:
             pred_y, pred_dy, fixedpoint = model(
                 node_atom=data.z,
                 pos=data.pos,
@@ -724,16 +724,33 @@ def evaluate(
 
     # with torch.no_grad(): # TODO why does this work with forces?
 
+    # fixed-point reuse
+    fixedpoint = None
     for step, data in enumerate(data_loader):
-
         data = data.to(device)
-        pred_y, pred_dy = model(
-            node_atom=data.z,
-            pos=data.pos,
-            batch=data.batch,
-            step=global_step,
-            datasplit=datasplit,
-        )
+
+        # fixed-point reuse
+        if 'fpreuse_val' in args and args.fpreuse_val:
+            pred_y, pred_dy, fixedpoint = model(
+                node_atom=data.z,
+                pos=data.pos,
+                batch=data.batch,
+                step=global_step,
+                datasplit=datasplit,
+                return_fixedpoint=True,
+                fixedpoint=fixedpoint,
+            )
+        else:
+            # energy, force
+            pred_y, pred_dy = model(
+                node_atom=data.z,
+                pos=data.pos,
+                batch=data.batch,
+                step=global_step,
+                datasplit=datasplit,
+                fixedpoint=None,
+            )
+
         loss_e = criterion(pred_y, ((data.y - task_mean) / task_std))
         if args.meas_force == True:
             loss_f = criterion(pred_dy, (data.dy / task_std))

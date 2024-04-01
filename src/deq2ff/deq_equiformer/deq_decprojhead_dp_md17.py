@@ -116,6 +116,15 @@ class FCTPProjection(torch.nn.Module):
         """node_input = node_features"""
         return self.proj(node_input, node_attr)
     
+class FCTPProjectionNorm(FCTPProjection):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.norm_pre = get_norm_layer('layer')(self.irreps_node_input)
+    
+    def forward(self, node_input, node_attr, **kwargs):
+        node_input = self.norm_pre(node_input)
+        return super().forward(node_input, node_attr, **kwargs)
+    
 class FFResidualFCTPProjection(torch.nn.Module):
     def __init__(self, irreps_in, irreps_node_attr, irreps_out, rescale=True, irreps_mlp_mid=None, norm_layer="layer"):
         super().__init__()
@@ -155,6 +164,7 @@ class FFResidualFCTPProjection(torch.nn.Module):
         # optionally add drop_path
         return node_output + node_features
 
+
 class FFProjection(torch.nn.Module):
     def __init__(self, irreps_in, irreps_node_attr, irreps_out, irreps_mlp_mid=None, rescale=True):
         super().__init__()
@@ -180,9 +190,18 @@ class FFProjection(torch.nn.Module):
         """node_input = node_features"""
         return self.ffn(node_input, node_attr)
 
+class FFProjectionNorm(FFProjection):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.norm_pre = get_norm_layer('layer')(self.irreps_node_input)
+    
+    def forward(self, node_input, node_attr, **kwargs):
+        node_input = self.norm_pre(node_input)
+        return super().forward(node_input, node_attr, **kwargs)
+
 class LinearRescaleHead(torch.nn.Module):
     """Output head self.head
-    Only works for scalars
+    Only works for scalars!
     """
     def __init__(self, irreps_in, irreps_node_attr, irreps_out, rescale=True):
         super().__init__()
@@ -225,6 +244,8 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTra
 
         # decoder_proj
         self.dec_proj = dec_proj
+        # add a layer norm?
+        # self.norm_after_deq = get_norm_layer(self.norm_layer)(self.irreps_feature)
         self.final_block = eval(dec_proj)(
             irreps_in = self.irreps_node_embedding,
             irreps_node_attr = self.irreps_node_attr,

@@ -176,8 +176,9 @@ def main(args):
         pin_memory=args.pin_mem,
         drop_last=True,
     )
-    val_loader = DataLoader(val_dataset, batch_size=args.eval_batch_size)
-    test_loader = DataLoader(test_dataset, batch_size=args.eval_batch_size)
+    # added drop_last=True to avoid error with fixed-point reuse
+    val_loader = DataLoader(val_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True)
+    test_loader = DataLoader(test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True)
 
     """ Compute stats """
     if args.compute_stats:

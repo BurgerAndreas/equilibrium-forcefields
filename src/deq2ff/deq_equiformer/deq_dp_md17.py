@@ -665,7 +665,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             print(f'before decode: z_pred[-1] node_features.requires_grad: {z_pred[-1].requires_grad}', flush=True)
             print(f'datasplit: {datasplit}', flush=True)
             print('!'*60)
-
+        
         energy, force = self.decode(
             node_features=z_pred[-1], node_attr=node_attr, edge_src=edge_src, edge_dst=edge_dst, 
             edge_sh=edge_sh, edge_length_embedding=edge_length_embedding, batch=batch, pos=pos, 
@@ -675,7 +675,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         # return outputs, z_pred[-1]
         if return_fixedpoint:
             # z_pred = sampled fixed point trajectory (tracked gradients)
-            return energy, force, z_pred[-1].detach()
+            return energy, force, z_pred[-1].detach().clone()
         return energy, force
 
 

@@ -21,14 +21,14 @@ def log_fixed_point_error(info, step, datasplit=None):
         n = f"_{datasplit}"
 
     if len(f_abs_trace) > 0:
-        if step % log_every_step_minor == 0:
+        if (step % log_every_step_minor == 0) or (datasplit in ["test", "val"]):
             # log the final fixed point error
             wandb.log({f"abs_fixed_point_error{n}": f_abs_trace[-1].item()}, step=step)
             wandb.log({f"rel_fixed_point_error{n}": f_rel_trace[-1].item()}, step=step)
             # log how many steps it took to reach the fixed point
             wandb.log({f"f_steps_to_fixed_point{n}": len(f_abs_trace)}, step=step)
-            
-        if step % log_every_step_major == 0:
+
+        if (step % log_every_step_major == 0) or (datasplit in ["test", "val"]):
             # log the fixed point error along the solver trajectory
             # https://github.com/wandb/wandb/issues/3966
             data_dict = {
@@ -58,6 +58,6 @@ def log_fixed_point_norm(z, step, datasplit=None):
         n = ""
     else:
         n = f"_{datasplit}"
-    if step % log_every_step_major == 0:
+    if (step % log_every_step_major == 0) or (datasplit in ["test", "val"]):
         wandb.log({f"fixed_point_norm{n}": z[-1].norm().item()}, step=step)
     return

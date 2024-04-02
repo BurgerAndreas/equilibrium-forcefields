@@ -718,7 +718,6 @@ def evaluate(
     global_step=None,
     datasplit=None,
 ):
-    print(f'--- evaluate() with datasplit={datasplit} ---')
 
     if args.eval_mode is True:
         model.eval()

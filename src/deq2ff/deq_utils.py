@@ -37,11 +37,17 @@ def log_fixed_point_error(info, step, datasplit=None):
             table_key = f"fixed_point_error_traj{n}"
             try:
                 api = wandb.Api()
-                run_id = "EquilibriumEquiFormer" + "/" + wandb.run.id
-                run = api.run(run_id)
-                artifact = run.logged_artifacts()[0]
-                table_old = artifact.get(table_key)
-                # artifact = api.artifact(f'andreas-burger/EquilibriumEquiFormer/{table_key}:alias')
+                project = "EquilibriumEquiFormer"
+                run_id = wandb.run.id
+                # V1
+                # run = api.run(project + "/" + run_id)
+                # artifact = run.logged_artifacts()[0]
+                # table_old = artifact.get(table_key)
+                # V2
+                a = api.artifact(f'{project}/run-{run_id}-{table_key}:latest')
+                # apath = a.download()
+                table_old = a.get(table_key)
+                # df_old = pd.DataFrame(data=table_old.data, columns=table_old.columns)
                 create_new_table = False
             except Exception as e:
                 print(f'Error loading table: {e}')

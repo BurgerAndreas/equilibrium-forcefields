@@ -10,9 +10,11 @@ abs_trace over forward-solver-iteration-steps
 https://colab.research.google.com/drive/12HiUnde7qLadeZGGtt7FITnSnbUmJr-I?usp=sharing#scrollTo=V5Zff4FHqR5d
 """
 
+project = "EquilibriumEquiFormer"
+
 def main(run_id: str):
     api = wandb.Api()
-    run = api.run(run_id)
+    run = api.run(f'{project}/{run_id}')
     artifacts = run.logged_artifacts()
 
     print(f'len(artifact): {len(artifacts)}')
@@ -27,12 +29,23 @@ def main(run_id: str):
 
     main_new(artifacts, datasplit, run_id)
 
+
 def main_new(artifacts, datasplit, run_id):
 
-    a = artifacts[-1]
-    table = a.get("fixed_point_error_traj")
+    table_key = f"fixed_point_error_traj_{datasplit}"
 
-    df = pd.DataFrame(table)
+    # a = artifacts[-1]
+    # table = a.get(table_key)
+    # df = pd.DataFrame(table)
+
+    api = wandb.Api()
+    a = api.artifact(f'{project}/run-{run_id}-{table_key}:latest')
+    # apath = a.download()
+    table = a.get(table_key)
+    df = pd.DataFrame(data=table.data, columns=table.columns)
+
+    print(f'df: \n{df} ')
+
     # print(f'df: \n{df}')
 
     # plot the fixed point error trajectory
@@ -45,7 +58,7 @@ def main_new(artifacts, datasplit, run_id):
     # print(df)
 
     sns.lineplot(data=df, x="solver_step", y="value", hue="train_step")
-    fname = f'fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}.png'
+    fname = f"fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}.png"
     plt.savefig(fname)
     print(f'Saved plot to {fname}')
 
@@ -103,6 +116,5 @@ if __name__ == "__main__":
     # FCTPProjectionNorm tlii4hro
     # DEQ noeval inputinjection 6jsxx1x1
     # DEQ ijhtf460
-    run_id = "ofukqyk5"
-    run_id = "EquilibriumEquiFormer" + "/" + run_id
+    run_id = "kkbow9h5"
     main(run_id)

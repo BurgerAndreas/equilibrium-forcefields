@@ -114,6 +114,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         deq_kwargs={},
         input_injection='first_layer',  # False=V1, 'first_layer'=V2
         irreps_node_embedding_injection="64x0e+32x1e+16x2e",
+        z0='zero',
         # original
         irreps_in="64x0e",
         # 128*1 + 64*3 + 32*5 = 480
@@ -274,7 +275,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         self.deq_mode = deq_mode
         self.deq = get_deq(**deq_kwargs)
         # self.deq = get_deq(f_solver='broyden', f_max_iter=20, f_tol=1e-6)
-        # self.register_buffer('z_aux', self.init_z())
+        # self.register_buffer('z_aux', self._init_z())
 
         # from DEQ INR example
         # https://colab.research.google.com/drive/12HiUnde7qLadeZGGtt7FITnSnbUmJr-I?usp=sharing#scrollTo=RGgPMQLT6IHc
@@ -384,14 +385,29 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
     # def _init_z(self):
     #     return torch.zeros(1, self.d_hidden)
 
-    def init_z(self, node_features_injection):
+    def _init_z(self, node_features_injection):
+        """Initializes fixed-point for DEQ
+        shape: [num_atoms * batch_size, irreps_dim]
+        irreps_dim = a*1 + b*3 + c*5 
+        """
         # return torch.zeros(1, self.irreps_feature.dim)
-        return torch.zeros([
-            # num_atoms * batch_size
-            node_features_injection.shape[0],
-            # a*1 + b*3 + c*5 
-            self.irreps_node_embedding.dim,
-        ], device=self.device)
+        if self.z0 == 'zero':
+            return torch.zeros([
+                node_features_injection.shape[0],
+                self.irreps_node_embedding.dim,
+            ], device=self.device)
+        elif self.z0 == 'rand':
+            return torch.randn([
+                node_features_injection.shape[0],
+                self.irreps_node_embedding.dim,
+            ], device=self.device)
+        elif self.z0 == 'one':
+            return torch.ones([
+                node_features_injection.shape[0],
+                self.irreps_node_embedding.dim,
+            ], device=self.device)
+        else:
+            raise ValueError(f"Invalid z0: {self.z0}")
 
     @torch.enable_grad()
     def encode(self, node_atom, pos, batch):
@@ -612,7 +628,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         if self.input_injection == False:
             node_features = node_features_injection
         else:
-            node_features = self.init_z(
+            node_features = self._init_z(
                 node_features_injection
             ) 
 
@@ -706,9 +722,11 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     out_drop=0.0,
     drop_path_rate=0.0,
     scale=None,
+    # DEQ specific
     deq_kwargs={},
     torchdeq_norm=omegaconf.OmegaConf.create({'norm_type': 'weight_norm'}),
-    input_injection=True,
+    input_injection='first_layer',
+    z0='zero',
     **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17
@@ -746,6 +764,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
         deq_kwargs=deq_kwargs,
         torchdeq_norm=torchdeq_norm,
         input_injection=input_injection,
+        z0=z0,
     )
     print(f"! Ignoring kwargs: {kwargs}")
     return model

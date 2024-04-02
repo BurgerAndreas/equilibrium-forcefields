@@ -34,7 +34,7 @@ def log_fixed_point_error(info, step, datasplit=None):
             # https://github.com/wandb/wandb/issues/2981#issuecomment-1686868189
 
             # try to load the table
-            table_key = "fixed_point_error_traj"
+            table_key = f"fixed_point_error_traj{n}"
             try:
                 api = wandb.Api()
                 run_id = "EquilibriumEquiFormer" + "/" + wandb.run.id
@@ -44,7 +44,7 @@ def log_fixed_point_error(info, step, datasplit=None):
                 create_new_table = False
             except Exception as e:
                 print(f'Error loading table: {e}')
-                print(f'Creating new table for {table_key}')
+                print(f'Creating new table for {table_key} (split: {datasplit}).')
                 create_new_table = True
             
             # data
@@ -68,7 +68,7 @@ def log_fixed_point_error(info, step, datasplit=None):
                 # table_old.add_data(...)
                 # loop over rows and add them to the table
                 for i in range(len(data_df)):
-                    table_old.add_data(data_df.iloc[i])
+                    table_old.add_data(data_df.iloc[i].values)
                 wandb.log({table_key: table_old})
     return
 

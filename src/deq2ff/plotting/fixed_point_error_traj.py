@@ -2,6 +2,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
 import wandb
+import copy
 
 """
 Fixed point convergence
@@ -12,24 +13,57 @@ https://colab.research.google.com/drive/12HiUnde7qLadeZGGtt7FITnSnbUmJr-I?usp=sh
 def main(run_id: str):
     api = wandb.Api()
     run = api.run(run_id)
-    artifact = run.logged_artifacts()[0]
-    table = artifact.get("fixed_point_error_traj")
-    dict_table = {column: table.get_column(column) for column in table.columns}
-    df = pd.DataFrame(dict_table)
+    artifacts = run.logged_artifacts()
 
-    print(f'df: \n{df}')
+    print(f'len(artifact): {len(artifacts)}')
 
-    # plot the fixed point error trajectory
-    # rel_fixed_point_error_traj on the y-axis
-    # solver_step on the x-axis
-    # train_step as the hue
-    df = df.melt(
-        id_vars=["solver_step", "train_step"], value_vars=["rel_fixed_point_error_traj_train"]
-    )
-    # print(df)
+    datasplit = "train"
 
-    sns.lineplot(data=df, x="solver_step", y="value", hue="train_step")
-    plt.show()
+    if len(artifacts) > 1:
+        # indiviual steps are their own tables
+        # we need to merge them
+
+        maxtables = 10
+
+        # merge all artifacts
+        df = None
+        for i, a in enumerate(artifacts):
+            table = a.get("fixed_point_error_traj")
+
+            # check if right datasplit
+            if table.columns[0].split("_")[-1] != datasplit:
+                continue
+            
+            dict_table = {column: table.get_column(column) for column in table.columns}
+            if df is None:
+                df = [copy.deepcopy(dict_table)]
+            else:
+                # append
+                df.append(copy.deepcopy(dict_table))
+
+            # if i >= maxtables:
+            #     break
+
+            if len(df) >= maxtables:
+                break
+
+        # combine the pd.Series in the dict
+        df = {k: pd.concat([pd.Series(d[k]) for d in df], axis=0) for k in df[0].keys()}
+
+        df = pd.DataFrame(df)
+        # print(f'df: \n{df}')
+
+        # plot the fixed point error trajectory
+        # rel_fixed_point_error_traj on the y-axis
+        # solver_step on the x-axis
+        # train_step as the hue
+        df = df.melt(
+            id_vars=["solver_step", "train_step"], value_vars=[f"rel_fixed_point_error_traj_{datasplit}"]
+        )
+        # print(df)
+
+        sns.lineplot(data=df, x="solver_step", y="value", hue="train_step")
+        plt.show()
 
 
 if __name__ == "__main__":

@@ -35,6 +35,8 @@ model_kwargs:
   input_injection: 'first_layer'
   # "FFResidualFCTPProjection", "FFProjection", "FCTPProjection"
   dec_proj: null
+  # initialize fixed-point. zero, random, one
+  z0: 'zero'
 
 # regularization
 # jac_reg: False

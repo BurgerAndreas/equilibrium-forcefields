@@ -181,6 +181,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             self.irreps_node_z = o3.Irreps(irreps_node_z).simplify()  # input to block
         else:
             raise ValueError(f"Invalid input_injection: {input_injection}")
+        
+        self.z0 = z0
         #################################################################
 
         self.max_radius = max_radius

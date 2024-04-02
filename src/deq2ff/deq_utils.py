@@ -37,11 +37,13 @@ def log_fixed_point_error(info, step, datasplit=None):
             table_key = "fixed_point_error_traj"
             try:
                 api = wandb.Api()
-                run = api.run(wandb.run.id)
+                run_id = "EquilibriumEquiFormer" + "/" + wandb.run.id
+                run = api.run(run_id)
                 artifact = run.logged_artifacts()[0]
                 table_old = artifact.get(table_key)
                 create_new_table = False
-            except:
+            except Exception as e:
+                print(f'Error loading table: {e}')
                 print(f'Creating new table for {table_key}')
                 create_new_table = True
             

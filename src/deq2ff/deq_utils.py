@@ -41,6 +41,7 @@ def log_fixed_point_error(info, step, datasplit=None):
                 run = api.run(run_id)
                 artifact = run.logged_artifacts()[0]
                 table_old = artifact.get(table_key)
+                # artifact = api.artifact(f'andreas-burger/EquilibriumEquiFormer/{table_key}:alias')
                 create_new_table = False
             except Exception as e:
                 print(f'Error loading table: {e}')
@@ -69,7 +70,7 @@ def log_fixed_point_error(info, step, datasplit=None):
                 # loop over rows and add them to the table
                 for i in range(len(data_df)):
                     table_old.add_data(data_df.iloc[i].values)
-                wandb.log({table_key: table_old})
+                wandb.log({table_key: table_old}, step=step)
     return
 
 def log_fixed_point_norm(z, step, datasplit=None):

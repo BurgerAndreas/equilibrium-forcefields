@@ -258,6 +258,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17_noforce(
     deq_kwargs={},
     torchdeq_norm=True,
     input_injection='first_layer',
+    z0='zero',
     **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17
@@ -295,6 +296,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17_noforce(
         deq_kwargs=deq_kwargs,
         torchdeq_norm=torchdeq_norm,
         input_injection=input_injection,
+        z0=z0,
     )
     print(f"! Ignoring kwargs: {kwargs}")
     return model

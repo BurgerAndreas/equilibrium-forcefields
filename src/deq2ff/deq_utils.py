@@ -2,11 +2,13 @@ import torch
 import wandb
 import pandas as pd
 
+from typing import Optional, Dict, List
+
 log_every_step_major = 1000
 log_every_step_minor = 100
 
 
-def log_fixed_point_error(info, step, datasplit=None):
+def log_fixed_point_error(info, step, datasplit=None, data_dicts: List[Dict[str, pd.Series]] = None):
     """Log fixed point error to wandb."""
     # absolute fixed point errors along the solver trajectory
     f_abs_trace = info["abs_trace"]
@@ -28,32 +30,12 @@ def log_fixed_point_error(info, step, datasplit=None):
             # log how many steps it took to reach the fixed point
             wandb.log({f"f_steps_to_fixed_point{n}": len(f_abs_trace)}, step=step)
 
-        if (step % log_every_step_major == 0) or (datasplit in ["test", "val"]):
+        #### log table
+        if (step % log_every_step_major == 0) or datasplit in ["test", "val"]:
             # log the fixed point error along the solver trajectory
             # https://github.com/wandb/wandb/issues/3966
             # https://github.com/wandb/wandb/issues/2981#issuecomment-1686868189
 
-            # try to load the table
-            table_key = f"fixed_point_error_traj{n}"
-            try:
-                api = wandb.Api()
-                project = "EquilibriumEquiFormer"
-                run_id = wandb.run.id
-                # V1
-                # run = api.run(project + "/" + run_id)
-                # artifact = run.logged_artifacts()[0]
-                # table_old = artifact.get(table_key)
-                # V2
-                a = api.artifact(f'{project}/run-{run_id}-{table_key}:latest')
-                # apath = a.download()
-                table_old = a.get(table_key)
-                # df_old = pd.DataFrame(data=table_old.data, columns=table_old.columns)
-                create_new_table = False
-            except Exception as e:
-                print(f'Error loading table: {e}')
-                print(f'Creating new table for {table_key} (split: {datasplit}).')
-                create_new_table = True
-            
             # data
             data_dict = {
                 f"abs_fixed_point_error_traj{n}": pd.Series(
@@ -67,21 +49,57 @@ def log_fixed_point_error(info, step, datasplit=None):
             }
             data_df = pd.DataFrame(data_dict)
 
-            if create_new_table:
-                table_new = wandb.Table(dataframe=data_df)
-                wandb.log({table_key: table_new}, step=step)
+            table_key = f"fixed_point_error_traj{n}"
+            if data_dicts is None:
+                # try to load the table from the API
+                # NOT RECOMMENDED! This is slow and inefficient.
+                try:
+                    api = wandb.Api()
+                    project = "EquilibriumEquiFormer"
+                    run_id = wandb.run.id
+                    # V1
+                    # run = api.run(project + "/" + run_id)
+                    # artifact = run.logged_artifacts()[0]
+                    # table = artifact.get(table_key)
+                    # V2
+                    a = api.artifact(f'{project}/run-{run_id}-{table_key}:latest')
+                    table = a.get(table_key)
+                    # df_old = pd.DataFrame(data=table.data, columns=table.columns)
+                    create_new_table = False
+                except Exception as e:
+                    print(f'Error loading table: {e}')
+                    print(f'Creating new table for {table_key} (split: {datasplit}).')
+                    create_new_table = True
+
+                if create_new_table:
+                    table = wandb.Table(dataframe=data_df)
+                
+                else:
+                    # table.add_data(...)
+                    # loop over rows and add them to the table
+                    for i in range(len(data_df)):
+                        try:
+                            table.add_data(*data_df.iloc[i].values)
+                        except Exception as e:
+                            print(f'Error adding data to table: {e}')
+                            print(f'data_df.iloc[i].values: {data_df.iloc[i].values}')
+
+                wandb.log({table_key: table}, step=step)
+                print(f'Logged table {table_key} (split: {datasplit}) at step {step}.')
+                return [data_dict]
             
             else:
-                # table_old.add_data(...)
-                # loop over rows and add them to the table
-                for i in range(len(data_df)):
-                    try:
-                        table_old.add_data(data_df.iloc[i].values)
-                    except Exception as e:
-                        print(f'Error adding data to table: {e}')
-                        print(f'data_df.iloc[i].values: {data_df.iloc[i].values}')
-                wandb.log({table_key: table_old}, step=step)
-    return
+                # data_dicts was passed and is a List[Dict[pd.Series]]
+                data_dicts.append(data_dict)
+                # merge the data_dicts
+                series_concat = {k: pd.concat([d[k] for d in data_dicts], axis=0) for k in data_dicts[0].keys()}
+                data_df = pd.DataFrame(series_concat)
+                table = wandb.Table(dataframe=data_df)
+                wandb.log({table_key: table}, step=step)
+                print(f'Logged table {table_key} (split: {datasplit}) at step {step}.')
+                return data_dicts
+
+    return None
 
 def log_fixed_point_norm(z, step, datasplit=None):
     """Log the norm of the fixed point."""
@@ -89,6 +107,6 @@ def log_fixed_point_norm(z, step, datasplit=None):
         n = ""
     else:
         n = f"_{datasplit}"
-    if (step % log_every_step_major == 0) or (datasplit in ["test", "val"]):
+    if (step % log_every_step_major == 0) or datasplit in ["test", "val"]:
         wandb.log({f"fixed_point_norm{n}": z[-1].norm().item()}, step=step)
     return

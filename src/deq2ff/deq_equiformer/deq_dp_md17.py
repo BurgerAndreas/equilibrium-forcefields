@@ -183,6 +183,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             raise ValueError(f"Invalid input_injection: {input_injection}")
         
         self.z0 = z0
+        # tables to log to wandb
+        self.fp_error_traj = {'train': None, 'val': None, 'test': None}
         #################################################################
 
         self.max_radius = max_radius
@@ -357,6 +359,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         elif isinstance(m, torch.nn.LayerNorm):
             torch.nn.init.constant_(m.bias, 0)
             torch.nn.init.constant_(m.weight, 1.0)
+        # kaiman
+        # torch.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
+        # torch.nn.init.zeros_(self.fc1.bias)
 
     @torch.jit.ignore
     def no_weight_decay(self):
@@ -664,7 +669,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             raise ValueError('DEQ mode must be True')
 
         if step is not None:
-            deq_utils.log_fixed_point_error(info, step, datasplit)
+            _data = deq_utils.log_fixed_point_error(info, step, datasplit, self.fp_error_traj[datasplit])
+            if _data is not None:
+                self.fp_error_traj[datasplit] = _data
             deq_utils.log_fixed_point_norm(z_pred, step, datasplit)
 
         # decode

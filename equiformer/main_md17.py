@@ -151,16 +151,18 @@ def main(args):
         )
 
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    _log.info("Number of params: {}".format(n_parameters))
+    _log.info("Number of Model params: {}".format(n_parameters))
     wandb.run.summary["Model Parameters"] = n_parameters
     # wandb.config.update({"Model Parameters": n_parameters})
 
     # parameters in transformer blocks / deq implicit layers
     n_parameters = sum(p.numel() for p in model.blocks.parameters() if p.requires_grad)
+    _log.info("Number of DEQLayer params: {}".format(n_parameters))
     wandb.run.summary["DEQLayer Parameters"] = n_parameters
 
     # decoder
     n_parameters = sum(p.numel() for p in model.final_block.parameters() if p.requires_grad)
+    _log.info("Number of FinalBlock params: {}".format(n_parameters))
     wandb.run.summary["FinalBlock Parameters"] = n_parameters
 
     """ Optimizer and LR Scheduler """
@@ -234,6 +236,7 @@ def main(args):
         )
         return
 
+    print("\nStart training!\n")
     start_time = time.perf_counter()
     for epoch in range(args.epochs):
 
@@ -546,14 +549,13 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
 
     update_val_result, update_test_result = False, False
 
-    print(f"Trying to update best results for epoch {epoch}")
+    # print(f"Trying to update best results for epoch {epoch}")
     new_loss = _compute_weighted_error(
         args, val_err["energy"].avg, val_err["force"].avg
     )
     prev_loss = _compute_weighted_error(
         args, best_metrics["val_energy_err"], best_metrics["val_force_err"]
     )
-    print(f" New loss val: {new_loss}, prev loss: {prev_loss}")
     if new_loss < prev_loss:
         best_metrics["val_energy_err"] = val_err["energy"].avg
         best_metrics["val_force_err"] = val_err["force"].avg
@@ -561,7 +563,6 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
         update_val_result = True
 
     if test_err is None:
-        print(f" Test error is None, skipping updating best val for epoch {epoch}")
         return update_val_result, update_test_result
 
     new_loss = _compute_weighted_error(
@@ -738,13 +739,20 @@ def evaluate(
     for step, data in enumerate(data_loader):
         data = data.to(device)
 
+        # if we pass step, things will be logged to wandb
+        # note that global_step is not updated here
+        if step == 0:
+            pass_step = global_step
+        else:
+            pass_step = None
+
         # fixed-point reuse
         if 'fpreuse_val' in args and args.fpreuse_val:
             pred_y, pred_dy, fixedpoint = model(
                 node_atom=data.z,
                 pos=data.pos,
                 batch=data.batch,
-                step=global_step,
+                step=pass_step,
                 datasplit=datasplit,
                 return_fixedpoint=True,
                 fixedpoint=fixedpoint,
@@ -755,7 +763,7 @@ def evaluate(
                 node_atom=data.z,
                 pos=data.pos,
                 batch=data.batch,
-                step=global_step,
+                step=pass_step,
                 datasplit=datasplit,
                 fixedpoint=None,
             )

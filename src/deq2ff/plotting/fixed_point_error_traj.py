@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import wandb
 import copy
+import os, sys, pathlib
 
 """
 Fixed point convergence
@@ -11,6 +12,10 @@ https://colab.research.google.com/drive/12HiUnde7qLadeZGGtt7FITnSnbUmJr-I?usp=sh
 """
 
 project = "EquilibriumEquiFormer"
+
+# parent folder of the plot
+plotfolder = pathlib.Path(__file__).parent.absolute()
+plotfolder = os.path.join(plotfolder, "plots")
 
 def main(run_id: str):
     api = wandb.Api()
@@ -58,7 +63,7 @@ def main_new(artifacts, datasplit, run_id):
     # print(df)
 
     sns.lineplot(data=df, x="solver_step", y="value", hue="train_step")
-    fname = f"fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}.png"
+    fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}.png"
     plt.savefig(fname)
     print(f'Saved plot to {fname}')
 
@@ -116,5 +121,5 @@ if __name__ == "__main__":
     # FCTPProjectionNorm tlii4hro
     # DEQ noeval inputinjection 6jsxx1x1
     # DEQ ijhtf460
-    run_id = "kkbow9h5"
+    run_id = "aj924c1m"
     main(run_id)

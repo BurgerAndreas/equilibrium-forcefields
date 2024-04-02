@@ -19,7 +19,7 @@ def log_fixed_point_error(info, step, datasplit=None):
         n = ""
     else:
         n = f"_{datasplit}"
-
+    
     if len(f_abs_trace) > 0:
         if (step % log_every_step_minor == 0) or (datasplit in ["test", "val"]):
             # log the final fixed point error
@@ -31,6 +31,21 @@ def log_fixed_point_error(info, step, datasplit=None):
         if (step % log_every_step_major == 0) or (datasplit in ["test", "val"]):
             # log the fixed point error along the solver trajectory
             # https://github.com/wandb/wandb/issues/3966
+            # https://github.com/wandb/wandb/issues/2981#issuecomment-1686868189
+
+            # try to load the table
+            table_key = "fixed_point_error_traj"
+            try:
+                api = wandb.Api()
+                run = api.run(wandb.run.id)
+                artifact = run.logged_artifacts()[0]
+                table_old = artifact.get(table_key)
+                create_new_table = False
+            except:
+                print(f'Creating new table for {table_key}')
+                create_new_table = True
+            
+            # data
             data_dict = {
                 f"abs_fixed_point_error_traj{n}": pd.Series(
                     f_abs_trace.detach().cpu().numpy()
@@ -41,15 +56,18 @@ def log_fixed_point_error(info, step, datasplit=None):
                 "solver_step": pd.Series(range(len(f_abs_trace))),
                 "train_step": pd.Series([step] * len(f_abs_trace)),
             }
-            table = wandb.Table(dataframe=pd.DataFrame(data_dict))
-            wandb.log({"fixed_point_error_traj": table}, step=step)
-            # get the values later
-            # api = wandb.Api()
-            # run = api.run("run_id")
-            # artifact = run.logged_artifacts()[0]
-            # table = artifact.get("fixed_point_error_traj")
-            # dict_table = {column: table.get_column(column) for column in table.columns}
-            # df = pd.DataFrame(dict_table)
+            data_df = pd.DataFrame(data_dict)
+
+            if create_new_table:
+                table_new = wandb.Table(dataframe=data_df)
+                wandb.log({table_key: table_new}, step=step)
+            
+            else:
+                # table_old.add_data(...)
+                # loop over rows and add them to the table
+                for i in range(len(data_df)):
+                    table_old.add_data(data_df.iloc[i])
+                wandb.log({table_key: table_old})
     return
 
 def log_fixed_point_norm(z, step, datasplit=None):

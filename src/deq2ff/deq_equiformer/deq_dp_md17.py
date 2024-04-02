@@ -285,10 +285,6 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         if torchdeq_norm.norm_type not in [None, 'none', False]:
             apply_norm(self.blocks, **torchdeq_norm)
             # register_norm_module(DEQDotProductAttentionTransformerMD17, 'spectral_norm', names=['blocks'], dims=[0])
-        
-        # parameters in transformer blocks / deq implicit layers
-        n_parameters = sum(p.numel() for p in self.blocks.parameters() if p.requires_grad)
-        wandb.run.summary["DEQLayer Parameters"] = n_parameters
         #################################################################
 
     def build_blocks(self):
@@ -454,7 +450,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
 
         # [num_atoms*batch_size, 480]
         if self.input_injection == False:
-            # no injection becomes the input
+            # no injection, injection becomes the initial input
             for blknum, blk in enumerate(self.blocks):
                 node_features = blk(
                     node_input=node_features,
@@ -494,6 +490,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
                 )
         
         elif self.input_injection == 'legacy':
+            # print("!"*60, "\nDepricated: Legacy input injection")
             node_features_in = torch.cat([node_features, node_features_injection], dim=1)
             # # print("node_features.shape", node_features.shape)
             for blknum, blk in enumerate(self.blocks):

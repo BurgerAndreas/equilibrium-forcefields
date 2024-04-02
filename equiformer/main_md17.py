@@ -151,9 +151,17 @@ def main(args):
         )
 
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    _log.info("Number of params: {}".format(n_parameters))
     wandb.run.summary["Model Parameters"] = n_parameters
     # wandb.config.update({"Model Parameters": n_parameters})
-    _log.info("Number of params: {}".format(n_parameters))
+
+    # parameters in transformer blocks / deq implicit layers
+    n_parameters = sum(p.numel() for p in model.blocks.parameters() if p.requires_grad)
+    wandb.run.summary["DEQLayer Parameters"] = n_parameters
+
+    # decoder
+    n_parameters = sum(p.numel() for p in model.final_block.parameters() if p.requires_grad)
+    wandb.run.summary["FinalBlock Parameters"] = n_parameters
 
     """ Optimizer and LR Scheduler """
     optimizer = create_optimizer(args, model)
@@ -259,6 +267,7 @@ def main(args):
             print_freq=args.print_freq,
             logger=_log,
             print_progress=False,
+            max_iter=-1,
             global_step=global_step,
             datasplit="val",
         )

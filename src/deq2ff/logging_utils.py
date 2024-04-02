@@ -116,7 +116,9 @@ REPLACE = {
     "_dp": "",
     "_l2": "",
     "_graph_nonlinear": " GraphNonLinear",
-    "_decprojhead": " ProjHead",
+    "_decprojhead": "",
+    "_decproj-": " ",
+    "_evalmode-False": " noeval",
 }
 
 

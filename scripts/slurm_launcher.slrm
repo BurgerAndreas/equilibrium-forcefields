@@ -3,9 +3,9 @@
 # bash or sh
 # Node resource configurations
 # https://support.vectorinstitute.ai/Vaughan_slurm_changes
-#SBATCH --job-name=sd_pokemon_lora
+#SBATCH --job-name=equilibrium-forcefields
 #SBATCH --mem=32G
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=1
 # a40, 48GB, gpu[001-015], gpu[027-056]
 # rtx6000, 24GB
 #SBATCH --partition=rtx6000

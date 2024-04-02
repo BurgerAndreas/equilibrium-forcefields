@@ -75,7 +75,11 @@ def log_fixed_point_error(info, step, datasplit=None):
                 # table_old.add_data(...)
                 # loop over rows and add them to the table
                 for i in range(len(data_df)):
-                    table_old.add_data(data_df.iloc[i].values)
+                    try:
+                        table_old.add_data(data_df.iloc[i].values)
+                    except Exception as e:
+                        print(f'Error adding data to table: {e}')
+                        print(f'data_df.iloc[i].values: {data_df.iloc[i].values}')
                 wandb.log({table_key: table_old}, step=step)
     return
 

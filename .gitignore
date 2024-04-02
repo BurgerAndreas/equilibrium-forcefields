@@ -9,6 +9,9 @@ models1
 wandb
 outputs
 
+artifacts
+**/.vscode
+
 slurm-*.out
 
 torchdeq

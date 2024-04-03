@@ -9,7 +9,9 @@ Perks of Equilibrium Models:
 ```bash
 python scripts/deq_equiformer.py
 # baseline equiformer
-python equiformer/main_md17.py num_layers=2
+python equiformer/main_md17.py 
+# for revised MD17 dataset: 
+python scripts/deq_equiformer.py md17revised=True
 ```
 
 On a slurm cluster:
@@ -83,7 +85,7 @@ Not too important right now since it only increases speed in time but not nimber
 
 - equiformer equivariance test (model(x) == model(rot(x)))
 
-- [x] initalize z0=0 
+- [] revised MD17 dataset https://archive.materialscloud.org/record/2020.82 or https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.datasets.MD17.html
 
 
 ## Normalization

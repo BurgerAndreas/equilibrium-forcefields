@@ -22,6 +22,8 @@ model_kwargs:
   # (int)
   num_layers: 6
 
+# use revised version of MD17 with more accurate energies and forces (bool)
+md17revised: False
 # (str)
 output_dir: null
 # (str)

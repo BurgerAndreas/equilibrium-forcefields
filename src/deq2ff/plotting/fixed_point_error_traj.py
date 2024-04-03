@@ -17,15 +17,12 @@ project = "EquilibriumEquiFormer"
 plotfolder = pathlib.Path(__file__).parent.absolute()
 plotfolder = os.path.join(plotfolder, "plots")
 
-def main(run_id: str):
+def main(run_id: str, datasplit: str = "train"):
     api = wandb.Api()
     run = api.run(f'{project}/{run_id}')
     artifacts = run.logged_artifacts()
 
     print(f'len(artifact): {len(artifacts)}')
-
-    datasplit = "train"
-
     # if len(artifacts) > 1:
     #     main_old(artifacts, datasplit, run_id)
     
@@ -117,9 +114,10 @@ def main_old(artifacts, datasplit, run_id):
 
 if __name__ == "__main__":
 
-    # p1sg221t
+    # DEQ newlogging xpp1auzp
     # FCTPProjectionNorm tlii4hro
     # DEQ noeval inputinjection 6jsxx1x1
     # DEQ ijhtf460
-    run_id = "aj924c1m"
-    main(run_id)
+    run_id = "xpp1auzp"
+    
+    main(run_id, datasplit="train")

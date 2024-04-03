@@ -41,6 +41,17 @@ see Allegro paper for great summary
 
 Equiformer uses the non-revised version: equiformer/datasets/pyg/md17.py
 
+olecules@CCSD/CCSD(T): The data set of
+small molecules at CCSD and CCSD(T) accuracy
+[37] contains positions, energies, and forces for five
+different small molecules: Asprin (CCSD), Benzene,
+Malondaldehyde, Toluene, Ethanol (all CCSD(T)).
+Each data set consists of 1,500 structures with the
+exception of Ethanol, for which 2,000 structures are
+available. For more detailed information, we direct
+the reader to [37]. The data set was obtained from
+http://quantum-machine.org/gdml/#datasets
+
 ### MD 22
 - Accurate global machine learning force fields for molecules with hundreds of atoms
 - http://www.sgdml.org/#datasets

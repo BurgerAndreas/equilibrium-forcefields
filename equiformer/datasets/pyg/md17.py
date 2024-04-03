@@ -13,9 +13,17 @@ class MD17(InMemoryDataset):
     """Machine learning of accurate energy-conserving molecular force fields (Chmiela et al. 2017)
     This class provides functionality for loading MD trajectories from the original dataset, not the revised versions.
     See http://www.quantum-machine.org/gdml/#datasets for details.
-    """
 
-    print(f'\nWarning: Using the original MD17 dataset. Please consider using the revised version (equiformer/datasets/pyg/md17.py).\n')
+    Usage:
+        train_dataset, val_dataset, test_dataset = md17_dataset.get_md17_datasets(
+            root=os.path.join(args.data_path, args.target),
+            dataset_arg=args.target,
+            train_size=args.train_size,
+            val_size=args.val_size,
+            test_size=None,
+            seed=args.seed,
+        )
+    """
 
     raw_url = "http://www.quantum-machine.org/gdml/data/npz/"
 
@@ -47,7 +55,11 @@ class MD17(InMemoryDataset):
 
     available_molecules = list(molecule_files.keys())
 
-    def __init__(self, root, dataset_arg, transform=None, pre_transform=None):
+    # revised dataset
+    # https://archive.materialscloud.org/record/file?record_id=466&filename=rmd17.tar.bz2
+    # All the revised trajectories are available by changing the name from e.g. benzene to revised benzene
+
+    def __init__(self, root, dataset_arg, transform=None, pre_transform=None, revised=False):
         assert dataset_arg is not None, (
             "Please provide the desired comma separated molecule(s) through"
             f"'dataset_arg'. Available molecules are {', '.join(MD17.available_molecules)} "
@@ -181,7 +193,9 @@ def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=
     idx_val = idxs[train_size : train_size + val_size]
     idx_test = idxs[train_size + val_size : total]
 
-    if order is not None:
+    if order == "consecutive":
+        return idx_train, idx_val, idx_test
+    elif order is not None:
         idx_train = [order[i] for i in idx_train]
         idx_val = [order[i] for i in idx_val]
         idx_test = [order[i] for i in idx_test]
@@ -200,18 +214,18 @@ def make_splits(
     splits=None,
     order=None,
 ):
-    if splits is not None:
+    if splits is None or order is not None:
+        idx_train, idx_val, idx_test = train_val_test_split(
+            dataset_len, train_size, val_size, test_size, seed, order
+        )
+        if order is None:
+            if filename is not None:
+                np.savez(filename, idx_train=idx_train, idx_val=idx_val, idx_test=idx_test)
+    else:
         splits = np.load(splits)
         idx_train = splits["idx_train"]
         idx_val = splits["idx_val"]
         idx_test = splits["idx_test"]
-    else:
-        idx_train, idx_val, idx_test = train_val_test_split(
-            dataset_len, train_size, val_size, test_size, seed, order
-        )
-
-    if filename is not None:
-        np.savez(filename, idx_train=idx_train, idx_val=idx_val, idx_test=idx_test)
 
     return (
         torch.from_numpy(idx_train),
@@ -220,12 +234,14 @@ def make_splits(
     )
 
 
-def get_md17_datasets(root, dataset_arg, train_size, val_size, test_size, seed):
+def get_md17_datasets(root, dataset_arg, train_size, val_size, test_size, seed, revised=False):
     """
     Return training, validation and testing sets of MD17 with the same data partition as TorchMD-NET.
     """
 
-    all_dataset = MD17(root, dataset_arg)
+    print(f'\nWarning: Using the original MD17 dataset. Please consider using the revised version (equiformer/datasets/pyg/md17.py).\n')
+    if revised == False:
+        all_dataset = MD17(root, dataset_arg)
 
     idx_train, idx_val, idx_test = make_splits(
         len(all_dataset),

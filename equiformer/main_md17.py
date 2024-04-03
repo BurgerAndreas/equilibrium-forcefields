@@ -14,7 +14,8 @@ from typing import Iterable, Optional
 
 import sys, os
 
-import equiformer.datasets.pyg.md17 as md17_dataset
+# import equiformer.datasets.pyg.md17 as md17_dataset
+import equiformer.datasets.pyg.md17revised as md17_dataset
 
 from equiformer.logger import FileLogger
 
@@ -96,13 +97,20 @@ def main(args):
     np.random.seed(args.seed)
 
     """ Dataset """
-    train_dataset, val_dataset, test_dataset = md17_dataset.get_md17_datasets(
+    consecutive = False
+    if 'fpreuse_train' in args and args.fpreuse_train:
+        consecutive = True
+    if 'fpreuse_val' in args and args.fpreuse_val:
+        consecutive = True
+    train_dataset, val_dataset, test_dataset = md17_dataset.get_rmd17_datasets(
         root=os.path.join(args.data_path, args.target),
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
         test_size=None,
         seed=args.seed,
+        revised=args.md17revised,
+        consecutive=consecutive,
     )
 
     _log.info("")
@@ -595,6 +603,9 @@ def train_one_epoch(
     logger=None,
     meas_force=True,
 ):
+    """Train for one epoch.
+    Keys in dataloader: ['z', 'pos', 'batch', 'y', 'dy']
+    """
 
     model.train()
     criterion.train()
@@ -740,8 +751,8 @@ def evaluate(
         data = data.to(device)
 
         # if we pass step, things will be logged to wandb
-        # note that global_step is not updated here
-        if step == 0:
+        # note that global_step is only updated in train_one_epoch
+        if step == len(data_loader) - 1:
             pass_step = global_step
         else:
             pass_step = None

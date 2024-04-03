@@ -142,9 +142,7 @@ class MD17(InMemoryDataset):
             data, slices = self.collate(samples)
             torch.save((data, slices), self.processed_paths[0])
 
-
-# From https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L54
-def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=None):
+def fix_train_val_test_size(train_size, val_size, test_size, dset_len):
     assert (train_size is None) + (val_size is None) + (test_size is None) <= 1, \
         "Only one of train_size, val_size, test_size is allowed to be None."
     is_float = (
@@ -175,6 +173,14 @@ def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=
     assert train_size >= 0 and val_size >= 0 and test_size >= 0, (
         f"One of training ({train_size}), validation ({val_size}) or "
         f"testing ({test_size}) splits ended up with a negative size."
+    )
+    return train_size, val_size, test_size
+
+# From https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L54
+def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=None):
+    
+    train_size, val_size, test_size = fix_train_val_test_size(
+        train_size, val_size, test_size, dset_len
     )
 
     total = train_size + val_size + test_size
@@ -223,9 +229,13 @@ def make_splits(
     test_size,
     seed,
     filename=None,  # path to save split index
-    splits=None,
+    splits=None, # load split
     order=None,
 ):
+    """
+    splits: path to a .npz file containing the splits or a dict of paths to .npz files containing the splits. Ignored if order is not None.
+    order: order of the dataset, e.g. consecutive, consecutive_test, or a list of indices.
+    """
     if splits is None or order is not None:
         idx_train, idx_val, idx_test = train_val_test_split(
             dataset_len, train_size, val_size, test_size, seed, order
@@ -233,6 +243,20 @@ def make_splits(
         if order is None:
             if filename is not None:
                 np.savez(filename, idx_train=idx_train, idx_val=idx_val, idx_test=idx_test)
+
+    elif type(splits) == dict:
+        train_size, val_size, test_size = fix_train_val_test_size(
+            train_size, val_size, test_size, dataset_len
+        )
+        # datasets/rmd17/aspirin/raw/rmd17/splits/index_test_01.csv
+        idx_train = np.loadtxt(splits["train"], dtype=int)
+        idx_train = idx_train[:train_size]
+        # test and val are combined
+        idx_test_val = np.loadtxt(splits["test"], dtype=int)
+        idx_val = idx_test_val[:val_size]
+        idx_test = idx_test_val[val_size : val_size + test_size]
+        print(f"Loaded splits from {splits['train']} and {splits['test']}")
+
     else:
         splits = np.load(splits)
         idx_train = splits["idx_train"]

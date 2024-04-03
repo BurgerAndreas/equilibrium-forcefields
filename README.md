@@ -85,8 +85,6 @@ Not too important right now since it only increases speed in time but not nimber
 
 - equiformer equivariance test (model(x) == model(rot(x)))
 
-- [] revised MD17 dataset https://archive.materialscloud.org/record/2020.82 or https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.datasets.MD17.html
-
 
 ## Normalization
 

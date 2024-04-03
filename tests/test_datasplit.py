@@ -72,9 +72,62 @@ def test_old_is_new(args):
         assert torch.allclose(train_dataset[i].y, train_dataset_old[i].y), f'{i}'
         assert torch.allclose(train_dataset[i].dy, train_dataset_old[i].dy), f'{i}'
         assert torch.allclose(train_dataset[i].pos, train_dataset_old[i].pos), f'{i}'
+        if i % 100 == 0:
+            print(i)
+    
+    y = torch.cat([batch.y for batch in train_dataset], dim=0)
+    mean = float(y.mean())
+    std = float(y.std())
+
+    y_old = torch.cat([batch.y for batch in train_dataset_old], dim=0)
+
+    assert torch.allclose(y, y_old), f'y'
     
     print('All good!')
     return True
+
+def test_load_revised_split(args):
+
+    """ Dataset """
+    train_dataset, val_dataset, test_dataset = rmd17_dataset.get_rmd17_datasets(
+        root=os.path.join(args.data_path, args.target),
+        dataset_arg=args.target,
+        train_size=args.train_size,
+        val_size=args.val_size,
+        test_size=None,
+        seed=args.seed,
+        revised=True,
+        revised_old=False,
+        load_splits=False,
+        order=None,
+        return_idx=True,
+    )
+
+    train_dataset_loaded, val_dataset, test_dataset = rmd17_dataset.get_rmd17_datasets(
+        root=os.path.join(args.data_path, args.target),
+        dataset_arg=args.target,
+        train_size=args.train_size,
+        val_size=args.val_size,
+        test_size=None,
+        seed=args.seed,
+        revised=True,
+        revised_old=False,
+        load_splits=True,
+        order=None,
+        return_idx=True,
+    )
+
+    # print('train_dataset', train_dataset.shape)
+    # print('train_dataset_loaded', train_dataset_loaded.shape)
+
+    # print('train_dataset', train_dataset)
+    # print('train_dataset_loaded', train_dataset_loaded)
+
+    assert torch.allclose(train_dataset.shape, train_dataset_loaded.shape), f'train_dataset'
+    assert train_dataset.dtype == train_dataset_loaded.dtype, f'train_dataset'
+    print('All good!')
+    return True
+    
 
 from deq2ff.data_utils import reorder_dataset
 
@@ -96,24 +149,23 @@ def test_consecutive_order(args):
     print(f'Test dataset: {len(test_dataset)}')
 
     # Batches consecutive?
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=args.batch_size,
-        shuffle=True,
-        num_workers=args.workers,
-        pin_memory=args.pin_mem,
-        drop_last=True,
-    )
-    val_loader = DataLoader(val_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True)
+    # train_loader = DataLoader(
+    #     train_dataset,
+    #     batch_size=args.batch_size,
+    #     shuffle=True,
+    #     num_workers=args.workers,
+    #     pin_memory=args.pin_mem,
+    #     drop_last=True,
+    # )
+    # val_loader = DataLoader(val_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True)
 
     test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
     test_loader = DataLoader(test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True)
 
 
-    print('')
     last_idx = None
     for step, data in enumerate(test_loader):
-        
+
         # print(data)
         # print(f'idx: {data.idx}')
 
@@ -136,6 +188,8 @@ def hydra_wrapper(args: DictConfig) -> None:
     test_old_is_new(args)
 
     test_consecutive_order(args)
+
+    test_load_revised_split(args)
 
 
 

@@ -15,8 +15,11 @@ np.bool = np.bool_
 
 class MD17(InMemoryDataset):
     """Machine learning of accurate energy-conserving molecular force fields (Chmiela et al. 2017)
-    This class provides functionality for loading MD trajectories from the original dataset, not the revised versions.
-    See http://www.quantum-machine.org/gdml/#datasets for details.
+    This class provides functionality for loading MD trajectories from the revised versions.
+    https://figshare.com/articles/dataset/Revised_MD17_dataset_rMD17_/12672038
+    
+    If you are using a newer version of torch_geometric, just use their implementation:
+    https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.datasets.MD17.html
 
     Usage:
         train_dataset, val_dataset, test_dataset = md17_dataset.get_md17_datasets(
@@ -77,11 +80,7 @@ class MD17(InMemoryDataset):
 
     available_molecules = list(molecule_files.keys())
 
-    # revised dataset
-    # https://archive.materialscloud.org/record/file?record_id=466&filename=rmd17.tar.bz2
-    # All the revised trajectories are available by changing the name from e.g. benzene to revised benzene
-
-    def __init__(self, root, dataset_arg, transform=None, pre_transform=None, revised=False, ccsd=False):
+    def __init__(self, root, dataset_arg, transform=None, pre_transform=None, revised=False, revised_old=False, ccsd=False):
         assert dataset_arg is not None, (
             "Please provide the desired comma separated molecule(s) through"
             f"'dataset_arg'. Available molecules are {', '.join(MD17.available_molecules)} "
@@ -89,13 +88,19 @@ class MD17(InMemoryDataset):
         )
         assert dataset_arg in MD17.available_molecules, "Unknown data argument"
 
-        if revised:
+        if revised_old:
+            revised = True
+            # root = root.replace('md17', 'oldrmd17').replace('oldroldrmd17', 'oldrmd17')
+            root = root.replace('md17', 'rmd17').replace('rrmd17', 'rmd17')
+            print(f'\nWarning: Using the original MD17 dataset from the revised source. Consider using the revised version (equiformer/datasets/pyg/md17.py).\n')
+        elif revised:
             root = root.replace('md17', 'rmd17').replace('rrmd17', 'rmd17')
         else:
-            print(f'\nWarning: Using the original MD17 dataset. Please consider using the revised version (equiformer/datasets/pyg/md17.py).\n')
+            print(f'\nWarning: Using the original MD17 dataset. Consider using the revised version (equiformer/datasets/pyg/md17.py).\n')
 
         self.name = dataset_arg
         self.revised = revised
+        self.revised_old = revised_old
         self.ccsd = ccsd
 
         # For simplicity, always use one type of molecules
@@ -156,6 +161,11 @@ class MD17(InMemoryDataset):
     # MD17
     @property
     def raw_file_names(self):
+        # if self.revised_old:
+        #     return [osp.join('rmd17', 'npz_data', MD17.molecule_files_revised[f'revised {mol}']) for mol in self.molecules]
+        # elif self.revised:
+        #     return [osp.join('rmd17', 'npz_data', MD17.molecule_files_revised[f'revised {mol}']) for mol in self.molecules]
+        # raw files are the same between revised and revised_old
         if self.revised:
             return [osp.join('rmd17', 'npz_data', MD17.molecule_files_revised[f'revised {mol}']) for mol in self.molecules]
         else:
@@ -163,38 +173,14 @@ class MD17(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        if self.revised:
+        if self.revised_old:
+            return [f"oldrmd17-{mol}.pt" for mol in self.molecules]
+        elif self.revised:
             return [f"rmd17-{mol}.pt" for mol in self.molecules]
         else:
             return [f"md17-{mol}.pt" for mol in self.molecules]
 
-    # PyG MD17
-    # @property
-    # def raw_dir(self) -> str:
-    #     if self.revised:
-    #         return osp.join(self.root, 'raw')
-    #     return osp.join(self.root, self.name, 'raw')
-
-    # @property
-    # def processed_dir(self) -> str:
-    #     return osp.join(self.root, self.name, 'processed')
-
-    # @property
-    # def raw_file_names(self) -> Union[str, List[str]]:
-    #     name = self.file_names[self.name]
-    #     if self.revised:
-    #         return osp.join('rmd17', 'npz_data', name)
-    #     elif self.ccsd:
-    #         return [name[:-4] + '-train.npz', name[:-4] + '-test.npz']
-    #     return name
-    
-    # @property
-    # def processed_file_names(self) -> List[str]:
-    #     if self.ccsd:
-    #         return ['train.pt', 'test.pt']
-    #     else:
-    #         return ['data.pt']
-    
+    # PyG MD17    
     # @classmethod
     # def save(cls, data_list: Sequence[BaseData], path: str) -> None:
     #     r"""Saves a list of data objects to the file path :obj:`path`."""
@@ -217,10 +203,23 @@ class MD17(InMemoryDataset):
 
     def process(self):
 
+        print('Saving processed data to', self.processed_dir, f'processed_file_names={self.processed_file_names}')
+
         it = zip(self.raw_paths, self.processed_paths)
+        old_indices = None
         for raw_path, processed_path in it:
             raw_data = np.load(raw_path)
-            if self.revised:
+            if self.revised_old:
+                z = torch.from_numpy(raw_data['nuclear_charges']).long()
+                pos = torch.from_numpy(raw_data['coords']).float()
+                # https://figshare.com/articles/dataset/Revised_MD17_dataset_rMD17_/12672038
+                # 'old_indices' : The index of each conformation in the original MD17 dataset
+                # 'old_energies' : The energy of each conformation taken from the original MD17 dataset (in units of kcal/mol)
+                # 'old_forces': The forces of each conformation taken from the original MD17 dataset (in units of kcal/mol/ångstrom)
+                energy = torch.from_numpy(raw_data['old_energies']).float()
+                force = torch.from_numpy(raw_data['old_forces']).float()
+                old_indices = torch.from_numpy(raw_data['old_indices']).float()
+            elif self.revised:
                 z = torch.from_numpy(raw_data['nuclear_charges']).long()
                 pos = torch.from_numpy(raw_data['coords']).float()
                 energy = torch.from_numpy(raw_data['energies']).float()
@@ -232,11 +231,14 @@ class MD17(InMemoryDataset):
                 force = torch.from_numpy(raw_data['F']).float()
 
             data_list = []
-            print('dataset size:', pos.size(0))
+            print('Dataset size:', pos.size(0))
             for i in range(pos.size(0)):
                 # old: ['z', 'pos', 'batch', 'y', 'dy']
                 # new: ['z', 'pos', 'energy', 'force']
-                data = Data(z=z, pos=pos[i], y=energy[i], dy=force[i], idx=i)
+                if old_indices is not None:
+                    data = Data(z=z, pos=pos[i], y=energy[i], dy=force[i], idx=i, old_idx=old_indices[i])
+                else:
+                    data = Data(z=z, pos=pos[i], y=energy[i], dy=force[i], idx=i)
                 if self.pre_filter is not None and not self.pre_filter(data):
                     continue
                 if self.pre_transform is not None:
@@ -253,18 +255,39 @@ from equiformer.datasets.pyg.md17 import make_splits, train_val_test_split
 def get_rmd17_datasets(
         root, dataset_arg, train_size, val_size, test_size, seed, 
         revised=False, 
-        order=False, 
-        return_idx=False
+        revised_old=False,
+        order=None, 
+        return_idx=False,
+        load_splits=None,
     ):
     """
     Return training, validation and testing sets of MD17 with the same data partition as TorchMD-NET.
+
+    Args:
+        md17revised: False use revised version of MD17 with more accurate energies and forces (bool)
+        md17revised_old: False Use the non-revised (old) data downloaded from the revised dataset and processed with the revised dataset's preprocessing script (bool)
     """
 
-    if revised:
+    # root: "datasets/md17/aspirin"
+    if revised_old:
+        revised = True
+        # root = root.replace('md17', 'oldrmd17')
+        root = root.replace('md17', 'rmd17')
+    elif revised:
         root = root.replace('md17', 'rmd17')
 
     # keys: ['z', 'pos', 'batch', 'y', 'dy']
-    all_dataset = MD17(root, dataset_arg, revised=revised)
+    all_dataset = MD17(root, dataset_arg, revised=revised, revised_old=revised_old)
+
+    if load_splits == False:
+        load_splits = None
+    if load_splits == True and (revised or revised_old):
+        order = None
+        # datasets/rmd17/aspirin/raw/rmd17/splits/index_test_01.csv
+        load_splits = {
+            'train': osp.join(root, 'raw', 'rmd17', 'splits', 'index_train_01.csv'),
+            'test': osp.join(root, 'raw', 'rmd17', 'splits', 'index_test_01.csv')
+        }
 
     idx_train, idx_val, idx_test = make_splits(
         len(all_dataset),
@@ -272,8 +295,10 @@ def get_rmd17_datasets(
         val_size,
         test_size,
         seed,
+        # save splits
         filename=os.path.join(root, "splits.npz"),
-        splits=None,
+        # load splits
+        splits=load_splits,
         # idx are consecutive -> important for fixed-point reuse
         order=order,
     )

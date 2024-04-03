@@ -24,6 +24,10 @@ model_kwargs:
 
 # use revised version of MD17 with more accurate energies and forces (bool)
 md17revised: False
+use_revised_splits: False
+# use the non-revised (old) data downloaded from the revised dataset 
+# and processed with the revised dataset's preprocessing script (bool)
+md17revised_old: False
 # (str)
 output_dir: null
 # (str)

@@ -41,7 +41,22 @@ see Allegro paper for great summary
 
 Equiformer uses the non-revised version: equiformer/datasets/pyg/md17.py
 
-olecules@CCSD/CCSD(T): The data set of
+Are the units the same?
+Nequip: [meV] and [meV/Å]
+MACE: Energy (E, meV) and force (F, meV/Å)
+
+md17: Units	Ang (length), kcal/mol (energy)
+
+[revised MD17](https://figshare.com/articles/dataset/Revised_MD17_dataset_rMD17_/12672038)
+'nuclear_charges' : The nuclear charges for the molecule
+'coords' : The coordinates for each conformation (in units of ångstrom)
+'energies' : The total energy of each conformation (in units of kcal/mol)
+'forces' : The cartesian forces of each conformation (in units of kcal/mol/ångstrom)
+'old_indices' : The index of each conformation in the original MD17 dataset
+'old_energies' : The energy of each conformation taken from the original MD17 dataset (in units of kcal/mol)
+'old_forces' : The forces of each conformation taken from the original MD17 dataset (in units of kcal/mol/ångstrom)
+
+Molecules@CCSD/CCSD(T): The data set of
 small molecules at CCSD and CCSD(T) accuracy
 [37] contains positions, energies, and forces for five
 different small molecules: Asprin (CCSD), Benzene,

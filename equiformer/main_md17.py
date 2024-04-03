@@ -105,6 +105,8 @@ def main(args):
         test_size=None,
         seed=args.seed,
         revised=args.md17revised,
+        revised_old=args.md17revised_old,
+        load_splits=args.use_revised_splits,
         order='consecutive_test' if args.fpreuse_test else None,
     )
 

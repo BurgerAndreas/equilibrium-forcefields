@@ -25,11 +25,11 @@ echo "Inside slurm_launcher.slrm ($0). received arguments: $@"
 # export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/equilibrium-forcefields/train
 export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/equiformer
 if [[ $1 == *"test"* ]]; then
-    echo "Found test in the filename. Changing the scriptdir to /h/burgeran/equilibrium-forcefields/test"
+    echo "Found test in the filename. Changing the scriptdir to equilibrium-forcefields/tests"
     export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/tests
 fi
 if [[ $1 == *"deq"* ]]; then
-    echo "Found test in the filename. Changing the scriptdir to /h/burgeran/equilibrium-forcefields/test"
+    echo "Found deq in the filename. Changing the scriptdir to equilibrium-forcefields/scripts"
     export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/scripts
 fi
 
@@ -40,8 +40,10 @@ echo "Submitting ${SCRIPTDIR}/$@"
 # /h/burgeran/venv10/bin/python ${SCRIPTDIR}/"$@"
 
 # V2 - works!
-source /h/burgeran/venv10/bin/activate
-/h/burgeran/venv10/bin/python ${SCRIPTDIR}/"$@"
+# source /h/burgeran/venv10/bin/activate
+# /h/burgeran/venv10/bin/python ${SCRIPTDIR}/"$@"
+mamba activate deq
+/h/burgeran/miniforge3/envs/deq/bin/python ${SCRIPTDIR}/"$@"
 
 # V3
 # /h/burgeran/venv10/bin/accelerate-launch ${SCRIPTDIR}/"$@"

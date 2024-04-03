@@ -97,11 +97,6 @@ def main(args):
     np.random.seed(args.seed)
 
     """ Dataset """
-    consecutive = False
-    if 'fpreuse_train' in args and args.fpreuse_train:
-        consecutive = True
-    if 'fpreuse_val' in args and args.fpreuse_val:
-        consecutive = True
     train_dataset, val_dataset, test_dataset = md17_dataset.get_rmd17_datasets(
         root=os.path.join(args.data_path, args.target),
         dataset_arg=args.target,
@@ -110,7 +105,7 @@ def main(args):
         test_size=None,
         seed=args.seed,
         revised=args.md17revised,
-        consecutive=consecutive,
+        order='consecutive_test' if args.fpreuse_test else None,
     )
 
     _log.info("")
@@ -181,21 +176,21 @@ def main(args):
     )  # torch.nn.L1Loss()  #torch.nn.MSELoss() # torch.nn.L1Loss()
 
     """ Data Loader """
-    if 'fpreuse_train' in args and args.fpreuse_train:
-        shuffle = False
-        print(f'Using fixed-point reuse, shuffle={shuffle}')
-    else:
-        shuffle = True
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
-        shuffle=shuffle,
+        shuffle=True,
         num_workers=args.workers,
         pin_memory=args.pin_mem,
         drop_last=True,
     )
     # added drop_last=True to avoid error with fixed-point reuse
     val_loader = DataLoader(val_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True)
+    if args.fpreuse_test:
+        # reorder test dataset to be consecutive
+        from deq2ff.data_utils import reorder_dataset
+        test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
+        print(f'Reordered test dataset to be consecutive for fixed-point reuse')
     test_loader = DataLoader(test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True)
 
     """ Compute stats """
@@ -618,32 +613,17 @@ def train_one_epoch(
     task_mean = model.task_mean
     task_std = model.task_std
 
-    # fixed-point reuse
-    fixedpoint = None
     for step, data in enumerate(data_loader):
         data = data.to(device)
 
-        # fixed-point reuse
-        if 'fpreuse_train' in args and args.fpreuse_train:
-            pred_y, pred_dy, fixedpoint = model(
-                node_atom=data.z,
-                pos=data.pos,
-                batch=data.batch,
-                step=global_step,
-                datasplit="train",
-                return_fixedpoint=True,
-                fixedpoint=fixedpoint,
-            )
-        else:
-            # energy, force
-            pred_y, pred_dy = model(
-                node_atom=data.z,
-                pos=data.pos,
-                batch=data.batch,
-                step=global_step,
-                datasplit="train",
-                fixedpoint=None,
-            )
+        # energy, force
+        pred_y, pred_dy = model(
+            node_atom=data.z,
+            pos=data.pos,
+            batch=data.batch,
+            step=global_step,
+            datasplit="train",
+        )
 
         loss_e = criterion(pred_y, ((data.y - task_mean) / task_std))
         loss = args.energy_weight * loss_e
@@ -758,7 +738,7 @@ def evaluate(
             pass_step = None
 
         # fixed-point reuse
-        if 'fpreuse_val' in args and args.fpreuse_val:
+        if datasplit == 'test' and args.fpreuse_test == True:
             pred_y, pred_dy, fixedpoint = model(
                 node_atom=data.z,
                 pos=data.pos,

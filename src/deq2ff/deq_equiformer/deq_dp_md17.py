@@ -98,7 +98,7 @@ from equiformer.nets.dp_attention_transformer_md17 import (
     _AVG_NUM_NODES,
 )
 
-import deq2ff.deq_utils as deq_utils
+import deq2ff.logging_utils_deq as logging_utils_deq
 
 
 class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
@@ -669,10 +669,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             raise ValueError('DEQ mode must be True')
 
         if step is not None:
-            _data = deq_utils.log_fixed_point_error(info, step, datasplit, self.fp_error_traj[datasplit])
+            _data = logging_utils_deq.log_fixed_point_error(info, step, datasplit, self.fp_error_traj[datasplit])
             if _data is not None:
                 self.fp_error_traj[datasplit] = _data
-            deq_utils.log_fixed_point_norm(z_pred, step, datasplit)
+            logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
 
         # decode
         # outputs: list[Tuple(energy: torch.tensor [2, 1], force: torch.tensor [42, 3])]

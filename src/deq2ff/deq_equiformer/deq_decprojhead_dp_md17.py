@@ -97,7 +97,7 @@ from equiformer.nets.dp_attention_transformer_md17 import (
     _AVG_NUM_NODES,
 )
 
-import deq2ff.deq_utils as deq_utils
+import deq2ff.logging_utils_deq as logging_utils_deq
 
     
 class FCTPProjection(torch.nn.Module):

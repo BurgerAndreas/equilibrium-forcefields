@@ -128,8 +128,10 @@ class MD17(InMemoryDataset):
             forces = torch.from_numpy(data_npz["F"]).float()
 
             samples = []
+            idx = 0
             for pos, y, dy in zip(positions, energies, forces):
-                samples.append(Data(z=z, pos=pos, y=y.unsqueeze(1), dy=dy))
+                samples.append(Data(z=z, pos=pos, y=y.unsqueeze(1), dy=dy, idx=idx))
+                idx += 1
 
             if self.pre_filter is not None:
                 samples = [data for data in samples if self.pre_filter(data)]
@@ -193,14 +195,24 @@ def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=
     idx_val = idxs[train_size : train_size + val_size]
     idx_test = idxs[train_size + val_size : total]
 
-    if order == "consecutive":
+    if order is None:
+        return np.array(idx_train), np.array(idx_val), np.array(idx_test)
+    
+    elif order == "consecutive":
         return idx_train, idx_val, idx_test
-    elif order is not None:
+    
+    elif order == "consecutive_test":
+        idxs = idxs[:train_size + val_size]
+        idxs = np.random.default_rng(seed).permutation(idxs)
+        idx_train = idxs[:train_size]
+        idx_val = idxs[train_size:]
+        return np.array(idx_train), np.array(idx_val), idx_test
+    
+    else:
         idx_train = [order[i] for i in idx_train]
         idx_val = [order[i] for i in idx_val]
         idx_test = [order[i] for i in idx_test]
-
-    return np.array(idx_train), np.array(idx_val), np.array(idx_test)
+        return np.array(idx_train), np.array(idx_val), np.array(idx_test)
 
 
 # From: https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L112
@@ -234,7 +246,7 @@ def make_splits(
     )
 
 
-def get_md17_datasets(root, dataset_arg, train_size, val_size, test_size, seed, revised=False):
+def get_md17_datasets(root, dataset_arg, train_size, val_size, test_size, seed, revised=False, return_idx=False, order=None):
     """
     Return training, validation and testing sets of MD17 with the same data partition as TorchMD-NET.
     """
@@ -251,9 +263,13 @@ def get_md17_datasets(root, dataset_arg, train_size, val_size, test_size, seed, 
         seed,
         filename=os.path.join(root, "splits.npz"),
         splits=None,
+        # idx are consecutive -> important for fixed-point reuse
+        order=order,
     )
 
-    # idx are consecutive -> important for fixed-point reuse
+    if return_idx:
+        return idx_train, idx_val, idx_test
+
     train_dataset = Subset(all_dataset, idx_train)
     val_dataset = Subset(all_dataset, idx_val)
     test_dataset = Subset(all_dataset, idx_test)

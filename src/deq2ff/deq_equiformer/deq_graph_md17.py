@@ -76,7 +76,7 @@ from equiformer.nets.graph_attention_transformer import (
     ScaledScatter,
 )
 
-import deq2ff.deq_utils as deq_utils
+import deq2ff.logging_utils_deq as logging_utils_deq
 
 from deq2ff.deq_equiformer.deq_dp_md17 import DEQDotProductAttentionTransformerMD17
 

@@ -253,7 +253,7 @@ from equiformer.datasets.pyg.md17 import make_splits, train_val_test_split
 def get_rmd17_datasets(
         root, dataset_arg, train_size, val_size, test_size, seed, 
         revised=False, 
-        consecutive=False, 
+        order=False, 
         return_idx=False
     ):
     """
@@ -275,7 +275,7 @@ def get_rmd17_datasets(
         filename=os.path.join(root, "splits.npz"),
         splits=None,
         # idx are consecutive -> important for fixed-point reuse
-        order='consecutive' if consecutive else None,
+        order=order,
     )
 
     if return_idx:

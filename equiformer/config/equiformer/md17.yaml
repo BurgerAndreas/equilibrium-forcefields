@@ -125,6 +125,7 @@ wandb_run_name: null
 wandb_group: null
 slurm_job_id: null
 model_is_deq: False
+fpreuse_test: False
 
 # variables we can access in our code
 job_name: 'results'

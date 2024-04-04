@@ -14,8 +14,7 @@ from typing import Iterable, Optional
 
 import sys, os
 
-import equiformer.datasets.pyg.md17 as md17_dataset
-import equiformer.datasets.pyg.md17revised as md17revised
+
 
 from equiformer.logger import FileLogger
 
@@ -98,6 +97,7 @@ def main(args):
 
     """ Dataset """
     if args.use_original_datasetcreation:
+        import equiformer.datasets.pyg.md17 as md17_dataset
         train_dataset, val_dataset, test_dataset = md17_dataset.get_md17_datasets(
             root=os.path.join(args.data_path, args.target),
             dataset_arg=args.target,
@@ -105,9 +105,10 @@ def main(args):
             val_size=args.val_size,
             test_size=None,
             seed=args.seed,
-            order="consecutive_test" if args.fpreuse_test else None,
+            # order="consecutive_test" if args.fpreuse_test else None,
         )
     else:
+        import equiformer.datasets.pyg.md17revised as md17revised
         train_dataset, val_dataset, test_dataset = md17revised.get_rmd17_datasets(
             root=os.path.join(args.data_path, args.target),
             dataset_arg=args.target,

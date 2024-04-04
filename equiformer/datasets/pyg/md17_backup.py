@@ -1,7 +1,3 @@
-"""
-https://github.com/BurgerAndreas/equilibrium-forcefields/blob/4da53a9450202bfabacd49d7555c17ffc7ee997f/equiformer/datasets/pyg/md17.py
-"""
-
 import torch
 from torch_geometric.data import InMemoryDataset, download_url, Data
 import numpy as np
@@ -17,9 +13,17 @@ class MD17(InMemoryDataset):
     """Machine learning of accurate energy-conserving molecular force fields (Chmiela et al. 2017)
     This class provides functionality for loading MD trajectories from the original dataset, not the revised versions.
     See http://www.quantum-machine.org/gdml/#datasets for details.
-    """
 
-    print(f'\nWarning: Using the original MD17 dataset. Please consider using the revised version (equiformer/datasets/pyg/md17.py).\n')
+    Usage:
+        train_dataset, val_dataset, test_dataset = md17_dataset.get_md17_datasets(
+            root=os.path.join(args.data_path, args.target),
+            dataset_arg=args.target,
+            train_size=args.train_size,
+            val_size=args.val_size,
+            test_size=None,
+            seed=args.seed,
+        )
+    """
 
     raw_url = "http://www.quantum-machine.org/gdml/data/npz/"
 
@@ -51,7 +55,13 @@ class MD17(InMemoryDataset):
 
     available_molecules = list(molecule_files.keys())
 
-    def __init__(self, root, dataset_arg, transform=None, pre_transform=None):
+    # revised dataset
+    # https://archive.materialscloud.org/record/file?record_id=466&filename=rmd17.tar.bz2
+    # All the revised trajectories are available by changing the name from e.g. benzene to revised benzene
+
+    def __init__(
+        self, root, dataset_arg, transform=None, pre_transform=None, revised=False
+    ):
         assert dataset_arg is not None, (
             "Please provide the desired comma separated molecule(s) through"
             f"'dataset_arg'. Available molecules are {', '.join(MD17.available_molecules)} "
@@ -112,24 +122,19 @@ class MD17(InMemoryDataset):
             download_url(MD17.raw_url + file_name, self.raw_dir)
 
     def process(self):
-        print(f'Processing the MD17 dataset for {self.molecules}...')
-
         for path in self.raw_paths:
             data_npz = np.load(path)
             z = torch.from_numpy(data_npz["z"]).long()
             positions = torch.from_numpy(data_npz["R"]).float()
-            energies = torch.from_numpy(data_npz["E"]).float() # [211762, 1]
+            energies = torch.from_numpy(data_npz["E"]).float()
             forces = torch.from_numpy(data_npz["F"]).float()
 
-            print("Dataset size:", positions.size(0))
-
             samples = []
+            idx = 0
             for pos, y, dy in zip(positions, energies, forces):
-                # y: float32 [1] -> [1, 1]
-                # dy: [21, 3]
-                samples.append(Data(z=z, pos=pos, y=y.unsqueeze(1), dy=dy))
+                samples.append(Data(z=z, pos=pos, y=y.unsqueeze(1), dy=dy, idx=idx))
+                idx += 1
 
-            # Filter and transform data (None by default)
             if self.pre_filter is not None:
                 samples = [data for data in samples if self.pre_filter(data)]
 
@@ -140,102 +145,24 @@ class MD17(InMemoryDataset):
             torch.save((data, slices), self.processed_paths[0])
 
 
-# From https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L54
-def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=None):
-    assert (train_size is None) + (val_size is None) + (test_size is None) <= 1, \
-        "Only one of train_size, val_size, test_size is allowed to be None."
-    is_float = (
-        isinstance(train_size, float),
-        isinstance(val_size, float),
-        isinstance(test_size, float),
-    )
-
-    train_size = round(dset_len * train_size) if is_float[0] else train_size
-    val_size = round(dset_len * val_size) if is_float[1] else val_size
-    test_size = round(dset_len * test_size) if is_float[2] else test_size
-
-    if train_size is None:
-        train_size = dset_len - val_size - test_size
-    elif val_size is None:
-        val_size = dset_len - train_size - test_size
-    elif test_size is None:
-        test_size = dset_len - train_size - val_size
-
-    if train_size + val_size + test_size > dset_len:
-        if is_float[2]:
-            test_size -= 1
-        elif is_float[1]:
-            val_size -= 1
-        elif is_float[0]:
-            train_size -= 1
-
-    assert train_size >= 0 and val_size >= 0 and test_size >= 0, (
-        f"One of training ({train_size}), validation ({val_size}) or "
-        f"testing ({test_size}) splits ended up with a negative size."
-    )
-
-    total = train_size + val_size + test_size
-
-    assert dset_len >= total, (
-        f"The dataset ({dset_len}) is smaller than the "
-        f"combined split sizes ({total})."
-    )
-    if total < dset_len:
-        print(f"{dset_len - total} samples were excluded from the dataset")
-
-    idxs = np.arange(dset_len, dtype=np.int)
-    if order is None:
-        idxs = np.random.default_rng(seed).permutation(idxs)
-
-    # ids are sampled consecutively -> important for fixed-point reuse
-    idx_train = idxs[:train_size]
-    idx_val = idxs[train_size : train_size + val_size]
-    idx_test = idxs[train_size + val_size : total]
-
-    if order is not None:
-        idx_train = [order[i] for i in idx_train]
-        idx_val = [order[i] for i in idx_val]
-        idx_test = [order[i] for i in idx_test]
-
-    return np.array(idx_train), np.array(idx_val), np.array(idx_test)
-
-
-# From: https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L112
-def make_splits(
-    dataset_len,
+def get_md17_datasets(
+    root,
+    dataset_arg,
     train_size,
     val_size,
     test_size,
     seed,
-    filename=None,  # path to save split index
-    splits=None,
+    return_idx=False,
     order=None,
 ):
-    if splits is not None:
-        splits = np.load(splits)
-        idx_train = splits["idx_train"]
-        idx_val = splits["idx_val"]
-        idx_test = splits["idx_test"]
-    else:
-        idx_train, idx_val, idx_test = train_val_test_split(
-            dataset_len, train_size, val_size, test_size, seed, order
-        )
-
-    if filename is not None:
-        np.savez(filename, idx_train=idx_train, idx_val=idx_val, idx_test=idx_test)
-
-    return (
-        torch.from_numpy(idx_train),
-        torch.from_numpy(idx_val),
-        torch.from_numpy(idx_test),
-    )
-
-
-def get_md17_datasets(root, dataset_arg, train_size, val_size, test_size, seed, return_idx=False):
     """
     Return training, validation and testing sets of MD17 with the same data partition as TorchMD-NET.
     """
 
+    print(
+        f"Warning: Using the original MD17 dataset." 
+        "Please consider using the revised version (equiformer/datasets/pyg/md17.py)."
+    )
     all_dataset = MD17(root, dataset_arg)
 
     idx_train, idx_val, idx_test = make_splits(
@@ -246,12 +173,13 @@ def get_md17_datasets(root, dataset_arg, train_size, val_size, test_size, seed, 
         seed,
         filename=os.path.join(root, "splits.npz"),
         splits=None,
+        # idx are consecutive -> important for fixed-point reuse
+        order=order,
     )
 
     if return_idx:
         return idx_train, idx_val, idx_test
 
-    # idx are consecutive -> important for fixed-point reuse
     train_dataset = Subset(all_dataset, idx_train)
     val_dataset = Subset(all_dataset, idx_val)
     test_dataset = Subset(all_dataset, idx_test)

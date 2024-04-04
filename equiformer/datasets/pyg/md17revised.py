@@ -110,13 +110,13 @@ class RMD17(InMemoryDataset):
             # root = root.replace('md17', 'oldrmd17').replace('oldroldrmd17', 'oldrmd17')
             root = root.replace("md17", "rmd17").replace("rrmd17", "rmd17")
             print(
-                f"\nWarning: Using the original MD17 dataset from the revised source. Consider using the revised version (equiformer/datasets/pyg/md17.py).\n"
+                f"Warning: Using the original MD17 dataset from the revised source. Consider using the revised version (equiformer/datasets/pyg/md17.py)."
             )
         elif revised:
             root = root.replace("md17", "rmd17").replace("rrmd17", "rmd17")
         else:
             print(
-                f"\nWarning: Using the original MD17 dataset. Consider using the revised version (equiformer/datasets/pyg/md17.py).\n"
+                f"Warning: Using the original MD17 dataset. Consider using the revised version (equiformer/datasets/pyg/md17.py)."
             )
 
         self.name = dataset_arg
@@ -234,6 +234,8 @@ class RMD17(InMemoryDataset):
             self.processed_dir,
             f"processed_file_names={self.processed_file_names}",
         )
+        print(f'self.pre_filter: {self.pre_filter}')
+        print(f'self.pre_transform: {self.pre_transform}')
 
         it = zip(self.raw_paths, self.processed_paths)
         old_indices = None
@@ -252,21 +254,28 @@ class RMD17(InMemoryDataset):
             elif self.revised:
                 z = torch.from_numpy(raw_data["nuclear_charges"]).long()
                 pos = torch.from_numpy(raw_data["coords"]).float()
-                energy = torch.from_numpy(raw_data["energies"]).float()
-                force = torch.from_numpy(raw_data["forces"]).float()
+                energy = torch.from_numpy(raw_data["energies"]).float() # [100000]
+                force = torch.from_numpy(raw_data["forces"]).float() # [100000, 21, 3]
             else:
                 z = torch.from_numpy(raw_data["z"]).long()
                 pos = torch.from_numpy(raw_data["R"]).float()
-                energy = torch.from_numpy(raw_data["E"]).float()
-                force = torch.from_numpy(raw_data["F"]).float()
+                energy = torch.from_numpy(raw_data["E"]).float() # [211762, 1]
+                force = torch.from_numpy(raw_data["F"]).float() 
 
             data_list = []
             print("Dataset size:", pos.size(0))
             for i in range(pos.size(0)):
                 # old: ['z', 'pos', 'batch', 'y', 'dy']
                 # new: ['z', 'pos', 'energy', 'force']
+                e = energy[i]
+                if e.shape == torch.Size([]):
+                    e = e.unsqueeze(0)
+                if e.shape == torch.Size([1]):
+                    e = e.unsqueeze(1)
+                # f: [21, 3]
+                assert e.shape == torch.Size([1,1]), f'Energy shape: {e.shape}'
                 if old_indices is None:
-                    data = Data(z=z, pos=pos[i], y=energy[i], dy=force[i], idx=i)
+                    data = Data(z=z, pos=pos[i], y=e, dy=force[i], idx=i)
                 else:
                     data = Data(
                         z=z,
@@ -287,7 +296,144 @@ class RMD17(InMemoryDataset):
             torch.save((data, slices), processed_path)
 
 
-from equiformer.datasets.pyg.md17 import make_splits, train_val_test_split
+
+
+def fix_train_val_test_size(train_size, val_size, test_size, dset_len):
+    assert (train_size is None) + (val_size is None) + (
+        test_size is None
+    ) <= 1, "Only one of train_size, val_size, test_size is allowed to be None."
+    is_float = (
+        isinstance(train_size, float),
+        isinstance(val_size, float),
+        isinstance(test_size, float),
+    )
+
+    # if we provide the sizes as percentages
+    train_size = round(dset_len * train_size) if is_float[0] else train_size
+    val_size = round(dset_len * val_size) if is_float[1] else val_size
+    test_size = round(dset_len * test_size) if is_float[2] else test_size
+
+    if train_size is None:
+        train_size = dset_len - val_size - test_size
+    elif val_size is None:
+        val_size = dset_len - train_size - test_size
+    elif test_size is None:
+        test_size = dset_len - train_size - val_size
+
+    if train_size + val_size + test_size > dset_len:
+        if is_float[2]:
+            test_size -= 1
+        elif is_float[1]:
+            val_size -= 1
+        elif is_float[0]:
+            train_size -= 1
+
+    assert train_size >= 0 and val_size >= 0 and test_size >= 0, (
+        f"One of training ({train_size}), validation ({val_size}) or "
+        f"testing ({test_size}) splits ended up with a negative size."
+    )
+    return train_size, val_size, test_size
+
+
+# From https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L54
+def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=None):
+
+    train_size, val_size, test_size = fix_train_val_test_size(
+        train_size, val_size, test_size, dset_len
+    )
+
+    total = train_size + val_size + test_size
+
+    assert dset_len >= total, (
+        f"The dataset ({dset_len}) is smaller than the "
+        f"combined split sizes ({total} = {train_size} + {val_size} + {test_size})."
+    )
+    if total < dset_len:
+        print(f"{dset_len - total} samples were excluded from the dataset")
+
+    idxs = np.arange(dset_len, dtype=np.int)
+    # shuffle the indices
+    if order is None:
+        idxs = np.random.default_rng(seed).permutation(idxs)
+
+    # ids are sampled consecutively -> important for fixed-point reuse
+    idx_train = idxs[:train_size]
+    idx_val = idxs[train_size : train_size + val_size]
+    idx_test = idxs[train_size + val_size : total]
+
+    if order is None:
+        return np.array(idx_train), np.array(idx_val), np.array(idx_test)
+
+    elif order == "consecutive":
+        return idx_train, idx_val, idx_test
+
+    elif order == "consecutive_test":
+        idxs = idxs[: train_size + val_size]
+        idxs = np.random.default_rng(seed).permutation(idxs)
+        idx_train = idxs[:train_size]
+        idx_val = idxs[train_size:]
+        return np.array(idx_train), np.array(idx_val), idx_test
+
+    else:
+        idx_train = [order[i] for i in idx_train]
+        idx_val = [order[i] for i in idx_val]
+        idx_test = [order[i] for i in idx_test]
+        return np.array(idx_train), np.array(idx_val), np.array(idx_test)
+
+
+# From: https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L112
+def make_splits(
+    dataset_len,
+    train_size,
+    val_size,
+    test_size,
+    seed,
+    # max_samples=-1, # take the first max_samples samples from the dataset
+    filename=None,  # path to save split index
+    splits=None,  # load split
+    order=None,
+):
+    """
+    splits: path to a .npz file containing the splits or a dict of paths to .npz files containing the splits. Ignored if order is not None.
+    order: order of the dataset, e.g. consecutive, consecutive_test, or a list of indices.
+    """
+    if splits is None or order is not None:
+        idx_train, idx_val, idx_test = train_val_test_split(
+            dataset_len, train_size, val_size, test_size, seed, order
+        )
+        # save the randomly created split
+        if order is None:
+            if filename is not None:
+                np.savez(
+                    filename, idx_train=idx_train, idx_val=idx_val, idx_test=idx_test
+                )
+
+    elif type(splits) == dict:
+        train_size, val_size, test_size = fix_train_val_test_size(
+            train_size, val_size, test_size, dataset_len
+        )
+        # datasets/rmd17/aspirin/raw/rmd17/splits/index_test_01.csv
+        # dtype = np.dtype('int64')
+        dtype = np.dtype("int32")
+        idx_train = np.loadtxt(splits["train"], dtype=dtype)
+        idx_train = idx_train[:train_size]
+        # test and val are combined
+        idx_test_val = np.loadtxt(splits["test"], dtype=dtype)
+        idx_val = idx_test_val[:val_size]
+        idx_test = idx_test_val[val_size : val_size + test_size]
+        print(f"Loaded splits from {splits['train']} and {splits['test']}")
+
+    else:
+        splits = np.load(splits)
+        idx_train = splits["idx_train"]
+        idx_val = splits["idx_val"]
+        idx_test = splits["idx_test"]
+
+    return (
+        torch.from_numpy(idx_train),
+        torch.from_numpy(idx_val),
+        torch.from_numpy(idx_test),
+    )
 
 
 def get_rmd17_datasets(
@@ -297,6 +443,7 @@ def get_rmd17_datasets(
     val_size,
     test_size,
     seed,
+    # added
     revised=False,
     revised_old=False,
     max_samples: int = -1,

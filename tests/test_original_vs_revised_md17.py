@@ -9,7 +9,7 @@ from typing import Iterable, Optional
 
 import sys, os
 
-import equiformer.datasets.pyg.md17 as md17_dataset
+import equiformer.datasets.pyg.md17_backup as md17_dataset
 import equiformer.datasets.pyg.md17revised as rmd17_dataset
 
 from equiformer.logger import FileLogger

@@ -44,8 +44,11 @@ echo "Submitting ${SCRIPTDIR}/$@"
 # source /h/burgeran/venv10/bin/activate
 # /h/burgeran/venv10/bin/python ${SCRIPTDIR}/"$@"
 
-eval "$(mamba shell.bash hook)"
+# conda
+# eval "$(mamba shell.bash hook)"
 # source /h/burgeran/.bashrc
+CONDA_BASE=$(conda info --base) # /fs01/home/burgeran/miniforge3
+source $CONDA_BASE/etc/profile.d/conda.sh
 mamba activate deq
 /h/burgeran/miniforge3/envs/deq/bin/python ${SCRIPTDIR}/"$@"
 

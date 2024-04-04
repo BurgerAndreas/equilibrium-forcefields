@@ -311,7 +311,6 @@ def get_rmd17_datasets(
         val_size,
         test_size,
         seed,
-        max_samples=max_samples,
         # save splits
         filename=os.path.join(root, "splits.npz"),
         # load splits

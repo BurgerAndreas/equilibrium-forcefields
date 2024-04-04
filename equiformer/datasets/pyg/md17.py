@@ -231,7 +231,7 @@ def make_splits(
     val_size,
     test_size,
     seed,
-    max_samples=-1, # take the first max_samples samples from the dataset
+    # max_samples=-1, # take the first max_samples samples from the dataset
     filename=None,  # path to save split index
     splits=None, # load split
     order=None,
@@ -254,10 +254,12 @@ def make_splits(
             train_size, val_size, test_size, dataset_len
         )
         # datasets/rmd17/aspirin/raw/rmd17/splits/index_test_01.csv
-        idx_train = np.loadtxt(splits["train"], dtype=int)
+        # dtype = np.dtype('int64')
+        dtype = np.dtype('int32')
+        idx_train = np.loadtxt(splits["train"], dtype=dtype)
         idx_train = idx_train[:train_size]
         # test and val are combined
-        idx_test_val = np.loadtxt(splits["test"], dtype=int)
+        idx_test_val = np.loadtxt(splits["test"], dtype=dtype)
         idx_val = idx_test_val[:val_size]
         idx_test = idx_test_val[val_size : val_size + test_size]
         print(f"Loaded splits from {splits['train']} and {splits['test']}")

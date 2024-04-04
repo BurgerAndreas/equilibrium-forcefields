@@ -8,7 +8,13 @@ log_every_step_major = 1000
 log_every_step_minor = 100
 
 
-def log_fixed_point_error(info, step, datasplit=None, data_dicts: List[Dict[str, pd.Series]] = None, log_fp_error_traj=True):
+def log_fixed_point_error(
+    info,
+    step,
+    datasplit=None,
+    data_dicts: List[Dict[str, pd.Series]] = None,
+    log_fp_error_traj=True,
+):
     """Log fixed point error to wandb."""
     # absolute fixed point errors along the solver trajectory
     f_abs_trace = info["abs_trace"]
@@ -21,7 +27,7 @@ def log_fixed_point_error(info, step, datasplit=None, data_dicts: List[Dict[str,
         n = ""
     else:
         n = f"_{datasplit}"
-    
+
     if len(f_abs_trace) > 0:
         if (step % log_every_step_minor == 0) or (datasplit in ["test", "val"]):
             # log the final fixed point error
@@ -63,18 +69,20 @@ def log_fixed_point_error(info, step, datasplit=None, data_dicts: List[Dict[str,
                         # artifact = run.logged_artifacts()[0]
                         # table = artifact.get(table_key)
                         # V2
-                        a = api.artifact(f'{project}/run-{run_id}-{table_key}:latest')
+                        a = api.artifact(f"{project}/run-{run_id}-{table_key}:latest")
                         table = a.get(table_key)
                         # df_old = pd.DataFrame(data=table.data, columns=table.columns)
                         create_new_table = False
                     except Exception as e:
-                        print(f'Error loading table: {e}')
-                        print(f'Creating new table for {table_key} (split: {datasplit}).')
+                        print(f"Error loading table: {e}")
+                        print(
+                            f"Creating new table for {table_key} (split: {datasplit})."
+                        )
                         create_new_table = True
 
                     if create_new_table:
                         table = wandb.Table(dataframe=data_df)
-                    
+
                     else:
                         # table.add_data(...)
                         # loop over rows and add them to the table
@@ -82,27 +90,37 @@ def log_fixed_point_error(info, step, datasplit=None, data_dicts: List[Dict[str,
                             try:
                                 table.add_data(*data_df.iloc[i].values)
                             except Exception as e:
-                                print(f'Error adding data to table: {e}')
-                                print(f'data_df.iloc[i].values: {data_df.iloc[i].values}')
+                                print(f"Error adding data to table: {e}")
+                                print(
+                                    f"data_df.iloc[i].values: {data_df.iloc[i].values}"
+                                )
 
                     wandb.log({table_key: table}, step=step)
-                    print(f'Logged table {table_key} (split: {datasplit}) at step {step}.')
+                    print(
+                        f"Logged table {table_key} (split: {datasplit}) at step {step}."
+                    )
                     return [data_dict]
-                
+
                 else:
                     # data_dicts was passed and is a List[Dict[pd.Series]]
                     data_dicts.append(data_dict)
                     # merge the data_dicts
-                    series_concat = {k: pd.concat([d[k] for d in data_dicts], axis=0) for k in data_dicts[0].keys()}
+                    series_concat = {
+                        k: pd.concat([d[k] for d in data_dicts], axis=0)
+                        for k in data_dicts[0].keys()
+                    }
                     data_df = pd.DataFrame(series_concat)
                     table = wandb.Table(dataframe=data_df)
                     wandb.log({table_key: table}, step=step)
-                    print(f'Logged table {table_key} (split: {datasplit}) at step {step}.')
+                    print(
+                        f"Logged table {table_key} (split: {datasplit}) at step {step}."
+                    )
                     return data_dicts
             else:
                 return None
 
     return None
+
 
 def log_fixed_point_norm(z, step, datasplit=None):
     """Log the norm of the fixed point."""

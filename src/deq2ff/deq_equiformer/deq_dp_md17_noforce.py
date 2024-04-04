@@ -101,7 +101,10 @@ import deq2ff.logging_utils_deq as logging_utils_deq
 
 from .deq_dp_md17 import DEQDotProductAttentionTransformerMD17
 
-class DEQDotProductAttentionTransformerMD17NoForce(DEQDotProductAttentionTransformerMD17):
+
+class DEQDotProductAttentionTransformerMD17NoForce(
+    DEQDotProductAttentionTransformerMD17
+):
 
     # @torch.enable_grad() # NOFORCE
     def encode(self, node_atom, pos, batch):
@@ -149,7 +152,7 @@ class DEQDotProductAttentionTransformerMD17NoForce(DEQDotProductAttentionTransfo
     # @torch.enable_grad() # NOFORCE
     def deq_implicit_layer(
         self,
-        node_features, # [num_atoms*batch_size, 480]
+        node_features,  # [num_atoms*batch_size, 480]
         u,
         node_features_injection=None,
     ):
@@ -159,13 +162,14 @@ class DEQDotProductAttentionTransformerMD17NoForce(DEQDotProductAttentionTransfo
         """
         node_attr, edge_src, edge_dst, edge_sh, edge_length_embedding, batch = u
 
-
-        if self.input_injection == False: # V1
+        if self.input_injection == False:  # V1
             node_features_in = node_features
         else:
             # inject node_features_injection
             # TODO does not seem right
-            node_features_in = torch.cat([node_features, node_features_injection], dim=1)
+            node_features_in = torch.cat(
+                [node_features, node_features_injection], dim=1
+            )
 
         # print("node_features.shape", node_features.shape)
         for blknum, blk in enumerate(self.blocks):
@@ -225,6 +229,7 @@ class DEQDotProductAttentionTransformerMD17NoForce(DEQDotProductAttentionTransfo
 
 # from .deq_dp_attention_transformer_md17 import deq_dot_product_attention_transformer_exp_l2_md17
 
+
 @register_model
 def deq_dot_product_attention_transformer_exp_l2_md17_noforce(
     irreps_in,
@@ -257,8 +262,8 @@ def deq_dot_product_attention_transformer_exp_l2_md17_noforce(
     scale=None,
     deq_kwargs={},
     torchdeq_norm=True,
-    input_injection='first_layer',
-    z0='zero',
+    input_injection="first_layer",
+    z0="zero",
     **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17

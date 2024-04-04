@@ -17,15 +17,16 @@ project = "EquilibriumEquiFormer"
 plotfolder = pathlib.Path(__file__).parent.absolute()
 plotfolder = os.path.join(plotfolder, "plots")
 
+
 def main(run_id: str, datasplit: str = "train"):
     api = wandb.Api()
-    run = api.run(f'{project}/{run_id}')
+    run = api.run(f"{project}/{run_id}")
     artifacts = run.logged_artifacts()
 
-    print(f'len(artifact): {len(artifacts)}')
+    print(f"len(artifact): {len(artifacts)}")
     # if len(artifacts) > 1:
     #     main_old(artifacts, datasplit, run_id)
-    
+
     # else:
     #     main_new(artifacts, datasplit, run_id)
 
@@ -41,12 +42,12 @@ def main_new(artifacts, datasplit, run_id):
     # df = pd.DataFrame(table)
 
     api = wandb.Api()
-    a = api.artifact(f'{project}/run-{run_id}-{table_key}:latest')
+    a = api.artifact(f"{project}/run-{run_id}-{table_key}:latest")
     # apath = a.download()
     table = a.get(table_key)
     df = pd.DataFrame(data=table.data, columns=table.columns)
 
-    print(f'df: \n{df} ')
+    print(f"df: \n{df} ")
 
     # print(f'df: \n{df}')
 
@@ -55,14 +56,17 @@ def main_new(artifacts, datasplit, run_id):
     # solver_step on the x-axis
     # train_step as the hue
     df = df.melt(
-        id_vars=["solver_step", "train_step"], value_vars=[f"rel_fixed_point_error_traj_{datasplit}"]
+        id_vars=["solver_step", "train_step"],
+        value_vars=[f"rel_fixed_point_error_traj_{datasplit}"],
     )
     # print(df)
 
     sns.lineplot(data=df, x="solver_step", y="value", hue="train_step")
-    fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}.png"
+    fname = (
+        f"{plotfolder}/fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}.png"
+    )
     plt.savefig(fname)
-    print(f'Saved plot to {fname}')
+    print(f"Saved plot to {fname}")
 
 
 def main_old(artifacts, datasplit, run_id):
@@ -79,7 +83,7 @@ def main_old(artifacts, datasplit, run_id):
         # check if right datasplit
         if table.columns[0].split("_")[-1] != datasplit:
             continue
-        
+
         dict_table = {column: table.get_column(column) for column in table.columns}
         if df is None:
             df = [copy.deepcopy(dict_table)]
@@ -104,7 +108,8 @@ def main_old(artifacts, datasplit, run_id):
     # solver_step on the x-axis
     # train_step as the hue
     df = df.melt(
-        id_vars=["solver_step", "train_step"], value_vars=[f"rel_fixed_point_error_traj_{datasplit}"]
+        id_vars=["solver_step", "train_step"],
+        value_vars=[f"rel_fixed_point_error_traj_{datasplit}"],
     )
     # print(df)
 
@@ -119,5 +124,5 @@ if __name__ == "__main__":
     # DEQ noeval inputinjection 6jsxx1x1
     # DEQ ijhtf460
     run_id = "xpp1auzp"
-    
+
     main(run_id, datasplit="train")

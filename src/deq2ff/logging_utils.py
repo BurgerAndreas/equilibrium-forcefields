@@ -16,17 +16,17 @@ def fix_args(args: OmegaConf):
     args.slurm_job_id = os.environ.get("SLURM_JOB_ID", None)
     args = set_gpu_name(args)
 
-    if 'dec_proj' in args.model_kwargs:
+    if "dec_proj" in args.model_kwargs:
         if args.model_kwargs.dec_proj is not None:
-            if  "decprojhead" not in args.model_name:
+            if "decprojhead" not in args.model_name:
                 args.model_name = f"decprojhead_{args.model_name}"
 
-    if 'model_is_deq' in args:
+    if "model_is_deq" in args:
         if args.model_is_deq is True:
             if args.model_name[:3] != "deq":
                 args.model_name = f"deq_{args.model_name}"
 
-    if 'noforcemodel' in args:
+    if "noforcemodel" in args:
         if args.noforcemodel is True:
             if args.model_name[-7:] != "noforce":
                 args.model_name = f"{args.model_name}_noforce"
@@ -39,8 +39,9 @@ def fix_args(args: OmegaConf):
         model_name = model_name.replace("_exp_l2", "")
         args.wandb_run_name = model_name
     args.wandb_run_name = name_from_config(args)
-    
+
     return args
+
 
 def init_wandb(args: OmegaConf):
     """init shared across all methods"""

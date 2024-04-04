@@ -51,13 +51,25 @@ from e3nn import o3
 from ocpmodels.models.gemnet.layers.radial_basis import RadialBasis
 
 from equiformer.nets.registry import register_model
-from equiformer.nets.graph_attention_transformer_md17 import _RESCALE, _USE_BIAS, _MAX_ATOM_TYPE, _AVG_DEGREE, _AVG_NUM_NODES, CosineCutoff, ExpNormalSmearing
+from equiformer.nets.graph_attention_transformer_md17 import (
+    _RESCALE,
+    _USE_BIAS,
+    _MAX_ATOM_TYPE,
+    _AVG_DEGREE,
+    _AVG_NUM_NODES,
+    CosineCutoff,
+    ExpNormalSmearing,
+)
 from equiformer.nets.fast_activation import Activation, Gate
 from equiformer.nets.tensor_product_rescale import LinearRS
 from equiformer.nets.instance_norm import EquivariantInstanceNorm
 from equiformer.nets.graph_norm import EquivariantGraphNorm
 from equiformer.nets.layer_norm import EquivariantLayerNormV2
-from equiformer.nets.drop import EquivariantDropout, EquivariantScalarsDropout, GraphDropPath
+from equiformer.nets.drop import (
+    EquivariantDropout,
+    EquivariantScalarsDropout,
+    GraphDropPath,
+)
 from equiformer.nets.gaussian_rbf import GaussianRadialBasisLayer
 from equiformer.nets.graph_attention_transformer import (
     get_norm_layer,
@@ -128,7 +140,6 @@ class DEQGraphAttentionTransformerMD17(DEQDotProductAttentionTransformerMD17):
             #     Activation(self.irreps_feature, acts=[torch.nn.SiLU()]),
             #     LinearRS(self.irreps_feature, o3.Irreps("1x0e"), rescale=_RESCALE),
             # )
-
 
     def build_blocks(self):
         for i in range(self.num_layers):
@@ -217,8 +228,6 @@ class DEQGraphAttentionTransformerMD17(DEQDotProductAttentionTransformerMD17):
         return energy, forces
 
 
-
-
 @register_model
 def deq_graph_attention_transformer_nonlinear_l2_md17(
     irreps_in,
@@ -247,10 +256,10 @@ def deq_graph_attention_transformer_nonlinear_l2_md17(
     scale=None,
     # DEQ specific
     deq_kwargs={},
-    torchdeq_norm=omegaconf.OmegaConf.create({'norm_type': 'weight_norm'}),
-    input_injection='first_layer',  # False=V1, 'first_layer'=V2
+    torchdeq_norm=omegaconf.OmegaConf.create({"norm_type": "weight_norm"}),
+    input_injection="first_layer",  # False=V1, 'first_layer'=V2
     irreps_node_embedding_injection="64x0e+32x1e+16x2e",
-    z0='zero',
+    z0="zero",
     **kwargs,
 ):
     model = DEQGraphAttentionTransformerMD17(
@@ -282,7 +291,7 @@ def deq_graph_attention_transformer_nonlinear_l2_md17(
         deq_mode=True,
         deq_kwargs=deq_kwargs,
         torchdeq_norm=torchdeq_norm,
-        input_injection=input_injection, 
+        input_injection=input_injection,
         irreps_node_embedding_injection=irreps_node_embedding_injection,
         z0=z0,
     )

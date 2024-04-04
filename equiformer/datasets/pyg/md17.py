@@ -59,7 +59,9 @@ class MD17(InMemoryDataset):
     # https://archive.materialscloud.org/record/file?record_id=466&filename=rmd17.tar.bz2
     # All the revised trajectories are available by changing the name from e.g. benzene to revised benzene
 
-    def __init__(self, root, dataset_arg, transform=None, pre_transform=None, revised=False):
+    def __init__(
+        self, root, dataset_arg, transform=None, pre_transform=None, revised=False
+    ):
         assert dataset_arg is not None, (
             "Please provide the desired comma separated molecule(s) through"
             f"'dataset_arg'. Available molecules are {', '.join(MD17.available_molecules)} "
@@ -142,9 +144,11 @@ class MD17(InMemoryDataset):
             data, slices = self.collate(samples)
             torch.save((data, slices), self.processed_paths[0])
 
+
 def fix_train_val_test_size(train_size, val_size, test_size, dset_len):
-    assert (train_size is None) + (val_size is None) + (test_size is None) <= 1, \
-        "Only one of train_size, val_size, test_size is allowed to be None."
+    assert (train_size is None) + (val_size is None) + (
+        test_size is None
+    ) <= 1, "Only one of train_size, val_size, test_size is allowed to be None."
     is_float = (
         isinstance(train_size, float),
         isinstance(val_size, float),
@@ -177,9 +181,10 @@ def fix_train_val_test_size(train_size, val_size, test_size, dset_len):
     )
     return train_size, val_size, test_size
 
+
 # From https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L54
 def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=None):
-    
+
     train_size, val_size, test_size = fix_train_val_test_size(
         train_size, val_size, test_size, dset_len
     )
@@ -193,7 +198,6 @@ def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=
     if total < dset_len:
         print(f"{dset_len - total} samples were excluded from the dataset")
 
-
     idxs = np.arange(dset_len, dtype=np.int)
     # shuffle the indices
     if order is None:
@@ -206,17 +210,17 @@ def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=
 
     if order is None:
         return np.array(idx_train), np.array(idx_val), np.array(idx_test)
-    
+
     elif order == "consecutive":
         return idx_train, idx_val, idx_test
-    
+
     elif order == "consecutive_test":
-        idxs = idxs[:train_size + val_size]
+        idxs = idxs[: train_size + val_size]
         idxs = np.random.default_rng(seed).permutation(idxs)
         idx_train = idxs[:train_size]
         idx_val = idxs[train_size:]
         return np.array(idx_train), np.array(idx_val), idx_test
-    
+
     else:
         idx_train = [order[i] for i in idx_train]
         idx_val = [order[i] for i in idx_val]
@@ -233,7 +237,7 @@ def make_splits(
     seed,
     # max_samples=-1, # take the first max_samples samples from the dataset
     filename=None,  # path to save split index
-    splits=None, # load split
+    splits=None,  # load split
     order=None,
 ):
     """
@@ -247,7 +251,9 @@ def make_splits(
         # save the randomly created split
         if order is None:
             if filename is not None:
-                np.savez(filename, idx_train=idx_train, idx_val=idx_val, idx_test=idx_test)
+                np.savez(
+                    filename, idx_train=idx_train, idx_val=idx_val, idx_test=idx_test
+                )
 
     elif type(splits) == dict:
         train_size, val_size, test_size = fix_train_val_test_size(
@@ -255,7 +261,7 @@ def make_splits(
         )
         # datasets/rmd17/aspirin/raw/rmd17/splits/index_test_01.csv
         # dtype = np.dtype('int64')
-        dtype = np.dtype('int32')
+        dtype = np.dtype("int32")
         idx_train = np.loadtxt(splits["train"], dtype=dtype)
         idx_train = idx_train[:train_size]
         # test and val are combined
@@ -277,12 +283,24 @@ def make_splits(
     )
 
 
-def get_md17_datasets(root, dataset_arg, train_size, val_size, test_size, seed, revised=False, return_idx=False, order=None):
+def get_md17_datasets(
+    root,
+    dataset_arg,
+    train_size,
+    val_size,
+    test_size,
+    seed,
+    revised=False,
+    return_idx=False,
+    order=None,
+):
     """
     Return training, validation and testing sets of MD17 with the same data partition as TorchMD-NET.
     """
 
-    print(f'\nWarning: Using the original MD17 dataset. Please consider using the revised version (equiformer/datasets/pyg/md17.py).\n')
+    print(
+        f"\nWarning: Using the original MD17 dataset. Please consider using the revised version (equiformer/datasets/pyg/md17.py).\n"
+    )
     if revised == False:
         all_dataset = MD17(root, dataset_arg)
 

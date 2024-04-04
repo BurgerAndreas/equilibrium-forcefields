@@ -107,7 +107,7 @@ def main(args):
         revised=args.md17revised,
         revised_old=args.md17revised_old,
         load_splits=args.use_revised_splits,
-        order='consecutive_test' if args.fpreuse_test else None,
+        order="consecutive_test" if args.fpreuse_test else None,
     )
 
     _log.info("")
@@ -129,11 +129,7 @@ def main(args):
 
     """ Network """
     create_model = model_entrypoint(args.model_name)
-    model = create_model(
-        task_mean=mean,
-        task_std=std,
-        **args.model_kwargs
-    )
+    model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)
     print(f"model {args.model_name} created with kwargs \n {args.model_kwargs}")
 
     # watch gradients, weights, and activations
@@ -167,7 +163,9 @@ def main(args):
     wandb.run.summary["DEQLayer Parameters"] = n_parameters
 
     # decoder
-    n_parameters = sum(p.numel() for p in model.final_block.parameters() if p.requires_grad)
+    n_parameters = sum(
+        p.numel() for p in model.final_block.parameters() if p.requires_grad
+    )
     _log.info("Number of FinalBlock params: {}".format(n_parameters))
     wandb.run.summary["FinalBlock Parameters"] = n_parameters
 
@@ -188,13 +186,18 @@ def main(args):
         drop_last=True,
     )
     # added drop_last=True to avoid error with fixed-point reuse
-    val_loader = DataLoader(val_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True)
+    val_loader = DataLoader(
+        val_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
+    )
     if args.fpreuse_test:
         # reorder test dataset to be consecutive
         from deq2ff.data_utils import reorder_dataset
+
         test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
-        print(f'Reordered test dataset to be consecutive for fixed-point reuse')
-    test_loader = DataLoader(test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True)
+        print(f"Reordered test dataset to be consecutive for fixed-point reuse")
+    test_loader = DataLoader(
+        test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
+    )
 
     """ Compute stats """
     if args.compute_stats:
@@ -305,7 +308,7 @@ def main(args):
             args, best_metrics, val_err, test_err, epoch
         )
         if update_val_result and args.save_best_checkpoint:
-            print(f'Saving best val checkpoint')
+            print(f"Saving best val checkpoint")
             torch.save(
                 {"state_dict": model.state_dict()},
                 os.path.join(
@@ -316,7 +319,7 @@ def main(args):
                 ),
             )
         if update_test_result and args.save_best_checkpoint:
-            print(f'Saving best test checkpoint')
+            print(f"Saving best test checkpoint")
             torch.save(
                 {"state_dict": model.state_dict()},
                 os.path.join(
@@ -332,7 +335,7 @@ def main(args):
             and (not update_test_result)
             and args.save_periodic_checkpoint
         ):
-            print(f'Saving checkpoint')
+            print(f"Saving checkpoint")
             torch.save(
                 {"state_dict": model.state_dict()},
                 os.path.join(
@@ -447,7 +450,7 @@ def main(args):
             )
 
             if update_val_result and args.save_best_checkpoint:
-                print(f'Saving best EMA val checkpoint')
+                print(f"Saving best EMA val checkpoint")
                 torch.save(
                     {"state_dict": get_state_dict(model_ema)},
                     os.path.join(
@@ -458,7 +461,7 @@ def main(args):
                     ),
                 )
             if update_test_result and args.save_best_checkpoint:
-                print(f'Saving best EMA test checkpoint')
+                print(f"Saving best EMA test checkpoint")
                 torch.save(
                     {"state_dict": get_state_dict(model_ema)},
                     os.path.join(
@@ -474,7 +477,7 @@ def main(args):
                 and (not update_test_result)
                 and args.save_periodic_checkpoint
             ):
-                print(f'Saving EMA checkpoint')
+                print(f"Saving EMA checkpoint")
                 torch.save(
                     {"state_dict": get_state_dict(model_ema)},
                     os.path.join(
@@ -562,7 +565,7 @@ def main(args):
 
     # save the final model
     if args.save_final_checkpoint:
-        print(f'Saving final checkpoint')
+        print(f"Saving final checkpoint")
         torch.save(
             {"state_dict": model.state_dict()},
             os.path.join(
@@ -572,9 +575,8 @@ def main(args):
                 ),
             ),
         )
-    
-    return
 
+    return
 
 
 def update_best_results(args, best_metrics, val_err, test_err, epoch):
@@ -769,7 +771,7 @@ def evaluate(
             pass_step = None
 
         # fixed-point reuse
-        if datasplit == 'test' and args.fpreuse_test == True:
+        if datasplit == "test" and args.fpreuse_test == True:
             pred_y, pred_dy, fixedpoint = model(
                 node_atom=data.z,
                 pos=data.pos,
@@ -811,14 +813,10 @@ def evaluate(
         mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
         # logging
-        if (
-            step % print_freq == 0 or step == len(data_loader) - 1
-        ) and print_progress:
+        if (step % print_freq == 0 or step == len(data_loader) - 1) and print_progress:
             w = time.perf_counter() - start_time
             e = (step + 1) / len(data_loader)
-            info_str = "[{step}/{length}] \t".format(
-                step=step, length=len(data_loader)
-            )
+            info_str = "[{step}/{length}] \t".format(step=step, length=len(data_loader))
             info_str += "e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
                 e_mae=mae_metrics["energy"].avg,
                 f_mae=mae_metrics["force"].avg,

@@ -264,7 +264,7 @@ class DPTransBlock(torch.nn.Module):
         self.norm_2 = get_norm_layer(norm_layer)(self.irreps_node_input)
         # ~20k params
         self.ffn = FeedForwardNetwork(
-            irreps_node_input=self.irreps_node_input, 
+            irreps_node_input=self.irreps_node_input,
             irreps_node_attr=self.irreps_node_attr,
             irreps_node_output=self.irreps_node_output,
             irreps_mlp_mid=self.irreps_mlp_mid,
@@ -290,8 +290,8 @@ class DPTransBlock(torch.nn.Module):
         node_attr,
         edge_src,
         edge_dst,
-        edge_attr, # requires_grad
-        edge_scalars, # requires_grad
+        edge_attr,  # requires_grad
+        edge_scalars,  # requires_grad
         batch,
         **kwargs
     ):
@@ -319,11 +319,11 @@ class DPTransBlock(torch.nn.Module):
             # uses batch. TODO
             node_features = self.drop_path(node_features, batch)
         node_output = node_output + node_features
-        
+
         node_features = node_output
         node_features = self.norm_2(node_features, batch=batch)  # batch unused
-        
-        # optionally reduce irreps dim 
+
+        # optionally reduce irreps dim
         node_features = self.ffn(node_features, node_attr)
         if self.ffn_shortcut is not None:
             node_output = self.ffn_shortcut(node_output, node_attr)

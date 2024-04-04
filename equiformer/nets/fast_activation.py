@@ -20,8 +20,9 @@ class Activation(torch.nn.Module):
     def __init__(self, irreps_in, acts):
         super().__init__()
         irreps_in = o3.Irreps(irreps_in)
-        assert len(irreps_in) == len(acts), \
-            f'{len(irreps_in)} != {len(acts)} ({irreps_in}, {acts})'
+        assert len(irreps_in) == len(
+            acts
+        ), f"{len(irreps_in)} != {len(acts)} ({irreps_in}, {acts})"
 
         # normalize the second moment
         acts = [normalize2mom(act) if act is not None else None for act in acts]
@@ -59,8 +60,9 @@ class Activation(torch.nn.Module):
         self.irreps_in = irreps_in
         self.irreps_out = o3.Irreps(irreps_out)
         self.acts = torch.nn.ModuleList(acts)
-        assert len(self.irreps_in) == len(self.acts), \
-            f'{len(self.irreps_in)} != {len(self.acts)} ({irreps_in}, {acts})'
+        assert len(self.irreps_in) == len(
+            self.acts
+        ), f"{len(self.irreps_in)} != {len(self.acts)} ({irreps_in}, {acts})"
 
     # def __repr__(self):
     #    acts = "".join(["x" if a is not None else " " for a in self.acts])

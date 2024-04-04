@@ -99,9 +99,10 @@ from equiformer.nets.dp_attention_transformer_md17 import (
 
 import deq2ff.logging_utils_deq as logging_utils_deq
 
-    
+
 class FCTPProjection(torch.nn.Module):
     """See ffn_shortcut in DPTransBlock"""
+
     def __init__(self, irreps_in, irreps_node_attr, irreps_out, rescale=True):
         super().__init__()
         self.rescale = rescale
@@ -109,24 +110,37 @@ class FCTPProjection(torch.nn.Module):
         self.irreps_node_attr = o3.Irreps(irreps_node_attr)
         self.irreps_node_output = o3.Irreps(irreps_out)
         self.proj = FullyConnectedTensorProductRescale(
-            self.irreps_node_input, self.irreps_node_attr, self.irreps_node_output, rescale=rescale
+            self.irreps_node_input,
+            self.irreps_node_attr,
+            self.irreps_node_output,
+            rescale=rescale,
         )
 
     def forward(self, node_input, node_attr, **kwargs):
         """node_input = node_features"""
         return self.proj(node_input, node_attr)
-    
+
+
 class FCTPProjectionNorm(FCTPProjection):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.norm_pre = get_norm_layer('layer')(self.irreps_node_input)
-    
+        self.norm_pre = get_norm_layer("layer")(self.irreps_node_input)
+
     def forward(self, node_input, node_attr, **kwargs):
         node_input = self.norm_pre(node_input)
         return super().forward(node_input, node_attr, **kwargs)
-    
+
+
 class FFResidualFCTPProjection(torch.nn.Module):
-    def __init__(self, irreps_in, irreps_node_attr, irreps_out, rescale=True, irreps_mlp_mid=None, norm_layer="layer"):
+    def __init__(
+        self,
+        irreps_in,
+        irreps_node_attr,
+        irreps_out,
+        rescale=True,
+        irreps_mlp_mid=None,
+        norm_layer="layer",
+    ):
         super().__init__()
         self.rescale = rescale
         self.irreps_node_input = o3.Irreps(irreps_in)
@@ -140,7 +154,7 @@ class FFResidualFCTPProjection(torch.nn.Module):
         # layer
         self.norm_layer = get_norm_layer(norm_layer)(self.irreps_node_input)
         self.ffn = FeedForwardNetwork(
-            irreps_node_input=self.irreps_node_input, 
+            irreps_node_input=self.irreps_node_input,
             irreps_node_attr=self.irreps_node_attr,
             irreps_node_output=self.irreps_node_output,
             irreps_mlp_mid=self.irreps_mlp_mid,
@@ -166,7 +180,9 @@ class FFResidualFCTPProjection(torch.nn.Module):
 
 
 class FFProjection(torch.nn.Module):
-    def __init__(self, irreps_in, irreps_node_attr, irreps_out, irreps_mlp_mid=None, rescale=True):
+    def __init__(
+        self, irreps_in, irreps_node_attr, irreps_out, irreps_mlp_mid=None, rescale=True
+    ):
         super().__init__()
         self.rescale = rescale
         self.irreps_node_input = o3.Irreps(irreps_in)
@@ -179,30 +195,33 @@ class FFProjection(torch.nn.Module):
         )
 
         self.ffn = FeedForwardNetwork(
-            irreps_node_input=self.irreps_node_input,  
+            irreps_node_input=self.irreps_node_input,
             irreps_node_attr=self.irreps_node_attr,
             irreps_node_output=self.irreps_node_output,
             irreps_mlp_mid=self.irreps_mlp_mid,
             # proj_drop=proj_drop,
         )
-     
+
     def forward(self, node_input, node_attr, **kwargs):
         """node_input = node_features"""
         return self.ffn(node_input, node_attr)
 
+
 class FFProjectionNorm(FFProjection):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.norm_pre = get_norm_layer('layer')(self.irreps_node_input)
-    
+        self.norm_pre = get_norm_layer("layer")(self.irreps_node_input)
+
     def forward(self, node_input, node_attr, **kwargs):
         node_input = self.norm_pre(node_input)
         return super().forward(node_input, node_attr, **kwargs)
+
 
 class LinearRescaleHead(torch.nn.Module):
     """Output head self.head
     Only works for scalars!
     """
+
     def __init__(self, irreps_in, irreps_node_attr, irreps_out, rescale=True):
         super().__init__()
         self.rescale = rescale
@@ -212,7 +231,10 @@ class LinearRescaleHead(torch.nn.Module):
         self.proj = torch.nn.Sequential(
             LinearRS(self.irreps_node_input, self.irreps_node_input, rescale=rescale),
             # one activation function per irreps l
-            Activation(self.irreps_node_input, acts=[torch.nn.SiLU()]*len(self.irreps_node_input)),
+            Activation(
+                self.irreps_node_input,
+                acts=[torch.nn.SiLU()] * len(self.irreps_node_input),
+            ),
             LinearRS(self.irreps_node_input, self.irreps_node_output, rescale=rescale),
             # out=o3.Irreps("1x0e")
         )
@@ -222,15 +244,17 @@ class LinearRescaleHead(torch.nn.Module):
         return self.proj(node_input)
 
 
-
 from .deq_dp_md17 import DEQDotProductAttentionTransformerMD17
 
-class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTransformerMD17, torch.nn.Module):
+
+class DEQDecProjHeadDotProductAttentionTransformerMD17(
+    DEQDotProductAttentionTransformerMD17, torch.nn.Module
+):
     """
     DEQDotProductAttentionTransformerMD17 but with final_block moved from the decoder to the implicit layer.
-    "LinearRescaleHead", 
-    "ResidualFFProjection", "FFProjection" 
-    "ResidualFCTPProjection", "FCTPProjection", 
+    "LinearRescaleHead",
+    "ResidualFFProjection", "FFProjection"
+    "ResidualFCTPProjection", "FCTPProjection",
     """
 
     def __init__(
@@ -238,8 +262,10 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTra
         dec_proj,
         **kwargs,
     ):
-        assert kwargs['input_injection'] in ['first_layer', 'every_layer'], \
-            f"Only `input_injection='first_layer' | 'last_layer'` is supported, got {kwargs['input_injection']}"
+        assert kwargs["input_injection"] in [
+            "first_layer",
+            "every_layer",
+        ], f"Only `input_injection='first_layer' | 'last_layer'` is supported, got {kwargs['input_injection']}"
         super().__init__(**kwargs)
 
         # decoder_proj
@@ -247,12 +273,14 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTra
         # add a layer norm?
         # self.norm_after_deq = get_norm_layer(self.norm_layer)(self.irreps_feature)
         self.final_block = eval(dec_proj)(
-            irreps_in = self.irreps_node_embedding,
-            irreps_node_attr = self.irreps_node_attr,
-            irreps_out = self.irreps_feature,
+            irreps_in=self.irreps_node_embedding,
+            irreps_node_attr=self.irreps_node_attr,
+            irreps_out=self.irreps_feature,
         )
         self.final_block.apply(self._init_weights)
-        print(f'\nInitialized decoder projection head `{dec_proj}` with {sum(p.numel() for p in self.final_block.parameters() if p.requires_grad)} parameters.')
+        print(
+            f"\nInitialized decoder projection head `{dec_proj}` with {sum(p.numel() for p in self.final_block.parameters() if p.requires_grad)} parameters."
+        )
 
     def build_blocks(self):
         """N blocks of: Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
@@ -262,7 +290,7 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTra
             irreps_node_input = self.irreps_node_z
             irreps_block_output = self.irreps_node_embedding
 
-            if self.input_injection == 'first_layer':
+            if self.input_injection == "first_layer":
                 if i > 0:
                     # no input injection
                     irreps_node_input = self.irreps_node_embedding
@@ -290,8 +318,7 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(DEQDotProductAttentionTra
                 norm_layer=self.norm_layer,
             )
             self.blocks.append(blk)
-        print(f'\nInitialized {len(self.blocks)} blocks of `DPTransBlock`.')
-
+        print(f"\nInitialized {len(self.blocks)} blocks of `DPTransBlock`.")
 
 
 @register_model
@@ -325,9 +352,9 @@ def deq_decprojhead_dot_product_attention_transformer_exp_l2_md17(
     drop_path_rate=0.0,
     scale=None,
     deq_kwargs={},
-    torchdeq_norm=omegaconf.OmegaConf.create({'norm_type': 'weight_norm'}),
-    input_injection='first_layer',
-    dec_proj='LinearRescaleHead',
+    torchdeq_norm=omegaconf.OmegaConf.create({"norm_type": "weight_norm"}),
+    input_injection="first_layer",
+    dec_proj="LinearRescaleHead",
     **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17

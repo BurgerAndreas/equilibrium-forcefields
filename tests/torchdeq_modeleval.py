@@ -1,9 +1,9 @@
-
 import torch
 
 import torchdeq
 from torchdeq import get_deq
 from torchdeq.norm import apply_norm, reset_norm
+
 
 class MyModel(torch.nn.Module):
     def __init__(self):
@@ -12,11 +12,11 @@ class MyModel(torch.nn.Module):
 
         # deq
         self.deq = get_deq()
-        apply_norm(self.layer, 'weight_norm')
+        apply_norm(self.layer, "weight_norm")
 
     def implicit_layer(self, x):
         return self.layer(x)
-    
+
     def forward(self, x, pos):
 
         z = torch.zeros_like(x)
@@ -26,7 +26,7 @@ class MyModel(torch.nn.Module):
         f = lambda z: self.f(z, pos)
 
         z_pred, info = self.deq(self.implicit_layer, z)
-                                
+
         energy = z_pred[-1]
         forces = -1 * (
             torch.autograd.grad(
@@ -34,7 +34,7 @@ class MyModel(torch.nn.Module):
                 # diff with respect to pos
                 # if you get 'One of the differentiated Tensors appears to not have been used in the graph'
                 # then because pos is not 'used' to calculate the energy
-                pos, 
+                pos,
                 grad_outputs=torch.ones_like(energy),
                 create_graph=True,
                 # allow_unused=True, # TODO
@@ -57,7 +57,7 @@ def run(model, eval=False):
         x = torch.randn(10, 10)
         pos = torch.randn(10, 3)
         energy, forces = model(x, pos)
-        
+
         # loss
         optimizer.zero_grad()
         energy_target = torch.randn(10, 1)
@@ -69,12 +69,13 @@ def run(model, eval=False):
         if not eval:
             loss.backward()
             optimizer.step()
-    
+
     return True
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     model = MyModel()
     success = run(model, eval=False)
-    print(f'train success: {success}')
+    print(f"train success: {success}")
     success = run(model, eval=True)
-    print(f'eval success: {success}')
+    print(f"eval success: {success}")

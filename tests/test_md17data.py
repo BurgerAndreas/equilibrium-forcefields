@@ -36,6 +36,7 @@ import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
+
 def run_test(args):
 
     # create output directory
@@ -74,16 +75,15 @@ def run_test(args):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
     # fixed point reuse
     shuffle = True
-    if 'fpreuse' in args and args.fpreuse is True:
+    if "fpreuse" in args and args.fpreuse is True:
         shuffle = False
 
     """ Data Loader """
-    # When both batch_size and batch_sampler are None, automatic batching is disabled. 
-    # Each sample obtained from the dataset is processed with the function passed as collate_fn. 
-    # When automatic batching is disabled, the default collate_fn simply converts 
+    # When both batch_size and batch_sampler are None, automatic batching is disabled.
+    # Each sample obtained from the dataset is processed with the function passed as collate_fn.
+    # When automatic batching is disabled, the default collate_fn simply converts
     # NumPy arrays into PyTorch Tensors, and keeps everything else untouched.
 
     # if shuffle=False, each batch contains consecutive idx
@@ -102,12 +102,12 @@ def run_test(args):
     val_loader = DataLoader(val_dataset, batch_size=args.eval_batch_size)
     test_loader = DataLoader(test_dataset, batch_size=args.eval_batch_size)
 
-    print(f'batch_size: {args.batch_size}')
+    print(f"batch_size: {args.batch_size}")
 
     # train
     data_loader = train_loader
     for epoch in range(args.epochs):
-       # z_star = None
+        # z_star = None
         for step, data in enumerate(data_loader):
             data = data.to(device)
 
@@ -119,13 +119,17 @@ def run_test(args):
             # batch: index to which batch an atom belongs, e.g. (0,0,...,1,...,2,...) [batch_size*num_atoms]
 
             # print("ptr:", data.ptr, type(data.ptr))
-            print(f'batches: {data.batch}')
-            print(f'z: {data.z}')
+            print(f"batches: {data.batch}")
+            print(f"z: {data.z}")
 
             exit()
 
 
-@hydra.main(config_name="md17", config_path="../equiformer/config/equiformer", version_base="1.3")
+@hydra.main(
+    config_name="md17",
+    config_path="../equiformer/config/equiformer",
+    version_base="1.3",
+)
 def hydra_wrapper(args: DictConfig) -> None:
     from deq2ff.logging_utils import init_wandb
 

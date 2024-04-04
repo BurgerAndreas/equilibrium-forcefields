@@ -12,7 +12,7 @@ irreps_node_injection = o3.Irreps(irreps_node_embedding_injection)
 # test 1: does addition work as expected?
 irreps_node_z = irreps_node_embedding + irreps_node_injection
 irreps_node_z = irreps_node_z.simplify()
-print(f'irreps_node_z: {irreps_node_z}')
+print(f"irreps_node_z: {irreps_node_z}")
 
 # node_features = torch.cat([node_features, node_features_injection], dim=1)
 

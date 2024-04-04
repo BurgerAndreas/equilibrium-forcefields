@@ -30,7 +30,20 @@ import wandb
 import omegaconf
 from omegaconf import DictConfig
 
-from typing import Union, Tuple, Any, Callable, Iterator, Set, Optional, overload, TypeVar, Mapping, Dict, List
+from typing import (
+    Union,
+    Tuple,
+    Any,
+    Callable,
+    Iterator,
+    Set,
+    Optional,
+    overload,
+    TypeVar,
+    Mapping,
+    Dict,
+    List,
+)
 
 import warnings
 
@@ -41,15 +54,15 @@ warnings.filterwarnings("ignore", category=UserWarning)
 # nn.init.uniform_(self.weight, -np.sqrt(1 / d_hidden), np.sqrt(1 / d_hidden))
 
 
-T = TypeVar('T', bound='Module')
+T = TypeVar("T", bound="Module")
+
 
 class Module:
     # _modules: Dict[str, Optional['Module']]
     # named_children()
 
-    def apply(self: T, fn: Callable[['Module'], None]) -> T:
-        r"""Apply ``fn`` recursively to every submodule (as returned by ``.children()``) as well as self.
-        """
+    def apply(self: T, fn: Callable[["Module"], None]) -> T:
+        r"""Apply ``fn`` recursively to every submodule (as returned by ``.children()``) as well as self."""
         for module in self.children():
             module.apply(fn)
         fn(self)
@@ -57,22 +70,22 @@ class Module:
 
 
 def print_base_modules(module, print_without_params=False):
-    children = [name for  name, module in module.named_children()]
+    children = [name for name, module in module.named_children()]
     if len(children) == 0:
         num_params = sum(p.numel() for p in module.parameters() if p.requires_grad)
         if print_without_params or num_params > 0:
-            print('module:', module)
+            print("module:", module)
             if isinstance(module, torch.nn.Linear):
-                print('  -> linear')
+                print("  -> linear")
             elif isinstance(module, torch.nn.LayerNorm):
-                print('  -> LayerNorm')
-            
+                print("  -> LayerNorm")
+
             # some EquivariantLayerNormV2 are initialized to all 0s
             # some to all 1s
             # elif isinstance(module, EquivariantLayerNormV2):
             #     for p in module.parameters():
             #         print(p)
-                
+
             # parameter lists are initialized to 0
             # elif isinstance(module, torch.nn.ParameterList):
             #     for p in module:
@@ -80,17 +93,25 @@ def print_base_modules(module, print_without_params=False):
             else:
                 # compute weight init
                 try:
-                    print('  weight:', module.weight.data.mean().item(), module.weight.data.std().item())
+                    print(
+                        "  weight:",
+                        module.weight.data.mean().item(),
+                        module.weight.data.std().item(),
+                    )
                 except:
-                    print(f'  None ({num_params} params)')
+                    print(f"  None ({num_params} params)")
+
 
 def find_base_modules(model, args: DictConfig):
-    
+
     model.apply(print_base_modules)
 
 
-
-@hydra.main(config_name="md17", config_path="../equiformer/config/equiformer", version_base="1.3")
+@hydra.main(
+    config_name="md17",
+    config_path="../equiformer/config/equiformer",
+    version_base="1.3",
+)
 def hydra_wrapper(args: DictConfig) -> None:
     # print(train_idx)torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -107,7 +128,7 @@ def hydra_wrapper(args: DictConfig) -> None:
         revised=args.md17revised,
         revised_old=args.md17revised_old,
         load_splits=args.use_revised_splits,
-        order='consecutive_test' if args.fpreuse_test else None,
+        order="consecutive_test" if args.fpreuse_test else None,
     )
 
     # statistics
@@ -119,15 +140,10 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     """ Network """
     create_model = model_entrypoint(args.model_name)
-    model = create_model(
-        task_mean=mean,
-        task_std=std,
-        **args.model_kwargs
-    )
-   
+    model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)
+
     find_base_modules(model, args)
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     hydra_wrapper()

@@ -54,7 +54,10 @@ equiformer_v2/nets/equiformer_v2/equiformer_v2_oc20.py
 """
 
 # Statistics of IS2RE 100K
-from equiformer_v2.nets.equiformer_v2.equiformer_v2_oc20 import _AVG_DEGREE, _AVG_NUM_NODES
+from equiformer_v2.nets.equiformer_v2.equiformer_v2_oc20 import (
+    _AVG_DEGREE,
+    _AVG_NUM_NODES,
+)
 
 
 @registry.register_model("equiformer_v2")

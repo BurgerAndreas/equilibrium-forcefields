@@ -44,6 +44,9 @@ model_kwargs:
 # jac_incremental: 0.0
 # torchdeq.loss.jac_reg(f0, z0, vecs=1, create_graph=True)
 
+# logging
+log_fp_error_traj: False
+
 # passed to torchdeq
 deq_kwargs:
   # https://torchdeq.readthedocs.io/en/latest/torchdeq/core.html#torchdeq.core.get_deq

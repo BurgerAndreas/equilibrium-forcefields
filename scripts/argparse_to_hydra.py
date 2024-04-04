@@ -1,6 +1,10 @@
 import sys
 import os
 
+"""
+Automatically generate a hydra config file from an argparse function.
+"""
+
 default_beginning = """
 # @package _global_
 # ^^^ this @package directive solves any nesting problem (if this file is included in another folder)

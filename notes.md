@@ -39,6 +39,10 @@ see Allegro paper for great summary
 - https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.datasets.MD17.html
 - total time of simulation was 200 ps for aspirin and 100 ps for the rest of the molecules, and for all the cases the NVT ensemble was used with a time step of 0.5 fs
 
+revised
+- 100,000 structures were randomly selected and redone
+- original: aspirin has >200k samples
+
 Equiformer uses the non-revised version: equiformer/datasets/pyg/md17.py
 
 Are the units the same?
@@ -129,3 +133,21 @@ E(n) equivariant normalizing flows
 -
 
 EGNN: E(n) equivariant graph neural networks
+
+## Normalization
+
+Self-Normalizing Neural Networks
+- batch normalization evolved into a standard to normalize neuron activations to zero mean and unit variance [17]. Layer normalization [1] also ensures zero mean and unit variance, while weight normalization [25] ensures zero mean and unit variance if in the previous layer the activations have zero mean and unit variance.
+- training with normalization techniques is perturbed by stochastic gradient descent (SGD), stochastic regularization (like dropout), and the estimation of the normalization parameters. 
+- Both RNNs and CNNs can stabilize learning via weight sharing, therefore they are less prone to these perturbations
+- SELUs push neuron activations to zero mean and unit variance
+- For the weight initialization, we propose ω = 0 and τ = 1 for all units in the higher layer.
+- for n units we define the mean of the weights as ω and the second moment as τ
+- if (ω, τ ) is close to (0, 1), then the mean-and-variance-mapping-function g still has an attracting and stable fixed point that is close to (0, 1) 
+- Dropout fits well to rectified linear units, since zero is in the low variance region and corresponds to the default value
+- propose “alpha dropout”, that randomly sets inputs to α′, −λα = α′
+
+
+### Initialization
+
+- The default initialization for a Linear layer is init.kaiming_uniform_(self.weight, a=math.sqrt(5))

@@ -151,6 +151,7 @@ def fix_train_val_test_size(train_size, val_size, test_size, dset_len):
         isinstance(test_size, float),
     )
 
+    # if we provide the sizes as percentages
     train_size = round(dset_len * train_size) if is_float[0] else train_size
     val_size = round(dset_len * val_size) if is_float[1] else val_size
     test_size = round(dset_len * test_size) if is_float[2] else test_size
@@ -187,12 +188,14 @@ def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=
 
     assert dset_len >= total, (
         f"The dataset ({dset_len}) is smaller than the "
-        f"combined split sizes ({total})."
+        f"combined split sizes ({total} = {train_size} + {val_size} + {test_size})."
     )
     if total < dset_len:
         print(f"{dset_len - total} samples were excluded from the dataset")
 
+
     idxs = np.arange(dset_len, dtype=np.int)
+    # shuffle the indices
     if order is None:
         idxs = np.random.default_rng(seed).permutation(idxs)
 
@@ -228,6 +231,7 @@ def make_splits(
     val_size,
     test_size,
     seed,
+    max_samples=-1, # take the first max_samples samples from the dataset
     filename=None,  # path to save split index
     splits=None, # load split
     order=None,
@@ -240,6 +244,7 @@ def make_splits(
         idx_train, idx_val, idx_test = train_val_test_split(
             dataset_len, train_size, val_size, test_size, seed, order
         )
+        # save the randomly created split
         if order is None:
             if filename is not None:
                 np.savez(filename, idx_train=idx_train, idx_val=idx_val, idx_test=idx_test)

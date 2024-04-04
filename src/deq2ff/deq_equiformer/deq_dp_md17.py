@@ -115,6 +115,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         input_injection='first_layer',  # False=V1, 'first_layer'=V2
         irreps_node_embedding_injection="64x0e+32x1e+16x2e",
         z0='zero',
+        log_fp_error_traj=False,
         # original
         irreps_in="64x0e",
         # 128*1 + 64*3 + 32*5 = 480
@@ -134,13 +135,15 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         nonlinear_message=False,
         irreps_mlp_mid="128x0e+64x1e+32x2e",
         norm_layer="layer",
+        # alpha dropout for SELU
         alpha_drop=0.2,
         proj_drop=0.0,
         out_drop=0.0,
         drop_path_rate=0.0,
         mean=None,
         std=None,
-        scale=None,
+        # scale the final output by this number
+        scale: float =None,
         atomref=None,
     ):
         super().__init__()
@@ -149,6 +152,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         # Added
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.log_fp_error_traj = log_fp_error_traj
 
         self.input_injection = input_injection
         if input_injection is False:
@@ -353,15 +357,21 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         print(f'\nInitialized {len(self.blocks)} blocks of `DPTransBlock`.')
 
     def _init_weights(self, m):
+        # torch.nn.init.normal_(tensor, mean=0.0, std=1.0)
+        # kaiman
+        # torch.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
+        # torch.nn.init.zeros_(self.fc1.bias)
         if isinstance(m, torch.nn.Linear):
             if m.bias is not None:
                 torch.nn.init.constant_(m.bias, 0)
         elif isinstance(m, torch.nn.LayerNorm):
             torch.nn.init.constant_(m.bias, 0)
             torch.nn.init.constant_(m.weight, 1.0)
-        # kaiman
-        # torch.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
-        # torch.nn.init.zeros_(self.fc1.bias)
+        # ParameterList
+        # elif isinstance(m, torch.nn.ParameterList):
+        #     for param in m:
+        #         torch.nn.init.normal_(param, mean=0.0, std=1.0)
+        # EquivariantLayerNormV2
 
     @torch.jit.ignore
     def no_weight_decay(self):
@@ -669,7 +679,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             raise ValueError('DEQ mode must be True')
 
         if step is not None:
-            _data = logging_utils_deq.log_fixed_point_error(info, step, datasplit, self.fp_error_traj[datasplit])
+            _data = logging_utils_deq.log_fixed_point_error(info, step, datasplit, self.fp_error_traj[datasplit], log_table=self.log_fp_error_traj)
             if _data is not None:
                 self.fp_error_traj[datasplit] = _data
             logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
@@ -726,6 +736,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     rescale_degree=False,
     nonlinear_message=False,
     norm_layer="layer",
+    # regularization
     alpha_drop=0.0,
     proj_drop=0.0,
     out_drop=0.0,
@@ -736,6 +747,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     torchdeq_norm=omegaconf.OmegaConf.create({'norm_type': 'weight_norm'}),
     input_injection='first_layer',
     z0='zero',
+    log_fp_error_traj=False,
     **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17
@@ -774,6 +786,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
         torchdeq_norm=torchdeq_norm,
         input_injection=input_injection,
         z0=z0,
+        log_fp_error_traj=log_fp_error_traj,
     )
     print(f"! Ignoring kwargs: {kwargs}")
     return model

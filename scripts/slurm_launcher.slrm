@@ -36,12 +36,16 @@ fi
 # hand over all arguments to the script
 echo "Submitting ${SCRIPTDIR}/$@"
 
+
 # V1
 # /h/burgeran/venv10/bin/python ${SCRIPTDIR}/"$@"
 
 # V2 - works!
 # source /h/burgeran/venv10/bin/activate
 # /h/burgeran/venv10/bin/python ${SCRIPTDIR}/"$@"
+
+eval "$(mamba shell.bash hook)"
+# source /h/burgeran/.bashrc
 mamba activate deq
 /h/burgeran/miniforge3/envs/deq/bin/python ${SCRIPTDIR}/"$@"
 

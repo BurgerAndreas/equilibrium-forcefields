@@ -1,3 +1,4 @@
+
 import torch
 from torch_geometric.data import InMemoryDataset, download_url, Data, extract_tar, extract_zip
 import numpy as np
@@ -5,7 +6,7 @@ from torch.utils.data import Subset
 import os
 import os.path as osp
 
-from typing import Callable, List, Optional, Union
+# from typing import Callable, List, Optional, Union
 
 
 np.int = np.int32
@@ -218,7 +219,7 @@ class MD17(InMemoryDataset):
                 # 'old_forces': The forces of each conformation taken from the original MD17 dataset (in units of kcal/mol/ångstrom)
                 energy = torch.from_numpy(raw_data['old_energies']).float()
                 force = torch.from_numpy(raw_data['old_forces']).float()
-                old_indices = torch.from_numpy(raw_data['old_indices']).float()
+                old_indices = torch.from_numpy(raw_data['old_indices']).long()
             elif self.revised:
                 z = torch.from_numpy(raw_data['nuclear_charges']).long()
                 pos = torch.from_numpy(raw_data['coords']).float()
@@ -235,10 +236,10 @@ class MD17(InMemoryDataset):
             for i in range(pos.size(0)):
                 # old: ['z', 'pos', 'batch', 'y', 'dy']
                 # new: ['z', 'pos', 'energy', 'force']
-                if old_indices is not None:
-                    data = Data(z=z, pos=pos[i], y=energy[i], dy=force[i], idx=i, old_idx=old_indices[i])
-                else:
+                if old_indices is None:
                     data = Data(z=z, pos=pos[i], y=energy[i], dy=force[i], idx=i)
+                else:
+                    data = Data(z=z, pos=pos[i], y=energy[i], dy=force[i], idx=i, old_idx=old_indices[i])
                 if self.pre_filter is not None and not self.pre_filter(data):
                     continue
                 if self.pre_transform is not None:
@@ -256,6 +257,7 @@ def get_rmd17_datasets(
         root, dataset_arg, train_size, val_size, test_size, seed, 
         revised=False, 
         revised_old=False,
+        max_samples: int = -1,
         order=None, 
         return_idx=False,
         load_splits=None,
@@ -266,6 +268,8 @@ def get_rmd17_datasets(
     Args:
         md17revised: False use revised version of MD17 with more accurate energies and forces (bool)
         md17revised_old: False Use the non-revised (old) data downloaded from the revised dataset and processed with the revised dataset's preprocessing script (bool)
+        max_samples: take the first max_samples samples from the dataset. Ensures reproducibility between datasets of different lengths.
+
     """
 
     # root: "datasets/md17/aspirin"
@@ -288,13 +292,26 @@ def get_rmd17_datasets(
             'train': osp.join(root, 'raw', 'rmd17', 'splits', 'index_train_01.csv'),
             'test': osp.join(root, 'raw', 'rmd17', 'splits', 'index_test_01.csv')
         }
+    
+    # different dataset lengths will lead to different permutations
+    # hard setting the max_samples to ensure reproducibility
+    dset_len = len(all_dataset)
+    if max_samples > 0:
+        _total = train_size if isinstance(train_size, int) else 0
+        _total += val_size if isinstance(val_size, int) else 0
+        _total += test_size if isinstance(test_size, int) else 0
+        if _total > 0:
+            assert max_samples >= _total, f'max_samples ({max_samples}) must be greater than the sum of train_size, val_size, and test_size ({_total})'
+        print(f"Taking the first {max_samples} samples from the dataset (length {dset_len}).")
+        dset_len = min(int(max_samples), dset_len)
 
     idx_train, idx_val, idx_test = make_splits(
-        len(all_dataset),
+        dset_len,
         train_size,
         val_size,
         test_size,
         seed,
+        max_samples=max_samples,
         # save splits
         filename=os.path.join(root, "splits.npz"),
         # load splits

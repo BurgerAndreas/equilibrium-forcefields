@@ -119,6 +119,11 @@ REPLACE = {
     "_decprojhead": "",
     "_decproj-": " ",
     "_evalmode-False": " noeval",
+    "userevisedsplits-True": " revised",
+    "_fpreusetest-True": " FPreuse",
+    "_torchDEQ": " ",
+    "normtype-": " ",
+    "_": " ",
 }
 
 

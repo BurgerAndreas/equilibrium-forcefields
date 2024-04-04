@@ -31,15 +31,18 @@ from omegaconf import DictConfig
 split_file = '/ssd/gen/equilibrium-forcefields/datasets/md17/aspirin/splits.npz'
 split = np.load(split_file)
 
-print(split)
+# print(split)
 
 # train_idx = split['train_idx']
 # valid_idx = split['valid_idx']
 # test_idx = split['test_idx']
 
-def test_old_is_new(args):
+def test_revised_dataset_creation(args):
+    """Test if the revised DatasetCreator can load the unrevised dataset.
+    """
 
     """ Dataset """
+    # new dataloader, old dataset
     train_dataset, val_dataset, test_dataset = rmd17_dataset.get_rmd17_datasets(
         root=os.path.join(args.data_path, args.target),
         dataset_arg=args.target,
@@ -48,14 +51,13 @@ def test_old_is_new(args):
         test_size=None,
         seed=args.seed,
         return_idx=False,
-        # order='consecutive',
     )
 
     print(f'Train dataset: {len(train_dataset)}')
     print(f'Val dataset: {len(val_dataset)}')
     print(f'Test dataset: {len(test_dataset)}')
 
-    # Same as unrevised?
+    # old dataloader, old dataset
     train_dataset_old, _, _ = md17_dataset.get_md17_datasets(
         root=os.path.join(args.data_path, args.target),
         dataset_arg=args.target,
@@ -64,7 +66,6 @@ def test_old_is_new(args):
         test_size=None,
         seed=args.seed,
         return_idx=False,
-        # order='consecutive',
     )
 
     for i in range(len(train_dataset)):
@@ -86,7 +87,80 @@ def test_old_is_new(args):
     print('All good!')
     return True
 
+def test_revisedold_equal_unrevised(args):
+    """Test if the `old` data in the revised dataset == unrevised dataset."""
+
+    # If we don't specify the order, it will be a random permutation.
+    # Since the length of the datasets is different, 
+    # the random permutation will be different.
+    # original dataset: 211,762 samples
+    # revised dataset: 100,000 samples
+    # order = 'consecutive'
+    order = None
+    max_samples = 1e5 # 100k
+
+    # args.batch_size = 2
+    # set_seed(args.seed)
+
+
+    """ Dataset """
+    # new dataloader, old data
+    train_dataset_unrevised, _, _ = rmd17_dataset.get_rmd17_datasets(
+        root=os.path.join(args.data_path, args.target),
+        dataset_arg=args.target,
+        train_size=args.train_size,
+        val_size=args.val_size,
+        test_size=None,
+        max_samples=max_samples,
+        seed=args.seed,
+        revised=False, # <--- Old data, old source
+        order=order,
+    )
+
+    print(f'Train dataset: {len(train_dataset_unrevised)}')
+
+    # set_seed(args.seed)
+
+    # new dataloader, new dataset source, old data
+    train_dataset_revisedold, _, _ = rmd17_dataset.get_rmd17_datasets(
+        root=os.path.join(args.data_path, args.target),
+        dataset_arg=args.target,
+        train_size=args.train_size,
+        val_size=args.val_size,
+        test_size=None,
+        seed=args.seed,
+        max_samples=max_samples,
+        revised=True, # <--- Old data, new source
+        revised_old=True, # <--- Old data, new source
+        order=order,
+    )
+
+    a = train_dataset_unrevised
+    b = train_dataset_revisedold
+    for i in range(len(b)): # loop over revised dataset
+        i_old = int(b[i].old_idx.item())
+        # idx should be the same, because idx is the order in the dataset processing
+        assert torch.allclose(a[i].idx, b[i].idx), f'{i}: {a[i].idx} != {b[i].idx}'
+        # assert torch.allclose(a[i].idx, b[i].idx), f'{i}: {a[i].idx} != {b[i].old_idx}'
+        assert torch.allclose(a[i_old].y, b[i].y), f'{i}: {a[i].y} != {b[i].y}'
+        assert torch.allclose(a[i_old].dy, b[i].dy), f'{i}: {a[i].dy} != {b[i].dy}'
+        assert torch.allclose(a[i_old].pos, b[i].pos), f'{i}: {a[i].pos} != {b[i].pos}'
+        if i % 100 == 0:
+            print(i)
+    
+    y = torch.cat([batch.y for batch in train_dataset_unrevised], dim=0)
+    mean = float(y.mean())
+    std = float(y.std())
+
+    y_old = torch.cat([batch.y for batch in train_dataset_revisedold], dim=0)
+
+    assert torch.allclose(y, y_old), f'y'
+    
+    print('All good!')
+    return True
+
 def test_load_revised_split(args):
+    """Test loading the provided split of the revised dataset (for shape and dtype)."""
 
     """ Dataset """
     train_dataset, val_dataset, test_dataset = rmd17_dataset.get_rmd17_datasets(
@@ -98,8 +172,7 @@ def test_load_revised_split(args):
         seed=args.seed,
         revised=True,
         revised_old=False,
-        load_splits=False,
-        order=None,
+        load_splits=False, # <--- Do not load the splits
         return_idx=True,
     )
 
@@ -112,8 +185,7 @@ def test_load_revised_split(args):
         seed=args.seed,
         revised=True,
         revised_old=False,
-        load_splits=True,
-        order=None,
+        load_splits=True, # <--- Load the splits
         return_idx=True,
     )
 
@@ -179,13 +251,21 @@ def test_consecutive_order(args):
     print('All good!')
     return True
 
+def set_seed(seed):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
 @hydra.main(config_name="md17", config_path="../equiformer/config/equiformer", version_base="1.3")
 def hydra_wrapper(args: DictConfig) -> None:
     # print(train_idx)torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
+    
+    set_seed(args.seed)
+
+    # run tests
+
+    test_revisedold_equal_unrevised(args)
    
-    test_old_is_new(args)
+    test_revised_dataset_creation(args)
 
     test_consecutive_order(args)
 

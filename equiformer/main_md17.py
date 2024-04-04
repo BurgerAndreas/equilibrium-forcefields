@@ -143,6 +143,7 @@ def main(args):
     if args.checkpoint_path is not None:
         state_dict = torch.load(args.checkpoint_path, map_location="cpu")
         model.load_state_dict(state_dict["state_dict"])
+        print(f"Loaded model from {args.checkpoint_path}")
 
     model = model.to(device)
 
@@ -303,7 +304,8 @@ def main(args):
         update_val_result, update_test_result = update_best_results(
             args, best_metrics, val_err, test_err, epoch
         )
-        if update_val_result:
+        if update_val_result and args.save_best_checkpoint:
+            print(f'Saving best val checkpoint')
             torch.save(
                 {"state_dict": model.state_dict()},
                 os.path.join(
@@ -313,7 +315,8 @@ def main(args):
                     ),
                 ),
             )
-        if update_test_result:
+        if update_test_result and args.save_best_checkpoint:
+            print(f'Saving best test checkpoint')
             torch.save(
                 {"state_dict": model.state_dict()},
                 os.path.join(
@@ -327,7 +330,9 @@ def main(args):
             (epoch + 1) % args.test_interval == 0
             and (not update_val_result)
             and (not update_test_result)
+            and args.save_periodic_checkpoint
         ):
+            print(f'Saving checkpoint')
             torch.save(
                 {"state_dict": model.state_dict()},
                 os.path.join(
@@ -441,7 +446,8 @@ def main(args):
                 args, best_ema_metrics, ema_val_err, ema_test_err, epoch
             )
 
-            if update_val_result:
+            if update_val_result and args.save_best_checkpoint:
+                print(f'Saving best EMA val checkpoint')
                 torch.save(
                     {"state_dict": get_state_dict(model_ema)},
                     os.path.join(
@@ -451,7 +457,8 @@ def main(args):
                         ),
                     ),
                 )
-            if update_test_result:
+            if update_test_result and args.save_best_checkpoint:
+                print(f'Saving best EMA test checkpoint')
                 torch.save(
                     {"state_dict": get_state_dict(model_ema)},
                     os.path.join(
@@ -465,7 +472,9 @@ def main(args):
                 (epoch + 1) % args.test_interval == 0
                 and (not update_val_result)
                 and (not update_test_result)
+                and args.save_periodic_checkpoint
             ):
+                print(f'Saving EMA checkpoint')
                 torch.save(
                     {"state_dict": get_state_dict(model_ema)},
                     os.path.join(
@@ -528,6 +537,11 @@ def main(args):
                 step=global_step,
             )
 
+        # epoch done
+
+    print("\nAll epochs done!\n")
+
+    # all epochs done
     # evaluate on the whole testing set
     optimizer.zero_grad()
     test_err, test_loss = evaluate(
@@ -545,6 +559,21 @@ def main(args):
         datasplit="test_all",
     )
     optimizer.zero_grad()
+
+    # save the final model
+    if args.save_final_checkpoint:
+        print(f'Saving final checkpoint')
+        torch.save(
+            {"state_dict": model.state_dict()},
+            os.path.join(
+                args.output_dir,
+                "final_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
+                    epoch, test_err["energy"].avg, test_err["force"].avg
+                ),
+            ),
+        )
+    
+    return
 
 
 

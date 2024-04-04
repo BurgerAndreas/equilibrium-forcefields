@@ -290,7 +290,6 @@ def get_md17_datasets(
     val_size,
     test_size,
     seed,
-    revised=False,
     return_idx=False,
     order=None,
 ):
@@ -301,8 +300,7 @@ def get_md17_datasets(
     print(
         f"\nWarning: Using the original MD17 dataset. Please consider using the revised version (equiformer/datasets/pyg/md17.py).\n"
     )
-    if revised == False:
-        all_dataset = MD17(root, dataset_arg)
+    all_dataset = MD17(root, dataset_arg)
 
     idx_train, idx_val, idx_test = make_splits(
         len(all_dataset),

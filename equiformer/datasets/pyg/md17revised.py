@@ -19,7 +19,7 @@ np.float = np.float64
 np.bool = np.bool_
 
 
-class MD17(InMemoryDataset):
+class RMD17(InMemoryDataset):
     """Machine learning of accurate energy-conserving molecular force fields (Chmiela et al. 2017)
     This class provides functionality for loading MD trajectories from the revised versions.
     https://figshare.com/articles/dataset/Revised_MD17_dataset_rMD17_/12672038
@@ -100,10 +100,10 @@ class MD17(InMemoryDataset):
     ):
         assert dataset_arg is not None, (
             "Please provide the desired comma separated molecule(s) through"
-            f"'dataset_arg'. Available molecules are {', '.join(MD17.available_molecules)} "
+            f"'dataset_arg'. Available molecules are {', '.join(RMD17.available_molecules)} "
             "or 'all' to train on the combined dataset."
         )
-        assert dataset_arg in MD17.available_molecules, "Unknown data argument"
+        assert dataset_arg in RMD17.available_molecules, "Unknown data argument"
 
         if revised_old:
             revised = True
@@ -139,7 +139,7 @@ class MD17(InMemoryDataset):
             )
         """
 
-        super(MD17, self).__init__(root, transform, pre_transform)
+        super(RMD17, self).__init__(root, transform, pre_transform)
 
         self.offsets = [0]
         self.data_all, self.slices_all = [], []
@@ -162,7 +162,7 @@ class MD17(InMemoryDataset):
             data_idx += 1
         self.data = self.data_all[data_idx]
         self.slices = self.slices_all[data_idx]
-        return super(MD17, self).get(idx - self.offsets[data_idx])
+        return super(RMD17, self).get(idx - self.offsets[data_idx])
 
     # Dataset
     # @property
@@ -190,12 +190,12 @@ class MD17(InMemoryDataset):
         if self.revised:
             return [
                 osp.join(
-                    "rmd17", "npz_data", MD17.molecule_files_revised[f"revised {mol}"]
+                    "rmd17", "npz_data", RMD17.molecule_files_revised[f"revised {mol}"]
                 )
                 for mol in self.molecules
             ]
         else:
-            return [MD17.molecule_files[mol] for mol in self.molecules]
+            return [RMD17.molecule_files[mol] for mol in self.molecules]
 
     @property
     def processed_file_names(self):
@@ -323,7 +323,7 @@ def get_rmd17_datasets(
         root = root.replace("md17", "rmd17")
 
     # keys: ['z', 'pos', 'batch', 'y', 'dy']
-    all_dataset = MD17(root, dataset_arg, revised=revised, revised_old=revised_old)
+    all_dataset = RMD17(root, dataset_arg, revised=revised, revised_old=revised_old)
 
     if load_splits == False:
         load_splits = None

@@ -41,7 +41,7 @@ split = np.load(split_file)
 
 
 def test_revised_dataset_creation(args):
-    """Test if the revised DatasetCreator can load the unrevised dataset."""
+    """Test if the revised DatasetCreator can load the original dataset."""
     print("\n", "-" * 80, "\n", inspect.currentframe().f_code.co_name)
 
     """ Dataset """
@@ -91,8 +91,8 @@ def test_revised_dataset_creation(args):
     return True
 
 
-def test_revisedold_equal_unrevised(args):
-    """Test if the `old` data in the revised dataset == unrevised dataset."""
+def test_revisedold_equal_original(args):
+    """Test if the `old` data in the revised dataset == original dataset."""
     print("\n", "-" * 80, "\n", inspect.currentframe().f_code.co_name)
 
     # If we don't specify the order, it will be a random permutation.
@@ -288,7 +288,7 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     # run tests
 
-    test_revisedold_equal_unrevised(args)
+    test_revisedold_equal_original(args)
 
     test_revised_dataset_creation(args)
 

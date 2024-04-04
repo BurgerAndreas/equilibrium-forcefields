@@ -33,6 +33,9 @@ use_revised_splits: False
 # use the non-revised (old) data downloaded from the revised dataset 
 # and processed with the revised dataset's preprocessing script (bool)
 md17revised_old: False
+
+use_original_datasetcreation: False
+
 # (str)
 output_dir: null
 # (str)

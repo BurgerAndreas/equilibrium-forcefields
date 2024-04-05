@@ -9,6 +9,7 @@ import numpy as np
 from torch_geometric.loader import DataLoader
 
 import os
+import copy
 
 # from logger import FileLogger
 from pathlib import Path
@@ -300,6 +301,14 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         # to have weight/spectral normalization. (for better stability)
         # Using norm_type='none' in `kwargs` can also skip it.
         if torchdeq_norm.norm_type not in [None, "none", False]:
+            pass
+        elif 'both' in torchdeq_norm.norm_type:
+            norm_kwargs = copy.deepcopy(torchdeq_norm)
+            norm_kwargs.norm_type = 'spectral_norm'
+            apply_norm(self.blocks, **norm_kwargs)
+            norm_kwargs.norm_type = 'weight_norm'
+            apply_norm(self.blocks, **norm_kwargs)
+        else:
             apply_norm(self.blocks, **torchdeq_norm)
             # register_norm_module(DEQDotProductAttentionTransformerMD17, 'spectral_norm', names=['blocks'], dims=[0])
         #################################################################

@@ -1,0 +1,13 @@
+# @package _global_
+# ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
+
+
+# one epoch
+# 100 forward steps
+
+log_fp_error_traj: True
+
+batch_size: 64
+
+deq_kwargs:
+  f_max_iter: 100

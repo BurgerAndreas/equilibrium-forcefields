@@ -205,6 +205,9 @@ def DepthwiseTensorProduct(
     irreps_node_output,
     internal_weights=False,
     bias=True,
+    # added
+    path_normalization="none",
+    normalization=None,
 ):
     """
     The irreps of output is pre-determined.
@@ -231,11 +234,14 @@ def DepthwiseTensorProduct(
         irreps_node_input,
         irreps_edge_attr,
         irreps_output,
-        instructions,
+        instructions=instructions,
         internal_weights=internal_weights,
         shared_weights=internal_weights,
         bias=bias,
         rescale=_RESCALE,
+        # added
+        path_normalization=path_normalization,
+        normalization=normalization,
     )
     return tp
 
@@ -254,6 +260,9 @@ class SeparableFCTP(torch.nn.Module):
         use_activation=False,
         norm_layer="graph",
         internal_weights=False,
+        # added
+        path_normalization="none",
+        normalization=None,
     ):
 
         super().__init__()
@@ -268,6 +277,9 @@ class SeparableFCTP(torch.nn.Module):
             self.irreps_node_output,
             bias=False,
             internal_weights=internal_weights,
+            # added
+            path_normalization=path_normalization,
+            normalization=normalization,
         )
 
         self.dtp_rad = None

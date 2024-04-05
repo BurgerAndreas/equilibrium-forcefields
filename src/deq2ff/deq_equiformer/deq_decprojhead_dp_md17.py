@@ -316,6 +316,11 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(
                 drop_path_rate=self.drop_path_rate,
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
+                # added
+                dp_tp_path_norm=self.dp_tp_path_norm,
+                dp_tp_irrep_norm=self.dp_tp_irrep_norm,
+                fc_tp_path_norm=self.fc_tp_path_norm,
+                fc_tp_irrep_norm=self.fc_tp_irrep_norm,
             )
             self.blocks.append(blk)
         print(f"\nInitialized {len(self.blocks)} blocks of `DPTransBlock`.")
@@ -354,6 +359,13 @@ def deq_decprojhead_dot_product_attention_transformer_exp_l2_md17(
     deq_kwargs={},
     torchdeq_norm=omegaconf.OmegaConf.create({"norm_type": "weight_norm"}),
     input_injection="first_layer",
+    z0="zero",
+    log_fp_error_traj=False,
+    dp_tp_path_norm="none",
+    dp_tp_irrep_norm=None, # None = 'element'
+    fc_tp_path_norm="none",
+    fc_tp_irrep_norm=None, # None = 'element'
+    #
     dec_proj="LinearRescaleHead",
     **kwargs,
 ):
@@ -392,6 +404,13 @@ def deq_decprojhead_dot_product_attention_transformer_exp_l2_md17(
         deq_kwargs=deq_kwargs,
         torchdeq_norm=torchdeq_norm,
         input_injection=input_injection,
+        z0=z0,
+        log_fp_error_traj=log_fp_error_traj,
+        dp_tp_path_norm=dp_tp_path_norm,
+        dp_tp_irrep_norm=dp_tp_irrep_norm,
+        fc_tp_path_norm=fc_tp_path_norm,
+        fc_tp_irrep_norm=fc_tp_irrep_norm,
+        #
         dec_proj=dec_proj,
     )
     print(f"! Ignoring kwargs: {kwargs}")

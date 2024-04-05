@@ -116,6 +116,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         irreps_node_embedding_injection="64x0e+32x1e+16x2e",
         z0="zero",
         log_fp_error_traj=False,
+        dp_tp_path_norm="none",
+        dp_tp_irrep_norm=None, # None = 'element'
+        fc_tp_path_norm="none",
+        fc_tp_irrep_norm=None, # None = 'element'
         # original
         irreps_in="64x0e",
         # 128*1 + 64*3 + 32*5 = 480
@@ -150,6 +154,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
 
         #################################################################
         # Added
+        self.dp_tp_path_norm = dp_tp_path_norm
+        self.dp_tp_irrep_norm = dp_tp_irrep_norm
+        self.fc_tp_path_norm = fc_tp_path_norm
+        self.fc_tp_irrep_norm = fc_tp_irrep_norm
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.log_fp_error_traj = log_fp_error_traj
@@ -349,6 +357,11 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
                 drop_path_rate=self.drop_path_rate,
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
+                # added
+                dp_tp_path_norm=self.dp_tp_path_norm,
+                dp_tp_irrep_norm=self.dp_tp_irrep_norm,
+                fc_tp_path_norm=self.fc_tp_path_norm,
+                fc_tp_irrep_norm=self.fc_tp_irrep_norm,
             )
             if i != (self.num_layers - 1):
                 self.blocks.append(blk)
@@ -796,6 +809,10 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     input_injection="first_layer",
     z0="zero",
     log_fp_error_traj=False,
+    dp_tp_path_norm="none",
+    dp_tp_irrep_norm=None, # None = 'element'
+    fc_tp_path_norm="none",
+    fc_tp_irrep_norm=None, # None = 'element'
     **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17
@@ -835,6 +852,10 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
         input_injection=input_injection,
         z0=z0,
         log_fp_error_traj=log_fp_error_traj,
+        dp_tp_path_norm=dp_tp_path_norm,
+        dp_tp_irrep_norm=dp_tp_irrep_norm,
+        fc_tp_path_norm=fc_tp_path_norm,
+        fc_tp_irrep_norm=fc_tp_irrep_norm,
     )
     print(f"! Ignoring kwargs: {kwargs}")
     return model

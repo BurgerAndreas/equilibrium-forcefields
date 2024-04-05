@@ -20,12 +20,18 @@ model_kwargs:
   # (float)
   drop_path: 0.0
   alpha_drop: 0.0
-  # proj_drop=0.0
-  # out_drop=0.0
-  # drop_path_rate=0.0
-  # scale=None
+  # proj_drop: 0.0
+  # out_drop: 0.0
+  # drop_path_rate: 0.0
+  # scale: None
   # (int)
   num_layers: 6
+  # normalization for TensorProduct (see o3 library)
+  # https://docs.e3nn.org/en/stable/api/o3/o3_tp.html#e3nn.o3.TensorProduct
+  dp_tp_path_norm: "none"
+  dp_tp_irrep_norm: null # None = 'element'
+  fc_tp_path_norm: "none"
+  fc_tp_irrep_norm: null # None = 'element'
 
 # use revised version of MD17 with more accurate energies and forces (bool)
 md17revised: False

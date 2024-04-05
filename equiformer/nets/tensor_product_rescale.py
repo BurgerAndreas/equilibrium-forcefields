@@ -13,6 +13,12 @@ from e3nn.math import perm
 
 
 class TensorProductRescale(torch.nn.Module):
+    """
+    normalization (aka irrep_normalization): {'component', 'norm', 'none'}
+    path_normalization: {'element', 'path', 'none'}
+        If set to ``element`` or None, each output is normalized by the total number of elements (independently of their paths).
+        If it is set to ``path``, each path is normalized by the total number of elements in the path, then each output is normalized by the number of paths.
+    """
     def __init__(
         self,
         irreps_in1,
@@ -23,9 +29,9 @@ class TensorProductRescale(torch.nn.Module):
         rescale=True,
         internal_weights=None,
         shared_weights=None,
-        normalization=None,
+        normalization=None, # None -> 'element'
+        path_normalization="none",
     ):
-
         super().__init__()
 
         self.irreps_in1 = irreps_in1
@@ -41,10 +47,11 @@ class TensorProductRescale(torch.nn.Module):
             irreps_in2=self.irreps_in2,
             irreps_out=self.irreps_out,
             instructions=instructions,
-            normalization=normalization,
+            normalization=None, # deprecated
+            irrep_normalization=normalization, 
             internal_weights=internal_weights,
             shared_weights=shared_weights,
-            path_normalization="none",
+            path_normalization=path_normalization,
         )
 
         self.init_rescale_bias()
@@ -185,7 +192,8 @@ class FullyConnectedTensorProductRescale(TensorProductRescale):
         rescale=True,
         internal_weights=None,
         shared_weights=None,
-        normalization=None,
+        normalization=None, # aka irrep_normalization
+        path_normalization="none",
     ):
 
         instructions = [
@@ -205,6 +213,7 @@ class FullyConnectedTensorProductRescale(TensorProductRescale):
             internal_weights=internal_weights,
             shared_weights=shared_weights,
             normalization=normalization,
+            path_normalization=path_normalization,
         )
 
 

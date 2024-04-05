@@ -85,6 +85,9 @@ class DotProductAttention(torch.nn.Module):
         rescale_degree=False,
         alpha_drop=0.1,
         proj_drop=0.1,
+        # added
+        dp_tp_path_norm="none",
+        dp_tp_irrep_norm=None, # None = 'element'
     ):
 
         super().__init__()
@@ -124,6 +127,9 @@ class DotProductAttention(torch.nn.Module):
             fc_neurons,
             use_activation=False,
             norm_layer=None,
+            # added
+            path_normalization=dp_tp_path_norm,
+            normalization=dp_tp_irrep_norm,
         )
 
         self.vec2heads_q = Vec2AttnHeads(irreps_head, num_heads)
@@ -221,6 +227,13 @@ class DPTransBlock(torch.nn.Module):
         drop_path_rate=0.0,
         irreps_mlp_mid=None,
         norm_layer="layer",
+        # added
+        dp_tp_path_norm="none",
+        dp_tp_irrep_norm=None, # None = 'element'
+        # FullyConnectedTensorProductRescale
+        # only used when irreps_node_input != irreps_node_output
+        fc_tp_path_norm="none",
+        fc_tp_irrep_norm=None, # None = 'element'
     ):
 
         super().__init__()
@@ -256,6 +269,9 @@ class DPTransBlock(torch.nn.Module):
             rescale_degree=self.rescale_degree,
             alpha_drop=alpha_drop,
             proj_drop=proj_drop,
+            # added
+            dp_tp_path_norm=dp_tp_path_norm,
+            dp_tp_irrep_norm=dp_tp_irrep_norm,
         )
 
         # regularization
@@ -282,6 +298,9 @@ class DPTransBlock(torch.nn.Module):
                 self.irreps_node_output,
                 bias=True,
                 rescale=_RESCALE,
+                # added
+                path_normalization=fc_tp_path_norm,
+                normalization=fc_tp_irrep_norm, # prior default: None = 'element'
             )
 
     def forward(

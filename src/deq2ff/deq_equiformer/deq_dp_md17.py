@@ -161,7 +161,6 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         self.fc_tp_irrep_norm = fc_tp_irrep_norm
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.log_fp_error_traj = log_fp_error_traj
 
         self.input_injection = input_injection
         if input_injection is False:
@@ -197,6 +196,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
 
         self.z0 = z0
         # tables to log to wandb
+        self.log_fp_error_traj = log_fp_error_traj
         self.fp_error_traj = {"train": None, "val": None, "test": None}
         #################################################################
 

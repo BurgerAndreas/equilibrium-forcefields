@@ -218,7 +218,7 @@ class FullyConnectedTensorProductRescale(TensorProductRescale):
 
 
 class LinearRS(FullyConnectedTensorProductRescale):
-    def __init__(self, irreps_in, irreps_out, bias=True, rescale=True):
+    def __init__(self, irreps_in, irreps_out, bias=True, rescale=True, normalization=None, path_normalization="none"):
         super().__init__(
             irreps_in,
             o3.Irreps("1x0e"),
@@ -227,7 +227,8 @@ class LinearRS(FullyConnectedTensorProductRescale):
             rescale=rescale,
             internal_weights=True,
             shared_weights=True,
-            normalization=None,
+            normalization=normalization, # aka irrep_normalization
+            path_normalization=path_normalization,
         )
 
     def forward(self, x):
@@ -255,6 +256,9 @@ def irreps2gate(irreps):
 
 
 class FullyConnectedTensorProductRescaleSwishGate(FullyConnectedTensorProductRescale):
+    """
+    Activation: for gate
+    """
     def __init__(
         self,
         irreps_in1,
@@ -265,15 +269,17 @@ class FullyConnectedTensorProductRescaleSwishGate(FullyConnectedTensorProductRes
         internal_weights=None,
         shared_weights=None,
         normalization=None,
+        path_normalization="none",
+        activation='silu'
     ):
 
         irreps_scalars, irreps_gates, irreps_gated = irreps2gate(irreps_out)
         if irreps_gated.num_irreps == 0:
-            gate = e3nn.nn.Activation(irreps_out, acts=[torch.nn.functional.silu])
+            gate = e3nn.nn.Activation(irreps_out, acts=[eval(f'torch.nn.functional.{activation}'.lower())])
         else:
             gate = e3nn.nn.Gate(
                 irreps_scalars,
-                [torch.nn.functional.silu for _, ir in irreps_scalars],  # scalar
+                [eval(f'torch.nn.functional.{activation}'.lower()) for _, ir in irreps_scalars],  # scalar
                 irreps_gates,
                 [torch.sigmoid for _, ir in irreps_gates],  # gates (scalars)
                 irreps_gated,  # gated tensors
@@ -287,6 +293,7 @@ class FullyConnectedTensorProductRescaleSwishGate(FullyConnectedTensorProductRes
             internal_weights=internal_weights,
             shared_weights=shared_weights,
             normalization=normalization,
+            path_normalization=path_normalization,
         )
         self.gate = gate
 

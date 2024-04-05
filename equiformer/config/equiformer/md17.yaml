@@ -26,6 +26,7 @@ model_kwargs:
   # scale: None
   # (int)
   num_layers: 6
+  activation: "selu" 
   # normalization for TensorProduct (see o3 library)
   # https://docs.e3nn.org/en/stable/api/o3/o3_tp.html#e3nn.o3.TensorProduct
   dp_tp_path_norm: "none"

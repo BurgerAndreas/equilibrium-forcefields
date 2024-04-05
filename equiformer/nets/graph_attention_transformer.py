@@ -168,15 +168,20 @@ class FullyConnectedTensorProductRescaleSwishGate(FullyConnectedTensorProductRes
         internal_weights=None,
         shared_weights=None,
         normalization=None,
+        path_normalization="none",
+        # added
+        activation="SiLU",
     ):
 
         irreps_scalars, irreps_gates, irreps_gated = irreps2gate(irreps_out)
         if irreps_gated.num_irreps == 0:
-            gate = Activation(irreps_out, acts=[torch.nn.SiLU()])
+            # gate = Activation(irreps_out, acts=[torch.nn.SiLU()])
+            gate = Activation(irreps_out, acts=[eval(f'torch.nn.{activation}()')])
         else:
             gate = Gate(
                 irreps_scalars,
-                [torch.nn.SiLU() for _, ir in irreps_scalars],  # scalar
+                # [torch.nn.SiLU() for _, ir in irreps_scalars],  # scalar
+                [eval(f'torch.nn.{activation}()') for _, ir in irreps_scalars],  # scalar
                 irreps_gates,
                 [torch.sigmoid for _, ir in irreps_gates],  # gates (scalars)
                 irreps_gated,  # gated tensors
@@ -190,6 +195,7 @@ class FullyConnectedTensorProductRescaleSwishGate(FullyConnectedTensorProductRes
             internal_weights=internal_weights,
             shared_weights=shared_weights,
             normalization=normalization,
+            path_normalization=path_normalization,
         )
         self.gate = gate
 
@@ -263,6 +269,7 @@ class SeparableFCTP(torch.nn.Module):
         # added
         path_normalization="none",
         normalization=None,
+        activation="SiLU",
     ):
 
         super().__init__()
@@ -305,11 +312,13 @@ class SeparableFCTP(torch.nn.Module):
         self.gate = None
         if use_activation:
             if irreps_gated.num_irreps == 0:
-                gate = Activation(self.irreps_node_output, acts=[torch.nn.SiLU()])
+                # gate = Activation(self.irreps_node_output, acts=[torch.nn.SiLU()])
+                gate = Activation(self.irreps_node_output, acts=[eval(f'torch.nn.{activation}()')])
             else:
                 gate = Gate(
                     irreps_scalars,
-                    [torch.nn.SiLU() for _, ir in irreps_scalars],  # scalar
+                    # [torch.nn.SiLU() for _, ir in irreps_scalars],  # scalar
+                    [eval(f'torch.nn.{activation}()') for _, ir in irreps_scalars],  # scalar
                     irreps_gates,
                     [torch.sigmoid for _, ir in irreps_gates],  # gates (scalars)
                     irreps_gated,  # gated tensors
@@ -680,6 +689,10 @@ class FeedForwardNetwork(torch.nn.Module):
         irreps_node_output,
         irreps_mlp_mid=None,
         proj_drop=0.1,
+        # added
+        activation="SiLU",
+        normalization=None,
+        path_normalization="none",
     ):
 
         super().__init__()
@@ -698,6 +711,10 @@ class FeedForwardNetwork(torch.nn.Module):
             self.irreps_mlp_mid,
             bias=True,
             rescale=_RESCALE,
+            # added
+            activation=activation,
+            normalization=normalization,
+            path_normalization=path_normalization,
         )
         self.fctp_2 = FullyConnectedTensorProductRescale(
             self.irreps_mlp_mid,
@@ -705,6 +722,9 @@ class FeedForwardNetwork(torch.nn.Module):
             self.irreps_node_output,
             bias=True,
             rescale=_RESCALE,
+            # added
+            normalization=normalization,
+            path_normalization=path_normalization,
         )
 
         self.proj_drop = None

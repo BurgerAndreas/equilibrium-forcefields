@@ -121,6 +121,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         dp_tp_irrep_norm=None, # None = 'element'
         fc_tp_path_norm="none",
         fc_tp_irrep_norm=None, # None = 'element'
+        activation='SiLU',
         # original
         irreps_in="64x0e",
         # 128*1 + 64*3 + 32*5 = 480
@@ -160,6 +161,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         self.fc_tp_path_norm = fc_tp_path_norm
         self.fc_tp_irrep_norm = fc_tp_irrep_norm
 
+        self.activation = activation
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.input_injection = input_injection
@@ -278,7 +280,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         # Output head
         self.head = torch.nn.Sequential(
             LinearRS(self.irreps_feature, self.irreps_feature, rescale=_RESCALE),
-            Activation(self.irreps_feature, acts=[torch.nn.SiLU()]),
+            # Activation(self.irreps_feature, acts=[torch.nn.SiLU()]),
+            Activation(self.irreps_feature, acts=[eval(f'torch.nn.{activation}()')]),
             LinearRS(self.irreps_feature, o3.Irreps("1x0e"), rescale=_RESCALE),
         )
         self.scale_scatter = ScaledScatter(_AVG_NUM_NODES)
@@ -371,6 +374,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
                 dp_tp_irrep_norm=self.dp_tp_irrep_norm,
                 fc_tp_path_norm=self.fc_tp_path_norm,
                 fc_tp_irrep_norm=self.fc_tp_irrep_norm,
+                activation=self.activation,
             )
             if i != (self.num_layers - 1):
                 self.blocks.append(blk)

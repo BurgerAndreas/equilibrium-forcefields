@@ -146,7 +146,8 @@ def main(args):
 
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch
-    wandb.watch(model, log="all", log_freq=args.log_every_step_major)
+    if args.watch_model:
+        wandb.watch(model, log="all", log_freq=args.log_every_step_major)
 
     if args.checkpoint_path is not None:
         state_dict = torch.load(args.checkpoint_path, map_location="cpu")

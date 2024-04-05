@@ -97,12 +97,6 @@ cooldown_epochs: 10
 patience_epochs: 10
 # LR decay rate (default: 0.1 (float)
 decay_rate: 0.1
-# (int)
-print_freq: 100
-# major stuff (int)
-log_every_step_major: 1000
-# minor stuff (int)
-log_every_step_minor: 100
 # (str)
 target: "aspirin"
 # (str)
@@ -140,7 +134,16 @@ evaluate: False
 # Include force in loss calculation. (str2bool)
 meas_force: True
 
+# use model.eval() during evaluation (bool)
 eval_mode: False
+
+# logging
+# (int)
+print_freq: 100
+# major stuff (int)
+log_every_step_major: 1000
+# minor stuff (int)
+log_every_step_minor: 100
 
 wandb: True
 wandb_run_name: null
@@ -148,6 +151,9 @@ wandb_group: null
 slurm_job_id: null
 model_is_deq: False
 fpreuse_test: False
+
+# wandb.watch gradients, activations, model parameters (bool)
+watch_model: False
 
 # variables we can access in our code
 job_name: 'results'

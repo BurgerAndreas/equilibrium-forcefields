@@ -3,6 +3,8 @@
 
 # dot_product_attention_transformer_exp_l2_md17
 
+override_test: 0
+
 model_kwargs:
   num_layers: 6
   num_basis: 128

@@ -1,8 +1,9 @@
 # @package _global_
 # ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
 
-# auto-generated from equiformer/scripts/train/md17/equiformer/se_l2/target@aspirin.sh
+override_test: 4
 
+# auto-generated from equiformer/scripts/train/md17/equiformer/se_l2/target@aspirin.sh
 output_dir: 'models/md17/equiformer/se_l2/target@aspirin/lr@5e-4_wd@1e-6_epochs@1500_w-f2e@80_dropout@0.0_exp@32_l2mae-loss'
 model_name: 'graph_attention_transformer_nonlinear_exp_l2_md17'
 target: 'aspirin'

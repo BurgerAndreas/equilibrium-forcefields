@@ -514,6 +514,10 @@ class GraphAttention(torch.nn.Module):
         nonlinear_message=False,
         alpha_drop=0.1,
         proj_drop=0.1,
+        # added
+        normalization=None,
+        path_normalization="none",
+        activation="SiLU",
     ):
 
         super().__init__()
@@ -560,6 +564,10 @@ class GraphAttention(torch.nn.Module):
                 use_activation=True,
                 norm_layer=None,
                 internal_weights=False,
+                # added
+                normalization=normalization,
+                path_normalization=path_normalization,
+                activation=activation,
             )
             self.sep_alpha = LinearRS(self.sep_act.dtp.irreps_out, irreps_alpha)
             self.sep_value = SeparableFCTP(
@@ -570,6 +578,10 @@ class GraphAttention(torch.nn.Module):
                 use_activation=False,
                 norm_layer=None,
                 internal_weights=True,
+                # added
+                normalization=normalization,
+                path_normalization=path_normalization,
+                activation=activation,
             )
             self.vec2heads_alpha = Vec2AttnHeads(
                 o3.Irreps("{}x0e".format(mul_alpha_head)), num_heads
@@ -583,6 +595,10 @@ class GraphAttention(torch.nn.Module):
                 fc_neurons,
                 use_activation=False,
                 norm_layer=None,
+                # added
+                normalization=normalization,
+                path_normalization=path_normalization,
+                activation=activation,
             )
             self.vec2heads = Vec2AttnHeads(
                 (o3.Irreps("{}x0e".format(mul_alpha_head)) + irreps_head).simplify(),
@@ -765,6 +781,14 @@ class TransBlock(torch.nn.Module):
         drop_path_rate=0.0,
         irreps_mlp_mid=None,
         norm_layer="layer",
+        # added
+        dp_tp_path_norm="none",
+        dp_tp_irrep_norm=None, # None = 'element'
+        # FullyConnectedTensorProductRescale
+        # only used when irreps_node_input != irreps_node_output
+        fc_tp_path_norm="none",
+        fc_tp_irrep_norm=None, # None = 'element'
+        activation='SiLU',
     ):
 
         super().__init__()
@@ -801,6 +825,10 @@ class TransBlock(torch.nn.Module):
             nonlinear_message=self.nonlinear_message,
             alpha_drop=alpha_drop,
             proj_drop=proj_drop,
+            # added
+            normalization=dp_tp_irrep_norm,
+            path_normalization=dp_tp_path_norm,
+            activation=activation,
         )
 
         self.drop_path = GraphDropPath(drop_path_rate) if drop_path_rate > 0.0 else None
@@ -814,6 +842,10 @@ class TransBlock(torch.nn.Module):
             irreps_node_output=self.irreps_node_output,
             irreps_mlp_mid=self.irreps_mlp_mid,
             proj_drop=proj_drop,
+            # added
+            activation=activation,
+            normalization=dp_tp_irrep_norm,
+            path_normalization=dp_tp_path_norm,
         )
         self.ffn_shortcut = None
         if self.irreps_node_input != self.irreps_node_output:
@@ -823,6 +855,9 @@ class TransBlock(torch.nn.Module):
                 self.irreps_node_output,
                 bias=True,
                 rescale=_RESCALE,
+                # added
+                normalization=fc_tp_irrep_norm,
+                path_normalization=fc_tp_path_norm,
             )
 
     def forward(

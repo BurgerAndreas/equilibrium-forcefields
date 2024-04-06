@@ -65,7 +65,7 @@ for file in all_files:
             f.write(default_beginning)
             f.write("\n")
             f.write(f"# auto-generated from {file}")
-            f.write("\n\n")
+            f.write("\n")
 
             # read the file
             model_name = None

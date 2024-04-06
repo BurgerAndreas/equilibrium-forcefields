@@ -12,6 +12,10 @@ python scripts/deq_equiformer.py
 python equiformer/main_md17.py 
 # for revised MD17 dataset: 
 python scripts/deq_equiformer.py md17revised=True
+# for the model version used in the equiformer paper:
+python scripts/deq_equiformer.py model_name="graph_attention_transformer_nonlinear_l2_md17"
+# all args as in the equiformer paper:
+python scripts/deq_equiformer.py +preset=md17_aspirin_sel2
 ```
 
 On a slurm cluster:

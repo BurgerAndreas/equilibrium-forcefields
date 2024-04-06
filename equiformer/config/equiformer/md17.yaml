@@ -8,6 +8,8 @@ defaults:
   - ../preset: md17_defaults
   - _self_
 
+override_test: 1
+
 # passed into model
 model_kwargs:
   # (str)

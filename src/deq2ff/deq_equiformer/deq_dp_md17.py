@@ -84,6 +84,7 @@ from equiformer.nets.graph_attention_transformer import (
     FullyConnectedTensorProductRescaleSwishGate,
     DepthwiseTensorProduct,
     SeparableFCTP,
+    GraphAttention,
     Vec2AttnHeads,
     AttnHeads2Vec,
     FeedForwardNetwork,
@@ -100,31 +101,18 @@ from equiformer.nets.dp_attention_transformer_md17 import (
 )
 
 import deq2ff.logging_utils_deq as logging_utils_deq
+from deq2ff.deq_equiformer.deq_base import DEQBase
 
-
-class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
+class DEQDotProductAttentionTransformerMD17(torch.nn.Module, DEQBase):
     """
     Modified from equiformer.nets.dp_attention_transformer_md17.DotProductAttentionTransformerMD17
     """
 
     def __init__(
         self,
-        # added
-        deq_mode=True,
-        torchdeq_norm=omegaconf.OmegaConf.create({"norm_type": "weight_norm"}),
-        deq_kwargs={},
-        input_injection="first_layer",  # False=V1, 'first_layer'=V2
-        irreps_node_embedding_injection="64x0e+32x1e+16x2e",
-        z0="zero",
-        log_fp_error_traj=False,
-        dp_tp_path_norm="none",
-        dp_tp_irrep_norm=None, # None = 'element'
-        fc_tp_path_norm="none",
-        fc_tp_irrep_norm=None, # None = 'element'
-        activation='SiLU',
         # original
         irreps_in="64x0e",
-        # 128*1 + 64*3 + 32*5 = 480
+        # dim: 128*1 + 64*3 + 32*5 = 480
         irreps_node_embedding="128x0e+64x1e+32x2e",
         irreps_feature="512x0e",  # scalar output features
         num_layers=6,
@@ -146,61 +134,17 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         proj_drop=0.0,
         out_drop=0.0,
         drop_path_rate=0.0,
-        mean=None,
-        std=None,
+        task_mean=None,
+        task_std=None,
         # scale the final output by this number
         scale: float = None,
         atomref=None,
+        use_attn_head=False,
+        **kwargs,
     ):
         super().__init__()
 
-        #################################################################
-        # Added
-        self.dp_tp_path_norm = dp_tp_path_norm
-        self.dp_tp_irrep_norm = dp_tp_irrep_norm
-        self.fc_tp_path_norm = fc_tp_path_norm
-        self.fc_tp_irrep_norm = fc_tp_irrep_norm
-
-        self.activation = activation
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        self.input_injection = input_injection
-        if input_injection is False:
-            # V1
-            # node_features are initialized as the output of the encoder
-            self.irreps_node_injection = o3.Irreps(
-                irreps_node_embedding
-            )  # output of encoder
-            self.irreps_node_z = o3.Irreps(irreps_node_embedding)  # input to block
-            self.irreps_node_embedding = o3.Irreps(
-                irreps_node_embedding
-            )  # output of block
-        elif self.input_injection in ["first_layer", "every_layer", True, "legacy"]:
-            # V2
-            # node features are initialized as 0
-            # and the node features from the encoder are used as input injection
-            # encoder = atom_embed() and edge_deg_embed()
-            # both encoder shapes are defined by irreps_node_embedding
-            # input to self.blocks is the concat of node_input and node_injection
-            self.irreps_node_injection = o3.Irreps(
-                irreps_node_embedding_injection
-            )  # output of encoder
-            self.irreps_node_embedding = o3.Irreps(
-                irreps_node_embedding
-            )  # output of block
-            # "128x0e+64x1e+32x2e" + "64x0e+32x1e+16x2e"
-            # 128x0e+64x1e+32x2e+64x0e+32x1e+16x2e
-            irreps_node_z = self.irreps_node_embedding + self.irreps_node_injection
-            irreps_node_z.simplify()
-            self.irreps_node_z = o3.Irreps(irreps_node_z).simplify()  # input to block
-        else:
-            raise ValueError(f"Invalid input_injection: {input_injection}")
-
-        self.z0 = z0
-        # tables to log to wandb
-        self.log_fp_error_traj = log_fp_error_traj
-        self.fp_error_traj = {"train": None, "val": None, "test": None}
-        #################################################################
+        kwargs = self._set_deq_vars(irreps_node_embedding, **kwargs)
 
         self.max_radius = max_radius
         self.number_of_basis = number_of_basis
@@ -209,8 +153,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         self.out_drop = out_drop
         self.drop_path_rate = drop_path_rate
         self.norm_layer = norm_layer
-        self.task_mean = mean
-        self.task_std = std
+        self.task_mean = task_mean
+        self.task_std = task_std
         self.scale = scale
         self.register_buffer("atomref", atomref)
 
@@ -278,42 +222,36 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         if self.out_drop != 0.0:
             self.out_dropout = EquivariantDropout(self.irreps_feature, self.out_drop)
         # Output head
-        self.head = torch.nn.Sequential(
-            LinearRS(self.irreps_feature, self.irreps_feature, rescale=_RESCALE),
-            # Activation(self.irreps_feature, acts=[torch.nn.SiLU()]),
-            Activation(self.irreps_feature, acts=[eval(f'torch.nn.{activation}()')]),
-            LinearRS(self.irreps_feature, o3.Irreps("1x0e"), rescale=_RESCALE),
-        )
+        self.use_attn_head = use_attn_head
+        if self.use_attn_head:
+            self.head = GraphAttention(
+                irreps_node_input=self.irreps_feature,
+                irreps_node_attr=self.irreps_node_attr,
+                irreps_edge_attr=self.irreps_edge_attr,
+                irreps_node_output=o3.Irreps("1x0e"),
+                fc_neurons=self.fc_neurons,
+                irreps_head=self.irreps_head,
+                num_heads=self.num_heads,
+                irreps_pre_attn=self.irreps_pre_attn,
+                rescale_degree=self.rescale_degree,
+                nonlinear_message=self.nonlinear_message,
+                alpha_drop=self.alpha_drop,
+                proj_drop=self.proj_drop,
+            )
+        else:
+            self.head = torch.nn.Sequential(
+                LinearRS(self.irreps_feature, self.irreps_feature, rescale=_RESCALE),
+                # Activation(self.irreps_feature, acts=[torch.nn.SiLU()]),
+                Activation(self.irreps_feature, acts=[eval(f'torch.nn.{self.activation}()')]),
+                LinearRS(self.irreps_feature, o3.Irreps("1x0e"), rescale=_RESCALE),
+            )
         self.scale_scatter = ScaledScatter(_AVG_NUM_NODES)
 
         self.apply(self._init_weights)
-        self.dec_proj = None
 
-        #################################################################
-        # DEQ specific
-
-        self.deq_mode = deq_mode
-        self.deq = get_deq(**deq_kwargs)
-        # self.deq = get_deq(f_solver='broyden', f_max_iter=20, f_tol=1e-6)
-        # self.register_buffer('z_aux', self._init_z())
-
-        # from DEQ INR example
-        # https://colab.research.google.com/drive/12HiUnde7qLadeZGGtt7FITnSnbUmJr-I?usp=sharing#scrollTo=RGgPMQLT6IHc
-        # https://github.com/locuslab/torchdeq/blob/main/deq-zoo/ignn/graphclassification/layers.py
-        # This function automatically decorates weights in your DEQ layer
-        # to have weight/spectral normalization. (for better stability)
-        # Using norm_type='none' in `kwargs` can also skip it.
-        if torchdeq_norm.norm_type not in [None, "none", False]:
-            pass
-        elif 'both' in torchdeq_norm.norm_type:
-            norm_kwargs = copy.deepcopy(torchdeq_norm)
-            norm_kwargs.norm_type = 'spectral_norm'
-            apply_norm(self.blocks, **norm_kwargs)
-            norm_kwargs.norm_type = 'weight_norm'
-            apply_norm(self.blocks, **norm_kwargs)
-        else:
-            apply_norm(self.blocks, **torchdeq_norm)
-            # register_norm_module(DEQDotProductAttentionTransformerMD17, 'spectral_norm', names=['blocks'], dims=[0])
+        kwargs = self._init_deq(**kwargs)
+        print(f'! Ignoring kwargs: {kwargs}')
+        
         #################################################################
 
     def build_blocks(self):
@@ -321,17 +259,17 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         Last block outputs scalars (l0) only.
         """
         for i in range(self.num_layers):
-            # last layer is different which will screw up DEQ
-            # last block outputs scalars only (l0 only, no higher l's)
-            # irreps_node_embedding -> irreps_feature
-            # "128x0e+64x1e+32x2e" -> "512x0e"
             if i >= (self.num_layers - 1):
                 # last block
+                # last block outputs scalars only (l0 only, no higher l's)
+                # irreps_node_embedding -> irreps_feature
+                # "128x0e+64x1e+32x2e" -> "512x0e"
                 # as of now we do not concat the node_features_input_injection
                 # onto the node_features for the decoder
                 irreps_node_input = self.irreps_node_embedding
                 irreps_block_output = self.irreps_feature
             else:
+                # first and middle layer: input injection
                 irreps_node_input = self.irreps_node_z
                 irreps_block_output = self.irreps_node_embedding
 
@@ -342,10 +280,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
                 elif i >= (self.num_layers - 1):
                     # last layer unchanged
                     pass
-                    # irreps_node_input = self.irreps_node_embedding
-                    # irreps_block_output = self.irreps_feature
                 else:
-                    # no input injection
+                    # middle layers: no input injection
                     irreps_node_input = self.irreps_node_embedding
                     irreps_block_output = self.irreps_node_embedding
 
@@ -586,27 +522,6 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
 
         return node_features
 
-        # if self.input_injection == True:
-        #     node_features_in = node_features
-        # else:
-        #     # inject node_features_injection
-        #     # TODO does not seem right
-        #     # print("cat node_features.shape", node_features.shape)
-        #     node_features_in = torch.cat([node_features, node_features_injection], dim=1)
-
-        # # print("node_features.shape", node_features.shape)
-        # for blknum, blk in enumerate(self.blocks):
-        #     node_features = blk(
-        #         node_input=node_features_in,
-        #         node_attr=node_attr,
-        #         edge_src=edge_src,
-        #         edge_dst=edge_dst,
-        #         edge_attr=edge_sh,
-        #         edge_scalars=edge_length_embedding,
-        #         batch=batch,
-        #     )
-        # return node_features
-
     @torch.enable_grad()
     def decode(
         self,
@@ -618,16 +533,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
         edge_length_embedding,
         batch,
         pos,
-        datasplit=None,
     ):
         """Decode the node features into energy and forces (scalars).
         Basically the last third of DotProductAttentionTransformerMD17.forward()
         """
-        # TODO:
-        # if model.eval() -> node_features.requires_grad is False
-        # if also using decprojhead -> autograd error
-        # because if final_block does not use DotProductAttention, edge_sh and edge_length_embedding are not used
-        # but why are they used in prior blocks if model.eval()?
 
         node_features = self.final_block(
             node_input=node_features,
@@ -645,7 +554,18 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
 
         # outputs
         # [num_atoms*batch_size, irreps_dim] -> [num_atoms*batch_size, 1]
-        outputs = self.head(node_features)
+        if self.use_attn_head:
+            outputs = self.head(
+                node_input=node_features,
+                node_attr=node_attr,
+                edge_src=edge_src,
+                edge_dst=edge_dst,
+                edge_attr=edge_sh,
+                edge_scalars=edge_length_embedding,
+                batch=batch,
+            )
+        else:
+            outputs = self.head(node_features)
         outputs = self.scale_scatter(outputs, batch, dim=0)
 
         if self.scale is not None:
@@ -775,7 +695,6 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
             edge_length_embedding=edge_length_embedding,
             batch=batch,
             pos=pos,
-            datasplit=datasplit,
         )
 
         # return outputs, z_pred[-1]
@@ -787,88 +706,49 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module):
 
 @register_model
 def deq_dot_product_attention_transformer_exp_l2_md17(
-    irreps_in,
-    radius,
-    num_layers=6,
-    num_basis=128,
-    atomref=None,
-    task_mean=None,
-    task_std=None,
-    irreps_node_attr="1x0e",
-    basis_type="exp",
-    # most import for parameter count?
-    fc_neurons=[64, 64],
-    irreps_node_embedding_injection="64x0e+32x1e+16x2e",
-    irreps_node_embedding="128x0e+64x1e+32x2e",
-    irreps_feature="512x0e",  # scalars only
-    irreps_sh="1x0e+1x1e+1x2e",
-    irreps_head="32x0e+16x1e+8x2e",
-    num_heads=4,
-    irreps_mlp_mid="384x0e+192x1e+96x2e",
-    #
-    irreps_pre_attn=None,
-    rescale_degree=False,
-    nonlinear_message=False,
-    norm_layer="layer",
-    # regularization
-    alpha_drop=0.0,
-    proj_drop=0.0,
-    out_drop=0.0,
-    drop_path_rate=0.0,
-    scale=None,
-    # DEQ specific
-    deq_kwargs={},
-    torchdeq_norm=omegaconf.OmegaConf.create({"norm_type": "weight_norm"}),
-    input_injection="first_layer",
-    z0="zero",
-    log_fp_error_traj=False,
-    dp_tp_path_norm="none",
-    dp_tp_irrep_norm=None, # None = 'element'
-    fc_tp_path_norm="none",
-    fc_tp_irrep_norm=None, # None = 'element'
+    # irreps_in,
+    # radius,
+    # num_layers=6,
+    # num_basis=128,
+    # atomref=None,
+    # task_mean=None,
+    # task_std=None,
+    # irreps_node_attr="1x0e",
+    # basis_type="exp",
+    # # most import for parameter count?
+    # fc_neurons=[64, 64],
+    # irreps_node_embedding_injection="64x0e+32x1e+16x2e",
+    # irreps_node_embedding="128x0e+64x1e+32x2e",
+    # irreps_feature="512x0e",  # scalars only
+    # irreps_sh="1x0e+1x1e+1x2e",
+    # irreps_head="32x0e+16x1e+8x2e",
+    # num_heads=4,
+    # irreps_mlp_mid="384x0e+192x1e+96x2e",
+    # #
+    # irreps_pre_attn=None,
+    # rescale_degree=False,
+    # nonlinear_message=False,
+    # norm_layer="layer",
+    # # regularization
+    # alpha_drop=0.0,
+    # proj_drop=0.0,
+    # out_drop=0.0,
+    # drop_path_rate=0.0,
+    # scale=None,
+    # # DEQ specific
+    # deq_kwargs={},
+    # torchdeq_norm=omegaconf.OmegaConf.create({"norm_type": "weight_norm"}),
+    # input_injection="first_layer",
+    # z0="zero",
+    # log_fp_error_traj=False,
+    # dp_tp_path_norm="none",
+    # dp_tp_irrep_norm=None, # None = 'element'
+    # fc_tp_path_norm="none",
+    # fc_tp_irrep_norm=None, # None = 'element'
     **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17
     model = DEQDotProductAttentionTransformerMD17(
-        irreps_in=irreps_in,
-        num_layers=num_layers,
-        irreps_node_attr=irreps_node_attr,
-        max_radius=radius,
-        number_of_basis=num_basis,
-        basis_type=basis_type,
-        # most import for parameter count?
-        fc_neurons=fc_neurons,
-        irreps_node_embedding_injection=irreps_node_embedding_injection,
-        irreps_node_embedding=irreps_node_embedding,
-        irreps_feature=irreps_feature,
-        irreps_sh=irreps_sh,
-        irreps_head=irreps_head,
-        num_heads=num_heads,
-        irreps_mlp_mid=irreps_mlp_mid,
-        #
-        irreps_pre_attn=irreps_pre_attn,
-        rescale_degree=rescale_degree,
-        nonlinear_message=nonlinear_message,
-        norm_layer=norm_layer,
-        alpha_drop=alpha_drop,
-        proj_drop=proj_drop,
-        out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
-        mean=task_mean,
-        std=task_std,
-        scale=scale,
-        atomref=atomref,
-        # DEQ specific
-        deq_mode=True,
-        deq_kwargs=deq_kwargs,
-        torchdeq_norm=torchdeq_norm,
-        input_injection=input_injection,
-        z0=z0,
-        log_fp_error_traj=log_fp_error_traj,
-        dp_tp_path_norm=dp_tp_path_norm,
-        dp_tp_irrep_norm=dp_tp_irrep_norm,
-        fc_tp_path_norm=fc_tp_path_norm,
-        fc_tp_irrep_norm=fc_tp_irrep_norm,
+        **kwargs
     )
-    print(f"! Ignoring kwargs: {kwargs}")
     return model

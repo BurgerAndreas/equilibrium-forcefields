@@ -132,7 +132,7 @@ def log_fixed_point_error(
                         f_abs_trace.detach().cpu().numpy().tolist(),
                     f"rel_fixed_point_error_traj{n}":
                         f_rel_trace.detach().cpu().numpy().tolist()
-                }) 
+                }, step=step) 
 
     return None
 

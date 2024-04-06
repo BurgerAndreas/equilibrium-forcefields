@@ -1,0 +1,43 @@
+# @package _global_
+# ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
+
+# auto-generated from equiformer/scripts/train/md17/equiformer/se_l2/target@salicylic_acid.sh
+
+output_dir: 'models/md17/equiformer/se_l2/target@salicylic_acid/lr@5e-4_wd@1e-6_epochs@1500_w-f2e@80_dropout@0.0_exp@32_l2mae-loss'
+model_name: 'graph_attention_transformer_nonlinear_exp_l2_md17'
+target: 'salicylic_acid'
+data_path: 'datasets/md17'
+epochs: 1500
+lr: 5e-4
+batch_size: 8
+weight_decay: 1e-6
+energy_weight: 1
+force_weight: 80
+
+
+# auto-generated from equiformer/nets/graph_attention_transformer_md17.py
+model_kwargs:
+  atomref: null
+  task_mean: null
+  task_std: null
+  num_layers: 6
+  irreps_node_embedding: "128x0e+64x1e+32x2e"
+  irreps_node_attr: "1x0e"
+  irreps_sh: "1x0e+1x1e+1x2e"
+  fc_neurons: [64,64]
+  basis_type: "exp"
+  irreps_feature: "512x0e"
+  irreps_head: "32x0e+16x1e+8x2e"
+  num_heads: 4
+  irreps_pre_attn: null
+  rescale_degree: False
+  nonlinear_message: True
+  irreps_mlp_mid: "384x0e+192x1e+96x2e"
+  norm_layer: "layer"
+  alpha_drop: 0.0
+  proj_drop: 0.0
+  out_drop: 0.0
+  drop_path_rate: 0.0
+  scale: null
+  irreps_in: '64x0e'
+  num_basis: 32

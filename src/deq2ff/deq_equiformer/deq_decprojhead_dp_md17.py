@@ -268,6 +268,8 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(
         ], f"Only `input_injection='first_layer' | 'last_layer'` is supported, got {kwargs['input_injection']}"
         super().__init__(**kwargs)
 
+        assert self.input_injection == "first_layer", "Only `input_injection='first_layer'` is supported."
+
         # decoder_proj
         self.dec_proj = dec_proj
         # add a layer norm?
@@ -282,136 +284,58 @@ class DEQDecProjHeadDotProductAttentionTransformerMD17(
             f"\nInitialized decoder projection head `{dec_proj}` with {sum(p.numel() for p in self.final_block.parameters() if p.requires_grad)} parameters."
         )
 
-    def build_blocks(self):
-        """N blocks of: Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
-        Last block outputs scalars (l0) only.
-        """
-        for i in range(self.num_layers):
-            irreps_node_input = self.irreps_node_z
-            irreps_block_output = self.irreps_node_embedding
+    # def build_blocks(self):
+    #     """N blocks of: Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
+    #     Last block outputs scalars (l0) only.
+    #     """
+    #     for i in range(self.num_layers):
+    #         irreps_node_input = self.irreps_node_z
+    #         irreps_block_output = self.irreps_node_embedding
 
-            if self.input_injection == "first_layer":
-                if i > 0:
-                    # no input injection
-                    irreps_node_input = self.irreps_node_embedding
-                    irreps_block_output = self.irreps_node_embedding
+    #         if self.input_injection == "first_layer":
+    #             if i > 0:
+    #                 # no input injection
+    #                 irreps_node_input = self.irreps_node_embedding
+    #                 irreps_block_output = self.irreps_node_embedding
 
-            # Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
-            # extra stuff (= everything except node_features) is used for KV in DotProductAttention
-            blk = DPTransBlock(
-                # irreps_node_input=self.irreps_node_embedding,
-                irreps_node_input=irreps_node_input,
-                irreps_node_attr=self.irreps_node_attr,
-                irreps_edge_attr=self.irreps_edge_attr,
-                # output: which l's?
-                irreps_node_output=irreps_block_output,
-                fc_neurons=self.fc_neurons,
-                irreps_head=self.irreps_head,
-                num_heads=self.num_heads,
-                irreps_pre_attn=self.irreps_pre_attn,
-                rescale_degree=self.rescale_degree,
-                nonlinear_message=self.nonlinear_message,
-                alpha_drop=self.alpha_drop,
-                proj_drop=self.proj_drop,
-                drop_path_rate=self.drop_path_rate,
-                irreps_mlp_mid=self.irreps_mlp_mid,
-                norm_layer=self.norm_layer,
-                # added
-                dp_tp_path_norm=self.dp_tp_path_norm,
-                dp_tp_irrep_norm=self.dp_tp_irrep_norm,
-                fc_tp_path_norm=self.fc_tp_path_norm,
-                fc_tp_irrep_norm=self.fc_tp_irrep_norm,
-            )
-            self.blocks.append(blk)
-        print(f"\nInitialized {len(self.blocks)} blocks of `DPTransBlock`.")
+    #         # Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
+    #         # extra stuff (= everything except node_features) is used for KV in DotProductAttention
+    #         blk = DPTransBlock(
+    #             # irreps_node_input=self.irreps_node_embedding,
+    #             irreps_node_input=irreps_node_input,
+    #             irreps_node_attr=self.irreps_node_attr,
+    #             irreps_edge_attr=self.irreps_edge_attr,
+    #             # output: which l's?
+    #             irreps_node_output=irreps_block_output,
+    #             fc_neurons=self.fc_neurons,
+    #             irreps_head=self.irreps_head,
+    #             num_heads=self.num_heads,
+    #             irreps_pre_attn=self.irreps_pre_attn,
+    #             rescale_degree=self.rescale_degree,
+    #             nonlinear_message=self.nonlinear_message,
+    #             alpha_drop=self.alpha_drop,
+    #             proj_drop=self.proj_drop,
+    #             drop_path_rate=self.drop_path_rate,
+    #             irreps_mlp_mid=self.irreps_mlp_mid,
+    #             norm_layer=self.norm_layer,
+    #             # added
+    #             dp_tp_path_norm=self.dp_tp_path_norm,
+    #             dp_tp_irrep_norm=self.dp_tp_irrep_norm,
+    #             fc_tp_path_norm=self.fc_tp_path_norm,
+    #             fc_tp_irrep_norm=self.fc_tp_irrep_norm,
+    #         )
+    #         self.blocks.append(blk)
+    #     print(f"\nInitialized {len(self.blocks)} blocks of `DPTransBlock`.")
 
 
 @register_model
 def deq_decprojhead_dot_product_attention_transformer_exp_l2_md17(
-    irreps_in,
-    radius,
-    num_layers=6,
-    num_basis=128,
-    atomref=None,
-    task_mean=None,
-    task_std=None,
-    irreps_node_attr="1x0e",
-    basis_type="exp",
-    # most import for parameter count?
-    fc_neurons=[64, 64],
-    irreps_node_embedding_injection="64x0e+32x1e+16x2e",
-    irreps_node_embedding="128x0e+64x1e+32x2e",
-    irreps_feature="512x0e",  # scalars only
-    irreps_sh="1x0e+1x1e+1x2e",
-    irreps_head="32x0e+16x1e+8x2e",
-    num_heads=4,
-    irreps_mlp_mid="384x0e+192x1e+96x2e",
-    #
-    irreps_pre_attn=None,
-    rescale_degree=False,
-    nonlinear_message=False,
-    norm_layer="layer",
-    alpha_drop=0.0,
-    proj_drop=0.0,
-    out_drop=0.0,
-    drop_path_rate=0.0,
-    scale=None,
-    deq_kwargs={},
-    torchdeq_norm=omegaconf.OmegaConf.create({"norm_type": "weight_norm"}),
-    input_injection="first_layer",
-    z0="zero",
-    log_fp_error_traj=False,
-    dp_tp_path_norm="none",
-    dp_tp_irrep_norm=None, # None = 'element'
-    fc_tp_path_norm="none",
-    fc_tp_irrep_norm=None, # None = 'element'
-    #
     dec_proj="LinearRescaleHead",
     **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17
     model = DEQDecProjHeadDotProductAttentionTransformerMD17(
-        irreps_in=irreps_in,
-        num_layers=num_layers,
-        irreps_node_attr=irreps_node_attr,
-        max_radius=radius,
-        number_of_basis=num_basis,
-        basis_type=basis_type,
-        # most import for parameter count?
-        fc_neurons=fc_neurons,
-        irreps_node_embedding_injection=irreps_node_embedding_injection,
-        irreps_node_embedding=irreps_node_embedding,
-        irreps_feature=irreps_feature,
-        irreps_sh=irreps_sh,
-        irreps_head=irreps_head,
-        num_heads=num_heads,
-        irreps_mlp_mid=irreps_mlp_mid,
-        #
-        irreps_pre_attn=irreps_pre_attn,
-        rescale_degree=rescale_degree,
-        nonlinear_message=nonlinear_message,
-        norm_layer=norm_layer,
-        alpha_drop=alpha_drop,
-        proj_drop=proj_drop,
-        out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
-        mean=task_mean,
-        std=task_std,
-        scale=scale,
-        atomref=atomref,
-        # DEQ specific
-        deq_mode=True,
-        deq_kwargs=deq_kwargs,
-        torchdeq_norm=torchdeq_norm,
-        input_injection=input_injection,
-        z0=z0,
-        log_fp_error_traj=log_fp_error_traj,
-        dp_tp_path_norm=dp_tp_path_norm,
-        dp_tp_irrep_norm=dp_tp_irrep_norm,
-        fc_tp_path_norm=fc_tp_path_norm,
-        fc_tp_irrep_norm=fc_tp_irrep_norm,
-        #
         dec_proj=dec_proj,
+        **kwargs,
     )
-    print(f"! Ignoring kwargs: {kwargs}")
     return model

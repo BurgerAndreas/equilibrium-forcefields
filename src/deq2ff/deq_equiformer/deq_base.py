@@ -130,10 +130,9 @@ class EquiformerDEQBase:
             pass
         elif "both" in torchdeq_norm.norm_type:
             norm_kwargs = copy.deepcopy(torchdeq_norm)
-            norm_kwargs.norm_type = "spectral_norm"
-            apply_norm(self.blocks, **norm_kwargs)
-            norm_kwargs.norm_type = "weight_norm"
-            apply_norm(self.blocks, **norm_kwargs)
+            norm_kwargs.pop("norm_type")
+            apply_norm(self.blocks, norm_type = "weight_norm", **norm_kwargs)
+            apply_norm(self.blocks, norm_type = "spectral_norm" **norm_kwargs)
         else:
             apply_norm(self.blocks, **torchdeq_norm)
             # register_norm_module(DEQDotProductAttentionTransformerMD17, 'spectral_norm', names=['blocks'], dims=[0])

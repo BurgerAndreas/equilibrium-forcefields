@@ -770,7 +770,7 @@ def evaluate(
     task_mean = model.task_mean
     task_std = model.task_std
 
-    # with torch.no_grad(): # TODO why does this work with forces?
+    # with torch.no_grad(): # remove because of torchdeq
 
     # fixed-point reuse
     fixedpoint = None

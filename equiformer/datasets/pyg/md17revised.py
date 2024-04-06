@@ -354,7 +354,6 @@ def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=
     if order is None:
         idxs = np.random.default_rng(seed).permutation(idxs)
 
-    # ids are sampled consecutively -> important for fixed-point reuse
     idx_train = idxs[:train_size]
     idx_val = idxs[train_size : train_size + val_size]
     idx_test = idxs[train_size + val_size : total]
@@ -362,14 +361,26 @@ def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=
     if order is None:
         return np.array(idx_train), np.array(idx_val), np.array(idx_test)
 
+    # ids are sampled consecutively -> important for fixed-point reuse
     elif order == "consecutive":
+        print("Dataset: Using consecutive order")
         return idx_train, idx_val, idx_test
 
     elif order == "consecutive_test":
-        idxs = idxs[: train_size + val_size]
-        idxs = np.random.default_rng(seed).permutation(idxs)
-        idx_train = idxs[:train_size]
-        idx_val = idxs[train_size:]
+        print("Dataset: Using consecutive order for test set")
+        # V1: train and val are shuffled, test is consecutive
+        # less diverse train and val, but test is guaranteed to be different
+        # idxs = idxs[: train_size + val_size]
+        # idxs = np.random.default_rng(seed).permutation(idxs)
+        # idx_train = idxs[:train_size]
+        # idx_val = idxs[train_size:]
+        # V2: same-as-default train and val, but test might overlap with train
+        idxs_rand = np.random.default_rng(seed).permutation(idxs)
+        idx_train = idxs_rand[:train_size]
+        idx_val = idxs_rand[train_size : train_size + val_size]
+        # test: random consecutive block
+        test_start_idx = np.random.randint(0, dset_len - test_size -1)
+        idx_test = idxs[test_start_idx : test_start_idx + test_size]
         return np.array(idx_train), np.array(idx_val), idx_test
 
     else:
@@ -512,6 +523,11 @@ def get_rmd17_datasets(
 
     if return_idx:
         return idx_train, idx_val, idx_test
+    
+    # log split to wandb
+    import wandb
+    max_num = 1000
+    wandb.log({"idx_train": idx_train[:max_num], "idx_val": idx_val[:max_num], "idx_test": idx_test[:max_num]}, step=0)
 
     train_dataset = Subset(all_dataset, idx_train)
     val_dataset = Subset(all_dataset, idx_val)

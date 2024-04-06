@@ -44,7 +44,6 @@ import omegaconf
 from e3nn import o3
 
 
-
 from equiformer.nets.registry import register_model
 
 from equiformer.nets.graph_attention_transformer import TransBlock
@@ -64,12 +63,6 @@ class DEQGraphAttentionTransformerMD17(DEQDotProductAttentionTransformerMD17):
     Only difference to between GraphAttention and DotProductAttention:
     - blocks contain TransBlock instead of DPTransBlock
     """
-
-    def __init__(
-        self,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
 
     def build_blocks(self):
         for i in range(self.num_layers):
@@ -134,7 +127,5 @@ class DEQGraphAttentionTransformerMD17(DEQDotProductAttentionTransformerMD17):
 def deq_graph_attention_transformer_nonlinear_l2_md17(
     **kwargs,
 ):
-    model = DEQGraphAttentionTransformerMD17(
-        **kwargs
-    )
+    model = DEQGraphAttentionTransformerMD17(**kwargs)
     return model

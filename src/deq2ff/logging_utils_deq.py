@@ -121,18 +121,25 @@ def log_fixed_point_error(
             else:
                 # do not log anything
                 return None
-        
+
         else:
             # log, but not as table
             if (step % log_every_step_major == 0) or datasplit in ["test", "val"]:
                 # log the fixed point error along the solver trajectory
                 # https://github.com/wandb/wandb/issues/3966
-                wandb.log({
-                    f"abs_fixed_point_error_traj{n}":
-                        f_abs_trace.detach().cpu().numpy().tolist(),
-                    f"rel_fixed_point_error_traj{n}":
-                        f_rel_trace.detach().cpu().numpy().tolist()
-                }, step=step) 
+                wandb.log(
+                    {
+                        f"abs_fixed_point_error_traj{n}": f_abs_trace.detach()
+                        .cpu()
+                        .numpy()
+                        .tolist(),
+                        f"rel_fixed_point_error_traj{n}": f_rel_trace.detach()
+                        .cpu()
+                        .numpy()
+                        .tolist(),
+                    },
+                    step=step,
+                )
 
     return None
 

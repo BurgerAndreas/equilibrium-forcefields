@@ -160,7 +160,7 @@ def get_md17_datasets(
     """
 
     print(
-        f"Warning: Using the original MD17 dataset." 
+        f"Warning: Using the original MD17 dataset."
         "Please consider using the revised version (equiformer/datasets/pyg/md17.py)."
     )
     all_dataset = MD17(root, dataset_arg)

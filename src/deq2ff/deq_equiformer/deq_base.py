@@ -9,21 +9,24 @@ from torchdeq.loss import fp_correction
 
 from e3nn import o3
 
+
 class DEQBase:
     def _set_deq_vars(
         self,
         irreps_node_embedding,
         input_injection="first_layer",  # False=V1, 'first_layer'=V2
         irreps_node_embedding_injection="64x0e+32x1e+16x2e",
+        dec_proj=None,
         z0="zero",
         log_fp_error_traj=False,
         dp_tp_path_norm="none",
-        dp_tp_irrep_norm=None, # None = 'element'
+        dp_tp_irrep_norm=None,  # None = 'element'
         fc_tp_path_norm="none",
-        fc_tp_irrep_norm=None, # None = 'element'
-        activation='SiLU',
+        fc_tp_irrep_norm=None,  # None = 'element'
+        activation="SiLU",
         **kwargs,
     ):
+        """Sets extra variables we have added for the DEQ model."""
 
         self.dp_tp_path_norm = dp_tp_path_norm
         self.dp_tp_irrep_norm = dp_tp_irrep_norm
@@ -31,6 +34,7 @@ class DEQBase:
         self.fc_tp_irrep_norm = fc_tp_irrep_norm
         self.activation = activation
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.dec_proj = dec_proj
 
         self.input_injection = input_injection
         if input_injection is False:
@@ -71,9 +75,47 @@ class DEQBase:
 
         return kwargs
 
-    def _init_deq(self, deq_mode=True,
+    def _init_decoder_proj_final_layer(self):
+        """
+        After DEQ we have to project the irreps_embeddings (all l's) to the output irreps_features (only scalars) in final_layer.
+        A projection head is a small alternative to a full transformer block.
+        """
+        if self.dec_proj is not None:
+            from deq2ff.deq_equiformer.deq_decprojhead_dp_md17 import (
+                FFProjection,
+                FFProjectionNorm,
+                FFResidualFCTPProjection,
+                FCTPProjection,
+                FCTPProjectionNorm,
+            )
+
+            # decoder projection head
+            assert (
+                self.input_injection == "first_layer"
+            ), "Only `input_injection='first_layer'` is supported."
+
+            # add a layer norm?
+            # self.norm_after_deq = get_norm_layer(self.norm_layer)(self.irreps_feature)
+
+            self.final_block = eval(self.dec_proj)(
+                irreps_in=self.irreps_node_embedding,
+                irreps_node_attr=self.irreps_node_attr,
+                irreps_out=self.irreps_feature,
+            )
+            self.final_block.apply(self._init_weights)
+            print(
+                f"\nInitialized decoder projection head `{self.dec_proj}` with {sum(p.numel() for p in self.final_block.parameters() if p.requires_grad)} parameters."
+            )
+
+    def _init_deq(
+        self,
+        deq_mode=True,
         torchdeq_norm=omegaconf.OmegaConf.create({"norm_type": "weight_norm"}),
-        deq_kwargs={}, **kwargs):
+        deq_kwargs={},
+        **kwargs,
+    ):
+        """Initializes TorchDEQ."""
+
         #################################################################
         # DEQ specific
 
@@ -90,15 +132,14 @@ class DEQBase:
         # Using norm_type='none' in `kwargs` can also skip it.
         if torchdeq_norm.norm_type not in [None, "none", False]:
             pass
-        elif 'both' in torchdeq_norm.norm_type:
+        elif "both" in torchdeq_norm.norm_type:
             norm_kwargs = copy.deepcopy(torchdeq_norm)
-            norm_kwargs.norm_type = 'spectral_norm'
+            norm_kwargs.norm_type = "spectral_norm"
             apply_norm(self.blocks, **norm_kwargs)
-            norm_kwargs.norm_type = 'weight_norm'
+            norm_kwargs.norm_type = "weight_norm"
             apply_norm(self.blocks, **norm_kwargs)
         else:
             apply_norm(self.blocks, **torchdeq_norm)
             # register_norm_module(DEQDotProductAttentionTransformerMD17, 'spectral_norm', names=['blocks'], dims=[0])
-        
+
         return kwargs
-    

@@ -87,8 +87,8 @@ class DotProductAttention(torch.nn.Module):
         proj_drop=0.1,
         # added
         dp_tp_path_norm="none",
-        dp_tp_irrep_norm=None, # None = 'element'
-        activation='SiLU',
+        dp_tp_irrep_norm=None,  # None = 'element'
+        activation="SiLU",
     ):
 
         super().__init__()
@@ -108,19 +108,30 @@ class DotProductAttention(torch.nn.Module):
         irreps_attn_heads = irreps_head * num_heads
         irreps_attn_heads, _, _ = irreps_attn_heads.sort()
         irreps_attn_heads = irreps_attn_heads.simplify()
-        self.query = LinearRS(self.irreps_node_input, irreps_attn_heads, normalization=dp_tp_irrep_norm, path_normalization=dp_tp_path_norm)
+        self.query = LinearRS(
+            self.irreps_node_input,
+            irreps_attn_heads,
+            normalization=dp_tp_irrep_norm,
+            path_normalization=dp_tp_path_norm,
+        )
 
         irreps_kv_heads = irreps_head * num_heads * 2
         irreps_kv_heads, _, _ = irreps_kv_heads.sort()
         irreps_kv_heads = irreps_kv_heads.simplify()
 
         self.merge_src = LinearRS(
-            self.irreps_node_input, self.irreps_pre_attn, bias=True,
-            normalization=dp_tp_irrep_norm, path_normalization=dp_tp_path_norm,
+            self.irreps_node_input,
+            self.irreps_pre_attn,
+            bias=True,
+            normalization=dp_tp_irrep_norm,
+            path_normalization=dp_tp_path_norm,
         )
         self.merge_dst = LinearRS(
-            self.irreps_node_input, self.irreps_pre_attn, bias=False,
-            normalization=dp_tp_irrep_norm, path_normalization=dp_tp_path_norm,
+            self.irreps_node_input,
+            self.irreps_pre_attn,
+            bias=False,
+            normalization=dp_tp_irrep_norm,
+            path_normalization=dp_tp_path_norm,
         )
         # key and value = FullyConnectedTensorProductRescale
         self.key_value = SeparableFCTP(
@@ -146,7 +157,12 @@ class DotProductAttention(torch.nn.Module):
         if alpha_drop != 0.0:
             self.alpha_dropout = torch.nn.Dropout(alpha_drop)
 
-        self.proj = LinearRS(irreps_attn_heads, self.irreps_node_output, normalization=dp_tp_irrep_norm, path_normalization=dp_tp_path_norm)
+        self.proj = LinearRS(
+            irreps_attn_heads,
+            self.irreps_node_output,
+            normalization=dp_tp_irrep_norm,
+            path_normalization=dp_tp_path_norm,
+        )
         self.proj_drop = None
         if proj_drop != 0.0:
             self.proj_drop = EquivariantDropout(
@@ -162,7 +178,7 @@ class DotProductAttention(torch.nn.Module):
         edge_attr,
         edge_scalars,
         batch,
-        **kwargs
+        **kwargs,
     ):
 
         q = self.query(node_input)
@@ -233,12 +249,12 @@ class DPTransBlock(torch.nn.Module):
         norm_layer="layer",
         # added
         dp_tp_path_norm="none",
-        dp_tp_irrep_norm=None, # None = 'element'
+        dp_tp_irrep_norm=None,  # None = 'element'
         # FullyConnectedTensorProductRescale
         # only used when irreps_node_input != irreps_node_output
         fc_tp_path_norm="none",
-        fc_tp_irrep_norm=None, # None = 'element'
-        activation='SiLU',
+        fc_tp_irrep_norm=None,  # None = 'element'
+        activation="SiLU",
     ):
 
         super().__init__()
@@ -294,7 +310,7 @@ class DPTransBlock(torch.nn.Module):
             # added
             activation=activation,
             path_normalization=fc_tp_path_norm,
-            normalization=fc_tp_irrep_norm, # prior default: None = 'element'
+            normalization=fc_tp_irrep_norm,  # prior default: None = 'element'
         )
 
         # Feed forward network shortcut
@@ -310,7 +326,7 @@ class DPTransBlock(torch.nn.Module):
                 rescale=_RESCALE,
                 # added
                 path_normalization=fc_tp_path_norm,
-                normalization=fc_tp_irrep_norm, # prior default: None = 'element'
+                normalization=fc_tp_irrep_norm,  # prior default: None = 'element'
             )
 
     def forward(
@@ -322,7 +338,7 @@ class DPTransBlock(torch.nn.Module):
         edge_attr,  # requires_grad
         edge_scalars,  # requires_grad
         batch,
-        **kwargs
+        **kwargs,
     ):
         """
         1. Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
@@ -393,7 +409,7 @@ class DotProductAttentionTransformer(torch.nn.Module):
         scale=None,
         atomref=None,
         #
-        activation='SiLU'
+        activation="SiLU",
     ):
         super().__init__()
 
@@ -450,7 +466,7 @@ class DotProductAttentionTransformer(torch.nn.Module):
             self.out_dropout = EquivariantDropout(self.irreps_feature, self.out_drop)
         self.head = torch.nn.Sequential(
             LinearRS(self.irreps_feature, self.irreps_feature, rescale=_RESCALE),
-            Activation(self.irreps_feature, acts=[eval(f'torch.nn.{activation}()')]),
+            Activation(self.irreps_feature, acts=[eval(f"torch.nn.{activation}()")]),
             LinearRS(self.irreps_feature, o3.Irreps("1x0e"), rescale=_RESCALE),
         )
         self.scale_scatter = ScaledScatter(_AVG_NUM_NODES)
@@ -576,7 +592,7 @@ def dot_product_attention_transformer_l2(
     atomref=None,
     task_mean=None,
     task_std=None,
-    **kwargs
+    **kwargs,
 ):
     model = DotProductAttentionTransformer(
         irreps_in=irreps_in,

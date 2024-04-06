@@ -234,8 +234,8 @@ class RMD17(InMemoryDataset):
             self.processed_dir,
             f"processed_file_names={self.processed_file_names}",
         )
-        print(f'self.pre_filter: {self.pre_filter}')
-        print(f'self.pre_transform: {self.pre_transform}')
+        print(f"self.pre_filter: {self.pre_filter}")
+        print(f"self.pre_transform: {self.pre_transform}")
 
         it = zip(self.raw_paths, self.processed_paths)
         old_indices = None
@@ -254,13 +254,13 @@ class RMD17(InMemoryDataset):
             elif self.revised:
                 z = torch.from_numpy(raw_data["nuclear_charges"]).long()
                 pos = torch.from_numpy(raw_data["coords"]).float()
-                energy = torch.from_numpy(raw_data["energies"]).float() # [100000]
-                force = torch.from_numpy(raw_data["forces"]).float() # [100000, 21, 3]
+                energy = torch.from_numpy(raw_data["energies"]).float()  # [100000]
+                force = torch.from_numpy(raw_data["forces"]).float()  # [100000, 21, 3]
             else:
                 z = torch.from_numpy(raw_data["z"]).long()
                 pos = torch.from_numpy(raw_data["R"]).float()
-                energy = torch.from_numpy(raw_data["E"]).float() # [211762, 1]
-                force = torch.from_numpy(raw_data["F"]).float() 
+                energy = torch.from_numpy(raw_data["E"]).float()  # [211762, 1]
+                force = torch.from_numpy(raw_data["F"]).float()
 
             data_list = []
             print("Dataset size:", pos.size(0))
@@ -273,7 +273,7 @@ class RMD17(InMemoryDataset):
                 if e.shape == torch.Size([1]):
                     e = e.unsqueeze(1)
                 # f: [21, 3]
-                assert e.shape == torch.Size([1,1]), f'Energy shape: {e.shape}'
+                assert e.shape == torch.Size([1, 1]), f"Energy shape: {e.shape}"
                 if old_indices is None:
                     data = Data(z=z, pos=pos[i], y=e, dy=force[i], idx=i)
                 else:
@@ -294,8 +294,6 @@ class RMD17(InMemoryDataset):
             # self.save(data_list, processed_path)
             data, slices = self.collate(data_list)
             torch.save((data, slices), processed_path)
-
-
 
 
 def fix_train_val_test_size(train_size, val_size, test_size, dset_len):

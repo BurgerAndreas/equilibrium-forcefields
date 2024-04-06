@@ -103,6 +103,7 @@ from equiformer.nets.dp_attention_transformer_md17 import (
 import deq2ff.logging_utils_deq as logging_utils_deq
 from deq2ff.deq_equiformer.deq_base import DEQBase
 
+
 class DEQDotProductAttentionTransformerMD17(torch.nn.Module, DEQBase):
     """
     Modified from equiformer.nets.dp_attention_transformer_md17.DotProductAttentionTransformerMD17
@@ -242,16 +243,19 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, DEQBase):
             self.head = torch.nn.Sequential(
                 LinearRS(self.irreps_feature, self.irreps_feature, rescale=_RESCALE),
                 # Activation(self.irreps_feature, acts=[torch.nn.SiLU()]),
-                Activation(self.irreps_feature, acts=[eval(f'torch.nn.{self.activation}()')]),
+                Activation(
+                    self.irreps_feature, acts=[eval(f"torch.nn.{self.activation}()")]
+                ),
                 LinearRS(self.irreps_feature, o3.Irreps("1x0e"), rescale=_RESCALE),
             )
         self.scale_scatter = ScaledScatter(_AVG_NUM_NODES)
 
         self.apply(self._init_weights)
 
+        self._init_decoder_proj_final_layer()
         kwargs = self._init_deq(**kwargs)
-        print(f'! Ignoring kwargs: {kwargs}')
-        
+        print(f"! Ignoring kwargs: {kwargs}")
+
         #################################################################
 
     def build_blocks(self):
@@ -748,7 +752,5 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17
-    model = DEQDotProductAttentionTransformerMD17(
-        **kwargs
-    )
+    model = DEQDotProductAttentionTransformerMD17(**kwargs)
     return model

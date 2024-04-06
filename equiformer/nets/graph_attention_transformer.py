@@ -176,12 +176,14 @@ class FullyConnectedTensorProductRescaleSwishGate(FullyConnectedTensorProductRes
         irreps_scalars, irreps_gates, irreps_gated = irreps2gate(irreps_out)
         if irreps_gated.num_irreps == 0:
             # gate = Activation(irreps_out, acts=[torch.nn.SiLU()])
-            gate = Activation(irreps_out, acts=[eval(f'torch.nn.{activation}()')])
+            gate = Activation(irreps_out, acts=[eval(f"torch.nn.{activation}()")])
         else:
             gate = Gate(
                 irreps_scalars,
                 # [torch.nn.SiLU() for _, ir in irreps_scalars],  # scalar
-                [eval(f'torch.nn.{activation}()') for _, ir in irreps_scalars],  # scalar
+                [
+                    eval(f"torch.nn.{activation}()") for _, ir in irreps_scalars
+                ],  # scalar
                 irreps_gates,
                 [torch.sigmoid for _, ir in irreps_gates],  # gates (scalars)
                 irreps_gated,  # gated tensors
@@ -313,12 +315,16 @@ class SeparableFCTP(torch.nn.Module):
         if use_activation:
             if irreps_gated.num_irreps == 0:
                 # gate = Activation(self.irreps_node_output, acts=[torch.nn.SiLU()])
-                gate = Activation(self.irreps_node_output, acts=[eval(f'torch.nn.{activation}()')])
+                gate = Activation(
+                    self.irreps_node_output, acts=[eval(f"torch.nn.{activation}()")]
+                )
             else:
                 gate = Gate(
                     irreps_scalars,
                     # [torch.nn.SiLU() for _, ir in irreps_scalars],  # scalar
-                    [eval(f'torch.nn.{activation}()') for _, ir in irreps_scalars],  # scalar
+                    [
+                        eval(f"torch.nn.{activation}()") for _, ir in irreps_scalars
+                    ],  # scalar
                     irreps_gates,
                     [torch.sigmoid for _, ir in irreps_gates],  # gates (scalars)
                     irreps_gated,  # gated tensors
@@ -634,7 +640,7 @@ class GraphAttention(torch.nn.Module):
         edge_attr,
         edge_scalars,
         batch,
-        **kwargs
+        **kwargs,
     ):
 
         message_src = self.merge_src(node_input)
@@ -783,12 +789,12 @@ class TransBlock(torch.nn.Module):
         norm_layer="layer",
         # added
         dp_tp_path_norm="none",
-        dp_tp_irrep_norm=None, # None = 'element'
+        dp_tp_irrep_norm=None,  # None = 'element'
         # FullyConnectedTensorProductRescale
         # only used when irreps_node_input != irreps_node_output
         fc_tp_path_norm="none",
-        fc_tp_irrep_norm=None, # None = 'element'
-        activation='SiLU',
+        fc_tp_irrep_norm=None,  # None = 'element'
+        activation="SiLU",
     ):
 
         super().__init__()
@@ -869,7 +875,7 @@ class TransBlock(torch.nn.Module):
         edge_attr,
         edge_scalars,
         batch,
-        **kwargs
+        **kwargs,
     ):
 
         node_output = node_input
@@ -1202,7 +1208,7 @@ def graph_attention_transformer_l2(
     atomref=None,
     task_mean=None,
     task_std=None,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformer(
         irreps_in=irreps_in,
@@ -1241,7 +1247,7 @@ def graph_attention_transformer_nonlinear_l2(
     atomref=None,
     task_mean=None,
     task_std=None,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformer(
         irreps_in=irreps_in,
@@ -1280,7 +1286,7 @@ def graph_attention_transformer_nonlinear_l2_e3(
     atomref=None,
     task_mean=None,
     task_std=None,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformer(
         irreps_in=irreps_in,
@@ -1320,7 +1326,7 @@ def graph_attention_transformer_nonlinear_bessel_l2(
     atomref=None,
     task_mean=None,
     task_std=None,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformer(
         irreps_in=irreps_in,
@@ -1361,7 +1367,7 @@ def graph_attention_transformer_nonlinear_bessel_l2_drop01(
     atomref=None,
     task_mean=None,
     task_std=None,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformer(
         irreps_in=irreps_in,
@@ -1402,7 +1408,7 @@ def graph_attention_transformer_nonlinear_bessel_l2_drop00(
     atomref=None,
     task_mean=None,
     task_std=None,
-    **kwargs
+    **kwargs,
 ):
     model = GraphAttentionTransformer(
         irreps_in=irreps_in,

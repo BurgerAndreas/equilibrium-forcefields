@@ -19,7 +19,9 @@ class MD17(InMemoryDataset):
     See http://www.quantum-machine.org/gdml/#datasets for details.
     """
 
-    print(f'\nWarning: Using the original MD17 dataset. Please consider using the revised version (equiformer/datasets/pyg/md17.py).\n')
+    print(
+        f"\nWarning: Using the original MD17 dataset. Please consider using the revised version (equiformer/datasets/pyg/md17.py).\n"
+    )
 
     raw_url = "http://www.quantum-machine.org/gdml/data/npz/"
 
@@ -112,13 +114,13 @@ class MD17(InMemoryDataset):
             download_url(MD17.raw_url + file_name, self.raw_dir)
 
     def process(self):
-        print(f'Processing the MD17 dataset for {self.molecules}...')
+        print(f"Processing the MD17 dataset for {self.molecules}...")
 
         for path in self.raw_paths:
             data_npz = np.load(path)
             z = torch.from_numpy(data_npz["z"]).long()
             positions = torch.from_numpy(data_npz["R"]).float()
-            energies = torch.from_numpy(data_npz["E"]).float() # [211762, 1]
+            energies = torch.from_numpy(data_npz["E"]).float()  # [211762, 1]
             forces = torch.from_numpy(data_npz["F"]).float()
 
             print("Dataset size:", positions.size(0))
@@ -142,8 +144,9 @@ class MD17(InMemoryDataset):
 
 # From https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L54
 def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=None):
-    assert (train_size is None) + (val_size is None) + (test_size is None) <= 1, \
-        "Only one of train_size, val_size, test_size is allowed to be None."
+    assert (train_size is None) + (val_size is None) + (
+        test_size is None
+    ) <= 1, "Only one of train_size, val_size, test_size is allowed to be None."
     is_float = (
         isinstance(train_size, float),
         isinstance(val_size, float),
@@ -231,7 +234,9 @@ def make_splits(
     )
 
 
-def get_md17_datasets(root, dataset_arg, train_size, val_size, test_size, seed, return_idx=False):
+def get_md17_datasets(
+    root, dataset_arg, train_size, val_size, test_size, seed, return_idx=False
+):
     """
     Return training, validation and testing sets of MD17 with the same data partition as TorchMD-NET.
     """

@@ -16,11 +16,6 @@ def fix_args(args: OmegaConf):
     args.slurm_job_id = os.environ.get("SLURM_JOB_ID", None)
     args = set_gpu_name(args)
 
-    if "dec_proj" in args.model_kwargs:
-        if args.model_kwargs.dec_proj is not None:
-            if "decprojhead" not in args.model_name:
-                args.model_name = f"decprojhead_{args.model_name}"
-
     if "model_is_deq" in args:
         if args.model_is_deq is True:
             if args.model_name[:3] != "deq":

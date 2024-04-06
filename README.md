@@ -27,6 +27,22 @@ sbatch scripts/slurm_launcher.slrm deq_equiformer.py model_kwargs.input_injectio
 sbatch scripts/slurm_launcher.slrm main_md17.py num_layers=2
 ```
 
+### EquiformerV2
+
+```bash
+# OC20 **S2EF-2M**
+sh scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_N@12_L@6_M@2_splits@2M_g@multi-nodes.sh
+
+The above script uses 2 nodes with 8 GPUs on each node.
+
+If there is an import error, it is possible that [`ocp/ocpmodels/common/utils.py`](https://github.com/Open-Catalyst-Project/ocp/blob/5a7738f9aa80b1a9a7e0ca15e33938b4d2557edd/ocpmodels/common/utils.py#L329) is not modified. 
+Please follow [here](docs/env_setup.md) for details.
+
+# EquiformerV2 (31M)** on OC20 **S2EF-All+MD**
+sh equiformer_v2/scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_N@8_L@4_M@2_splits@all+md_g@multi-nodes.sh
+/home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py
+```
+
 ## TODO
 
 - [ ] Energy as gradient of the force via @torch.enable_grad() of forward w.r.t pos (see dp_attention_transformer_md17.py)

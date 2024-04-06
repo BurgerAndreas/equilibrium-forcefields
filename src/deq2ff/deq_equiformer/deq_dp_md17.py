@@ -101,10 +101,10 @@ from equiformer.nets.dp_attention_transformer_md17 import (
 )
 
 import deq2ff.logging_utils_deq as logging_utils_deq
-from deq2ff.deq_equiformer.deq_base import DEQBase
+from deq2ff.deq_equiformer.deq_base import EquiformerDEQBase
 
 
-class DEQDotProductAttentionTransformerMD17(torch.nn.Module, DEQBase):
+class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
     """
     Modified from equiformer.nets.dp_attention_transformer_md17.DotProductAttentionTransformerMD17
     """
@@ -368,34 +368,19 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, DEQBase):
     # def _init_z(self):
     #     return torch.zeros(1, self.d_hidden)
 
-    def _init_z(self, node_features_injection):
+    def _init_z(self, batch_size, dim):
         """Initializes fixed-point for DEQ
         shape: [num_atoms * batch_size, irreps_dim]
         irreps_dim = a*1 + b*3 + c*5
         """
-        # return torch.zeros(1, self.irreps_feature.dim)
         if self.z0 == "zero":
             return torch.zeros(
-                [
-                    node_features_injection.shape[0],
-                    self.irreps_node_embedding.dim,
-                ],
-                device=self.device,
-            )
-        elif self.z0 == "rand":
-            return torch.randn(
-                [
-                    node_features_injection.shape[0],
-                    self.irreps_node_embedding.dim,
-                ],
+                [batch_size, dim],
                 device=self.device,
             )
         elif self.z0 == "one":
             return torch.ones(
-                [
-                    node_features_injection.shape[0],
-                    self.irreps_node_embedding.dim,
-                ],
+                [batch_size, dim],
                 device=self.device,
             )
         else:
@@ -623,7 +608,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, DEQBase):
         if self.input_injection == False:
             node_features = node_features_injection
         else:
-            node_features = self._init_z(node_features_injection)
+            node_features = self._init_z(batch_size=node_features_injection.shape[0], dim=self.irreps_node_embedding.dim)
 
         reuse = True
         if fixedpoint is None:
@@ -648,14 +633,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, DEQBase):
 
         # z: list[torch.tensor shape [42, 480]]
         if self.deq_mode:
-            solver_kwargs = {"f_max_iter": 0} if reuse else {}
+            solver_kwargs = {"f_max_iter": 0} if (reuse and self.limit_f_max_iter_fpreuse) else {} # TODO
             # returns the sampled fixed point trajectory (tracked gradients)
             # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
             z_pred, info = self.deq(f, node_features, solver_kwargs=solver_kwargs)
-            # TODO deq() does not set z.requires_grad_() by default
-            # which leads to no gradients for z in model.eval()
-            # ift=True, hook_ift=True does
-            # https://github.com/locuslab/torchdeq/blob/4f6bd5fa66dd991cad74fcc847c88061764cf8db/torchdeq/grad.py#L185
 
         else:
             z_pred = [f(z)]

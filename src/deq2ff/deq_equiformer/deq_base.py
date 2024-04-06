@@ -10,12 +10,13 @@ from torchdeq.loss import fp_correction
 from e3nn import o3
 
 
-class DEQBase:
+class EquiformerDEQBase:
     def _set_deq_vars(
         self,
         irreps_node_embedding,
         input_injection="first_layer",  # False=V1, 'first_layer'=V2
         irreps_node_embedding_injection="64x0e+32x1e+16x2e",
+        limit_f_max_iter_fpreuse=False,
         dec_proj=None,
         z0="zero",
         log_fp_error_traj=False,
@@ -35,6 +36,7 @@ class DEQBase:
         self.activation = activation
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.dec_proj = dec_proj
+        self.limit_f_max_iter_fpreuse = limit_f_max_iter_fpreuse
 
         self.input_injection = input_injection
         if input_injection is False:
@@ -116,18 +118,11 @@ class DEQBase:
     ):
         """Initializes TorchDEQ."""
 
-        #################################################################
-        # DEQ specific
-
         self.deq_mode = deq_mode
-        self.deq = get_deq(**deq_kwargs)
         # self.deq = get_deq(f_solver='broyden', f_max_iter=20, f_tol=1e-6)
+        self.deq = get_deq(**deq_kwargs)
         # self.register_buffer('z_aux', self._init_z())
 
-        # from DEQ INR example
-        # https://colab.research.google.com/drive/12HiUnde7qLadeZGGtt7FITnSnbUmJr-I?usp=sharing#scrollTo=RGgPMQLT6IHc
-        # https://github.com/locuslab/torchdeq/blob/main/deq-zoo/ignn/graphclassification/layers.py
-        # This function automatically decorates weights in your DEQ layer
         # to have weight/spectral normalization. (for better stability)
         # Using norm_type='none' in `kwargs` can also skip it.
         if torchdeq_norm.norm_type not in [None, "none", False]:

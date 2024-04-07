@@ -144,12 +144,14 @@ def log_fixed_point_error(
     return None
 
 
-def log_fixed_point_norm(z, step, datasplit=None):
+def log_fixed_point_norm(z, step, datasplit=None, name="fixed_point"):
     """Log the norm of the fixed point."""
     if datasplit is None:
         n = ""
     else:
         n = f"_{datasplit}"
     if (step % log_every_step_major == 0) or datasplit in ["test", "val"]:
-        wandb.log({f"fixed_point_norm{n}": z[-1].norm().item()}, step=step)
+        wandb.log({f"{name}_norm{n}": z[-1].norm().item()}, step=step)
+        wandb.log({f"{name}_mean{n}": z[-1].mean().item()}, step=step)
+        wandb.log({f"{name}_std{n}": z[-1].std().item()}, step=step)
     return

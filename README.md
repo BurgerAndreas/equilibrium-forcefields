@@ -36,7 +36,9 @@ If there is an import error, it is possible that [`ocp/ocpmodels/common/utils.py
 Please follow [here](docs/env_setup.md) for details.
 
 
-/home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py
+/home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/equiformer_v2_small.yml'
+# or
+source equiformer_v2/scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_small.sh
 ```
 
 ```bash

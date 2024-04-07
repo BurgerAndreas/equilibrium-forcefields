@@ -643,6 +643,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
             raise ValueError("DEQ mode must be True")
 
         if step is not None:
+            # log fixed-point trajectory
             _data = logging_utils_deq.log_fixed_point_error(
                 info,
                 step,
@@ -652,7 +653,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
             )
             if _data is not None:
                 self.fp_error_traj[datasplit] = _data
+            # log the final fixed-point
             logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
+            # log the input injection (output of encoder)
+            logging_utils_deq.log_fixed_point_norm(node_features_injection, step, datasplit, name="emb")
 
         # decode
         # outputs: list[Tuple(energy: torch.tensor [2, 1], force: torch.tensor [42, 3])]

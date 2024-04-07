@@ -6,10 +6,10 @@ mamba create -n deq python=3.10
 mamba activate deq
 
 
-# get the data from the Open Catalyst Project
+# get the data from the Open Catalyst Project (required for Equiformerv2)
 git clone git@github.com:Open-Catalyst-Project/ocp.git
 cd ocp
-# equiformer_v2 requires v0.0.3 v0.1.0
+# equiformer_v2 requires v0.1.0
 git checkout v0.1.0
 mamba env update --name deq --file env.common.yml --prune
 pip install -e .
@@ -21,8 +21,14 @@ pip install demjson
 pip install lmdb==1.1.1
 pip install "ray[tune]"
 # Structure to Energy and Forces (S2EF) task
-# 3.4GB (17GB uncompressed)
-python scripts/download_data.py --task s2ef --split "2M" --num-workers 8 --ref-energy
+# "2M": 3.4GB (17GB uncompressed)
+# https://github.com/Open-Catalyst-Project/ocp/blob/main/DATASET.md
+python scripts/download_data.py --task s2ef --split "2M" --num-workers 8 --ref-energy 
+python scripts/download_data.py --task s2ef --split "200k" --num-workers 8 --ref-energy 
+python scripts/download_data.py --task s2ef --split "val_id" --num-workers 8 --ref-energy 
+# More data splits:
+# python scripts/download_data.py --task is2re
+# python scripts/download_data.py --task s2ef --split test
 cd ..
 
 # install equiformer_v2

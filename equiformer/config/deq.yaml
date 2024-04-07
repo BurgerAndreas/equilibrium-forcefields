@@ -38,16 +38,9 @@ model_kwargs:
   dec_proj: null
   # initialize fixed-point. zero, random, one
   z0: 'zero'
+  # logging
+  log_fp_error_traj: False
 
-# regularization
-# jac_reg: False
-# jac_loss_weight: 0.0
-# jac_loss_freq: 0.0
-# jac_incremental: 0.0
-# torchdeq.loss.jac_reg(f0, z0, vecs=1, create_graph=True)
-
-# logging
-log_fp_error_traj: False
 
 # passed to torchdeq
 deq_kwargs:
@@ -73,3 +66,10 @@ deq_kwargs:
   # to represent different gradient steps in the sampled trajectory states. 
   # Default 1.
   grad: 1
+  
+  # regularization
+  # jac_reg: False
+  # jac_loss_weight: 0.0
+  # jac_loss_freq: 0.0
+  # jac_incremental: 0.0
+  # torchdeq.loss.jac_reg(f0, z0, vecs=1, create_graph=True)

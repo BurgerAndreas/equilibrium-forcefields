@@ -142,7 +142,10 @@ def main(args):
 
     """ Network """
     create_model = model_entrypoint(args.model_name)
-    model = create_model(task_mean=mean, task_std=std, **args.model_kwargs, deq_kwargs=args.deq_kwargs)
+    if 'deq_kwargs' in args:
+        model = create_model(task_mean=mean, task_std=std, **args.model_kwargs, **args.deq_kwargs)
+    else:
+        model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)
     _log.info(f"model {args.model_name} created with kwargs \n {args.model_kwargs}")
 
     # watch gradients, weights, and activations

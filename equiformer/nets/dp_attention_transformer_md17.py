@@ -84,8 +84,8 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         proj_drop=0.0,
         out_drop=0.0,
         drop_path_rate=0.0,
-        mean=None,
-        std=None,
+        task_mean=None,
+        task_std=None,
         scale=None,
         atomref=None,
     ):
@@ -98,8 +98,8 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         self.out_drop = out_drop
         self.drop_path_rate = drop_path_rate
         self.norm_layer = norm_layer
-        self.task_mean = mean
-        self.task_std = std
+        self.task_mean = task_mean
+        self.task_std = task_std
         self.scale = scale
         self.register_buffer("atomref", atomref)
 
@@ -403,8 +403,8 @@ def dot_product_attention_transformer_exp_l2_md17(
         proj_drop=proj_drop,
         out_drop=out_drop,
         drop_path_rate=drop_path_rate,
-        mean=task_mean,
-        std=task_std,
+        task_mean=task_mean,
+        task_std=task_std,
         scale=scale,
         atomref=atomref,
     )
@@ -463,8 +463,8 @@ def dot_product_attention_transformer_exp_l3_md17(
         proj_drop=proj_drop,
         out_drop=out_drop,
         drop_path_rate=drop_path_rate,
-        mean=task_mean,
-        std=task_std,
+        task_mean=task_mean,
+        task_std=task_std,
         scale=scale,
         atomref=atomref,
     )

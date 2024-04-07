@@ -593,7 +593,7 @@ def main(args):
         )
 
     _log.info(f"Done!")
-    _log.info(f"Final test error: MAE_e={test_err["energy"].avg}, MAE_f={test_err["force"].avg}")
+    _log.info(f"Final test error: MAE_e={test_err['energy'].avg}, MAE_f={test_err['force'].avg}")
     return True
 
 

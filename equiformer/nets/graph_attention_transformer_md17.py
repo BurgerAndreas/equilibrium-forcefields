@@ -434,7 +434,6 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
 
 # Why are these not config files?
 
-
 @register_model
 def graph_attention_transformer_l2_md17(
     irreps_in,

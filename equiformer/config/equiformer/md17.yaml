@@ -105,9 +105,9 @@ decay_rate: 0.1
 target: "aspirin"
 # (str)
 data_path: "datasets/md17"
-# (int)
+# size of training dataset (int)
 train_size: 950
-# (int)
+# size of validation dataset (int)
 val_size: 50
 # (int)
 compute_stats: False
@@ -115,6 +115,8 @@ compute_stats: False
 test_interval: 10
 # max iteration to evaluate on the testing set (int)
 test_max_iter: 1000
+# after training is done (-1 means whole test set ~ 100-200k) (int)
+test_max_iter_final: -1
 # (float)
 energy_weight: 0.2 # 1
 # (float)

@@ -633,7 +633,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
 
         # z: list[torch.tensor shape [42, 480]]
         if self.deq_mode:
-            solver_kwargs = {"f_max_iter": 0} if (reuse and self.limit_f_max_iter_fpreuse) else {} # TODO
+            solver_kwargs = {"f_max_iter": 0} if (reuse and self.limit_f_max_iter_fpreuse) else {}
             # returns the sampled fixed point trajectory (tracked gradients)
             # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
             z_pred, info = self.deq(f, node_features, solver_kwargs=solver_kwargs)
@@ -663,13 +663,13 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         # force = outputs[-1][1]
 
         if not z_pred[-1].requires_grad:
-            print("!" * 60)
             print(
+                "!" * 60,
                 f"before decode: z_pred[-1] node_features.requires_grad: {z_pred[-1].requires_grad}",
-                flush=True,
+                f"datasplit: {datasplit}",
+                "!" * 60,
+                sep="\n"
             )
-            print(f"datasplit: {datasplit}", flush=True)
-            print("!" * 60)
 
         energy, force = self.decode(
             node_features=z_pred[-1],

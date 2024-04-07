@@ -274,17 +274,15 @@ class RMD17(InMemoryDataset):
                     e = e.unsqueeze(1)
                 # f: [21, 3]
                 assert e.shape == torch.Size([1, 1]), f"Energy shape: {e.shape}"
-                if old_indices is None:
-                    data = Data(z=z, pos=pos[i], y=e, dy=force[i], idx=i)
-                else:
-                    data = Data(
-                        z=z,
-                        pos=pos[i],
-                        y=energy[i],
-                        dy=force[i],
-                        idx=i,
-                        old_idx=old_indices[i],
-                    )
+                # put together
+                data = Data(
+                    z=z,
+                    pos=pos[i],
+                    y=energy[i],
+                    dy=force[i],
+                    idx=i,
+                    old_idx=None if old_indices is None else old_indices[i],
+                )
                 if self.pre_filter is not None and not self.pre_filter(data):
                     continue
                 if self.pre_transform is not None:
@@ -527,7 +525,7 @@ def get_rmd17_datasets(
     # log split to wandb
     import wandb
     max_num = 1000
-    wandb.log({"idx_train": idx_train[:max_num], "idx_val": idx_val[:max_num], "idx_test": idx_test[:max_num]}, step=0)
+    wandb.log({"idx_train": idx_train[:max_num].tolist(), "idx_val": idx_val[:max_num].tolist(), "idx_test": idx_test[:max_num].tolist()}, step=0)
 
     train_dataset = Subset(all_dataset, idx_train)
     val_dataset = Subset(all_dataset, idx_val)

@@ -30,20 +30,33 @@ sbatch scripts/slurm_launcher.slrm main_md17.py num_layers=2
 ### EquiformerV2
 
 ```bash
-# OC20 **S2EF-2M**
-sh scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_N@12_L@6_M@2_splits@2M_g@multi-nodes.sh
 
-The above script uses 2 nodes with 8 GPUs on each node.
 
 If there is an import error, it is possible that [`ocp/ocpmodels/common/utils.py`](https://github.com/Open-Catalyst-Project/ocp/blob/5a7738f9aa80b1a9a7e0ca15e33938b4d2557edd/ocpmodels/common/utils.py#L329) is not modified. 
 Please follow [here](docs/env_setup.md) for details.
 
-# EquiformerV2 (31M)** on OC20 **S2EF-All+MD**
-sh equiformer_v2/scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_N@8_L@4_M@2_splits@all+md_g@multi-nodes.sh
+
 /home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py
 ```
 
 ```bash
+# OC20 **S2EF-2M**
+#  2 nodes with 8 GPUs on each node.
+# sh scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_N@12_L@6_M@2_splits@2M_g@multi-nodes.sh
+python main_oc20.py \
+    --distributed \
+    --num-gpus 8 \
+    --num-nodes 2 \
+    --mode train \
+    --config-yml 'oc20/configs/s2ef/2M/equiformer_v2/equiformer_v2_N@12_L@6_M@2.yml' \
+    --run-dir 'models/oc20/s2ef/2M/equiformer_v2/N@12_L@6_M@2/bs@64_lr@2e-4_wd@1e-3_epochs@12_warmup-epochs@0.1_g@8x2' \
+    --print-every 200 \
+    --amp \
+    --submit
+
+
+# EquiformerV2 (31M)** on OC20 **S2EF-All+MD**
+# sh equiformer_v2/scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_N@8_L@4_M@2_splits@all+md_g@multi-nodes.sh
 python main_oc20.py \
     --distributed \
     --num-gpus 8 \

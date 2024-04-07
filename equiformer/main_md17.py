@@ -143,7 +143,7 @@ def main(args):
     """ Network """
     create_model = model_entrypoint(args.model_name)
     model = create_model(task_mean=mean, task_std=std, **args.model_kwargs, deq_kwargs=args.deq_kwargs)
-    print(f"model {args.model_name} created with kwargs \n {args.model_kwargs}")
+    _log.info(f"model {args.model_name} created with kwargs \n {args.model_kwargs}")
 
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch
@@ -153,7 +153,7 @@ def main(args):
     if args.checkpoint_path is not None:
         state_dict = torch.load(args.checkpoint_path, map_location="cpu")
         model.load_state_dict(state_dict["state_dict"])
-        print(f"Loaded model from {args.checkpoint_path}")
+        _log.info(f"Loaded model from {args.checkpoint_path}")
 
     model = model.to(device)
 
@@ -208,7 +208,7 @@ def main(args):
         from deq2ff.data_utils import reorder_dataset
 
         test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
-        print(f"Reordered test dataset to be consecutive for fixed-point reuse")
+        _log.info(f"Reordered test dataset to be consecutive for fixed-point reuse.")
     test_loader = DataLoader(
         test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
     )
@@ -259,7 +259,7 @@ def main(args):
         )
         return
 
-    print("\nStart training!\n")
+    _log.info("\nStart training!\n")
     start_time = time.perf_counter()
     for epoch in range(args.epochs):
 
@@ -300,6 +300,7 @@ def main(args):
         optimizer.zero_grad()
 
         if (epoch + 1) % args.test_interval == 0:
+            _log.info(f'Testing model at epoch {epoch}')
             test_err, test_loss = evaluate(
                 args=args,
                 model=model,
@@ -322,7 +323,7 @@ def main(args):
             args, best_metrics, val_err, test_err, epoch
         )
         if update_val_result and args.save_best_checkpoint:
-            print(f"Saving best val checkpoint")
+            _log.info(f"Saving best val checkpoint")
             torch.save(
                 {"state_dict": model.state_dict()},
                 os.path.join(
@@ -333,7 +334,7 @@ def main(args):
                 ),
             )
         if update_test_result and args.save_best_checkpoint:
-            print(f"Saving best test checkpoint")
+            _log.info(f"Saving best test checkpoint")
             torch.save(
                 {"state_dict": model.state_dict()},
                 os.path.join(
@@ -349,7 +350,7 @@ def main(args):
             and (not update_test_result)
             and args.save_periodic_checkpoint
         ):
-            print(f"Saving checkpoint")
+            _log.info(f"Saving checkpoint")
             torch.save(
                 {"state_dict": model.state_dict()},
                 os.path.join(
@@ -441,6 +442,7 @@ def main(args):
             optimizer.zero_grad()
 
             if (epoch + 1) % args.test_interval == 0:
+                _log.info(f'Testing EMA model at epoch {epoch}')
                 ema_test_err, _ = evaluate(
                     args=args,
                     model=model_ema.module,
@@ -464,7 +466,7 @@ def main(args):
             )
 
             if update_val_result and args.save_best_checkpoint:
-                print(f"Saving best EMA val checkpoint")
+                _log.info(f"Saving best EMA val checkpoint")
                 torch.save(
                     {"state_dict": get_state_dict(model_ema)},
                     os.path.join(
@@ -475,7 +477,7 @@ def main(args):
                     ),
                 )
             if update_test_result and args.save_best_checkpoint:
-                print(f"Saving best EMA test checkpoint")
+                _log.info(f"Saving best EMA test checkpoint")
                 torch.save(
                     {"state_dict": get_state_dict(model_ema)},
                     os.path.join(
@@ -491,7 +493,7 @@ def main(args):
                 and (not update_test_result)
                 and args.save_periodic_checkpoint
             ):
-                print(f"Saving EMA checkpoint")
+                _log.info(f"Saving EMA checkpoint")
                 torch.save(
                     {"state_dict": get_state_dict(model_ema)},
                     os.path.join(
@@ -556,7 +558,7 @@ def main(args):
 
         # epoch done
 
-    print("\nAll epochs done!\n")
+    _log.info("\nAll epochs done!\nFinal test:")
 
     # all epochs done
     # evaluate on the whole testing set
@@ -571,15 +573,15 @@ def main(args):
         print_freq=args.print_freq,
         logger=_log,
         print_progress=True,
-        max_iter=-1,  # -1 means evaluate the whole dataset
+        max_iter=args.test_max_iter_final,  # -1 means evaluate the whole dataset
         global_step=global_step,
-        datasplit="test_all",
+        datasplit="test_final",
     )
     optimizer.zero_grad()
 
     # save the final model
     if args.save_final_checkpoint:
-        print(f"Saving final checkpoint")
+        _log.info(f"Saving final checkpoint")
         torch.save(
             {"state_dict": model.state_dict()},
             os.path.join(
@@ -590,7 +592,9 @@ def main(args):
             ),
         )
 
-    return
+    _log.info(f"Done!")
+    _log.info(f"Final test error: MAE_e={test_err["energy"].avg}, MAE_f={test_err["force"].avg}")
+    return True
 
 
 def update_best_results(args, best_metrics, val_err, test_err, epoch):
@@ -599,7 +603,7 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
 
     update_val_result, update_test_result = False, False
 
-    # print(f"Trying to update best results for epoch {epoch}")
+    # _log.info(f"Trying to update best results for epoch {epoch}")
     new_loss = _compute_weighted_error(
         args, val_err["energy"].avg, val_err["force"].avg
     )
@@ -621,7 +625,7 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
     prev_loss = _compute_weighted_error(
         args, best_metrics["test_energy_err"], best_metrics["test_force_err"]
     )
-    print(f" New loss test: {new_loss}, prev loss: {prev_loss}")
+    # _log.info(f" New loss test: {new_loss}, prev loss: {prev_loss}")
     if new_loss < prev_loss:
         best_metrics["test_energy_err"] = test_err["energy"].avg
         best_metrics["test_force_err"] = test_err["force"].avg
@@ -774,18 +778,25 @@ def evaluate(
 
     # fixed-point reuse
     fixedpoint = None
+    prev_idx = None
+    max_steps = max_iter if max_iter != -1 else len(data_loader)
     for step, data in enumerate(data_loader):
         data = data.to(device)
 
         # if we pass step, things will be logged to wandb
         # note that global_step is only updated in train_one_epoch
-        if step == len(data_loader) - 1:
+        if step == max_steps - 1:
             pass_step = global_step
         else:
             pass_step = None
 
         # fixed-point reuse
         if datasplit == "test" and args.fpreuse_test == True:
+            # assert that idx is consecutive
+            if prev_idx is not None:
+                assert torch.allclose(data.idx, prev_idx + 1)
+            prev_idx = data.idx
+            # call model and pass fixedpoint
             pred_y, pred_dy, fixedpoint = model(
                 node_atom=data.z,
                 pos=data.pos,

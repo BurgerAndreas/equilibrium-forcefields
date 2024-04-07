@@ -1,0 +1,20 @@
+# @package _global_
+# ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
+
+# for fast test runs
+# use as python scripts/deq_equiformer.py +trial=test
+
+epochs: 2
+batch_size: 8
+# (int)
+eval_batch_size: 24
+# size of training dataset (int)
+train_size: 30
+# size of validation dataset (int)
+val_size: 50
+# epoch interval to evaluate on the testing set (int)
+test_interval: 1
+# max iteration to evaluate on the testing set (int)
+test_max_iter: 30
+# after training (int)
+test_max_iter_final: 30

@@ -126,10 +126,12 @@ class MD17(InMemoryDataset):
             print("Dataset size:", positions.size(0))
 
             samples = []
+            i = 0
             for pos, y, dy in zip(positions, energies, forces):
                 # y: float32 [1] -> [1, 1]
                 # dy: [21, 3]
-                samples.append(Data(z=z, pos=pos, y=y.unsqueeze(1), dy=dy))
+                samples.append(Data(z=z, pos=pos, y=y.unsqueeze(1), dy=dy, idx=i))
+                i += 1
 
             # Filter and transform data (None by default)
             if self.pre_filter is not None:

@@ -69,9 +69,9 @@ class EquiformerDEQBase:
             raise ValueError(f"Invalid input_injection: {input_injection}")
 
         self.z0 = z0
-        # tables to log to wandb
+        # deprecated: tables to log to wandb (should be False and removed in the future)
         self.log_fp_error_traj = log_fp_error_traj
-        self.fp_error_traj = {"train": None, "val": None, "test": None}
+        self.fp_error_traj = {"train": None, "val": None, "test": None, "test_final": None}
 
         self.dec_proj = None
 

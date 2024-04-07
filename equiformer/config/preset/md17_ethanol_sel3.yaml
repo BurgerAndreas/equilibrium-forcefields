@@ -19,8 +19,6 @@ force_weight: 80
 # auto-generated from equiformer/nets/graph_attention_transformer_md17.py
 model_kwargs:
   atomref: null
-  task_mean: null
-  task_std: null
   num_layers: 6
   irreps_node_embedding: "128x0e+64x1e+64x2e+32x3e"
   irreps_node_attr: "1x0e"

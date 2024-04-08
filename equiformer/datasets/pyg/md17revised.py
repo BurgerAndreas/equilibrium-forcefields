@@ -525,7 +525,8 @@ def get_rmd17_datasets(
     # log split to wandb
     import wandb
     max_num = 1000
-    wandb.log({"idx_train": idx_train[:max_num].tolist(), "idx_val": idx_val[:max_num].tolist(), "idx_test": idx_test[:max_num].tolist()}, step=0)
+    # wandb.log({"idx_train": idx_train[:max_num].tolist(), "idx_val": idx_val[:max_num].tolist(), "idx_test": idx_test[:max_num].tolist()}, step=0)
+    wandb.log({"idx_train": idx_train[:max_num], "idx_val": idx_val[:max_num], "idx_test": idx_test[:max_num]}, step=0)
 
     train_dataset = Subset(all_dataset, idx_train)
     val_dataset = Subset(all_dataset, idx_val)

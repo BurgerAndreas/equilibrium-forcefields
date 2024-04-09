@@ -69,6 +69,7 @@ from equiformer_v2.nets.equiformer_v2.equiformer_v2_oc20 import (
 equiformer_v2/nets/equiformer_v2/equiformer_v2_oc20.py
 """
 
+from deq2ff.deq_base import _init_deq
 
 
 @registry.register_model("deq_equiformer_v2")
@@ -161,9 +162,17 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         proj_drop=0.0,
         weight_init="normal",
         # added
+        z0 = "zero",
+        sphere_channels_fixedpoint=None,
         **kwargs,
     ):
         super().__init__()
+
+        # added
+        if sphere_channels_fixedpoint is None:
+            self.sphere_channels_fixedpoint = sphere_channels  
+        else: 
+            self.sphere_channels_fixedpoint = sphere_channels_fixedpoint
 
         self.use_pbc = use_pbc
         self.regress_forces = regress_forces
@@ -214,6 +223,9 @@ class DEQ_EquiformerV2_OC20(BaseModel):
 
         self.weight_init = weight_init
         assert self.weight_init in ["normal", "uniform"]
+
+        # added
+        self.z0 = z0
 
         # TODO
         self.device = "cpu"  # torch.cuda.current_device()
@@ -301,15 +313,18 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         for i in range(self.num_layers):
             if i == 0:
                 # add input_injection
-                pass # TODO
+                sphere_channels_in = self.sphere_channels_fixedpoint + self.sphere_channels
+            else:
+                sphere_channels_in = self.sphere_channels
             block = TransBlockV2(
-                sphere_channels=self.sphere_channels,
+                # sphere_channels=self.sphere_channels,
+                sphere_channels=sphere_channels_in,
                 attn_hidden_channels=self.attn_hidden_channels,
                 num_heads=self.num_heads,
                 attn_alpha_channels=self.attn_alpha_channels,
                 attn_value_channels=self.attn_value_channels,
                 ffn_hidden_channels=self.ffn_hidden_channels,
-                sphere_channels=self.sphere_channels,
+                output_channels=self.sphere_channels,
                 lmax_list=self.lmax_list,
                 mmax_list=self.mmax_list,
                 SO3_rotation=self.SO3_rotation,
@@ -326,7 +341,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
                 use_gate_act=self.use_gate_act,
                 use_grid_mlp=self.use_grid_mlp,
                 use_sep_s2_act=self.use_sep_s2_act,
-                use_norm_type=self.norm_type,
+                norm_type=self.norm_type,
                 alpha_drop=self.alpha_drop,
                 drop_path_rate=self.drop_path_rate,
                 proj_drop=self.proj_drop,
@@ -376,36 +391,12 @@ class DEQ_EquiformerV2_OC20(BaseModel):
 
         self.apply(self._init_weights)
         self.apply(self._uniform_init_rad_func_linear_weights)
+
+        # DEQ
+        kwargs = self._init_deq(**kwargs)
     
-    def _init_deq(
-        self,
-        deq_mode=True,
-        torchdeq_norm=omegaconf.OmegaConf.create({"norm_type": "weight_norm"}),
-        deq_kwargs={},
-        **kwargs,
-    ):
-        """Initializes TorchDEQ."""
-
-        self.deq_mode = deq_mode
-        # self.deq = get_deq(f_solver='broyden', f_max_iter=20, f_tol=1e-6)
-        self.deq = get_deq(**deq_kwargs)
-        # self.register_buffer('z_aux', self._init_z())
-
-        # to have weight/spectral normalization. (for better stability)
-        # Using norm_type='none' in `kwargs` can also skip it.
-        if torchdeq_norm.norm_type not in [None, "none", False]:
-            pass
-        elif "both" in torchdeq_norm.norm_type:
-            norm_kwargs = copy.deepcopy(torchdeq_norm)
-            norm_kwargs.norm_type = "spectral_norm"
-            apply_norm(self.blocks, **norm_kwargs)
-            norm_kwargs.norm_type = "weight_norm"
-            apply_norm(self.blocks, **norm_kwargs)
-        else:
-            apply_norm(self.blocks, **torchdeq_norm)
-            # register_norm_module(DEQDotProductAttentionTransformerMD17, 'spectral_norm', names=['blocks'], dims=[0])
-
-        return kwargs
+    def _init_deq(self, **kwargs):
+        return _init_deq(self, **kwargs)
 
     @conditional_grad(torch.enable_grad())
     def forward(self, data, fixedpoint=None, **kwargs):
@@ -413,6 +404,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         self.dtype = data.pos.dtype
         self.device = data.pos.device
 
+        # molecules in batch can be of different sizes
         atomic_numbers = data.atomic_numbers.long()
         num_atoms = len(atomic_numbers)
         pos = data.pos
@@ -479,6 +471,9 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         edge_degree = self.edge_degree_embedding(
             atomic_numbers, edge_distance, edge_index
         )
+        # both: [num_atoms, num_coefficients, num_channels]
+        # num_coefficients = sum([(2 * l + 1) for l in self.lmax_list])
+        # addition, not concatenation
         x.embedding = x.embedding + edge_degree.embedding
 
         ###############################################################
@@ -486,35 +481,46 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         # "Replaced" by DEQ
         ###############################################################
 
-        print(f'x: {type(x)}')
-        print(f'x.embedding.shape: {x.embedding.shape}')
-        print(f'x.num_channels: {x.num_channels}')
-        print(f'x.num_resolutions: {x.num_resolutions}')
-        print(f'x.length: {x.length}')
-
+        # emb_SO3 = x
         emb = x.embedding
 
-        x = self._init_z(batch_size=emb.shape[0], dim=emb.shape[1])
+        x = self._init_z(shape=emb.shape)
+        # initialized to zeros per default
+        # x_SO3: SO3_Embedding = SO3_Embedding(
+        #     length=num_atoms,
+        #     lmax_list=self.lmax_list,
+        #     num_channels=self.sphere_channels_fixedpoint,
+        #     device=self.device,
+        #     dtype=self.dtype,
+        # )
 
         reuse = True
         if fixedpoint is None:
             # z = torch.zeros(x.shape[0], self.d_hidden).to(x)
             reuse = False
         else:
-            node_features = fixedpoint
+            x = fixedpoint
 
         reset_norm(self.blocks)
 
         # Transformer blocks
         # f = lambda z: self.mfn_forward(z, u)
-        f = lambda x: self.deq_implicit_layer(x, emb, edge_index, edge_distance, atomic_numbers, data)
+        f = lambda x: self.deq_implicit_layer(x, emb=emb, edge_index=edge_index, edge_distance=edge_distance, atomic_numbers=atomic_numbers, data=data)
 
         # find fixed-point
-        solver_kwargs = {"f_max_iter": 0} if reuse else {} # TODO
+        # solver_kwargs = {"f_max_iter": 0} if reuse else {} # TODO
+        solver_kwargs = {}
         # returns the sampled fixed point trajectory (tracked gradients)
         # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
-        z_pred, info = self.deq(f, node_features, solver_kwargs=solver_kwargs)
+        z_pred, info = self.deq(f, x, solver_kwargs=solver_kwargs)
 
+        x = SO3_Embedding(
+            length=num_atoms,
+            lmax_list=self.lmax_list,
+            num_channels=self.sphere_channels_fixedpoint,
+            device=self.device,
+            dtype=self.dtype,
+        )
         x.embedding = z_pred[-1]
 
         # Final layer norm
@@ -546,8 +552,19 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         else:
             return energy, forces
     
-    def deq_implicit_layer(self, x, emb, edge_index, edge_distance, atomic_numbers, data):
-        x = torch.cat([x, emb], dim=-1)
+    def deq_implicit_layer(self, x: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, data) -> torch.Tensor:
+        """Implicit layer for DEQ that defines the fixed-point.
+        Make sure to input and output only torch.tensor, not SO3_Embedding, to not break TorchDEQ.
+        """
+        # x = torch.cat([x, emb], dim=-1)
+        x = SO3_Embedding(
+            length=x.shape[0],
+            lmax_list=self.lmax_list,
+            num_channels=self.sphere_channels + self.sphere_channels_fixedpoint,
+            device=self.device,
+            dtype=self.dtype,
+            embedding = torch.cat([x, emb], dim=-1)
+        )
         for i in range(self.num_layers):
             x = self.blocks[i](
                 x,  # SO3_Embedding
@@ -556,21 +573,23 @@ class DEQ_EquiformerV2_OC20(BaseModel):
                 edge_index,
                 batch=data.batch,  # for GraphDropPath
             )
-        return x
+        return x.embedding
     
-    def _init_z(self, batch_size, dim):
+    def _init_z(self, shape):
         """Initializes fixed-point for DEQ
         shape: [num_atoms * batch_size, irreps_dim]
         irreps_dim = a*1 + b*3 + c*5
         """
         if self.z0 == "zero":
             return torch.zeros(
-                [batch_size, dim],
+                # [batch_size, dim],
+                shape,
                 device=self.device,
             )
         elif self.z0 == "one":
             return torch.ones(
-                [batch_size, dim],
+                # [batch_size, dim],
+                shape,
                 device=self.device,
             )
         else:

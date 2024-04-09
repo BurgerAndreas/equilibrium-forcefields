@@ -101,7 +101,7 @@ from equiformer.nets.dp_attention_transformer_md17 import (
 )
 
 import deq2ff.logging_utils_deq as logging_utils_deq
-from deq2ff.deq_equiformer.deq_base import EquiformerDEQBase
+from deq2ff.deq_equiformer.deq_equiformer_base import EquiformerDEQBase
 
 
 class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):

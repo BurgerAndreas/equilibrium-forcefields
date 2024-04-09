@@ -147,6 +147,27 @@ Self-Normalizing Neural Networks
 - Dropout fits well to rectified linear units, since zero is in the low variance region and corresponds to the default value
 - propose “alpha dropout”, that randomly sets inputs to α′, −λα = α′
 
+### Norm
+
+There are three important types of matrix norms.  For some matrix $A$
+- Induced norm, which measures what is the maximum of $\frac{\|Ax\|}{\|x\|}$ for any $x \neq 0$ (or, equivalently, the maximum of $\|Ax\|$ for $\|x\|=1$).
+- Element-wise norm, which is like unwrapping $A$ into a long vector, then calculating its vector norm.
+- Schatten norm, which measures the vector norm of the singular values of $A$.
+
+Equivalences:
+- Frobenius norm = Element-wise 2-norm = Schatten 2-norm
+- Induced 2-norm = Schatten $\infty$-norm.  This is also called Spectral norm.
+
+https://stats.stackexchange.com/questions/467654/relation-between-frobenius-norm-and-l2-norm
+
+For vectors:
+- L1 = Manhatten norm = sum of absolute values
+- L2 = Euclidean norm = shortest path = square root of sum of squares
+- Lp = p-norm = root of sum of p-th power of elements
+- L-infinity = max norm = max of absolute values
+
+- torch.norm(input, p='fro', dim=None)
+- torch.linalg.norm(A, ord=None, dim=None)
 
 ### Initialization
 

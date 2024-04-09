@@ -32,7 +32,7 @@ model_kwargs:
   activation: "SiLU" 
   # normalization for TensorProduct (see o3 library)
   # https://docs.e3nn.org/en/stable/api/o3/o3_tp.html#e3nn.o3.TensorProduct
-  dp_tp_path_norm: "none"
+  dp_tp_path_norm: "none" # element, path
   dp_tp_irrep_norm: null # None = 'element'
   fc_tp_path_norm: "none"
   fc_tp_irrep_norm: null # None = 'element'

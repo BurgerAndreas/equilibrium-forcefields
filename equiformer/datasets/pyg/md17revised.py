@@ -278,7 +278,7 @@ class RMD17(InMemoryDataset):
                 data = Data(
                     z=z,
                     pos=pos[i],
-                    y=energy[i],
+                    y=e,
                     dy=force[i],
                     idx=i,
                     old_idx=None if old_indices is None else old_indices[i],

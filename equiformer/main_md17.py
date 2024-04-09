@@ -89,7 +89,7 @@ def main(args):
         os.makedirs(args.output_dir, exist_ok=True)
 
     _log = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
-    _log.info(f"args passed to {__file__} main():\n {args}")
+    _log.info(f"args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}")
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -860,7 +860,7 @@ def evaluate(
     return mae_metrics, loss_metrics
 
 
-@hydra.main(config_name="md17", config_path="config/equiformer", version_base="1.3")
+@hydra.main(config_name="md17", config_path="config", version_base="1.3")
 def hydra_wrapper(args: DictConfig) -> None:
     """Run training loop.
 

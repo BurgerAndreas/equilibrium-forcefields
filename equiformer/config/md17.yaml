@@ -1,35 +1,51 @@
 # @package _global_
 # ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
 
+# call:
+# equiformer/main_md17.py wandb=False +preset=md17_aspirin_sel2.yaml
+
 defaults:
   # if _self_ is the first entry, compositions will overwrite this config
   # if _self_ is the last entry, this config will overwrite compositions (default)
   # https://hydra.cc/docs/1.3/upgrades/1.0_to_1.1/default_composition_order/
-  - ../preset: md17_defaults
+  # - preset: md17_defaults
   - _self_
 
 override_test: 1
 
 # passed into model
 model_kwargs:
+  # (int)
+  num_layers: 6
+  activation: "SiLU" 
+  num_basis: 128
+  atomref: null
+  irreps_node_attr: "1x0e"
+  basis_type: "exp"
+  irreps_pre_attn: null
+  rescale_degree: False
+  nonlinear_message: False
+  norm_layer: "layer"
+  # most import for parameter count?
+  fc_neurons: [64, 64]
+  irreps_node_embedding_injection: "64x0e+32x1e+16x2e"
+  irreps_node_embedding: "128x0e+64x1e+32x2e"
+  irreps_feature: "512x0e"  # scalars only
+  irreps_sh: "1x0e+1x1e+1x2e"
+  irreps_head: "32x0e+16x1e+8x2e"
+  num_heads: 4
+  irreps_mlp_mid: "384x0e+192x1e+96x2e"
+  # regularization
+  alpha_drop: 0.0
+  proj_drop: 0.0
+  out_drop: 0.0
+  # drop_path: 0.0
+  drop_path_rate: 0.0
+  scale: null
   # (str)
   irreps_in: null
   # (float)
   radius: 5.0
-  # (int)
-  num_basis: 128
-  # ? 
-  atomref: null
-  # (float)
-  drop_path: 0.0
-  alpha_drop: 0.0
-  # proj_drop: 0.0
-  # out_drop: 0.0
-  # drop_path_rate: 0.0
-  # scale: None
-  # (int)
-  num_layers: 6
-  activation: "SiLU" 
   # normalization for TensorProduct (see o3 library)
   # https://docs.e3nn.org/en/stable/api/o3/o3_tp.html#e3nn.o3.TensorProduct
   dp_tp_path_norm: "none" # element, path

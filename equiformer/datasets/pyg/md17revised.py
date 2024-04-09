@@ -228,6 +228,7 @@ class RMD17(InMemoryDataset):
                     os.unlink(path)
 
     def process(self):
+        # rm -r -f datasets/md17/**/processed
 
         print(
             "Saving processed data to",

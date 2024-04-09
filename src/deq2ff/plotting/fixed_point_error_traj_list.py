@@ -75,7 +75,9 @@ def main(run_id: str, datasplit: str = "train", error_type="abs"):
 
 if __name__ == "__main__":
 
+    # 6 layers: yuqbla4u
+    # FPreuse: auffq4x0
     # Tanh: ii3gls8d
-    run_id = "ii3gls8d"
+    run_id = "yuqbla4u"
 
     main(run_id, datasplit="train")

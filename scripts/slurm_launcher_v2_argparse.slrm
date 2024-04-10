@@ -26,8 +26,10 @@ echo "second argument: $2"
 echo "all arguments: $@"
 echo "arguments after the first one: ${@:2}"
 
+# export basedir=/ssd/gen/equilibrium-forcefields
+export basedir=/h/burgeran/equilibrium-forcefields
 # original call:
-# /home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2.yml'
+# /home/andreasburger/miniforge3/envs/deq/bin/python ${basedir}/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2.yml'
 
 CONDA_BASE=$(conda info --base) # /fs01/home/burgeran/miniforge3
 source $CONDA_BASE/etc/profile.d/conda.sh
@@ -36,18 +38,18 @@ mamba activate deq
 if [[ $1 == *"base"* ]]; then
     # call as: 
     # sbatch scripts/slurm_launcher_v2.slrm base small_l3 wandb=False
-    echo "Found base in the filename. Submitting equiformer_v2/oc20/configs/s2ef/2M/equiformer_v2_${1}.yml" ${@:3} 
+    echo "Found base in the filename. Submitting equiformer_v2/oc20/configs/s2ef/2M/equiformer_v2_${2}.yml" ${@:3} 
     /h/burgeran/miniforge3/envs/deq/bin/python \
-        /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py \
+        ${basedir}/equiformer_v2/main_oc20.py \
         --mode train \
         --config-yml "equiformer_v2/oc20/configs/s2ef/2M/equiformer_v2_${2}.yml" \
         ${@:3} 
 elif [[ $1 == *"deq"* ]]; then
     # call as: 
     # sbatch scripts/slurm_launcher_v2.slrm deq small_l3 wandb=False
-    echo "Found base in the filename. Submitting equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2_${1}.yml" ${@:3} 
+    echo "Found base in the filename. Submitting equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2_${2}.yml" ${@:3} 
     /h/burgeran/miniforge3/envs/deq/bin/python \
-        /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py \
+        ${basedir}/equiformer_v2/main_oc20.py \
         --mode train \
         --config-yml "equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2_${2}.yml" \
         ${@:3} 

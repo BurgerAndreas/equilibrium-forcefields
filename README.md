@@ -37,30 +37,38 @@ Please follow [here](equiformer_v2/docs/env_setup.md) for details.
 Baseline Equiformer V2
 ```bash
 python /ssd/gen/equilibrium-forcefields/scripts/deq_equiformer_v2.py
+sbatch scripts/slurm_launcher.slrm deq_equiformer_v2.py
 ```
+
 DEQ Equiformer V2
 ```bash
 python /ssd/gen/equilibrium-forcefields/scripts/deq_equiformer_v2.py ++use=deq
+sbatch scripts/slurm_launcher.slrm deq_equiformer_v2.py ++use=deq
 ```
+
 #### Old (argparse+yml)
 
 Baseline Equiformer V2
 ```bash
-/home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/equiformer_v2_tiny.yml'
+/home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/_equiformer_v2_tiny_l6.yml'
 # or
-source equiformer_v2/scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_small.sh
+source equiformer_v2/scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_small_l3.sh
+# slurm cluster
+sbatch scripts/slurm_launcher_v2_argparse.slrm base small_l3
 ```
 
 DEQ Equiformer V2
 ```bash
-/home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2_tiny_l3.yml' optim.batch_size=2
+/home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2_tiny_l6.yml' optim.batch_size=2
 # or
 source equiformer_v2/scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_small_l3.sh
+# slurm cluster
+sbatch scripts/slurm_launcher_v2_argparse.slrm deq small_l3
 ```
 
+#### Original
 ```bash
-# OC20 **S2EF-2M**
-#  2 nodes with 8 GPUs on each node.
+# OC20 **S2EF-2M**, 2 nodes with 8 GPUs on each node.
 # sh scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_N@12_L@6_M@2_splits@2M_g@multi-nodes.sh
 python main_oc20.py \
     --distributed \
@@ -90,7 +98,7 @@ python main_oc20.py \
 
 ## TODO
 
-- [ ] Energy as gradient of the force via @torch.enable_grad() of forward w.r.t pos (see dp_attention_transformer_md17.py)
+Energy as gradient of the force via @torch.enable_grad() of forward w.r.t pos (see dp_attention_transformer_md17.py)
 ```python
 @torch.enable_grad()
 forward():
@@ -117,14 +125,14 @@ Yes, sounds important
 - max out GPU memory via batch_size \
 Maybe, doesn't seem too important
 
-- [x] Try anderson and broyden solver (now: fixed_point_iter) \
-In theory should converge to the same fixed point, unless some methods do not find a fixed point within `f_max_iter`. Does not affect convergence in number of steps 
+- [x] Try anderson and broyden solver (default: fixed_point_iter) \
+In theory, if all methods find a fixed point within `f_max_iter`, all should converge to the same fixed point. Then the method should not affect the error of the DEQ over number of steps.
 
 - [x] Only calculate the loss w.r.t energy \
 meas_force=False
 
 - Is the force gradient exact? 
--> yes? (see dp_attention_transformer_md17.py). Does torch use deq grad for autodiff?
+-> If grad=1 (default), forces use approximate 1-step phantom grad from TorchDEQ for autodiff
 
 
 - think about fix point reuse (not sure if the MD dataset is temporally ordered. At least need to change shuffeling and batching in the dataloader)
@@ -141,8 +149,6 @@ Not too important right now since it only increases speed in time but not nimber
 - - Broyden solver NaN: numerical instability?
 - - `f_stop_mode='rel'` or `'abs'`? set `deq_kwargs.f_max_iter=100 deq_kwargs.b_max_iter=100`
 
-- DEQ paper: use of (layer)norm?
-
 - DEQ torch norm tricks (e.g. see https://github.com/locuslab/torchdeq/blob/main/deq-zoo/ignn/graphclassification/layers.py)
 
 - [x] exploding weights, gradients, activations?
@@ -153,7 +159,6 @@ Not too important right now since it only increases speed in time but not nimber
 
 ## Normalization
 
-- [ ] clip norm
 - [ ] Jacobian regularization
 
 Equiformer

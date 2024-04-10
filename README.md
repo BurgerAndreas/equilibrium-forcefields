@@ -41,9 +41,11 @@ source equiformer_v2/scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_small.s
 
 DEQ Equiformer V2
 ```bash
+/home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2_tiny_l3.yml'
+# or
 /home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2.yml'
 # or
-source equiformer_v2/scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_small.sh
+source equiformer_v2/scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_small_l3.sh
 ```
 
 ```bash

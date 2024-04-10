@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# bash or sh
+# Node resource configurations
+# https://support.vectorinstitute.ai/Vaughan_slurm_changes
+#SBATCH --job-name=equilibrium-forcefields
+#SBATCH --mem=32G
+#SBATCH --cpus-per-task=2
+# a40, 48GB, gpu[001-015], gpu[027-056]
+# rtx6000, 24GB
+#SBATCH --partition=rtx6000
+#SBATCH --gres=gpu:1
+#SBATCH --qos=normal
+#SBATCH --time=16:00:00
+
+# Append is important because otherwise preemption resets the file
+#SBATCH --open-mode=append
+
+echo `date`: Job $SLURM_JOB_ID is allocated resource
+
+# the recommendation is to keep erything that defines the workload itself in a separate script
+# bash scripts/slurm_lora.sh
+echo "Inside slurm_launcher.slrm ($0). received arguments: $@"
+echo "first argument: $1, rest of the arguments: ${@:2}"
+echo "second argument: $2"
+echo "all arguments: $@"
+echo "arguments after the first one: ${@:2}"
+
+# original call:
+# /home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2.yml'
+
+CONDA_BASE=$(conda info --base) # /fs01/home/burgeran/miniforge3
+source $CONDA_BASE/etc/profile.d/conda.sh
+mamba activate deq
+
+if [[ $1 == *"base"* ]]; then
+    # call as: 
+    # sbatch scripts/slurm_launcher_v2.slrm base small_l3 wandb=False
+    echo "Found base in the filename. Submitting equiformer_v2/oc20/configs/s2ef/2M/equiformer_v2_${1}.yml" ${@:3} 
+    /h/burgeran/miniforge3/envs/deq/bin/python \
+        /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py \
+        --mode train \
+        --config-yml "equiformer_v2/oc20/configs/s2ef/2M/equiformer_v2_${2}.yml" \
+        ${@:3} 
+elif [[ $1 == *"deq"* ]]; then
+    # call as: 
+    # sbatch scripts/slurm_launcher_v2.slrm deq small_l3 wandb=False
+    echo "Found base in the filename. Submitting equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2_${1}.yml" ${@:3} 
+    /h/burgeran/miniforge3/envs/deq/bin/python \
+        /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py \
+        --mode train \
+        --config-yml "equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2_${2}.yml" \
+        ${@:3} 
+else
+    echo "No valid model found in the filename. Exiting."
+    exit 1
+fi
+
+
+
+
+echo `date`: "Job $SLURM_JOB_ID finished running, exit code: $?"
+
+# date=$(date '+%Y-%m-%d')
+# archive=$HOME/finished_jobs/$date/$SLURM_JOB_ID
+# mkdir -p $archive
+
+# echo archive $archive
+# cp ./$SLURM_JOB_ID.out $archive/job.out
+# cp ./$SLURM_JOB_ID.err $archive/job.err
+
+# usage: 
+# sbatch scripts/slurm_launcher.slrm deq_equiformer.py +machine=vector batch_size=16

@@ -75,4 +75,4 @@ deq_kwargs:
   # jac_loss_weight: 0.0
   # jac_loss_freq: 0.0
   # jac_incremental: 0.0
-  # torchdeq.loss.jac_reg(f0, z0, vecs=1, create_graph=True)
+  # torchdeq.loss.jac_reg(f0, z0, vecs=1, create_graph=True)

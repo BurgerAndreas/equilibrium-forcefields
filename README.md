@@ -32,6 +32,18 @@ sbatch scripts/slurm_launcher.slrm main_md17.py num_layers=2
 If there is an import error, it is possible that [`ocp/ocpmodels/common/utils.py`](https://github.com/Open-Catalyst-Project/ocp/blob/5a7738f9aa80b1a9a7e0ca15e33938b4d2557edd/ocpmodels/common/utils.py#L329) is not modified. 
 Please follow [here](equiformer_v2/docs/env_setup.md) for details.
 
+#### New (Hydra)
+
+Baseline Equiformer V2
+```bash
+python /ssd/gen/equilibrium-forcefields/scripts/deq_equiformer_v2.py
+```
+DEQ Equiformer V2
+```bash
+python /ssd/gen/equilibrium-forcefields/scripts/deq_equiformer_v2.py ++use=deq
+```
+#### Old (argparse+yml)
+
 Baseline Equiformer V2
 ```bash
 /home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/equiformer_v2_tiny.yml'
@@ -41,9 +53,7 @@ source equiformer_v2/scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_small.s
 
 DEQ Equiformer V2
 ```bash
-/home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2_tiny_l3.yml'
-# or
-/home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2.yml'
+/home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/deq_equiformer_v2_tiny_l3.yml' optim.batch_size=2
 # or
 source equiformer_v2/scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_small_l3.sh
 ```

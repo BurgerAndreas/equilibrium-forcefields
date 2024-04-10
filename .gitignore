@@ -18,6 +18,8 @@ src/deq2ff/plotting/plots/*
 
 torchdeq
 
+checkpoints
+
 ###########################################
 
 # Byte-compiled / optimized / DLL files

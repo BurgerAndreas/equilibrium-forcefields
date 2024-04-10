@@ -115,6 +115,8 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     init_wandb(args)
 
+    # args: omegaconf.dictconfig.DictConfig -> dict
+    args = OmegaConf.to_container(args, resolve=True)
     Runner()(args)
 
 

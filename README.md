@@ -42,7 +42,7 @@ sbatch scripts/slurm_launcher.slrm deq_equiformer_v2.py
 
 DEQ Equiformer V2
 ```bash
-python /ssd/gen/equilibrium-forcefields/scripts/deq_equiformer_v2.py ++use=deq
+python /ssd/gen/equilibrium-forcefields/scripts/deq_equiformer_v2.py ++use=deq ++preset=small_l6
 sbatch scripts/slurm_launcher.slrm deq_equiformer_v2.py ++use=deq
 ```
 
@@ -50,7 +50,7 @@ sbatch scripts/slurm_launcher.slrm deq_equiformer_v2.py ++use=deq
 
 Baseline Equiformer V2
 ```bash
-/home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/_equiformer_v2_tiny_l6.yml'
+/home/andreasburger/miniforge3/envs/deq/bin/python /ssd/gen/equilibrium-forcefields/equiformer_v2/main_oc20.py --mode train --config-yml 'equiformer_v2/oc20/configs/s2ef/2M/equiformer_v2_tiny_l6.yml'
 # or
 source equiformer_v2/scripts/train/oc20/s2ef/equiformer_v2/equiformer_v2_small_l3.sh
 # slurm cluster

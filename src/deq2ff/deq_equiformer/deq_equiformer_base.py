@@ -22,6 +22,7 @@ class EquiformerDEQBase:
         limit_f_max_iter_fpreuse=False,
         dec_proj=None,
         z0="zero",
+        z0_requires_grad=False,
         log_fp_error_traj=False,
         dp_tp_path_norm="none",
         dp_tp_irrep_norm=None,  # None = 'element'
@@ -72,6 +73,7 @@ class EquiformerDEQBase:
             raise ValueError(f"Invalid input_injection: {input_injection}")
 
         self.z0 = z0
+        self.z0_requires_grad = z0_requires_grad
         # deprecated: tables to log to wandb (should be False and removed in the future)
         self.log_fp_error_traj = log_fp_error_traj
         self.fp_error_traj = {"train": None, "val": None, "test": None, "test_final": None}

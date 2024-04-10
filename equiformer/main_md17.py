@@ -91,6 +91,7 @@ def main(args):
     _log = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
     _log.info(f"args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}")
 
+    # since dataset needs random
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
@@ -133,10 +134,6 @@ def main(args):
     mean = float(y.mean())
     std = float(y.std())
     _log.info("Training set mean: {}, std: {}\n".format(mean, std))
-
-    # since dataset needs random
-    torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -209,7 +206,6 @@ def main(args):
     if args.fpreuse_test:
         # reorder test dataset to be consecutive
         from deq2ff.data_utils import reorder_dataset
-
         test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
         _log.info(f"Reordered test dataset to be consecutive for fixed-point reuse.")
     test_loader = DataLoader(
@@ -220,7 +216,7 @@ def main(args):
     if args.compute_stats:
         compute_stats(
             train_loader,
-            max_radius=args.radius,
+            max_radius=args.max_radius,
             logger=_log,
             print_freq=args.print_freq,
         )

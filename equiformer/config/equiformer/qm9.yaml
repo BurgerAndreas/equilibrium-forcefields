@@ -25,7 +25,7 @@ model_name: "transformer_ti"
 # (str)
 input_irreps: null
 # (float)
-radius: 2.0
+max_radius: 2.0
 # (int)
 num_basis: 32
 # (int)

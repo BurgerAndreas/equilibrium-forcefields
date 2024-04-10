@@ -54,7 +54,7 @@ _RESCALE = True
 _USE_BIAS = True
 
 _MAX_ATOM_TYPE = 64
-# Statistics of QM9 with cutoff radius = 5
+# Statistics of QM9 with cutoff max_radius = 5
 # For simplicity, use the same statistics for MD17
 _AVG_NUM_NODES = 18.03065905448718
 _AVG_DEGREE = 15.57930850982666
@@ -284,19 +284,11 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         # node_features = x
         node_features = atom_embedding + edge_degree_embedding
 
-        # node_attr = ? TODO
+        # node_attr = ? 
         # node_attr = torch.ones_like(node_features.narrow(dim=1, start=0, length=1))
         node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
 
         for blknum, blk in enumerate(self.blocks):
-            # print(f'Block {blknum} node_features: {node_features.shape}')
-            # print(f' Block {blknum} node_attr: {node_attr.shape}')
-            # print(f' Block {blknum} edge_src: {edge_src.shape}')
-            # print(f' Block {blknum} edge_dst: {edge_dst.shape}')
-            # print(f' Block {blknum} edge_sh: {edge_sh.shape}')
-            # print(f' Block {blknum} edge_length_embedding: {edge_length_embedding.shape}')
-            node_features_prev = node_features.clone().detach()
-            node_attr_prev = node_attr.clone().detach()
             node_features = blk(
                 node_input=node_features,
                 node_attr=node_attr,
@@ -305,15 +297,8 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
                 edge_attr=edge_sh,
                 edge_scalars=edge_length_embedding,
                 # drop_path = GraphDropPath(drop_path_rate) uses batch
-                # TODO: check if our kwargs use drop_path
                 batch=batch,
             )
-            # print(f' Block {blknum} node_attr stayed the same: {torch.allclose(node_attr_prev, node_attr)}')
-            # print(f' {torch.mean(torch.abs(node_attr_prev - node_attr))}')
-            # print(f' Block {blknum} node_attr == 1: {torch.allclose(node_attr, torch.ones_like(node_attr))}')
-            # print(f' Block {blknum} node_features stayed the same: {torch.allclose(node_features_prev, node_features)}')
-            # print(f' {torch.mean(torch.abs(node_features_prev - node_features))}')
-        # print(f' After blocks: {node_features.shape}')
 
         node_features = self.final_block(
             node_input=node_features,
@@ -355,7 +340,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
 @register_model
 def dot_product_attention_transformer_exp_l2_md17(
     irreps_in,
-    radius,
+    max_radius,
     num_basis=128,
     atomref=None,
     task_mean=None,
@@ -387,7 +372,7 @@ def dot_product_attention_transformer_exp_l2_md17(
         num_layers=num_layers,
         irreps_node_attr=irreps_node_attr,
         irreps_sh=irreps_sh,
-        max_radius=radius,
+        max_radius=max_radius,
         number_of_basis=num_basis,
         fc_neurons=fc_neurons,
         basis_type=basis_type,
@@ -415,7 +400,7 @@ def dot_product_attention_transformer_exp_l2_md17(
 @register_model
 def dot_product_attention_transformer_exp_l3_md17(
     irreps_in,
-    radius,
+    max_radius,
     num_basis=128,
     atomref=None,
     task_mean=None,
@@ -447,7 +432,7 @@ def dot_product_attention_transformer_exp_l3_md17(
         num_layers=6,
         irreps_node_attr=irreps_node_attr,
         irreps_sh=irreps_sh,
-        max_radius=radius,
+        max_radius=max_radius,
         number_of_basis=num_basis,
         fc_neurons=fc_neurons,
         basis_type=basis_type,

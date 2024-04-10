@@ -154,7 +154,7 @@ class QM9(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        # return "_".join([self.split, str(np.round(self.radius, 2)), self.feature_type]) + '.pt'
+        # return "_".join([self.split, str(np.round(self.max_radius, 2)), self.feature_type]) + '.pt'
         return "_".join([self.split, self.feature_type]) + ".pt"
 
     def download(self):
@@ -243,7 +243,7 @@ class QM9(InMemoryDataset):
             pos = [[float(x) for x in line.split()[:3]] for line in pos]
             pos = torch.tensor(pos, dtype=torch.float)
 
-            # edge_index = radius_graph(pos, r=self.radius, loop=False)
+            # edge_index = radius_graph(pos, r=self.max_radius, loop=False)
 
             # build pair-wise edge graphs
             num_nodes = pos.shape[0]

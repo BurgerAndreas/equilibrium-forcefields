@@ -45,7 +45,7 @@ model_kwargs:
   # (str)
   irreps_in: null
   # (float)
-  radius: 5.0
+  max_radius: 5.0
   # normalization for TensorProduct (see o3 library)
   # https://docs.e3nn.org/en/stable/api/o3/o3_tp.html#e3nn.o3.TensorProduct
   dp_tp_path_norm: "none" # element, path

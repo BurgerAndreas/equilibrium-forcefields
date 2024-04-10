@@ -42,7 +42,7 @@ def get_args_parser():
     # network architecture
     parser.add_argument("--model-name", type=str, default="transformer_ti")
     parser.add_argument("--input-irreps", type=str, default=None)
-    parser.add_argument("--radius", type=float, default=2.0)
+    parser.add_argument("--max_radius", type=float, default=2.0)
     parser.add_argument("--num-basis", type=int, default=32)
     parser.add_argument("--output-channels", type=int, default=1)
     # training hyper-parameters
@@ -263,7 +263,7 @@ def main(args):
     create_model = model_entrypoint(args.model_name)
     model = create_model(
         irreps_in=args.input_irreps,
-        radius=args.radius,
+        max_radius=args.max_radius,
         num_basis=args.num_basis,
         out_channels=args.output_channels,
         task_mean=task_mean,

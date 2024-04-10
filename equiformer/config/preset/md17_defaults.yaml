@@ -7,7 +7,7 @@ override_test: 0
 
 model_kwargs:
   num_layers: 6
-  num_basis: 128
+  number_of_basis: 128
   atomref: null
   irreps_node_attr: "1x0e"
   basis_type: "exp"

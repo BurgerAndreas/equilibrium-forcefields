@@ -18,7 +18,7 @@ model_kwargs:
   # (int)
   num_layers: 6
   activation: "SiLU" 
-  num_basis: 128
+  number_of_basis: 128
   atomref: null
   irreps_node_attr: "1x0e"
   basis_type: "exp"

@@ -698,7 +698,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     # irreps_in,
     # radius,
     # num_layers=6,
-    # num_basis=128,
+    # number_of_basis=128,
     # atomref=None,
     # task_mean=None,
     # task_std=None,

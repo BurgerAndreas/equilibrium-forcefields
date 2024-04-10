@@ -250,7 +250,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
                 600,
                 2.0,
             )
-            # self.distance_expansion = GaussianRadialBasisLayer(num_basis=self.num_distance_basis, cutoff=self.max_radius)
+            # self.distance_expansion = GaussianRadialBasisLayer(number_of_basis=self.num_distance_basis, cutoff=self.max_radius)
         else:
             raise ValueError
 

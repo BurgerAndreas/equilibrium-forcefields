@@ -10,17 +10,17 @@ def gaussian(x, mean, std):
 
 # From Graphormer
 class GaussianRadialBasisLayer(torch.nn.Module):
-    def __init__(self, num_basis, cutoff):
+    def __init__(self, number_of_basis, cutoff):
         super().__init__()
-        self.num_basis = num_basis
+        self.number_of_basis = number_of_basis
         self.cutoff = cutoff + 0.0
-        self.mean = torch.nn.Parameter(torch.zeros(1, self.num_basis))
-        self.std = torch.nn.Parameter(torch.zeros(1, self.num_basis))
+        self.mean = torch.nn.Parameter(torch.zeros(1, self.number_of_basis))
+        self.std = torch.nn.Parameter(torch.zeros(1, self.number_of_basis))
         self.weight = torch.nn.Parameter(torch.ones(1, 1))
         self.bias = torch.nn.Parameter(torch.zeros(1, 1))
 
         self.std_init_max = 1.0
-        self.std_init_min = 1.0 / self.num_basis
+        self.std_init_min = 1.0 / self.number_of_basis
         self.mean_init_max = 1.0
         self.mean_init_min = 0
         torch.nn.init.uniform_(self.mean, self.mean_init_min, self.mean_init_max)
@@ -32,7 +32,7 @@ class GaussianRadialBasisLayer(torch.nn.Module):
         x = dist / self.cutoff
         x = x.unsqueeze(-1)
         x = self.weight * x + self.bias
-        x = x.expand(-1, self.num_basis)
+        x = x.expand(-1, self.number_of_basis)
         mean = self.mean
         std = self.std.abs() + 1e-5
         x = gaussian(x, mean, std)

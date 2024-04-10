@@ -588,7 +588,7 @@ class DotProductAttentionTransformer(torch.nn.Module):
 def dot_product_attention_transformer_l2(
     irreps_in,
     radius,
-    num_basis=128,
+    number_of_basis=128,
     atomref=None,
     task_mean=None,
     task_std=None,
@@ -601,7 +601,7 @@ def dot_product_attention_transformer_l2(
         irreps_node_attr="1x0e",
         irreps_sh="1x0e+1x1e+1x2e",
         max_radius=radius,
-        number_of_basis=num_basis,
+        number_of_basis=number_of_basis,
         fc_neurons=[64, 64],
         irreps_feature="512x0e",
         irreps_head="32x0e+16x1e+8x2e",

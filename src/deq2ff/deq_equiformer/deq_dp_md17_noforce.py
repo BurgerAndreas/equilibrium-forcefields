@@ -235,7 +235,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17_noforce(
     irreps_in,
     radius,
     num_layers=6,
-    num_basis=128,
+    number_of_basis=128,
     atomref=None,
     task_mean=None,
     task_std=None,
@@ -272,7 +272,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17_noforce(
         num_layers=num_layers,
         irreps_node_attr=irreps_node_attr,
         max_radius=radius,
-        number_of_basis=num_basis,
+        number_of_basis=number_of_basis,
         basis_type=basis_type,
         # most import for parameter count?
         fc_neurons=fc_neurons,

@@ -38,4 +38,4 @@ model_kwargs:
   drop_path_rate: 0.0
   scale: null
   irreps_in: '64x0e'
-  num_basis: 32
+  number_of_basis: 32

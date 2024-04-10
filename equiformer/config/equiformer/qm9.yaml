@@ -27,7 +27,7 @@ input_irreps: null
 # (float)
 max_radius: 2.0
 # (int)
-num_basis: 32
+number_of_basis: 32
 # (int)
 output_channels: 1
 # (int)

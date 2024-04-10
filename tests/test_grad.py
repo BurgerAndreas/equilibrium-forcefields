@@ -148,7 +148,7 @@ def do_test(args_base: DictConfig) -> None:
             model = create_model(
                 irreps_in=args.input_irreps,
                 radius=args.radius,
-                num_basis=args.num_basis,
+                number_of_basis=args.number_of_basis,
                 task_mean=mean,
                 task_std=std,
                 atomref=None,
@@ -160,7 +160,7 @@ def do_test(args_base: DictConfig) -> None:
             model = create_model(
                 irreps_in=args.input_irreps,
                 radius=args.radius,
-                num_basis=args.num_basis,
+                number_of_basis=args.number_of_basis,
                 task_mean=mean,
                 task_std=std,
                 atomref=None,

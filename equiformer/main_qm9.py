@@ -264,7 +264,7 @@ def main(args):
     model = create_model(
         irreps_in=args.input_irreps,
         max_radius=args.max_radius,
-        num_basis=args.num_basis,
+        number_of_basis=args.number_of_basis,
         out_channels=args.output_channels,
         task_mean=task_mean,
         task_std=task_std,

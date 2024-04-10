@@ -20,7 +20,7 @@ dest_dir = "equiformer/config/preset"
 # some keys are passed to the model:
 # irreps_in=args.input_irreps,
 # radius=args.radius,
-# num_basis=args.num_basis,
+# number_of_basis=args.number_of_basis,
 # task_mean=mean,
 # task_std=std,
 # atomref=None,
@@ -28,12 +28,12 @@ dest_dir = "equiformer/config/preset"
 model_kwargs_keys = [
     "irreps_in",
     "radius",
-    "num_basis",
+    "number_of_basis",
     "atomref",
     "drop_path",
 ]
 keys_to_ignore = ["task_mean", "task_std"]
-keys_to_replace = {"input_irreps": "irreps_in"}
+keys_to_replace = {"input_irreps": "irreps_in", "radius": "max_radius", "num_basis": "number_of_basis"}
 
 for file in all_files:
     if "md17" in file:

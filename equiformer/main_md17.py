@@ -140,10 +140,10 @@ def main(args):
     """ Network """
     create_model = model_entrypoint(args.model_name)
     if 'deq_kwargs' in args:
-        model = create_model(task_mean=mean, task_std=std, **args.model_kwargs, **args.deq_kwargs)
+        model = create_model(task_mean=mean, task_std=std, **args.model_kwargs, deq_kwargs=args.deq_kwargs)
     else:
         model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)
-    _log.info(f"model {args.model_name} created with kwargs \n {args.model_kwargs}")
+    _log.info(f"model {args.model_name} created with kwargs \n{omegaconf.OmegaConf.to_yaml(args.model_kwargs)}")
 
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch
@@ -869,7 +869,7 @@ def hydra_wrapper(args: DictConfig) -> None:
         sbatch scripts/slurm_launcher.slrm deq_equiformer.py +machine=vector
 
     To reprocude the paper results:
-        python deq_equiformer.py input_irreps='64x0e' weight_decay=1e-6 num_basis=32 energy_weight=1 force_weight=80
+        python deq_equiformer.py input_irreps='64x0e' weight_decay=1e-6 number_of_basis=32 energy_weight=1 force_weight=80
     """
 
     # graph_attention_transformer_nonlinear_exp_l2_md17
@@ -880,7 +880,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     # args.input_irreps = "64x0e"
     # args.epochs = 1500
     # args.weight_decay = 1e-6
-    # args.num_basis = 32
+    # args.number_of_basis = 32
     # args.energy_weight = 1
     # args.force_weight = 80
 

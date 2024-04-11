@@ -315,6 +315,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 fc_tp_path_norm=self.fc_tp_path_norm,
                 fc_tp_irrep_norm=self.fc_tp_irrep_norm,
                 activation=self.activation,
+                bias=self.bias,
             )
             if i != (self.num_layers - 1):
                 self.blocks.append(blk)
@@ -373,24 +374,24 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         shape: [num_atoms * batch_size, irreps_dim]
         irreps_dim = a*1 + b*3 + c*5
         """
-        require_grad = self.z0_requires_grad # TODO
+        requires_grad = self.z0_requires_grad # TODO
         if self.z0 == "zero":
             return torch.zeros(
                 [batch_size, dim],
                 device=self.device,
-                require_grad=require_grad,
+                requires_grad=requires_grad,
             )
         elif self.z0 == "one":
             return torch.ones(
                 [batch_size, dim],
                 device=self.device,
-                require_grad=require_grad,
+                requires_grad=requires_grad,
             )
         elif self.z0 == "uniform":
             return torch.rand(
                 [batch_size, dim],
                 device=self.device,
-                require_grad=require_grad,
+                requires_grad=requires_grad,
             )
         elif "normal" in self.z0:
             # normal_mean_std = normal_0.0_0.5
@@ -400,7 +401,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 mean=float(mean), std=float(std), 
                 size=[batch_size, dim], 
                 device=self.device,
-                require_grad=require_grad,
+                requires_grad=requires_grad,
             )
         else:
             raise ValueError(f"Invalid z0: {self.z0}")

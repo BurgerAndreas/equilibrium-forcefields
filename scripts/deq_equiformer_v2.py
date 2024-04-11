@@ -66,6 +66,7 @@ class Runner(submitit.helpers.Checkpointable):
                 cpu=config.get("cpu", False),
                 slurm=config.get("slurm", {}),
                 noddp=config.get("noddp", False),
+                val_max_iter=config.get("val_max_iter", -1),
             )
             # overwrite mode
             if config.get("compute_stats", False):
@@ -73,6 +74,7 @@ class Runner(submitit.helpers.Checkpointable):
             self.task = registry.get_task_class(config["mode"])(self.config)
             self.task.setup(self.trainer)
             start_time = time.time()
+            print(f'Starting task: {self.task.__class__.__name__}')
             self.task.run()
             distutils.synchronize()
             if distutils.is_master():
@@ -113,7 +115,7 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     from deq2ff.logging_utils import init_wandb
 
-    init_wandb(args)
+    # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
 
     # args: omegaconf.dictconfig.DictConfig -> dict
     args = OmegaConf.to_container(args, resolve=True)

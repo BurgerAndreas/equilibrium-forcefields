@@ -52,6 +52,7 @@ model_kwargs:
   dp_tp_irrep_norm: null # None = 'element'
   fc_tp_path_norm: "none"
   fc_tp_irrep_norm: null # None = 'element'
+  bias: True
 
 # use revised version of MD17 with more accurate energies and forces (bool)
 md17revised: False

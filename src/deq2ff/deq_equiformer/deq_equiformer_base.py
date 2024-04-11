@@ -29,6 +29,7 @@ class EquiformerDEQBase:
         fc_tp_path_norm="none",
         fc_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
+        bias=True,
         **kwargs,
     ):
         """Sets extra variables we have added for the DEQ model."""
@@ -77,6 +78,8 @@ class EquiformerDEQBase:
         # deprecated: tables to log to wandb (should be False and removed in the future)
         self.log_fp_error_traj = log_fp_error_traj
         self.fp_error_traj = {"train": None, "val": None, "test": None, "test_final": None}
+
+        self.bias = bias
 
         self.dec_proj = None
 

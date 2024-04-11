@@ -144,6 +144,7 @@ def main(args):
     else:
         model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)
     _log.info(f"model {args.model_name} created with kwargs \n{omegaconf.OmegaConf.to_yaml(args.model_kwargs)}")
+    _log.info(f'Model: \n{model}')
 
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch

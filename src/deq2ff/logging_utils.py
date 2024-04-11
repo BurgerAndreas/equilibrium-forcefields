@@ -38,7 +38,7 @@ def fix_args(args: OmegaConf):
     return args
 
 
-def init_wandb(args: OmegaConf):
+def init_wandb(args: OmegaConf, project="EquilibriumEquiFormer"):
     """init shared across all methods"""
 
     args = fix_args(args)
@@ -57,7 +57,7 @@ def init_wandb(args: OmegaConf):
     # wandb.run.name = name_from_config(args)
     wandb.init(
         group=args.wandb_group,
-        project="EquilibriumEquiFormer",
+        project=project,
         # entity="andreas-burger",
         name=args.wandb_run_name,
         config=args_wandb,

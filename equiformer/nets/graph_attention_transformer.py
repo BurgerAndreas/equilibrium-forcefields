@@ -272,6 +272,7 @@ class SeparableFCTP(torch.nn.Module):
         path_normalization="none",
         normalization=None,
         activation="SiLU",
+        bias=True,
     ):
 
         super().__init__()
@@ -305,7 +306,7 @@ class SeparableFCTP(torch.nn.Module):
         if use_activation:
             irreps_lin_output = irreps_scalars + irreps_gates + irreps_gated
             irreps_lin_output = irreps_lin_output.simplify()
-        self.lin = LinearRS(self.dtp.irreps_out.simplify(), irreps_lin_output)
+        self.lin = LinearRS(self.dtp.irreps_out.simplify(), irreps_lin_output, bias=bias)
 
         self.norm = None
         if norm_layer is not None:
@@ -524,6 +525,7 @@ class GraphAttention(torch.nn.Module):
         normalization=None,
         path_normalization="none",
         activation="SiLU",
+        bias=True,
     ):
 
         super().__init__()
@@ -571,6 +573,7 @@ class GraphAttention(torch.nn.Module):
                 norm_layer=None,
                 internal_weights=False,
                 # added
+                bias=bias,
                 normalization=normalization,
                 path_normalization=path_normalization,
                 activation=activation,
@@ -588,6 +591,7 @@ class GraphAttention(torch.nn.Module):
                 normalization=normalization,
                 path_normalization=path_normalization,
                 activation=activation,
+                bias=bias,
             )
             self.vec2heads_alpha = Vec2AttnHeads(
                 o3.Irreps("{}x0e".format(mul_alpha_head)), num_heads
@@ -602,6 +606,7 @@ class GraphAttention(torch.nn.Module):
                 use_activation=False,
                 norm_layer=None,
                 # added
+                bias=bias,
                 normalization=normalization,
                 path_normalization=path_normalization,
                 activation=activation,
@@ -715,6 +720,7 @@ class FeedForwardNetwork(torch.nn.Module):
         activation="SiLU",
         normalization=None,
         path_normalization="none",
+        bias=True,
     ):
 
         super().__init__()
@@ -731,9 +737,10 @@ class FeedForwardNetwork(torch.nn.Module):
             self.irreps_node_input,
             self.irreps_node_attr,
             self.irreps_mlp_mid,
-            bias=True,
+            # bias=True,
             rescale=_RESCALE,
             # added
+            bias=bias,
             activation=activation,
             normalization=normalization,
             path_normalization=path_normalization,
@@ -742,9 +749,10 @@ class FeedForwardNetwork(torch.nn.Module):
             self.irreps_mlp_mid,
             self.irreps_node_attr,
             self.irreps_node_output,
-            bias=True,
+            # bias=True,
             rescale=_RESCALE,
             # added
+            bias=bias,
             normalization=normalization,
             path_normalization=path_normalization,
         )

@@ -89,6 +89,7 @@ class DotProductAttention(torch.nn.Module):
         dp_tp_path_norm="none",
         dp_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
+        bias=True,
     ):
 
         super().__init__()
@@ -113,6 +114,8 @@ class DotProductAttention(torch.nn.Module):
             irreps_attn_heads,
             normalization=dp_tp_irrep_norm,
             path_normalization=dp_tp_path_norm,
+            # added
+            bias=bias,
         )
 
         irreps_kv_heads = irreps_head * num_heads * 2
@@ -122,14 +125,16 @@ class DotProductAttention(torch.nn.Module):
         self.merge_src = LinearRS(
             self.irreps_node_input,
             self.irreps_pre_attn,
-            bias=True,
+            # bias=True,
+            bias=bias,
             normalization=dp_tp_irrep_norm,
             path_normalization=dp_tp_path_norm,
         )
         self.merge_dst = LinearRS(
             self.irreps_node_input,
             self.irreps_pre_attn,
-            bias=False,
+            # bias=False,
+            bias=bias,
             normalization=dp_tp_irrep_norm,
             path_normalization=dp_tp_path_norm,
         )
@@ -145,6 +150,7 @@ class DotProductAttention(torch.nn.Module):
             path_normalization=dp_tp_path_norm,
             normalization=dp_tp_irrep_norm,
             activation=activation,
+            bias=bias,
         )
 
         self.vec2heads_q = Vec2AttnHeads(irreps_head, num_heads)
@@ -162,6 +168,7 @@ class DotProductAttention(torch.nn.Module):
             self.irreps_node_output,
             normalization=dp_tp_irrep_norm,
             path_normalization=dp_tp_path_norm,
+            bias=bias,
         )
         self.proj_drop = None
         if proj_drop != 0.0:
@@ -255,6 +262,7 @@ class DPTransBlock(torch.nn.Module):
         fc_tp_path_norm="none",
         fc_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
+        bias=True,
     ):
 
         super().__init__()
@@ -294,6 +302,7 @@ class DPTransBlock(torch.nn.Module):
             dp_tp_path_norm=dp_tp_path_norm,
             dp_tp_irrep_norm=dp_tp_irrep_norm,
             activation=activation,
+            bias=bias,
         )
 
         # regularization
@@ -311,6 +320,7 @@ class DPTransBlock(torch.nn.Module):
             activation=activation,
             path_normalization=fc_tp_path_norm,
             normalization=fc_tp_irrep_norm,  # prior default: None = 'element'
+            bias=bias,
         )
 
         # Feed forward network shortcut
@@ -322,11 +332,13 @@ class DPTransBlock(torch.nn.Module):
                 self.irreps_node_input,
                 self.irreps_node_attr,
                 self.irreps_node_output,
-                bias=True,
+                # bias=True,
                 rescale=_RESCALE,
                 # added
                 path_normalization=fc_tp_path_norm,
                 normalization=fc_tp_irrep_norm,  # prior default: None = 'element'
+                # activation=activation,
+                bias=bias,
             )
 
     def forward(

@@ -49,6 +49,7 @@ class Runner(submitit.helpers.Checkpointable):
 
         try:
             setup_imports()
+            print(f'Initializing trainer: {config["trainer"]}')
             self.trainer = registry.get_trainer_class(config.get("trainer", "energy"))(
                 task=config["task"],
                 model=config["model"],
@@ -115,7 +116,7 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     from deq2ff.logging_utils import init_wandb
 
-    # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
+    init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
 
     # args: omegaconf.dictconfig.DictConfig -> dict
     args = OmegaConf.to_container(args, resolve=True)

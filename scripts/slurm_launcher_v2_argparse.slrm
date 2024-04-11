@@ -21,10 +21,6 @@ echo `date`: Job $SLURM_JOB_ID is allocated resource
 # the recommendation is to keep erything that defines the workload itself in a separate script
 # bash scripts/slurm_lora.sh
 echo "Inside slurm_launcher.slrm ($0). received arguments: $@"
-echo "first argument: $1, rest of the arguments: ${@:2}"
-echo "second argument: $2"
-echo "all arguments: $@"
-echo "arguments after the first one: ${@:2}"
 
 # export basedir=/ssd/gen/equilibrium-forcefields
 export basedir=/h/burgeran/equilibrium-forcefields

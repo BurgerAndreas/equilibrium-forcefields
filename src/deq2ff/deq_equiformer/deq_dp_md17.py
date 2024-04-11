@@ -339,6 +339,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         #     for param in m:
         #         torch.nn.init.normal_(param, mean=0.0, std=1.0)
         # EquivariantLayerNormV2
+        # https://github.com/atomicarchitects/equiformer_v2/blob/main/nets/equiformer_v2/equiformer_v2_oc20.py#L489
+        # if self.weight_init == 'normal':
+        #         std = 1 / math.sqrt(m.in_features)
+        #         torch.nn.init.normal_(m.weight, 0, std)
 
     @torch.jit.ignore
     def no_weight_decay(self):

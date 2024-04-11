@@ -110,6 +110,7 @@ REPLACE = {
     "_attention_transformer": "",
     "_md17": "",
     "_dp": "",
+    "dp": "Equiformer",
     "_l2": "",
     "_graph_nonlinear": " GraphNonLinear",
     "_decprojhead": "",
@@ -122,6 +123,10 @@ REPLACE = {
     "-True": " ",
     "normtype-": " ",
     "_": " ",
+    "preset-": "",
+    # Equiformer v2
+    "equiformer v2equiformer v2 use-DEQ": "DEQE2",
+    "equiformer v2equiformer v2": "E2",
 }
 
 

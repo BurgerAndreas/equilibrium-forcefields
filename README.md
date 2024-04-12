@@ -42,8 +42,8 @@ sbatch scripts/slurm_launcher.slrm deq_equiformer_v2.py
 
 DEQ Equiformer V2
 ```bash
-python /ssd/gen/equilibrium-forcefields/scripts/deq_equiformer_v2.py ++use=deq ++preset=small_l6
-sbatch scripts/slurm_launcher.slrm deq_equiformer_v2.py ++use=deq
+python /ssd/gen/equilibrium-forcefields/scripts/deq_equiformer_v2.py +use=deq ++preset=small_l6
+sbatch scripts/slurm_launcher.slrm deq_equiformer_v2.py +use=deq
 ```
 
 #### Old (argparse+yml)

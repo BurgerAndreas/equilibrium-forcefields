@@ -394,6 +394,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
 
         # DEQ
         kwargs = self._init_deq(**kwargs)
+        print(f'Ignoring kwargs: {kwargs}')
     
     def _init_deq(self, **kwargs):
         return _init_deq(self, **kwargs)

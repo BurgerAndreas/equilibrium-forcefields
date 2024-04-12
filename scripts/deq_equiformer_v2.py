@@ -79,7 +79,8 @@ class Runner(submitit.helpers.Checkpointable):
             self.task.run()
             distutils.synchronize()
             if distutils.is_master():
-                logging.info(f"Total time taken: {time.time() - start_time}")
+                time_total = time.time() - start_time
+                logging.info(f"Total time taken: {time_total}s ({time_total/3600:.2f}h)")
         finally:
             pass
             # if args.distributed:

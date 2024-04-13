@@ -9,8 +9,8 @@ from typing import Iterable, Optional
 
 import sys, os
 
-import equiformer.datasets.pyg.md17_backup as md17_dataset
-import equiformer.datasets.pyg.md17revised as rmd17_dataset
+import equiformer.datasets.pyg.md17 as md17_dataset
+import equiformer.datasets.pyg.md_all as rmd17_dataset
 
 from equiformer.logger import FileLogger
 
@@ -46,7 +46,7 @@ def test_revised_dataset_creation(args):
 
     """ Dataset """
     # new dataloader, old dataset
-    train_dataset, val_dataset, test_dataset = rmd17_dataset.get_rmd17_datasets(
+    train_dataset, val_dataset, test_dataset = rmd17_dataset.get_md_datasets(
         root=os.path.join(args.data_path, args.target),
         dataset_arg=args.target,
         train_size=args.train_size,
@@ -110,7 +110,7 @@ def test_revisedold_equal_original(args):
 
     """ Dataset """
     # new dataloader, old data
-    train, val, _ = rmd17_dataset.get_rmd17_datasets(
+    train, val, _ = rmd17_dataset.get_md_datasets(
         root=os.path.join(args.data_path, args.target),
         dataset_arg=args.target,
         train_size=0.5,
@@ -126,7 +126,7 @@ def test_revisedold_equal_original(args):
     print(f"Length original dataset: {len(dataset_og)}")
 
     # new dataloader, new dataset source, old data
-    train, val, _ = rmd17_dataset.get_rmd17_datasets(
+    train, val, _ = rmd17_dataset.get_md_datasets(
         root=os.path.join(args.data_path, args.target),
         dataset_arg=args.target,
         train_size=0.5,  # get all samples
@@ -174,7 +174,7 @@ def test_load_revised_split(args):
     print("\n", "-" * 80, "\n", inspect.currentframe().f_code.co_name)
 
     """ Dataset """
-    train_dataset, val_dataset, test_dataset = rmd17_dataset.get_rmd17_datasets(
+    train_dataset, val_dataset, test_dataset = rmd17_dataset.get_md_datasets(
         root=os.path.join(args.data_path, args.target),
         dataset_arg=args.target,
         train_size=args.train_size,
@@ -187,7 +187,7 @@ def test_load_revised_split(args):
         return_idx=True,
     )
 
-    train_dataset_loaded, val_dataset, test_dataset = rmd17_dataset.get_rmd17_datasets(
+    train_dataset_loaded, val_dataset, test_dataset = rmd17_dataset.get_md_datasets(
         root=os.path.join(args.data_path, args.target),
         dataset_arg=args.target,
         train_size=args.train_size,
@@ -223,7 +223,7 @@ from deq2ff.data_utils import reorder_dataset
 def test_consecutive_order(args):
     print("\n", "-" * 80, "\n", inspect.currentframe().f_code.co_name)
     """ Dataset """
-    train_dataset, val_dataset, test_dataset = rmd17_dataset.get_rmd17_datasets(
+    train_dataset, val_dataset, test_dataset = rmd17_dataset.get_md_datasets(
         root=os.path.join(args.data_path, args.target),
         dataset_arg=args.target,
         train_size=args.train_size,

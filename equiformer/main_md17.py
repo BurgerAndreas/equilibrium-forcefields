@@ -100,7 +100,7 @@ def main(args):
         import equiformer.datasets.pyg.md17 as md17_dataset
 
         train_dataset, val_dataset, test_dataset = md17_dataset.get_md17_datasets(
-            root=os.path.join(args.data_path, args.target),
+            root=os.path.join(args.data_path, 'md17', args.target),
             dataset_arg=args.target,
             train_size=args.train_size,
             val_size=args.val_size,
@@ -109,17 +109,16 @@ def main(args):
             # order="consecutive_test" if args.fpreuse_test else None,
         )
     else:
-        import equiformer.datasets.pyg.md17revised as md17revised
+        import equiformer.datasets.pyg.md_all as md_all
 
-        train_dataset, val_dataset, test_dataset = md17revised.get_rmd17_datasets(
-            root=os.path.join(args.data_path, args.target),
+        train_dataset, val_dataset, test_dataset = md_all.get_md_datasets(
+            root=args.data_path,
             dataset_arg=args.target,
+            dname=args.dname,
             train_size=args.train_size,
             val_size=args.val_size,
             test_size=None,
             seed=args.seed,
-            revised=args.md17revised,
-            revised_old=args.md17revised_old,
             load_splits=args.use_revised_splits,
             order="consecutive_test" if args.fpreuse_test else None,
         )
@@ -242,6 +241,42 @@ def main(args):
     }
 
     global_step = 0
+
+    # TODO
+    # dryrun (tryrun) for logging 
+    try:
+        model.train()
+        criterion.train()
+
+        for step, data in enumerate(train_loader):
+            data = data.to(device)
+
+            # energy, force
+            shapes_to_log = model.dummy_forward_for_logging(
+                node_atom=data.z,
+                pos=data.pos,
+                batch=data.batch,
+            )
+            break
+
+        # nums include batch size
+        shapes_to_log["batch_size"] = args.batch_size
+        shapes_to_log["NumNodes"] = shapes_to_log["NumNodes"] // args.batch_size
+        shapes_to_log["NumEdges"] = shapes_to_log["NumEdges"] // args.batch_size
+
+        import pprint
+        ppr = pprint.PrettyPrinter(indent=4)
+        ppr.pprint(shapes_to_log)
+        wandb.run.summary.update(shapes_to_log)
+
+        if args.dummy_logging_only:
+            return True
+
+        success = True
+    except Exception as e:
+        success = False
+        _log.info(f"Error: {e}")
+        
 
     if args.evaluate:
         test_err, test_loss = evaluate(

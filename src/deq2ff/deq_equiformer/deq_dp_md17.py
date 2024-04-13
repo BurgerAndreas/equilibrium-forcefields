@@ -15,8 +15,6 @@ import copy
 from pathlib import Path
 from typing import Iterable, Optional
 
-import equiformer.datasets.pyg.md17_backup as md17_dataset
-
 import equiformer.nets as nets
 from equiformer.nets import model_entrypoint
 
@@ -130,7 +128,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         nonlinear_message=False,
         irreps_mlp_mid="128x0e+64x1e+32x2e",
         norm_layer="layer",
-        # alpha dropout for SELU
+        # regularization
         alpha_drop=0.2,
         proj_drop=0.0,
         out_drop=0.0,
@@ -438,8 +436,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         node_features = atom_embedding + edge_degree_embedding
         node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
 
-        # atom_embedding torch.Size([168, 480])
-        # edge_degree_embedding torch.Size([168, 480])
+        # atom_embedding [num_atoms*batch_size, irreps_dim]
+        # edge_degree_embedding [num_atoms*batch_size, irreps_dim]
 
         # requires_grad: node_features, edge_sh, edge_length_embedding
         return (
@@ -602,6 +600,45 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
 
         return energy, forces
 
+    def dummy_forward_for_logging(self, node_atom, pos, batch, **kwargs):
+        """Return dictionary of shapes."""
+
+        (
+            node_features_injection,
+            node_attr,
+            edge_src,
+            edge_dst,
+            edge_sh,
+            edge_length_embedding,
+            batch,
+            pos,
+        ) = self.encode(node_atom=node_atom, pos=pos, batch=batch)
+
+        if self.input_injection == False:
+            node_features = node_features_injection
+        else:
+            node_features = self._init_z(batch_size=node_features_injection.shape[0], dim=self.irreps_node_embedding.dim)
+
+        # f = lambda z: self.mfn_forward(z, u)
+        f = lambda node_features: self.deq_implicit_layer(
+            node_features,
+            node_attr,
+            edge_src,
+            edge_dst,
+            edge_sh,
+            edge_length_embedding,
+            batch,
+            node_features_injection,
+        )
+
+        logs = {
+            "NumNodes": node_features_injection.shape[0],
+            "NumEdges": edge_src.shape[0],
+            "DimInputInjection": node_features_injection.shape[1],
+            "DimFixedPoint": node_features.shape[1],
+        }
+        return logs
+
     def forward(
         self,
         node_atom,
@@ -656,15 +693,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         )
 
         # z: list[torch.tensor shape [42, 480]]
-        if self.deq_mode:
-            solver_kwargs = {"f_max_iter": 0} if (reuse and self.limit_f_max_iter_fpreuse) else {}
-            # returns the sampled fixed point trajectory (tracked gradients)
-            # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
-            z_pred, info = self.deq(f, node_features, solver_kwargs=solver_kwargs)
-
-        else:
-            z_pred = [f(z)]
-            raise ValueError("DEQ mode must be True")
+        solver_kwargs = {"f_max_iter": 0} if (reuse and self.limit_f_max_iter_fpreuse) else {}
+        # returns the sampled fixed point trajectory (tracked gradients)
+        # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
+        z_pred, info = self.deq(f, node_features, solver_kwargs=solver_kwargs)
 
         if step is not None:
             # log fixed-point trajectory

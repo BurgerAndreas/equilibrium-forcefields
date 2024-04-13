@@ -13,8 +13,6 @@ from logger import FileLogger
 from pathlib import Path
 from typing import Iterable, Optional
 
-import equiformer.datasets.pyg.md17_backup as md17_dataset
-
 import nets
 from nets import model_entrypoint
 

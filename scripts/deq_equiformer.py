@@ -20,8 +20,6 @@ import sys
 from pathlib import Path
 from typing import Iterable, Optional
 
-import equiformer.datasets.pyg.md17_backup as md17_dataset
-
 import equiformer.nets as nets
 from equiformer.nets import model_entrypoint
 

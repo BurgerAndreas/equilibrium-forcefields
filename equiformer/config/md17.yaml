@@ -36,11 +36,10 @@ model_kwargs:
   num_heads: 4
   irreps_mlp_mid: "384x0e+192x1e+96x2e"
   # regularization
-  alpha_drop: 0.0
-  proj_drop: 0.0
+  alpha_drop: 0.0 # 0.2
+  proj_drop: 0.0 # 0.1
   out_drop: 0.0
-  # drop_path: 0.0
-  drop_path_rate: 0.0
+  drop_path_rate: 0.0 # 0.05
   scale: null
   # (str)
   irreps_in: null
@@ -54,14 +53,18 @@ model_kwargs:
   fc_tp_irrep_norm: null # None = 'element'
   bias: True
 
-# use revised version of MD17 with more accurate energies and forces (bool)
-md17revised: False
-use_revised_splits: False
-# use the non-revised (old) data downloaded from the revised dataset 
-# and processed with the revised dataset's preprocessing script (bool)
-md17revised_old: False
 
-use_original_datasetcreation: False
+# [md17, rmd17og, rmd17, md22]
+# rmd17: use revised version of MD17 with more accurate energies and forces 
+# rmd17og: use the non-revised (old) data but downloaded from the revised dataset (should be the same as md17)
+dname: "md17"
+use_revised_splits: False
+use_original_datasetcreation: False # will only work with dname=md17
+
+# (str)
+data_path: "datasets"
+# http://www.sgdml.org/#datasets
+target: "aspirin"
 
 # (str)
 output_dir: null
@@ -118,10 +121,6 @@ cooldown_epochs: 10
 patience_epochs: 10
 # LR decay rate (default: 0.1 (float)
 decay_rate: 0.1
-# (str)
-target: "aspirin"
-# (str)
-data_path: "datasets/md17"
 # size of training dataset (int)
 train_size: 950
 # size of validation dataset (int)
@@ -168,6 +167,7 @@ log_every_step_major: 1000
 # minor stuff (int)
 log_every_step_minor: 100
 
+dummy_logging_only: False
 wandb: True
 wandb_run_name: null
 wandb_group: null

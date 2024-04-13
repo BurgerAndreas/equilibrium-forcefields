@@ -13,9 +13,7 @@ import pathlib
 import sys
 from typing import Iterable, Optional
 
-
-import equiformer.datasets.pyg.md17_backup as md17_dataset
-import equiformer.datasets.pyg.md17revised as rmd17_dataset
+import equiformer.datasets.pyg.md_all as rmd17_dataset
 
 from equiformer.logger import FileLogger
 
@@ -66,17 +64,16 @@ def test(args, max_radius=np.arange(1.0, 10.0), batch_size=1):
             # order="consecutive_test" if args.fpreuse_test else None,
         )
     else:
-        import equiformer.datasets.pyg.md17revised as md17revised
+        import equiformer.datasets.pyg.md_all as md_all
 
-        train_dataset, val_dataset, test_dataset = md17revised.get_rmd17_datasets(
+        train_dataset, val_dataset, test_dataset = md_all.get_md_datasets(
             root=os.path.join(args.data_path, args.target),
             dataset_arg=args.target,
             train_size=args.train_size,
             val_size=args.val_size,
             test_size=None,
             seed=args.seed,
-            revised=args.md17revised,
-            revised_old=args.md17revised_old,
+            dname=args.dname,
             load_splits=args.use_revised_splits,
             order="consecutive_test" if args.fpreuse_test else None,
         )

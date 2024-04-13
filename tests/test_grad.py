@@ -26,7 +26,7 @@ import sys, os
 
 # sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-import equiformer.datasets.pyg.md17_backup as md17_dataset
+import equiformer.datasets.pyg.md17 as md17_dataset
 
 from equiformer.logger import FileLogger
 

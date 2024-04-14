@@ -32,10 +32,15 @@ model_kwargs:
   # weight, spectral, both, or none
   # https://github.com/locuslab/torchdeq/blob/4f6bd5fa66dd991cad74fcc847c88061764cf8db/torchdeq/norm/base_norm.py#L90C23-L90C32
   torchdeq_norm: 
-    norm_type: 'weight_norm'
+    norm_type: 'weight_norm' # weight_norm, spectral_norm
     clip: False # norm_clip
     clip_value: 1.0
-    # sn_n_power_iters: 1
+    # dims (list or int, optional) – The dimensions along which to normalize.
+    # learn_scale (bool, optional) – If true, learn a scale factor during training. Default True.
+    # target_norm (float, optional) – The target norm value. Default 1.
+    # clip (bool, optional) – If true, clip the scale factor. Default False.
+    # clip_value (float, optional) – The value to clip the scale factor to. Default 1.
+
   input_injection: 'first_layer'
   # "FFResidualFCTPProjection", "FFProjection", "FCTPProjection"
   dec_proj: null
@@ -49,7 +54,7 @@ model_kwargs:
 # passed to torchdeq
 deq_kwargs:
   # https://torchdeq.readthedocs.io/en/latest/torchdeq/core.html#torchdeq.core.get_deq
-  # 'broyden' anderson newton
+  # 'anderson', 'broyden', 'fixed_point_iter', 'simple_fixed_point_iter'
   # (str, optional) – The forward solver function. Default 'fixed_point_iter'
   f_solver: 'fixed_point_iter'
   # (str, optional) – The backward solver function. Default 'fixed_point_iter'.

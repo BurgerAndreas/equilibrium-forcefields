@@ -155,6 +155,7 @@ save_final_checkpoint: False
 evaluate: False
 # Include force in loss calculation. (str2bool)
 meas_force: True
+clip_grad_norm: False # False, 5.0, 100
 
 # use model.eval() during evaluation (bool)
 eval_mode: False

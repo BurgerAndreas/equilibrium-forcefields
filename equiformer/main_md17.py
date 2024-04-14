@@ -726,6 +726,13 @@ def train_one_epoch(
 
         optimizer.zero_grad()
         loss.backward()
+        if args.clip_grad_norm:
+            grad_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(),
+                    max_norm=args.clip_grad_norm,
+                )
+            wandb.log({"grad_norm": grad_norm}, step=global_step)
+            # .log({"grad_norm": grad_norm}, step=self.step, split="train")
         optimizer.step()
 
         loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])

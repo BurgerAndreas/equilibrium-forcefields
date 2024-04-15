@@ -36,10 +36,10 @@ model_kwargs:
     clip: False # norm_clip
     clip_value: 1.0
     # dims (list or int, optional) – The dimensions along which to normalize.
-    # learn_scale (bool, optional) – If true, learn a scale factor during training. Default True.
-    # target_norm (float, optional) – The target norm value. Default 1.
-    # clip (bool, optional) – If true, clip the scale factor. Default False.
-    # clip_value (float, optional) – The value to clip the scale factor to. Default 1.
+    learn_scale: True # (bool, optional) – If true, learn a scale factor during training. Default True.
+    target_norm: # 1.0 (float, optional) – The target norm value. Default 1.
+    clip: False # (bool, optional) – If true, clip the scale factor. Default False.
+    clip_value: 1.0 # (float, optional) – The value to clip the scale factor to. Default 1.
 
   input_injection: 'first_layer'
   # "FFResidualFCTPProjection", "FFProjection", "FCTPProjection"

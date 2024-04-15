@@ -51,7 +51,7 @@ def run_test(args):
 
     """ Dataset """
     train_dataset, val_dataset, test_dataset = md17_dataset.get_md17_datasets(
-        root=os.path.join(args.data_path, args.target),
+        root=os.path.join(args.data_path, 'md17', args.target),
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,

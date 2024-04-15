@@ -29,7 +29,12 @@ class EquiformerDEQBase:
         fc_tp_path_norm="none",
         fc_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
+        # weight initialization
+        weight_init="equiformer",
+        weight_init_blocks="equiformer",
         bias=True,
+        # debugging
+        skip_implicit_layer=False,
         **kwargs,
     ):
         """Sets extra variables we have added for the DEQ model."""
@@ -80,8 +85,10 @@ class EquiformerDEQBase:
         self.fp_error_traj = {"train": None, "val": None, "test": None, "test_final": None}
 
         self.bias = bias
+        self.weight_init = weight_init 
+        self.weight_init_blocks = weight_init_blocks
 
-        self.dec_proj = None
+        self.skip_implicit_layer = skip_implicit_layer
 
         return kwargs
 

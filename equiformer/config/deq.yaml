@@ -21,8 +21,9 @@ model_is_deq: True
 fpreuse_test: False
 limit_f_max_iter_fpreuse: False
 
+# debugging tools
 # meas_force: False
-# should be the same, but custom autograd might interfere with torchdeq grad
+# should be the same as meas_force, but custom autograd might interfere with torchdeq grad
 noforcemodel: False
 
 # passed into model
@@ -47,7 +48,8 @@ model_kwargs:
   z0_requires_grad: False
   # logging
   log_fp_error_traj: False
-
+  # debugging: instead of fixed-point pass initial features to the decoder
+  skip_implicit_layer: False
 
 # passed to torchdeq
 deq_kwargs:

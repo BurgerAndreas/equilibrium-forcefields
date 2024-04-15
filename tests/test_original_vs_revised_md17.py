@@ -47,7 +47,7 @@ def test_revised_dataset_creation(args):
     """ Dataset """
     # new dataloader, old dataset
     train_dataset, val_dataset, test_dataset = rmd17_dataset.get_md_datasets(
-        root=os.path.join(args.data_path, args.target),
+        root=args.data_path,
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
@@ -62,7 +62,7 @@ def test_revised_dataset_creation(args):
 
     # old dataloader, old dataset
     train_dataset_old, _, _ = md17_dataset.get_md17_datasets(
-        root=os.path.join(args.data_path, args.target),
+        root=os.path.join(args.data_path, 'md17', args.target),
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
@@ -111,7 +111,7 @@ def test_revisedold_equal_original(args):
     """ Dataset """
     # new dataloader, old data
     train, val, _ = rmd17_dataset.get_md_datasets(
-        root=os.path.join(args.data_path, args.target),
+        root=args.data_path,
         dataset_arg=args.target,
         train_size=0.5,
         val_size=0.5,
@@ -127,7 +127,7 @@ def test_revisedold_equal_original(args):
 
     # new dataloader, new dataset source, old data
     train, val, _ = rmd17_dataset.get_md_datasets(
-        root=os.path.join(args.data_path, args.target),
+        root=args.data_path,
         dataset_arg=args.target,
         train_size=0.5,  # get all samples
         val_size=0.5,
@@ -175,7 +175,7 @@ def test_load_revised_split(args):
 
     """ Dataset """
     train_dataset, val_dataset, test_dataset = rmd17_dataset.get_md_datasets(
-        root=os.path.join(args.data_path, args.target),
+        root=args.data_path,
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
@@ -188,7 +188,7 @@ def test_load_revised_split(args):
     )
 
     train_dataset_loaded, val_dataset, test_dataset = rmd17_dataset.get_md_datasets(
-        root=os.path.join(args.data_path, args.target),
+        root=args.data_path,
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
@@ -224,7 +224,7 @@ def test_consecutive_order(args):
     print("\n", "-" * 80, "\n", inspect.currentframe().f_code.co_name)
     """ Dataset """
     train_dataset, val_dataset, test_dataset = rmd17_dataset.get_md_datasets(
-        root=os.path.join(args.data_path, args.target),
+        root=args.data_path,
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,

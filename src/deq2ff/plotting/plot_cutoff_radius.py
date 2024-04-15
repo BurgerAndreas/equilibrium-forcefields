@@ -55,7 +55,7 @@ def test(args, max_radius=np.arange(1.0, 10.0), batch_size=1):
         import equiformer.datasets.pyg.md17 as md17_dataset
 
         train_dataset, val_dataset, test_dataset = md17_dataset.get_md17_datasets(
-            root=os.path.join(args.data_path, args.target),
+            root=os.path.join(args.data_path, 'md17', args.target),
             dataset_arg=args.target,
             train_size=args.train_size,
             val_size=args.val_size,
@@ -67,7 +67,7 @@ def test(args, max_radius=np.arange(1.0, 10.0), batch_size=1):
         import equiformer.datasets.pyg.md_all as md_all
 
         train_dataset, val_dataset, test_dataset = md_all.get_md_datasets(
-            root=os.path.join(args.data_path, args.target),
+            root=args.data_path,
             dataset_arg=args.target,
             train_size=args.train_size,
             val_size=args.val_size,

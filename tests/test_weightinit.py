@@ -77,6 +77,11 @@ def print_base_modules(module, print_without_params=False):
             print("module:", module)
             if isinstance(module, torch.nn.Linear):
                 print("  -> linear")
+                print(
+                    "  weight:",
+                    module.weight.data.mean().item(),
+                    module.weight.data.std().item(),
+                )
             elif isinstance(module, torch.nn.LayerNorm):
                 print("  -> LayerNorm")
 
@@ -104,12 +109,13 @@ def print_base_modules(module, print_without_params=False):
 
 def find_base_modules(model, args: DictConfig):
 
-    model.apply(print_base_modules)
+    # model.apply(print_base_modules)
+    model.blocks.apply(print_base_modules) # deq implicit layer
 
 
 @hydra.main(
     config_name="md17",
-    config_path="../equiformer/config/equiformer",
+    config_path="../equiformer/config",
     version_base="1.3",
 )
 def hydra_wrapper(args: DictConfig) -> None:
@@ -119,7 +125,7 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     """ Dataset """
     train_dataset, val_dataset, test_dataset = md17_dataset.get_md_datasets(
-        root=os.path.join(args.data_path, args.target),
+        root=os.path.join(args.data_path, 'md17', args.target),
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
@@ -137,11 +143,17 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    """ Change kwargs """
+    # args.model_kwargs.bias = False
+
     """ Network """
     create_model = model_entrypoint(args.model_name)
     model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)
 
     find_base_modules(model, args)
+
+    # print("\nmodel:\n", model)
+    print("\implicit layer:\n", model.blocks)
 
 
 if __name__ == "__main__":

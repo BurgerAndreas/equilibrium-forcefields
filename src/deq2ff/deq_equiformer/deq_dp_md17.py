@@ -249,10 +249,11 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         self.scale_scatter = ScaledScatter(_AVG_NUM_NODES)
 
         self.apply(self._init_weights)
+        self.blocks.apply(self._init_weights_blocks)
 
         self._init_decoder_proj_final_layer()
         kwargs = self._init_deq(**kwargs)
-        print(f"! Ignoring kwargs: {kwargs}")
+        print(f"Ignoring kwargs: {kwargs}")
 
         #################################################################
 
@@ -321,17 +322,23 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 self.final_block = blk
         print(f"\nInitialized {len(self.blocks)} blocks of `DPTransBlock`.")
 
-    def _init_weights(self, m):
+    def _init_weights_base(self, m, weight_init):
         # torch.nn.init.normal_(tensor, mean=0.0, std=1.0)
         # kaiman
         # torch.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
         # torch.nn.init.zeros_(self.fc1.bias)
-        if isinstance(m, torch.nn.Linear):
-            if m.bias is not None:
+        if weight_init == "equiformer":
+            if isinstance(m, torch.nn.Linear):
+                if m.bias is not None:
+                    torch.nn.init.constant_(m.bias, 0)
+                # initialized uniformly :math:`\mathcal{U}(-\sqrt{k}, \sqrt{k})`, 
+                # where :math:`k = \frac{1}{\text{in\_features}}`
+                # init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+            elif isinstance(m, torch.nn.LayerNorm):
                 torch.nn.init.constant_(m.bias, 0)
-        elif isinstance(m, torch.nn.LayerNorm):
-            torch.nn.init.constant_(m.bias, 0)
-            torch.nn.init.constant_(m.weight, 1.0)
+                torch.nn.init.constant_(m.weight, 1.0)
+        elif weight_init == "torch":
+            pass
         # ParameterList
         # elif isinstance(m, torch.nn.ParameterList):
         #     for param in m:
@@ -341,6 +348,12 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         # if self.weight_init == 'normal':
         #         std = 1 / math.sqrt(m.in_features)
         #         torch.nn.init.normal_(m.weight, 0, std)
+    
+    def _init_weights(self, m):
+        self._init_weights_base(m, weight_init=self.weight_init)
+    
+    def _init_weights_blocks(self, m):
+        self._init_weights_base(m, weight_init=self.weight_init_blocks)
 
     @torch.jit.ignore
     def no_weight_decay(self):
@@ -678,41 +691,47 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         else:
             node_features = fixedpoint
 
-        reset_norm(self.blocks)
+        # debugging
+        if self.skip_implicit_layer:
+            node_features = self._init_z(batch_size=node_features_injection.shape[0], dim=self.irreps_node_embedding.dim)
+            z_pred = [node_features]
+            # print("! Skipping implicit layer")
+        else:
+            reset_norm(self.blocks)
 
-        # f = lambda z: self.mfn_forward(z, u)
-        f = lambda node_features: self.deq_implicit_layer(
-            node_features,
-            node_attr,
-            edge_src,
-            edge_dst,
-            edge_sh,
-            edge_length_embedding,
-            batch,
-            node_features_injection,
-        )
-
-        # z: list[torch.tensor shape [42, 480]]
-        solver_kwargs = {"f_max_iter": 0} if (reuse and self.limit_f_max_iter_fpreuse) else {}
-        # returns the sampled fixed point trajectory (tracked gradients)
-        # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
-        z_pred, info = self.deq(f, node_features, solver_kwargs=solver_kwargs)
-
-        if step is not None:
-            # log fixed-point trajectory
-            _data = logging_utils_deq.log_fixed_point_error(
-                info,
-                step,
-                datasplit,
-                self.fp_error_traj[datasplit],
-                log_fp_error_traj=self.log_fp_error_traj,
+            # f = lambda z: self.mfn_forward(z, u)
+            f = lambda node_features: self.deq_implicit_layer(
+                node_features,
+                node_attr,
+                edge_src,
+                edge_dst,
+                edge_sh,
+                edge_length_embedding,
+                batch,
+                node_features_injection,
             )
-            if _data is not None:
-                self.fp_error_traj[datasplit] = _data
-            # log the final fixed-point
-            logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
-            # log the input injection (output of encoder)
-            logging_utils_deq.log_fixed_point_norm(node_features_injection, step, datasplit, name="emb")
+
+            # z: list[torch.tensor shape [42, 480]]
+            solver_kwargs = {"f_max_iter": 0} if (reuse and self.limit_f_max_iter_fpreuse) else {}
+            # returns the sampled fixed point trajectory (tracked gradients)
+            # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
+            z_pred, info = self.deq(f, node_features, solver_kwargs=solver_kwargs)
+
+            if step is not None:
+                # log fixed-point trajectory
+                _data = logging_utils_deq.log_fixed_point_error(
+                    info,
+                    step,
+                    datasplit,
+                    self.fp_error_traj[datasplit],
+                    log_fp_error_traj=self.log_fp_error_traj,
+                )
+                if _data is not None:
+                    self.fp_error_traj[datasplit] = _data
+                # log the final fixed-point
+                logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
+                # log the input injection (output of encoder)
+                logging_utils_deq.log_fixed_point_norm(node_features_injection, step, datasplit, name="emb")
 
         # decode
         # outputs: list[Tuple(energy: torch.tensor [2, 1], force: torch.tensor [42, 3])]
@@ -723,13 +742,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         # force = outputs[-1][1]
 
         if not z_pred[-1].requires_grad:
-            print(
-                "!" * 60,
-                f"before decode: z_pred[-1] node_features.requires_grad: {z_pred[-1].requires_grad}",
-                f"datasplit: {datasplit}",
-                "!" * 60,
-                sep="\n"
-            )
+            print("!!!", f"z_pred[-1] node_features.requires_grad: {z_pred[-1].requires_grad} (datasplit: {datasplit})"            )
 
         energy, force = self.decode(
             node_features=z_pred[-1],

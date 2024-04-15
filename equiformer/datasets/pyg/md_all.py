@@ -30,8 +30,8 @@ class MDAll(InMemoryDataset):
     https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.datasets.MD17.html
 
     Usage:
-        train_dataset, val_dataset, test_dataset = md17_dataset.get_md17_datasets(
-            root=os.path.join(args.data_path, args.target),
+        train_dataset, val_dataset, test_dataset = md17_dataset.get_md_datasets(
+            root=os.path.join(args.data_path, 'md17', args.target),
             dataset_arg=args.target,
             train_size=args.train_size,
             val_size=args.val_size,
@@ -534,7 +534,7 @@ if __name__ == "__main__":
 
     from torch_geometric.loader import DataLoader
 
-    _root_path = "./datasets/test_md17/aspirin"
+    _root_path = "./datasets/test"
     train_dataset, val_dataset, test_dataset = get_md_datasets(
         root=_root_path,
         dataset_arg="aspirin",

@@ -47,6 +47,11 @@ def main(run_id: str, datasplit: str = "train", error_type="abs"):
 
     history = run.scan_history()
     losses = [[row[artifact_name], row["_step"]] for row in history if artifact_name in row.keys()]
+
+    losses_nonone = [[r, s] for r, s in losses if r is not None]
+    print(f"rows that were None: {len(losses) - len(losses_nonone)} / {len(losses)}")
+    losses = losses_nonone
+
     # losses = [[r, s, [*range(len(r))]] for r, s in losses]
     losses = [
         {
@@ -73,12 +78,15 @@ def main(run_id: str, datasplit: str = "train", error_type="abs"):
     plt.savefig(fname)
     print(f"Saved plot to {fname}")
 
+
 if __name__ == "__main__":
 
+    # broyden: iptk3b73
+    # anderson: neo7e1vi
     # z0-ones: gzifpvwe
     # 6 layers: yuqbla4u
     # FPreuse: auffq4x0
     # Tanh: ii3gls8d
-    run_id = "yuqbla4u"
+    run_id = "iptk3b73"
 
     main(run_id, datasplit="train")

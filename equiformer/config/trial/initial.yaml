@@ -2,12 +2,22 @@
 # ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
 
 
-# one epoch
-# 100 forward steps
+epochs: 3
 
-log_fp_error_traj: True
-
-batch_size: 64
+# log_fp_error_traj: True
 
 deq_kwargs:
   f_max_iter: 100
+
+
+# major stuff (int)
+log_every_step_major: 100
+# minor stuff (int)
+log_every_step_minor: 100
+
+# epoch interval to evaluate on the testing set (int)
+test_interval: 10
+# max iteration to evaluate on the testing set (int)
+test_max_iter: 1000
+# after training is done (-1 means whole test set ~ 100-200k) (int)
+test_max_iter_final: 1000

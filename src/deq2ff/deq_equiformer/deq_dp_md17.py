@@ -278,8 +278,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
 
             if self.input_injection == "first_layer":
                 if i == 0:
-                    pass
                     # first layer unchanged
+                    pass
                 elif i >= (self.num_layers - 1):
                     # last layer unchanged
                     pass
@@ -323,31 +323,56 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         print(f"\nInitialized {len(self.blocks)} blocks of `DPTransBlock`.")
 
     def _init_weights_base(self, m, weight_init):
+        """
+        EquivariantLayerNormV2 are initialized to weight=0, bias=1.
+        ParameterList are initialized to 0.
+        """
         # torch.nn.init.normal_(tensor, mean=0.0, std=1.0)
         # kaiman
         # torch.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
         # torch.nn.init.zeros_(self.fc1.bias)
-        if weight_init == "equiformer":
-            if isinstance(m, torch.nn.Linear):
-                if m.bias is not None:
-                    torch.nn.init.constant_(m.bias, 0)
+
+        if isinstance(m, torch.nn.Linear):
+            if weight_init['Linear'] == "equiformer":
                 # initialized uniformly :math:`\mathcal{U}(-\sqrt{k}, \sqrt{k})`, 
                 # where :math:`k = \frac{1}{\text{in\_features}}`
                 # init.kaiming_uniform_(self.weight, a=math.sqrt(5))
-            elif isinstance(m, torch.nn.LayerNorm):
+                if m.bias is not None:
+                    torch.nn.init.constant_(m.bias, 0)
+            elif weight_init['Linear'] == "torch":
+                # weight and bias kaiming_uniform
+                pass
+
+        elif isinstance(m, torch.nn.LayerNorm):
+            if weight_init['LayerNorm'] == "equiformer":
                 torch.nn.init.constant_(m.bias, 0)
                 torch.nn.init.constant_(m.weight, 1.0)
-        elif weight_init == "torch":
-            pass
-        # ParameterList
-        # elif isinstance(m, torch.nn.ParameterList):
-        #     for param in m:
-        #         torch.nn.init.normal_(param, mean=0.0, std=1.0)
-        # EquivariantLayerNormV2
-        # https://github.com/atomicarchitects/equiformer_v2/blob/main/nets/equiformer_v2/equiformer_v2_oc20.py#L489
-        # if self.weight_init == 'normal':
-        #         std = 1 / math.sqrt(m.in_features)
-        #         torch.nn.init.normal_(m.weight, 0, std)
+            elif weight_init['LayerNorm'] == "torch":
+                pass
+
+        elif isinstance(m, EquivariantLayerNormV2):
+            # https://github.com/atomicarchitects/equiformer_v2/blob/main/nets/equiformer_v2/equiformer_v2_oc20.py#L489
+            if weight_init['EquivariantLayerNormV2'] == "equiformer":
+                # weight=0, bias=1
+                # if self.weight_init == 'normal':
+                #         std = 1 / math.sqrt(m.in_features)
+                #         torch.nn.init.normal_(m.weight, 0, std)
+                pass
+            elif weight_init['EquivariantLayerNormV2'] == "torch":
+                pass
+            # elif weight_init['EquivariantLayerNormV2'] == "zeros":
+                # torch.nn.init.constant_(m.affine_bias, 1)
+                # torch.nn.init.constant_(m.affine_weight, 0)
+        
+        elif isinstance(m, torch.nn.ParameterList):
+            if weight_init['ParameterList'] == "equiformer":
+                pass
+            elif weight_init['ParameterList'] == "torch":
+                pass
+            # elif weight_init['EquivariantLayerNormV2'] == "zeros":
+                # for param in m:
+                #     torch.nn.init.zeros_(param)
+
     
     def _init_weights(self, m):
         self._init_weights_base(m, weight_init=self.weight_init)
@@ -357,6 +382,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
 
     @torch.jit.ignore
     def no_weight_decay(self):
+        """?"""
         no_wd_list = []
         named_parameters_list = [name for name, _ in self.named_parameters()]
         for module_name, module in self.named_modules():

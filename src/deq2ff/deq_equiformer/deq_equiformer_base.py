@@ -30,8 +30,8 @@ class EquiformerDEQBase:
         fc_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
         # weight initialization
-        weight_init="equiformer",
-        weight_init_blocks="equiformer",
+        weight_init=None,
+        weight_init_blocks=None,
         bias=True,
         # debugging
         skip_implicit_layer=False,
@@ -85,8 +85,22 @@ class EquiformerDEQBase:
         self.fp_error_traj = {"train": None, "val": None, "test": None, "test_final": None}
 
         self.bias = bias
-        self.weight_init = weight_init 
-        self.weight_init_blocks = weight_init_blocks
+
+        # weight initialization
+        weight_init_keys = ["EquivariantLayerNormV2", "LayerNorm", "Linear", "ParameterList"]
+        if weight_init is None:
+            self.weight_init = {k: 'equiformer' for k in weight_init_keys}
+        elif isinstance(weight_init, str):
+            self.weight_init = {k: weight_init for k in weight_init_keys}
+        else:
+            self.weight_init = weight_init 
+        # weight_init_blocks will overwrite weight_init for the blocks
+        if weight_init_blocks is None:
+            self.weight_init_blocks = {k: 'equiformer' for k in weight_init_keys}
+        elif isinstance(weight_init, str):
+            self.weight_init_blocks = {k: weight_init for k in weight_init_keys}
+        else:
+            self.weight_init_blocks = weight_init_blocks
 
         self.skip_implicit_layer = skip_implicit_layer
 

@@ -294,10 +294,12 @@ class SeparableFCTP(torch.nn.Module):
 
         self.dtp_rad = None
         if fc_neurons is not None:
-            self.dtp_rad = RadialProfile(fc_neurons + [self.dtp.tp.weight_numel])
+            self.dtp_rad = RadialProfile(fc_neurons + [self.dtp.tp.weight_numel], use_offset=bias)
             for (slice, slice_sqrt_k) in self.dtp.slices_sqrt_k.values():
                 self.dtp_rad.net[-1].weight.data[slice, :] *= slice_sqrt_k
-                self.dtp_rad.offset.data[slice] *= slice_sqrt_k
+                # self.dtp_rad.offset.data[slice] *= slice_sqrt_k
+                if bias:
+                    self.dtp_rad.offset.data[slice] *= slice_sqrt_k
 
         irreps_lin_output = self.irreps_node_output
         irreps_scalars, irreps_gates, irreps_gated = irreps2gate(

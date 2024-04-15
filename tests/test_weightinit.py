@@ -30,6 +30,17 @@ import wandb
 import omegaconf
 from omegaconf import DictConfig
 
+import deq2ff
+from deq2ff.deq_equiformer.deq_dp_md17 import (
+    deq_dot_product_attention_transformer_exp_l2_md17,
+)
+from deq2ff.deq_equiformer.deq_graph_md17 import (
+    deq_graph_attention_transformer_nonlinear_l2_md17,
+)
+from deq2ff.deq_equiformer.deq_dp_md17_noforce import (
+    deq_dot_product_attention_transformer_exp_l2_md17_noforce,
+)
+
 from typing import (
     Union,
     Tuple,
@@ -68,40 +79,84 @@ class Module:
         fn(self)
         return self
 
+# coloring
 
-def print_base_modules(module, print_without_params=False):
+import colorama
+from termcolor import colored
+ 
+colorama.init()
+ 
+
+def print_base_modules(module, print_without_params=False, bias=True):
     children = [name for name, module in module.named_children()]
+
     if len(children) == 0:
         num_params = sum(p.numel() for p in module.parameters() if p.requires_grad)
         if print_without_params or num_params > 0:
-            print("module:", module)
+            print(module)
             if isinstance(module, torch.nn.Linear):
-                print("  -> linear")
+                # print("  -> linear")
                 print(
-                    "  weight:",
-                    module.weight.data.mean().item(),
-                    module.weight.data.std().item(),
+                    f"  weight: mean={module.weight.data.mean().item()}, std={module.weight.data.std().item()}, nonzeros={module.weight.data.nonzero().size(0)}"
                 )
+                if module.bias is None:
+                    print("  bias: None")
+                else:
+                    text = f"  bias: mean={module.bias.data.mean().item()}, std={module.bias.data.std().item()}"
+                    if bias:
+                        print(text)
+                    else:
+                        print(colored(text, 'black', 'on_green'))
+
+            # LayerNorm is initialized to weight=1, bias=0
             elif isinstance(module, torch.nn.LayerNorm):
-                print("  -> LayerNorm")
+                # print("  -> LayerNorm")
+                print(
+                    f"  weight: mean={module.weight.data.mean().item()}, std={module.weight.data.std().item()}, nonzeros={module.weight.data.nonzero().size(0)}"
+                )
+                if module.bias is None:
+                    print("  bias: None")
+                else:
+                    text = f"  bias: mean={module.bias.data.mean().item()}, std={module.bias.data.std().item()}"
+                    if bias:
+                        print(text)
+                    else:
+                        print(colored(text, 'black', 'on_green')) # bias shouldn't appear
 
-            # some EquivariantLayerNormV2 are initialized to all 0s
-            # some to all 1s
-            # elif isinstance(module, EquivariantLayerNormV2):
-            #     for p in module.parameters():
-            #         print(p)
+            # EquivariantLayerNormV2 are initialized to weight=0, bias=1
+            elif isinstance(module, EquivariantLayerNormV2):
+                # print("  -> EquivariantLayerNormV2")
+                num_zeros = (module.affine_weight.data == 0).sum().item()
+                num_ones = (module.affine_weight.data == 1).sum().item()
+                print(f"  weight: zeros={num_zeros}, ones={num_ones}")
+                if module.affine is False:
+                    print("  bias: None")
+                else:
+                    num_zeros = (module.affine_bias.data == 0).sum().item()
+                    num_ones = (module.affine_bias.data == 1).sum().item()
+                    text = f"  bias: zeros={num_zeros}, ones={num_ones}"
+                    if bias:
+                        print(text)
+                    else:
+                        print(colored(text, 'black', 'on_red')) # bias shouldn't appear
+                # for p in module.parameters():
+                #     print(p)
 
-            # parameter lists are initialized to 0
-            # elif isinstance(module, torch.nn.ParameterList):
-            #     for p in module:
-            #         print(p)
+            # ParameterList are initialized to 0
+            elif isinstance(module, torch.nn.ParameterList):
+                mean = torch.stack([p.data.mean() for p in module]).mean().item()
+                std = torch.stack([p.data.std() for p in module]).mean().item()
+                nonzeros = [p.data.nonzero().size(0) for p in module][0]
+                # print("  -> ParameterList")
+                print(f"  weight: mean={mean}, std={std}, nonzeros={nonzeros}")
+                # for p in module:
+                #     print(p)
+            
             else:
                 # compute weight init
                 try:
                     print(
-                        "  weight:",
-                        module.weight.data.mean().item(),
-                        module.weight.data.std().item(),
+                        f"  weight: mean={module.weight.data.mean().item()}, std={module.weight.data.std().item()}, nonzeros={module.weight.data.nonzero().size(0)}"
                     )
                 except:
                     print(f"  None ({num_params} params)")
@@ -112,9 +167,14 @@ def find_base_modules(model, args: DictConfig):
     # model.apply(print_base_modules)
     model.blocks.apply(print_base_modules) # deq implicit layer
 
+"""
+Things to check:
+- bias=False
+- 
+"""
 
 @hydra.main(
-    config_name="md17",
+    config_name="deq", # md17
     config_path="../equiformer/config",
     version_base="1.3",
 )
@@ -144,16 +204,17 @@ def hydra_wrapper(args: DictConfig) -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     """ Change kwargs """
-    # args.model_kwargs.bias = False
+    args.model_kwargs.bias = False
 
     """ Network """
-    create_model = model_entrypoint(args.model_name)
+    # create_model = model_entrypoint(args.model_name)
+    create_model = model_entrypoint('deq_' + args.model_name)
     model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)
 
     find_base_modules(model, args)
 
     # print("\nmodel:\n", model)
-    print("\implicit layer:\n", model.blocks)
+    print("\nImplicit layer:\n", model.blocks)
 
 
 if __name__ == "__main__":

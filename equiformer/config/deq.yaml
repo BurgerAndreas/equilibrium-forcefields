@@ -54,7 +54,7 @@ deq_kwargs:
   # https://torchdeq.readthedocs.io/en/latest/torchdeq/core.html#torchdeq.core.get_deq
   # 'anderson', 'broyden', 'fixed_point_iter', 'simple_fixed_point_iter'
   # (str, optional) – The forward solver function. Default 'fixed_point_iter'
-  f_solver: 'fixed_point_iter'
+  f_solver: 'anderson'
   # (str, optional) – The backward solver function. Default 'fixed_point_iter'.
   b_solver: 'fixed_point_iter'
   # f_tol (float, optional) – The forward pass solver stopping criterion. Default 1e-3.

@@ -1,15 +1,14 @@
 # @package _global_
 # ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
 
-
-epochs: 3
+epochs: 5
 
 # log_fp_error_traj: True
 
 deq_kwargs:
   f_max_iter: 100
 
-
+# 900 samples * 5 epochs / 8 batch_size = 590 iterations (steps)
 # major stuff (int)
 log_every_step_major: 100
 # minor stuff (int)
@@ -18,6 +17,6 @@ log_every_step_minor: 100
 # epoch interval to evaluate on the testing set (int)
 test_interval: 10
 # max iteration to evaluate on the testing set (int)
-test_max_iter: 1000
+test_max_iter: 100
 # after training is done (-1 means whole test set ~ 100-200k) (int)
-test_max_iter_final: 1000
+test_max_iter_final: 100

@@ -137,7 +137,7 @@ class FFNorm(FF):
 class FFResidual(torch.nn.Module):
     """Second part of DPTransBlock without norm."""
     def __init__(
-        self, irreps_in, irreps_node_attr, irreps_out, irreps_mlp_mid=None, rescale=True,
+        self, irreps_node_input, irreps_node_attr, irreps_node_output, irreps_mlp_mid=None, rescale=True,
         # added
         # FullyConnectedTensorProductRescale
         # only used when irreps_node_input != irreps_node_output
@@ -149,9 +149,9 @@ class FFResidual(torch.nn.Module):
     ):
         super().__init__()
         self.rescale = rescale
-        self.irreps_node_input = o3.Irreps(irreps_in)
+        self.irreps_node_input = o3.Irreps(irreps_node_input)
         self.irreps_node_attr = o3.Irreps(irreps_node_attr)
-        self.irreps_node_output = o3.Irreps(irreps_out)
+        self.irreps_node_output = o3.Irreps(irreps_node_output)
         self.irreps_mlp_mid = (
             o3.Irreps(irreps_mlp_mid)
             if irreps_mlp_mid is not None

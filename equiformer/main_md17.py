@@ -895,16 +895,16 @@ def evaluate(
         mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
         # logging
-        if (step % print_freq == 0 or step == len(data_loader) - 1) and print_progress:
+        if (step % print_freq == 0 or step == max_iter - 1) and print_progress:
             w = time.perf_counter() - start_time
-            e = (step + 1) / len(data_loader)
-            info_str = "[{step}/{length}] \t".format(step=step, length=len(data_loader))
+            e = (step + 1) / max_iter
+            info_str = "[{step}/{length}] \t".format(step=step, length=max_iter)
             info_str += "e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
                 e_mae=mae_metrics["energy"].avg,
                 f_mae=mae_metrics["force"].avg,
             )
             info_str += "time/step={time_per_step:.0f}ms".format(
-                time_per_step=(1e3 * w / e / len(data_loader))
+                time_per_step=(1e3 * w / e / max_iter)
             )
             logger.info(info_str)
 

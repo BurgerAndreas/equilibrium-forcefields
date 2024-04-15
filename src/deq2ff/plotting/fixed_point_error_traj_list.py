@@ -81,12 +81,15 @@ def main(run_id: str, datasplit: str = "train", error_type="abs"):
 
 if __name__ == "__main__":
 
+    # minimal DPANorm: gwqkxfxh
+    # minimal FFNormResidual: d0gu2fbt
+
     # broyden: iptk3b73
     # anderson: neo7e1vi
     # z0-ones: gzifpvwe
     # 6 layers: yuqbla4u
     # FPreuse: auffq4x0
     # Tanh: ii3gls8d
-    run_id = "iptk3b73"
+    run_id = "d0gu2fbt"
 
     main(run_id, datasplit="train")

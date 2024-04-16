@@ -92,10 +92,6 @@ from equiformer.nets.dp_attention_transformer_md17 import (
     _AVG_NUM_NODES,
 )
 
-import deq2ff.logging_utils_deq as logging_utils_deq
-from deq2ff.deq_equiformer.deq_equiformer_base import EquiformerDEQBase
-
-from deq2ff.deq_equiformer.deq_dp_md17 import DEQDotProductAttentionTransformerMD17
 
 class FF(torch.nn.Module):
     def __init__(
@@ -344,6 +340,12 @@ class DPANorm(DPA):
 
 # options = [DPA, DPANorm, FF, FFNorm, FFResidual, FFNormResidual]
 
+'''
+import deq2ff.logging_utils_deq as logging_utils_deq
+from deq2ff.deq_equiformer.deq_equiformer_base import EquiformerDEQBase
+
+from deq2ff.deq_equiformer.deq_dp_md17 import DEQDotProductAttentionTransformerMD17
+
 class DEQMinimalDotProductAttention(DEQDotProductAttentionTransformerMD17):
 
     def __init__(self, deq_block, **kwargs) -> None:
@@ -416,85 +418,6 @@ class DEQMinimalDotProductAttention(DEQDotProductAttentionTransformerMD17):
             else:
                 self.final_block = blk
     
-
-    @torch.enable_grad()
-    def deq_implicit_layer(
-        self,
-        node_features,
-        node_attr,
-        edge_src,
-        edge_dst,
-        edge_sh,
-        edge_length_embedding,
-        batch,
-        node_features_injection,
-    ):
-        """
-        Same as deq_implicit_layer but with input injection summarized in u.
-        Basically the middle third of DotProductAttentionTransformerMD17.forward()
-        """
-        # [num_atoms*batch_size, 480]
-        if self.input_injection == False:
-            # no injection, injection becomes the initial input
-            for blknum, blk in enumerate(self.blocks):
-                node_features = blk(
-                    node_input=node_features,
-                    node_attr=node_attr,
-                    edge_src=edge_src,
-                    edge_dst=edge_dst,
-                    edge_attr=edge_sh,
-                    edge_scalars=edge_length_embedding,
-                    batch=batch,
-                )
-        # elif self.input_injection == "every_layer":
-        #     # input injection at every layer
-        #     for blknum, blk in enumerate(self.blocks):
-        #         node_features = torch.cat(
-        #             [node_features, node_features_injection], dim=1
-        #         )
-        #         node_features = blk(
-        #             node_input=node_features,
-        #             node_attr=node_attr,
-        #             edge_src=edge_src,
-        #             edge_dst=edge_dst,
-        #             edge_attr=edge_sh,
-        #             edge_scalars=edge_length_embedding,
-        #             batch=batch,
-        #         )
-        elif self.input_injection == "first_layer":
-            # input injection only at the first layer
-            # node features does not require_grad until concat with injection
-            node_features = torch.cat([node_features, node_features_injection], dim=1)
-            for blknum, blk in enumerate(self.blocks):
-                node_features = blk(
-                    node_input=node_features,
-                    node_attr=node_attr,
-                    edge_src=edge_src,
-                    edge_dst=edge_dst,
-                    edge_attr=edge_sh,
-                    edge_scalars=edge_length_embedding,
-                    batch=batch,
-                )
-        # elif self.input_injection == "legacy":
-        #     # print("!"*60, "\nDepricated: Legacy input injection")
-        #     node_features_in = torch.cat(
-        #         [node_features, node_features_injection], dim=1
-        #     )
-        #     # # print("node_features.shape", node_features.shape)
-        #     for blknum, blk in enumerate(self.blocks):
-        #         node_features = blk(
-        #             node_input=node_features_in,
-        #             node_attr=node_attr,
-        #             edge_src=edge_src,
-        #             edge_dst=edge_dst,
-        #             edge_attr=edge_sh,
-        #             edge_scalars=edge_length_embedding,
-        #             batch=batch,
-        #         )
-        else:
-            raise ValueError(f"Invalid input_injection: {self.input_injection}")
-
-        return node_features
     
 
 @register_model
@@ -502,3 +425,5 @@ def deq_minimal_dpa(
     **kwargs,
 ):
     return DEQMinimalDotProductAttention(**kwargs)
+    
+'''

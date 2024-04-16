@@ -101,6 +101,17 @@ from equiformer.nets.dp_attention_transformer_md17 import (
 import deq2ff.logging_utils_deq as logging_utils_deq
 from deq2ff.deq_equiformer.deq_equiformer_base import EquiformerDEQBase
 
+from deq2ff.deq_equiformer.deq_decprojhead_dp_md17 import (
+    FFProjection,
+    FFProjectionNorm,
+    FFResidualFCTPProjection,
+    FCTPProjection,
+    FCTPProjectionNorm,
+)
+
+from deq2ff.deq_equiformer.deq_dp_minimal import (
+    DPA, DPANorm, FF, FFNorm, FFResidual, FFNormResidual
+)
 
 class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
     """
@@ -251,7 +262,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         self.apply(self._init_weights)
         self.blocks.apply(self._init_weights_blocks)
 
-        self._init_decoder_proj_final_layer()
+        # self._init_decoder_proj_final_layer()
         kwargs = self._init_deq(**kwargs)
         print(f"Ignoring kwargs: {kwargs}")
 
@@ -262,7 +273,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         Last block outputs scalars (l0) only.
         """
         for i in range(self.num_layers):
-            if i >= (self.num_layers - 1):
+            block_type = "DPTransBlock"
+            if self.deq_block is not None:
+                block_type = self.deq_block
+            if i == (self.num_layers - 1):
                 # last block
                 # last block outputs scalars only (l0 only, no higher l's)
                 # irreps_node_embedding -> irreps_feature
@@ -271,6 +285,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 # onto the node_features for the decoder
                 irreps_node_input = self.irreps_node_embedding
                 irreps_block_output = self.irreps_feature
+                if self.dec_proj is not None:
+                    block_type = self.dec_proj
             else:
                 # first and middle layer: input injection
                 irreps_node_input = self.irreps_node_z
@@ -290,7 +306,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
 
             # Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
             # extra stuff (= everything except node_features) is used for KV in DotProductAttention
-            blk = DPTransBlock(
+            # blk = DPTransBlock(
+            blk = eval(block_type)(
                 # irreps_node_input=self.irreps_node_embedding,
                 irreps_node_input=irreps_node_input,
                 irreps_node_attr=self.irreps_node_attr,
@@ -321,7 +338,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 self.blocks.append(blk)
             else:
                 self.final_block = blk
-        print(f"\nInitialized {len(self.blocks)} blocks of `DPTransBlock`.")
+            print(f'Initialized block {i} of type {block_type}.')
+        print(f"\nInitialized {len(self.blocks)} blocks.")
     
     def custom_weight_init(self, m, val, ptype="weight"):
         if isinstance(val, float) or isinstance(val, int):

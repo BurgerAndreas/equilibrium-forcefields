@@ -20,7 +20,6 @@ class EquiformerDEQBase:
         input_injection="first_layer",  # False=V1, 'first_layer'=V2
         irreps_node_embedding_injection="64x0e+32x1e+16x2e",
         limit_f_max_iter_fpreuse=False,
-        dec_proj=None,
         z0="zero",
         z0_requires_grad=False,
         log_fp_error_traj=False,
@@ -29,6 +28,9 @@ class EquiformerDEQBase:
         fc_tp_path_norm="none",
         fc_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
+        # blocks
+        dec_proj=None,
+        deq_block=None,
         # weight initialization
         weight_init=None,
         weight_init_blocks=None,
@@ -54,6 +56,7 @@ class EquiformerDEQBase:
         self.activation = activation
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.dec_proj = dec_proj
+        self.deq_block = deq_block
         self.limit_f_max_iter_fpreuse = limit_f_max_iter_fpreuse
         self.affine_ln = affine_ln
 

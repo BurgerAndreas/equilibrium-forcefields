@@ -99,14 +99,21 @@ from deq2ff.deq_equiformer.deq_dp_md17 import DEQDotProductAttentionTransformerM
 
 class FF(torch.nn.Module):
     def __init__(
-        self, irreps_in, irreps_node_attr, irreps_out, irreps_mlp_mid=None, rescale=True, 
+        self, irreps_node_input, irreps_node_attr, irreps_node_output, 
+        irreps_mlp_mid=None, rescale=True, 
+        # added
+        proj_drop=0.1, # 0.1
+        bias=True,
+        activation="SiLU",
+        dp_tp_irrep_norm=None,
+        dp_tp_path_norm="none",
         **kwargs
     ):
         super().__init__()
         self.rescale = rescale
-        self.irreps_node_input = o3.Irreps(irreps_in)
+        self.irreps_node_input = o3.Irreps(irreps_node_input)
         self.irreps_node_attr = o3.Irreps(irreps_node_attr)
-        self.irreps_node_output = o3.Irreps(irreps_out)
+        self.irreps_node_output = o3.Irreps(irreps_node_output)
         self.irreps_mlp_mid = (
             o3.Irreps(irreps_mlp_mid)
             if irreps_mlp_mid is not None
@@ -118,17 +125,24 @@ class FF(torch.nn.Module):
             irreps_node_attr=self.irreps_node_attr,
             irreps_node_output=self.irreps_node_output,
             irreps_mlp_mid=self.irreps_mlp_mid,
-            # proj_drop=proj_drop,
+            # added
+            proj_drop=proj_drop,
+            bias=bias,
+            activation=activation,
+            normalization=dp_tp_irrep_norm,
+            path_normalization=dp_tp_path_norm,
         )
+
+        print(f'FF: ignoring kwargs: {kwargs}')
 
     def forward(self, node_input, node_attr, **kwargs):
         """node_input = node_features"""
         return self.ffn(node_input, node_attr)
 
 class FFNorm(FF):
-    def __init__(self, **kwargs):
+    def __init__(self, affine_ln=True, **kwargs):
         super().__init__(**kwargs)
-        self.norm_pre = get_norm_layer("layer")(self.irreps_node_input)
+        self.norm_pre = get_norm_layer("layer")(self.irreps_node_input, affine=affine_ln)
 
     def forward(self, node_input, node_attr, **kwargs):
         node_input = self.norm_pre(node_input)
@@ -143,8 +157,11 @@ class FFResidual(torch.nn.Module):
         # only used when irreps_node_input != irreps_node_output
         fc_tp_path_norm="none",
         fc_tp_irrep_norm=None,  # None = 'element'
-        activation="SiLU",
+        proj_drop=0.1, # 0.1
         bias=True,
+        activation="SiLU",
+        dp_tp_irrep_norm=None,
+        dp_tp_path_norm="none",
         **kwargs
     ):
         super().__init__()
@@ -165,7 +182,12 @@ class FFResidual(torch.nn.Module):
             irreps_node_attr=self.irreps_node_attr,
             irreps_node_output=self.irreps_node_output,
             irreps_mlp_mid=self.irreps_mlp_mid,
-            # proj_drop=proj_drop,
+            # added
+            proj_drop=proj_drop,
+            bias=bias,
+            activation=activation,
+            normalization=dp_tp_irrep_norm,
+            path_normalization=dp_tp_path_norm,
         )
 
         self.ffn_shortcut = None
@@ -183,6 +205,7 @@ class FFResidual(torch.nn.Module):
                 # activation=activation,
                 bias=bias,
             )
+        print(f'FFResidual: ignoring kwargs: {kwargs}')
 
     def forward(self, node_input, node_attr, batch, **kwargs):
         """node_input = node_features"""
@@ -200,9 +223,9 @@ class FFResidual(torch.nn.Module):
 
 class FFNormResidual(FFResidual):
     """Second part of DPTransBlock."""
-    def __init__(self, **kwargs):
+    def __init__(self, affine_ln=True, **kwargs):
         super().__init__(**kwargs)
-        self.norm_2 = get_norm_layer("layer")(self.irreps_node_input)
+        self.norm_2 = get_norm_layer("layer")(self.irreps_node_input, affine=affine_ln)
 
 class DPA(torch.nn.Module):
     """First part of DPTransBlock without norm (if irreps_node_input=irreps_node_output)."""
@@ -217,19 +240,19 @@ class DPA(torch.nn.Module):
         num_heads,
         irreps_pre_attn=None,
         rescale_degree=False,
-        nonlinear_message=False,
+        # nonlinear_message=False,
         alpha_drop=0.1,
         proj_drop=0.1,
-        drop_path_rate=0.0,
-        irreps_mlp_mid=None,
-        norm_layer="layer",
+        # drop_path_rate=0.0,
+        # irreps_mlp_mid=None,
+        # norm_layer="layer",
         # added
         dp_tp_path_norm="none",
         dp_tp_irrep_norm=None,  # None = 'element'
         # FullyConnectedTensorProductRescale
         # only used when irreps_node_input != irreps_node_output
-        fc_tp_path_norm="none",
-        fc_tp_irrep_norm=None,  # None = 'element'
+        # fc_tp_path_norm="none",
+        # fc_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
         bias=True,
         **kwargs
@@ -276,6 +299,8 @@ class DPA(torch.nn.Module):
             activation=activation,
             bias=bias,
         )
+
+        print(f'DPA: ignoring kwargs: {kwargs}')
     
     def forward(
         self,
@@ -312,9 +337,9 @@ class DPA(torch.nn.Module):
 
 class DPANorm(DPA):
     """First part of DPTransBlock."""
-    def __init__(self, **kwargs):
+    def __init__(self, affine_ln=True, **kwargs):
         super().__init__(**kwargs)
-        self.norm_1 = get_norm_layer("layer")(self.irreps_node_input)
+        self.norm_1 = get_norm_layer("layer")(self.irreps_node_input, affine=affine_ln)
         # self.norm_1 = get_norm_layer(norm_layer)(self.irreps_node_input)
 
 # options = [DPA, DPANorm, FF, FFNorm, FFResidual, FFNormResidual]
@@ -359,8 +384,6 @@ class DEQMinimalDotProductAttention(DEQDotProductAttentionTransformerMD17):
                     irreps_node_input = self.irreps_node_embedding
                     irreps_block_output = self.irreps_node_embedding
             
-            # Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
-            # extra stuff (= everything except node_features) is used for KV in DotProductAttention
             # blk = DPTransBlock(
             blk = eval(self.deq_block)(
                 # irreps_node_input=self.irreps_node_embedding,

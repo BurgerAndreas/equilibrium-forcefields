@@ -315,12 +315,41 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 fc_tp_irrep_norm=self.fc_tp_irrep_norm,
                 activation=self.activation,
                 bias=self.bias,
+                affine_ln=self.affine_ln, 
             )
             if i != (self.num_layers - 1):
                 self.blocks.append(blk)
             else:
                 self.final_block = blk
         print(f"\nInitialized {len(self.blocks)} blocks of `DPTransBlock`.")
+    
+    def custom_weight_init(self, m, val, ptype="weight"):
+        if isinstance(val, float) or isinstance(val, int):
+            if ptype == "parameterlist":
+                for param in m:
+                    torch.nn.init.constant_(param, val=float(val))
+            else:
+                torch.nn.init.constant_(eval(f'm.{ptype}'), val=float(val))
+        elif 'normal' in val:
+            mean = val.split("_")[1]
+            std = val.split("_")[2]
+            if ptype == "parameterlist":
+                for param in m:
+                    torch.nn.init.normal_(param, mean=float(mean), std=float(std))
+            else:
+                torch.nn.init.normal_(eval(f'm.{ptype}'), mean=float(mean), std=float(std))
+        elif 'uniform' in val:
+            a = val.split("_")[1]
+            b = val.split("_")[2]
+            if ptype == "parameterlist":
+                for param in m:
+                    torch.nn.init.uniform_(param, a=float(a), b=float(b))
+            else:
+                torch.nn.init.uniform_(eval(f'm.{ptype}'), a=float(a), b=float(b))
+        elif val in ['torch', 'equiformer']:
+            pass
+        else:
+            raise ValueError(f"Invalid custom_weight_init: {val}")
 
     def _init_weights_base(self, m, weight_init):
         """
@@ -331,47 +360,46 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         # kaiman
         # torch.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
         # torch.nn.init.zeros_(self.fc1.bias)
-
         if isinstance(m, torch.nn.Linear):
-            if weight_init['Linear'] == "equiformer":
-                # initialized uniformly :math:`\mathcal{U}(-\sqrt{k}, \sqrt{k})`, 
-                # where :math:`k = \frac{1}{\text{in\_features}}`
-                # init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+            # initialized uniformly :math:`\mathcal{U}(-\sqrt{k}, \sqrt{k})`, 
+            # where :math:`k = \frac{1}{\text{in\_features}}`
+            # init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+            # weight and bias kaiming_uniform
+            self.custom_weight_init(m, weight_init['Linear_w'], ptype="weight")
+            
+            if weight_init['Linear_b'] == "equiformer":
                 if m.bias is not None:
                     torch.nn.init.constant_(m.bias, 0)
-            elif weight_init['Linear'] == "torch":
-                # weight and bias kaiming_uniform
-                pass
+            else:
+                self.custom_weight_init(m, weight_init['Linear_b'], ptype="bias")
 
         elif isinstance(m, torch.nn.LayerNorm):
-            if weight_init['LayerNorm'] == "equiformer":
-                torch.nn.init.constant_(m.bias, 0)
+            if weight_init['LayerNorm_w'] == "equiformer":
                 torch.nn.init.constant_(m.weight, 1.0)
-            elif weight_init['LayerNorm'] == "torch":
-                pass
+            else:
+                self.custom_weight_init(m, weight_init['LayerNorm_w'], ptype="weight")
+
+            if weight_init['LayerNorm_b'] == "equiformer":
+                torch.nn.init.constant_(m.bias, 0)
+            else:
+                self.custom_weight_init(m, weight_init['LayerNorm_b'], ptype="bias")
 
         elif isinstance(m, EquivariantLayerNormV2):
             # https://github.com/atomicarchitects/equiformer_v2/blob/main/nets/equiformer_v2/equiformer_v2_oc20.py#L489
-            if weight_init['EquivariantLayerNormV2'] == "equiformer":
+            if m.affine:
                 # weight=0, bias=1
+                # torch.nn.init.constant_(m.affine_weight, 0)
+                # torch.nn.init.constant_(m.affine_bias, 1)
                 # if self.weight_init == 'normal':
                 #         std = 1 / math.sqrt(m.in_features)
                 #         torch.nn.init.normal_(m.weight, 0, std)
-                pass
-            elif weight_init['EquivariantLayerNormV2'] == "torch":
-                pass
-            # elif weight_init['EquivariantLayerNormV2'] == "zeros":
-                # torch.nn.init.constant_(m.affine_bias, 1)
-                # torch.nn.init.constant_(m.affine_weight, 0)
+                self.custom_weight_init(m, weight_init['EquivariantLayerNormV2_w'], ptype="affine_weight")
+                self.custom_weight_init(m, weight_init['EquivariantLayerNormV2_b'], ptype="affine_bias")
         
         elif isinstance(m, torch.nn.ParameterList):
-            if weight_init['ParameterList'] == "equiformer":
-                pass
-            elif weight_init['ParameterList'] == "torch":
-                pass
-            # elif weight_init['EquivariantLayerNormV2'] == "zeros":
-                # for param in m:
-                #     torch.nn.init.zeros_(param)
+            # for param in m:
+            #     torch.nn.init.zeros_(param)
+            self.custom_weight_init(m, weight_init['ParameterList'], ptype="parameterlist")
 
     
     def _init_weights(self, m):

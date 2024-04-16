@@ -263,6 +263,7 @@ class DPTransBlock(torch.nn.Module):
         fc_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
         bias=True,
+        affine_ln=True,
     ):
 
         super().__init__()
@@ -285,7 +286,7 @@ class DPTransBlock(torch.nn.Module):
             else self.irreps_node_input
         )
 
-        self.norm_1 = get_norm_layer(norm_layer)(self.irreps_node_input)
+        self.norm_1 = get_norm_layer(norm_layer)(self.irreps_node_input, affine=affine_ln)
         self.dpa = DotProductAttention(
             irreps_node_input=self.irreps_node_input,
             irreps_node_attr=self.irreps_node_attr,
@@ -308,7 +309,7 @@ class DPTransBlock(torch.nn.Module):
         # regularization
         self.drop_path = GraphDropPath(drop_path_rate) if drop_path_rate > 0.0 else None
 
-        self.norm_2 = get_norm_layer(norm_layer)(self.irreps_node_input)
+        self.norm_2 = get_norm_layer(norm_layer)(self.irreps_node_input, affine=affine_ln)
         # ~20k params
         self.ffn = FeedForwardNetwork(
             irreps_node_input=self.irreps_node_input,
@@ -422,6 +423,7 @@ class DotProductAttentionTransformer(torch.nn.Module):
         atomref=None,
         #
         activation="SiLU",
+        affine_ln=True,
     ):
         super().__init__()
 

@@ -50,6 +50,11 @@ model_kwargs:
   log_fp_error_traj: False
   # debugging: instead of fixed-point pass initial features to the decoder
   skip_implicit_layer: False
+  # weight_init_blocks='{EquivariantLayerNormV2_w:1,ParameterList:normal_0.0_0.5}'
+  weight_init: null
+  weight_init_blocks: null
+  # DPA, DPANorm, FF, FFNorm, FFNormResidual
+  deq_block: null
 
 # passed to torchdeq
 deq_kwargs:

@@ -52,6 +52,7 @@ model_kwargs:
   fc_tp_path_norm: "none"
   fc_tp_irrep_norm: null # None = 'element'
   bias: True
+  affine_ln: True
 
 
 # [md17, rmd17og, rmd17, md22]

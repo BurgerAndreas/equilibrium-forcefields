@@ -33,11 +33,19 @@ class EquiformerDEQBase:
         weight_init=None,
         weight_init_blocks=None,
         bias=True,
+        affine_ln=True,
         # debugging
         skip_implicit_layer=False,
         **kwargs,
     ):
-        """Sets extra variables we have added for the DEQ model."""
+        """Sets extra variables we have added for the DEQ model.
+        
+        Args:
+            weight_init (str | dict): weight initialization method. Will default to 'equiformer' for all unspecified keys.
+                Keys: 'EquivariantLayerNormV2_w', 'EquivariantLayerNormV2_b', 'LayerNorm_w', 'LayerNorm_b', 'Linear_w', 'Linear_b', 'ParameterList'.
+                Values: 'equiformer', 'torch', <float>, normal_<mean>_<std>, uniform_<low>_<high>.
+                python scripts/deq_equiformer.py model_kwargs.weight_init_blocks='{EquivariantLayerNormV2_w:1,EquivariantLayerNormV2_b:normal_0.0_0.1}'
+        """
 
         self.dp_tp_path_norm = dp_tp_path_norm
         self.dp_tp_irrep_norm = dp_tp_irrep_norm
@@ -47,6 +55,7 @@ class EquiformerDEQBase:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.dec_proj = dec_proj
         self.limit_f_max_iter_fpreuse = limit_f_max_iter_fpreuse
+        self.affine_ln = affine_ln
 
         self.input_injection = input_injection
         if input_injection is False:
@@ -87,20 +96,37 @@ class EquiformerDEQBase:
         self.bias = bias
 
         # weight initialization
-        weight_init_keys = ["EquivariantLayerNormV2", "LayerNorm", "Linear", "ParameterList"]
+        weight_init_keys = ["EquivariantLayerNormV2_w", "EquivariantLayerNormV2_b", "LayerNorm_w", "LayerNorm_b", "Linear_w", "Linear_b", "ParameterList"]
+        if isinstance(weight_init, omegaconf.dictconfig.DictConfig):
+            weight_init = dict(weight_init)
+            # weight_init = omegaconf.OmegaConf.to_container(weight_init)
+        if isinstance(weight_init_blocks, omegaconf.dictconfig.DictConfig):
+            weight_init_blocks = dict(weight_init_blocks)
+            # weight_init_blocks = omegaconf.OmegaConf.to_container(weight_init_blocks)
+        #
         if weight_init is None:
             self.weight_init = {k: 'equiformer' for k in weight_init_keys}
         elif isinstance(weight_init, str):
             self.weight_init = {k: weight_init for k in weight_init_keys}
+        elif isinstance(weight_init_blocks, dict):
+            self.weight_init = {k: 'equiformer' for k in weight_init_keys}
+            self.weight_init.update(weight_init)
         else:
-            self.weight_init = weight_init 
+            raise ValueError(f"Invalid weight_init: {weight_init} ({type(weight_init)}")
         # weight_init_blocks will overwrite weight_init for the blocks
         if weight_init_blocks is None:
             self.weight_init_blocks = {k: 'equiformer' for k in weight_init_keys}
         elif isinstance(weight_init, str):
             self.weight_init_blocks = {k: weight_init for k in weight_init_keys}
+        elif isinstance(weight_init_blocks, dict):
+            self.weight_init_blocks = {k: 'equiformer' for k in weight_init_keys}
+            self.weight_init_blocks.update(weight_init_blocks)
         else:
-            self.weight_init_blocks = weight_init_blocks
+            raise ValueError(f"Invalid weight_init_blocks: {weight_init_blocks} ({type(weight_init_blocks)}")
+        # update wandb config
+        if wandb.run is not None:
+            wandb.config.update({"model_kwargs.weight_init": self.weight_init})
+            wandb.config.update({"model_kwargs.weight_init_blocks": self.weight_init_blocks})
 
         self.skip_implicit_layer = skip_implicit_layer
 

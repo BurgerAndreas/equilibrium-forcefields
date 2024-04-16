@@ -64,6 +64,7 @@ def init_wandb(args: OmegaConf, project="EquilibriumEquiFormer"):
         # reinit=True,
     )
 
+    print("wandb group:", args.wandb_group, '==', wandb.run.group)
     print("wandb run name:", args.wandb_run_name)
     print("wandb run id:", wandb.run.id)
     return wandb.run.id
@@ -126,8 +127,9 @@ REPLACE = {
     "normtype-": " ",
     "_": " ",
     "preset-": "",
-    " minimalaDEQ minimala": "Minimal",
+    " minimalaDEQ minimala": "min",
     "DEQblock-": "",
+    "modelname-minimalEquiformer": "",
     # Equiformer v2
     "equiformer v2equiformer v2 use-DEQ": "DEQE2",
     "equiformer v2equiformer v2": "E2",

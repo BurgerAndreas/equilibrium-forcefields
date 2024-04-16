@@ -40,6 +40,7 @@ from deq2ff.deq_equiformer.deq_graph_md17 import (
 from deq2ff.deq_equiformer.deq_dp_md17_noforce import (
     deq_dot_product_attention_transformer_exp_l2_md17_noforce,
 )
+from deq2ff.deq_equiformer.deq_dp_minimal import deq_minimal_dpa
 
 from typing import (
     Union,
@@ -204,13 +205,20 @@ def hydra_wrapper(args: DictConfig) -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     """ Change kwargs """
-    args.model_kwargs.bias = False
+    # args.model_kwargs.bias = False
+    args.model_kwargs.deq_block='FFNormResidual' 
+    # args.model_kwargs.weight_init_blocks={'EquivariantLayerNormV2_b':0}
+    # args.model_kwargs.weight_init_blocks={'EquivariantLayerNormV2_w':1,'EquivariantLayerNormV2_b':0}
 
     """ Network """
     # create_model = model_entrypoint(args.model_name)
-    create_model = model_entrypoint('deq_' + args.model_name)
+    model_name = 'deq_' + args.model_name
+    model_name = 'deq_minimal_dpa'
+
+    create_model = model_entrypoint(model_name)
     model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)
 
+    """ Print base modules """
     find_base_modules(model, args)
 
     # print("\nmodel:\n", model)

@@ -102,7 +102,7 @@ class FF(torch.nn.Module):
         self, irreps_node_input, irreps_node_attr, irreps_node_output, 
         irreps_mlp_mid=None, rescale=True, 
         # added
-        proj_drop=0.1, # 0.1
+        proj_drop=0.0, # 0.1
         bias=True,
         activation="SiLU",
         dp_tp_irrep_norm=None,
@@ -241,8 +241,8 @@ class DPA(torch.nn.Module):
         irreps_pre_attn=None,
         rescale_degree=False,
         # nonlinear_message=False,
-        alpha_drop=0.1,
-        proj_drop=0.1,
+        alpha_drop=0., # 0.1
+        proj_drop=0., #0.1
         # drop_path_rate=0.0,
         # irreps_mlp_mid=None,
         # norm_layer="layer",

@@ -110,7 +110,7 @@ from deq2ff.deq_equiformer.deq_decprojhead_dp_md17 import (
 )
 
 from deq2ff.deq_equiformer.deq_dp_minimal import (
-    DPA, DPANorm, FF, FFNorm, FFResidual, FFNormResidual
+    DPA, DPANorm, FF, FFNorm, FFResidual, FFNormResidual, DPAFFNorm
 )
 
 class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):

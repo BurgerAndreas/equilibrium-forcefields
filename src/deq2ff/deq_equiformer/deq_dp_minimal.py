@@ -35,6 +35,9 @@ import wandb
 import omegaconf
 
 from e3nn import o3
+import e3nn
+from e3nn.util.jit import compile_mode
+from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
 
 # import e3nn
 # from e3nn.util.jit import compile_mode
@@ -93,6 +96,7 @@ from equiformer.nets.dp_attention_transformer_md17 import (
 )
 
 
+@compile_mode("script")
 class FF(torch.nn.Module):
     def __init__(
         self, irreps_node_input, irreps_node_attr, irreps_node_output, 
@@ -135,6 +139,7 @@ class FF(torch.nn.Module):
         """node_input = node_features"""
         return self.ffn(node_input, node_attr)
 
+@compile_mode("script")
 class FFNorm(FF):
     def __init__(self, affine_ln=True, **kwargs):
         super().__init__(**kwargs)
@@ -144,6 +149,7 @@ class FFNorm(FF):
         node_input = self.norm_pre(node_input)
         return self.ffn(node_input, node_attr)
 
+@compile_mode("script")
 class FFResidual(torch.nn.Module):
     """Second part of DPTransBlock without norm."""
     def __init__(
@@ -217,12 +223,14 @@ class FFResidual(torch.nn.Module):
 
         return node_output + node_features
 
+@compile_mode("script")
 class FFNormResidual(FFResidual):
     """Second part of DPTransBlock."""
     def __init__(self, affine_ln=True, **kwargs):
         super().__init__(**kwargs)
         self.norm_2 = get_norm_layer("layer")(self.irreps_node_input, affine=affine_ln)
 
+@compile_mode("script")
 class DPA(torch.nn.Module):
     """First part of DPTransBlock without norm (if irreps_node_input=irreps_node_output)."""
     def __init__(
@@ -331,6 +339,7 @@ class DPA(torch.nn.Module):
         # return node_output + node_features
         return node_features
 
+@compile_mode("script")
 class DPANorm(DPA):
     """First part of DPTransBlock."""
     def __init__(self, affine_ln=True, **kwargs):
@@ -338,7 +347,64 @@ class DPANorm(DPA):
         self.norm_1 = get_norm_layer("layer")(self.irreps_node_input, affine=affine_ln)
         # self.norm_1 = get_norm_layer(norm_layer)(self.irreps_node_input)
 
-# options = [DPA, DPANorm, FF, FFNorm, FFResidual, FFNormResidual]
+from equiformer.nets.dp_attention_transformer import (
+    ScaleFactor,
+    DotProductAttention,
+    DPTransBlock,
+)
+
+@compile_mode("script")
+class DPAFFNorm(DPTransBlock):
+    """DPTransBlock without residual."""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.ffn_shortcut = None
+    
+    def forward(
+        self,
+        node_input,
+        node_attr,
+        edge_src,
+        edge_dst,
+        edge_attr,  # requires_grad
+        edge_scalars,  # requires_grad
+        batch,
+        **kwargs,
+    ):
+        """
+        1. Layer Norm 1 -> DotProductAttention -> Layer Norm 2 -> FeedForwardNetwork
+        2. Use pre-norm architecture
+        """
+        # residual connection
+        node_features = node_input
+        node_features = self.norm_1(node_features, batch=batch)  # batch unused
+
+        # norm_1_output = node_features
+        node_features = self.dpa(
+            node_input=node_features,
+            node_attr=node_attr,  # node_attr unused
+            edge_src=edge_src,
+            edge_dst=edge_dst,
+            edge_attr=edge_attr,
+            edge_scalars=edge_scalars,
+            batch=batch,  # batch unused
+        )
+
+        if self.drop_path is not None:
+            node_features = self.drop_path(node_features, batch)
+
+        node_features = self.norm_2(node_features, batch=batch)  # batch unused
+
+        # optionally reduce irreps dim
+        node_features = self.ffn(node_features, node_attr)
+
+        if self.drop_path is not None:
+            # uses batch. TODO
+            node_features = self.drop_path(node_features, batch)
+        
+        return node_features
+
+# options = [DPA, DPANorm, FF, FFNorm, FFResidual, FFNormResidual, DPAFFNorm]
 
 '''
 import deq2ff.logging_utils_deq as logging_utils_deq

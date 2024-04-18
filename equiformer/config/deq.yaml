@@ -75,6 +75,7 @@ deq_kwargs:
   # ift (bool, optional) – If true, enable Implicit Differentiation. 
   # IFT=Implicit Function Theorem. Default False.
   ift: False
+  hook_ift: False
   # grad (Union[int, list[int], tuple[int]], optional) 
   # Specifies the steps of PhantomGrad. It allows for using multiple values 
   # to represent different gradient steps in the sampled trajectory states. 

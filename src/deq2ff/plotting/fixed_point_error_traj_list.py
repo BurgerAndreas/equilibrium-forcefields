@@ -20,7 +20,7 @@ plotfolder = os.path.join(plotfolder, "plots")
 
 # columns = ['abs', 'rel', 'solver_step', 'train_step']
 
-def main(run_id: str, datasplit: str = "train", error_type="abs"):
+def main(run_id: str, datasplit: str = "train", error_type="abs", ymax=None, logscale=False):
     # https://github.com/wandb/wandb/issues/3966
 
     artifact_name = f"{error_type}_fixed_point_error_traj_{datasplit}"
@@ -72,6 +72,12 @@ def main(run_id: str, datasplit: str = "train", error_type="abs"):
     sns.lineplot(data=df, x="solver_step", y=error_type, hue="train_step")
     plt.xlabel("Fixed-point solver step")
     plt.ylabel(f"Fixed-point error ({error_type})")
+    if logscale:
+        plt.yscale("log")
+    if ymax is not None:
+        # cant plot 0 on logscale
+        # plt.ylim(1e-12, ymax)
+        plt.ylim(top=ymax)
     fname = (
         f"{plotfolder}/fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}.png"
     )
@@ -81,8 +87,11 @@ def main(run_id: str, datasplit: str = "train", error_type="abs"):
 
 if __name__ == "__main__":
 
-    # minimal DPANorm: gwqkxfxh
-    # minimal FFNormResidual: d0gu2fbt
+    # broyden pathnorm: f9bg18sp
+    # main("f9bg18sp", datasplit="train")
+    # main("f9bg18sp", datasplit="train", ymax=0.01)
+    # main("f9bg18sp", datasplit="train", logscale=True)
+    main("f9bg18sp", datasplit="train", logscale=True, ymax=0.001)
 
     # broyden: iptk3b73
     # anderson: neo7e1vi
@@ -90,6 +99,6 @@ if __name__ == "__main__":
     # 6 layers: yuqbla4u
     # FPreuse: auffq4x0
     # Tanh: ii3gls8d
-    run_id = "d0gu2fbt"
+    run_id = "f9bg18sp"
 
-    main(run_id, datasplit="train")
+    # main(run_id, datasplit="train")

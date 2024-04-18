@@ -102,7 +102,7 @@ IGNORE_OVERRIDES = [
 ]
 
 REPLACE = {
-    "dot_product": "dp",
+    "dot_product": " dp",
     "deq": "DEQ",
     "initzfromenc-True": "V1",
     "initzfromenc-False": "V2",
@@ -117,7 +117,7 @@ REPLACE = {
     "_l2": "",
     "_graph_nonlinear": " GraphNonLinear",
     "_decprojhead": "",
-    "_decproj-": " ",
+    "_decproj-": " dec-",
     "_evalmode-False": " noeval",
     "_revised": " revised",
     "userevisedsplits-True": " revisedsplit",
@@ -128,8 +128,11 @@ REPLACE = {
     "_": " ",
     "preset-": "",
     " minimalaDEQ minimala": "min",
-    "DEQblock-": "",
+    "DEQblock-": "block-",
     "modelname-minimalEquiformer": "",
+    "pathnorm-": "-",
+    "EquivariantLayerNormV2": "ELN",
+    "ParameterList": "PL",
     # Equiformer v2
     "equiformer v2equiformer v2 use-DEQ": "DEQE2",
     "equiformer v2equiformer v2": "E2",

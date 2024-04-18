@@ -47,10 +47,10 @@ model_kwargs:
   max_radius: 5.0
   # normalization for TensorProduct (see o3 library)
   # https://docs.e3nn.org/en/stable/api/o3/o3_tp.html#e3nn.o3.TensorProduct
-  dp_tp_path_norm: "none" # element, path
+  dp_tp_path_norm: "path" # element, path, default="none"
   dp_tp_irrep_norm: null # None = 'element'
-  fc_tp_path_norm: "none"
-  fc_tp_irrep_norm: null # None = 'element'
+  fc_tp_path_norm: "path"
+  fc_tp_irrep_norm: null 
   bias: True
   affine_ln: True
 

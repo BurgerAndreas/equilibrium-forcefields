@@ -429,7 +429,7 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
             )[0]
         )
 
-        return energy, forces
+        return energy, forces, {}
 
 
 # Why are these not config files?

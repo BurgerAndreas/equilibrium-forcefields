@@ -113,6 +113,10 @@ def main(args):
     else:
         import equiformer.datasets.pyg.md_all as md_all
 
+        order = None
+        if args.fpreuse_test or args.fpreuse_datasplit:
+            order = "consecutive_test"
+
         train_dataset, val_dataset, test_dataset = md_all.get_md_datasets(
             root=args.data_path,
             dataset_arg=args.target,
@@ -122,7 +126,7 @@ def main(args):
             test_size=None,
             seed=args.seed,
             load_splits=args.use_revised_splits,
-            order="consecutive_test" if args.fpreuse_test else None,
+            order=order,
         )
 
     _log.info("")
@@ -715,7 +719,7 @@ def train_one_epoch(
         data = data.to(device)
 
         # energy, force
-        pred_y, pred_dy = model(
+        pred_y, pred_dy, info = model(
             node_atom=data.z,
             pos=data.pos,
             batch=data.batch,
@@ -846,6 +850,7 @@ def evaluate(
     # with torch.no_grad(): # remove because of torchdeq
 
     # fixed-point reuse
+    n_fsolver_steps = 0
     fixedpoint = None
     prev_idx = None
     max_steps = max_iter if max_iter != -1 else len(data_loader)
@@ -866,7 +871,7 @@ def evaluate(
                 assert torch.allclose(data.idx, prev_idx + 1)
             prev_idx = data.idx
             # call model and pass fixedpoint
-            pred_y, pred_dy, fixedpoint = model(
+            pred_y, pred_dy, fixedpoint, info = model(
                 node_atom=data.z,
                 pos=data.pos,
                 batch=data.batch,
@@ -877,7 +882,7 @@ def evaluate(
             )
         else:
             # energy, force
-            pred_y, pred_dy = model(
+            pred_y, pred_dy, info = model(
                 node_atom=data.z,
                 pos=data.pos,
                 batch=data.batch,
@@ -894,6 +899,7 @@ def evaluate(
 
         optimizer.zero_grad()
 
+        # --- metrics ---
         loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
         loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
 
@@ -906,7 +912,10 @@ def evaluate(
         ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
         mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
-        # logging
+        if 'nstep' in info:
+            n_fsolver_steps += info['nstep'][0].mean().item()
+
+        # --- logging ---
         if (step % print_freq == 0 or step == max_iter - 1) and print_progress:
             w = time.perf_counter() - start_time
             e = (step + 1) / max_iter
@@ -922,6 +931,13 @@ def evaluate(
 
         if ((step + 1) >= max_iter) and (max_iter != -1):
             break
+    
+    eval_time = time.perf_counter() - start_time
+    wandb.log({f"time_{datasplit}": eval_time}, step=global_step)
+
+    if n_fsolver_steps > 0:
+        n_fsolver_steps /= len(data_loader)
+        wandb.log({f"avg_n_fsolver_steps_{datasplit}": n_fsolver_steps}, step=global_step)
 
     return mae_metrics, loss_metrics
 

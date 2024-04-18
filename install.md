@@ -64,7 +64,11 @@ pip install torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-2.2.0+cu118
 
 # pip install scikit-image matplotlib seaborn
 
-pip install torchdeq
+# pip install torchdeq
+cd torchdeq
+pip install -e .
+cd ..
+
 pip install e3nn==0.4.4 timm==0.4.12
 
 pip install hydra-core wandb omegaconf black

@@ -53,9 +53,10 @@ def main(
         for row in history
         if artifact_name in row.keys()
     ]
+    print(f' Error shape: {len(losses[0][0]) if len(losses) > 0 else None}')
 
     losses_nonone = [[r, s] for r, s in losses if r is not None]
-    print(f"rows that were None: {len(losses) - len(losses_nonone)} / {len(losses)}")
+    print(f" Rows that were None: {len(losses) - len(losses_nonone)} / {len(losses)}")
     losses = losses_nonone
 
     # losses = [[r, s, [*range(len(r))]] for r, s in losses]
@@ -74,7 +75,7 @@ def main(
     df = pd.DataFrame(losses_concat)
 
     # dataframe with three colums: error_type, train_step, solver_step
-    print(df)
+    # print(df)
 
     # plot: x=solver_step, y=error_type, hue=train_step
     sns.lineplot(data=df, x="solver_step", y=error_type, hue="train_step")
@@ -87,10 +88,15 @@ def main(
         # plt.ylim(1e-12, ymax)
         plt.ylim(top=ymax)
     fname = (
-        f"{plotfolder}/fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}.png"
+        f"{plotfolder}/fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}_{error_type}.png"
     )
     plt.savefig(fname)
     print(f"Saved plot to {fname}")
+
+    # close the plot
+    plt.close()
+    plt.gca().clear()
+    plt.gcf().clear()
 
 
 if __name__ == "__main__":
@@ -99,7 +105,18 @@ if __name__ == "__main__":
     # main("f9bg18sp", datasplit="train")
     # main("f9bg18sp", datasplit="train", ymax=0.01)
     # main("f9bg18sp", datasplit="train", logscale=True)
-    main("f9bg18sp", datasplit="train", logscale=True, ymax=0.001)
+    # main("f9bg18sp", datasplit="train", logscale=True, ymax=0.001)
+    # main("f9bg18sp", error_type='rel', datasplit="train", logscale=True, ymax=0.001)
+    # main("f9bg18sp", error_type='rel', datasplit="train", logscale=True, ymax=0.001)
+    
+    # broyden pathnorm 64precision
+    run_id = "6cfnokgr"
+    main(run_id, error_type='abs', datasplit="train", logscale=True)
+    main(run_id, error_type='rel', datasplit="train", logscale=True)
+    # main(run_id, error_type='abs64', datasplit="train", logscale=True)
+    # main(run_id, error_type='rel64', datasplit="train", logscale=True)
+    # main(run_id, error_type='abs64', datasplit="train", logscale=True, ymax=0.001)
+    # main(run_id, error_type='rel64', datasplit="train", logscale=True, ymax=0.001)
 
     # broyden: iptk3b73
     # anderson: neo7e1vi
@@ -107,6 +124,3 @@ if __name__ == "__main__":
     # 6 layers: yuqbla4u
     # FPreuse: auffq4x0
     # Tanh: ii3gls8d
-    run_id = "f9bg18sp"
-
-    # main(run_id, datasplit="train")

@@ -334,7 +334,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
             )[0]
         )
 
-        return energy, forces
+        return energy, forces, {}
 
 
 @register_model

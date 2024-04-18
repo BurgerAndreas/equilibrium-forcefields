@@ -36,7 +36,7 @@ def log_fixed_point_error(
             wandb.log({f"abs_fixed_point_error{n}": f_abs_trace[-1].item()}, step=step)
             wandb.log({f"rel_fixed_point_error{n}": f_rel_trace[-1].item()}, step=step)
             # log how many steps it took to reach the fixed point
-            wandb.log({f"f_steps_to_fixed_point{n}": len(f_abs_trace)}, step=step)
+            wandb.log({f"f_steps_to_fixed_point{n}": info['nstep'][0].mean().item()}, step=step)
 
         #### log error trajectory
         if log_fp_error_traj:
@@ -140,21 +140,29 @@ def log_fixed_point_error(
                         },
                         step=step,
                     )
+                    print(
+                        f'Logged fixed point error trajectory. (split: {datasplit} at step {step}). ' 
+                        f'Dimension: {len(_abs)}, {info["abs_trace"].mean(dim=0)[1:].shape}'
+                    )
                 # log again in float64 format
                 if 'abs_trace64' in info:
-                    _abs = info['abs_trace64'].mean(dim=0)[1:].detach().cpu().numpy().tolist()
-                    _rel = info['rel_trace64'].mean(dim=0)[1:].detach().cpu().numpy().tolist()
+                    _abs64 = info['abs_trace64'].mean(dim=0)[1:].detach().cpu().numpy().tolist()
+                    _rel64 = info['rel_trace64'].mean(dim=0)[1:].detach().cpu().numpy().tolist()
                     # only log if the list does not contain NaNs or Nones
                     if all([x is not None for x in _abs]) and all(
                         [x is not None for x in _rel]
                     ):
                         wandb.log(
                             {
-                                f"abs_fixed_point_error_traj64{n}": _abs,
-                                f"rel_fixed_point_error_traj64{n}": _rel,
+                                f"abs64_fixed_point_error_traj{n}": _abs64,
+                                f"rel64_fixed_point_error_traj{n}": _rel64,
                             },
                             step=step,
                         )
+                        print(
+                            f'Logged fixed point error trajectory in float64. (split: {datasplit} at step {step}). '
+                            f'Dimension: {len(_abs64)}, {info["abs_trace64"].mean(dim=0)[1:].shape}'
+                        ) 
 
     return None
 

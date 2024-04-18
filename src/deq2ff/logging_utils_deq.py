@@ -140,6 +140,21 @@ def log_fixed_point_error(
                         },
                         step=step,
                     )
+                # log again in float64 format
+                if 'abs_trace64' in info:
+                    _abs = info['abs_trace64'].mean(dim=0)[1:].detach().cpu().numpy().tolist()
+                    _rel = info['rel_trace64'].mean(dim=0)[1:].detach().cpu().numpy().tolist()
+                    # only log if the list does not contain NaNs or Nones
+                    if all([x is not None for x in _abs]) and all(
+                        [x is not None for x in _rel]
+                    ):
+                        wandb.log(
+                            {
+                                f"abs_fixed_point_error_traj64{n}": _abs,
+                                f"rel_fixed_point_error_traj64{n}": _rel,
+                            },
+                            step=step,
+                        )
 
     return None
 

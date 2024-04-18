@@ -107,7 +107,11 @@ class FCTPProjection(torch.nn.Module):
     """See ffn_shortcut in DPTransBlock"""
 
     def __init__(
-        self, irreps_node_input, irreps_node_attr, irreps_node_output, rescale=True,
+        self,
+        irreps_node_input,
+        irreps_node_attr,
+        irreps_node_output,
+        rescale=True,
         fc_tp_path_norm="none",
         fc_tp_irrep_norm=None,  # None = 'element'
         bias=True,
@@ -116,7 +120,7 @@ class FCTPProjection(torch.nn.Module):
         # dp_tp_irrep_norm=None,
         # dp_tp_path_norm="none",
         **kwargs
-        ):
+    ):
         super().__init__()
         self.rescale = rescale
         self.irreps_node_input = o3.Irreps(irreps_node_input)
@@ -133,7 +137,7 @@ class FCTPProjection(torch.nn.Module):
             # activation=activation,
             bias=bias,
         )
-        print(self.__class__.__name__, 'discarded kwargs:', kwargs)
+        print(self.__class__.__name__, "discarded kwargs:", kwargs)
 
     def forward(self, node_input, node_attr, **kwargs):
         """node_input = node_features"""
@@ -144,7 +148,7 @@ class FCTPProjectionNorm(FCTPProjection):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.norm_pre = get_norm_layer("layer")(self.irreps_node_input)
-        print(self.__class__.__name__, 'discarded kwargs:', kwargs)
+        print(self.__class__.__name__, "discarded kwargs:", kwargs)
 
     def forward(self, node_input, node_attr, **kwargs):
         node_input = self.norm_pre(node_input)
@@ -163,7 +167,7 @@ class FFResidualFCTPProjection(torch.nn.Module):
         # added
         fc_tp_path_norm="none",
         fc_tp_irrep_norm=None,  # None = 'element'
-        proj_drop=0.1, # 0.1
+        proj_drop=0.1,  # 0.1
         bias=True,
         activation="SiLU",
         dp_tp_irrep_norm=None,
@@ -206,7 +210,7 @@ class FFResidualFCTPProjection(torch.nn.Module):
             # activation=activation,
             bias=bias,
         )
-        print(self.__class__.__name__, 'discarded kwargs:', kwargs)
+        print(self.__class__.__name__, "discarded kwargs:", kwargs)
 
     def forward(self, node_input, node_attr, batch, **kwargs):
         node_output = node_input
@@ -221,11 +225,16 @@ class FFResidualFCTPProjection(torch.nn.Module):
 
 class FFProjection(torch.nn.Module):
     def __init__(
-        self, irreps_node_input, irreps_node_attr, irreps_node_output, irreps_mlp_mid=None, rescale=True,
+        self,
+        irreps_node_input,
+        irreps_node_attr,
+        irreps_node_output,
+        irreps_mlp_mid=None,
+        rescale=True,
         # added
         # fc_tp_path_norm="none",
         # fc_tp_irrep_norm=None,  # None = 'element'
-        proj_drop=0.1, # 0.1
+        proj_drop=0.1,  # 0.1
         bias=True,
         activation="SiLU",
         dp_tp_irrep_norm=None,
@@ -255,7 +264,7 @@ class FFProjection(torch.nn.Module):
             normalization=dp_tp_irrep_norm,
             path_normalization=dp_tp_path_norm,
         )
-        print(self.__class__.__name__, 'discarded kwargs:', kwargs)
+        print(self.__class__.__name__, "discarded kwargs:", kwargs)
 
     def forward(self, node_input, node_attr, **kwargs):
         """node_input = node_features"""

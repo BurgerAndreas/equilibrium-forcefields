@@ -89,7 +89,9 @@ def main(args):
         os.makedirs(args.output_dir, exist_ok=True)
 
     _log = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
-    _log.info(f"args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}")
+    _log.info(
+        f"args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}"
+    )
 
     # since dataset needs random
     torch.manual_seed(args.seed)
@@ -100,7 +102,7 @@ def main(args):
         import equiformer.datasets.pyg.md17 as md17_dataset
 
         train_dataset, val_dataset, test_dataset = md17_dataset.get_md17_datasets(
-            root=os.path.join(args.data_path, 'md17', args.target),
+            root=os.path.join(args.data_path, "md17", args.target),
             dataset_arg=args.target,
             train_size=args.train_size,
             val_size=args.val_size,
@@ -138,12 +140,19 @@ def main(args):
 
     """ Network """
     create_model = model_entrypoint(args.model_name)
-    if 'deq_kwargs' in args:
-        model = create_model(task_mean=mean, task_std=std, **args.model_kwargs, deq_kwargs=args.deq_kwargs)
+    if "deq_kwargs" in args:
+        model = create_model(
+            task_mean=mean,
+            task_std=std,
+            **args.model_kwargs,
+            deq_kwargs=args.deq_kwargs,
+        )
     else:
         model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)
-    _log.info(f"model {args.model_name} created with kwargs \n{omegaconf.OmegaConf.to_yaml(args.model_kwargs)}")
-    _log.info(f'Model: \n{model}')
+    _log.info(
+        f"model {args.model_name} created with kwargs \n{omegaconf.OmegaConf.to_yaml(args.model_kwargs)}"
+    )
+    _log.info(f"Model: \n{model}")
 
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch
@@ -206,6 +215,7 @@ def main(args):
     if args.fpreuse_test:
         # reorder test dataset to be consecutive
         from deq2ff.data_utils import reorder_dataset
+
         test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
         _log.info(f"Reordered test dataset to be consecutive for fixed-point reuse.")
     test_loader = DataLoader(
@@ -243,7 +253,7 @@ def main(args):
     global_step = 0
 
     # TODO
-    # dryrun (tryrun) for logging 
+    # dryrun (tryrun) for logging
     try:
         model.train()
         criterion.train()
@@ -265,6 +275,7 @@ def main(args):
         shapes_to_log["NumEdges"] = shapes_to_log["NumEdges"] // args.batch_size
 
         import pprint
+
         ppr = pprint.PrettyPrinter(indent=4)
         ppr.pprint(shapes_to_log)
         wandb.run.summary.update(shapes_to_log)
@@ -276,7 +287,6 @@ def main(args):
     except Exception as e:
         success = False
         _log.info(f"Error: {e}")
-        
 
     if args.evaluate:
         test_err, test_loss = evaluate(
@@ -335,7 +345,7 @@ def main(args):
         optimizer.zero_grad()
 
         if (epoch + 1) % args.test_interval == 0:
-            _log.info(f'Testing model at epoch {epoch}')
+            _log.info(f"Testing model at epoch {epoch}")
             test_err, test_loss = evaluate(
                 args=args,
                 model=model,
@@ -477,7 +487,7 @@ def main(args):
             optimizer.zero_grad()
 
             if (epoch + 1) % args.test_interval == 0:
-                _log.info(f'Testing EMA model at epoch {epoch}')
+                _log.info(f"Testing EMA model at epoch {epoch}")
                 ema_test_err, _ = evaluate(
                     args=args,
                     model=model_ema.module,
@@ -628,7 +638,9 @@ def main(args):
         )
 
     _log.info(f"Done!")
-    _log.info(f"Final test error: MAE_e={test_err['energy'].avg}, MAE_f={test_err['force'].avg}")
+    _log.info(
+        f"Final test error: MAE_e={test_err['energy'].avg}, MAE_f={test_err['force'].avg}"
+    )
     return True
 
 
@@ -729,9 +741,9 @@ def train_one_epoch(
         # optionally clip and log grad norm
         if args.clip_grad_norm:
             grad_norm = torch.nn.utils.clip_grad_norm_(
-                    model.parameters(),
-                    max_norm=args.clip_grad_norm,
-                )
+                model.parameters(),
+                max_norm=args.clip_grad_norm,
+            )
             # if args.global_step % args.log_every_step_minor == 0:
             wandb.log({"grad_norm": grad_norm}, step=global_step)
             # .log({"grad_norm": grad_norm}, step=self.step, split="train")

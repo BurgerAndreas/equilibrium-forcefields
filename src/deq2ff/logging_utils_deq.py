@@ -130,11 +130,13 @@ def log_fixed_point_error(
                 _abs = f_abs_trace.detach().cpu().numpy().tolist()
                 _rel = f_rel_trace.detach().cpu().numpy().tolist()
                 # only log if the list does not contain NaNs or Nones
-                if all([x is not None for x in _abs]) and all([x is not None for x in _rel]):
+                if all([x is not None for x in _abs]) and all(
+                    [x is not None for x in _rel]
+                ):
                     wandb.log(
                         {
                             f"abs_fixed_point_error_traj{n}": _abs,
-                            f"rel_fixed_point_error_traj{n}": _rel
+                            f"rel_fixed_point_error_traj{n}": _rel,
                         },
                         step=step,
                     )

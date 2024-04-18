@@ -110,8 +110,15 @@ from deq2ff.deq_equiformer.deq_decprojhead_dp_md17 import (
 )
 
 from deq2ff.deq_equiformer.deq_dp_minimal import (
-    DPA, DPANorm, FF, FFNorm, FFResidual, FFNormResidual, DPAFFNorm
+    DPA,
+    DPANorm,
+    FF,
+    FFNorm,
+    FFResidual,
+    FFNormResidual,
+    DPAFFNorm,
 )
+
 
 class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
     """
@@ -332,39 +339,41 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 fc_tp_irrep_norm=self.fc_tp_irrep_norm,
                 activation=self.activation,
                 bias=self.bias,
-                affine_ln=self.affine_ln, 
+                affine_ln=self.affine_ln,
             )
             if i != (self.num_layers - 1):
                 self.blocks.append(blk)
             else:
                 self.final_block = blk
-            print(f'Initialized block {i} of type {block_type}.')
+            print(f"Initialized block {i} of type {block_type}.")
         print(f"\nInitialized {len(self.blocks)} blocks.")
-    
+
     def custom_weight_init(self, m, val, ptype="weight"):
         if isinstance(val, float) or isinstance(val, int):
             if ptype == "parameterlist":
                 for param in m:
                     torch.nn.init.constant_(param, val=float(val))
             else:
-                torch.nn.init.constant_(eval(f'm.{ptype}'), val=float(val))
-        elif 'normal' in val:
+                torch.nn.init.constant_(eval(f"m.{ptype}"), val=float(val))
+        elif "normal" in val:
             mean = val.split("_")[1]
             std = val.split("_")[2]
             if ptype == "parameterlist":
                 for param in m:
                     torch.nn.init.normal_(param, mean=float(mean), std=float(std))
             else:
-                torch.nn.init.normal_(eval(f'm.{ptype}'), mean=float(mean), std=float(std))
-        elif 'uniform' in val:
+                torch.nn.init.normal_(
+                    eval(f"m.{ptype}"), mean=float(mean), std=float(std)
+                )
+        elif "uniform" in val:
             a = val.split("_")[1]
             b = val.split("_")[2]
             if ptype == "parameterlist":
                 for param in m:
                     torch.nn.init.uniform_(param, a=float(a), b=float(b))
             else:
-                torch.nn.init.uniform_(eval(f'm.{ptype}'), a=float(a), b=float(b))
-        elif val in ['torch', 'equiformer']:
+                torch.nn.init.uniform_(eval(f"m.{ptype}"), a=float(a), b=float(b))
+        elif val in ["torch", "equiformer"]:
             pass
         else:
             raise ValueError(f"Invalid custom_weight_init: {val}")
@@ -379,28 +388,28 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         # torch.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
         # torch.nn.init.zeros_(self.fc1.bias)
         if isinstance(m, torch.nn.Linear):
-            # initialized uniformly :math:`\mathcal{U}(-\sqrt{k}, \sqrt{k})`, 
+            # initialized uniformly :math:`\mathcal{U}(-\sqrt{k}, \sqrt{k})`,
             # where :math:`k = \frac{1}{\text{in\_features}}`
             # init.kaiming_uniform_(self.weight, a=math.sqrt(5))
             # weight and bias kaiming_uniform
-            self.custom_weight_init(m, weight_init['Linear_w'], ptype="weight")
-            
-            if weight_init['Linear_b'] == "equiformer":
+            self.custom_weight_init(m, weight_init["Linear_w"], ptype="weight")
+
+            if weight_init["Linear_b"] == "equiformer":
                 if m.bias is not None:
                     torch.nn.init.constant_(m.bias, 0)
             else:
-                self.custom_weight_init(m, weight_init['Linear_b'], ptype="bias")
+                self.custom_weight_init(m, weight_init["Linear_b"], ptype="bias")
 
         elif isinstance(m, torch.nn.LayerNorm):
-            if weight_init['LayerNorm_w'] == "equiformer":
+            if weight_init["LayerNorm_w"] == "equiformer":
                 torch.nn.init.constant_(m.weight, 1.0)
             else:
-                self.custom_weight_init(m, weight_init['LayerNorm_w'], ptype="weight")
+                self.custom_weight_init(m, weight_init["LayerNorm_w"], ptype="weight")
 
-            if weight_init['LayerNorm_b'] == "equiformer":
+            if weight_init["LayerNorm_b"] == "equiformer":
                 torch.nn.init.constant_(m.bias, 0)
             else:
-                self.custom_weight_init(m, weight_init['LayerNorm_b'], ptype="bias")
+                self.custom_weight_init(m, weight_init["LayerNorm_b"], ptype="bias")
 
         elif isinstance(m, EquivariantLayerNormV2):
             # https://github.com/atomicarchitects/equiformer_v2/blob/main/nets/equiformer_v2/equiformer_v2_oc20.py#L489
@@ -411,18 +420,23 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 # if self.weight_init == 'normal':
                 #         std = 1 / math.sqrt(m.in_features)
                 #         torch.nn.init.normal_(m.weight, 0, std)
-                self.custom_weight_init(m, weight_init['EquivariantLayerNormV2_w'], ptype="affine_weight")
-                self.custom_weight_init(m, weight_init['EquivariantLayerNormV2_b'], ptype="affine_bias")
-        
+                self.custom_weight_init(
+                    m, weight_init["EquivariantLayerNormV2_w"], ptype="affine_weight"
+                )
+                self.custom_weight_init(
+                    m, weight_init["EquivariantLayerNormV2_b"], ptype="affine_bias"
+                )
+
         elif isinstance(m, torch.nn.ParameterList):
             # for param in m:
             #     torch.nn.init.zeros_(param)
-            self.custom_weight_init(m, weight_init['ParameterList'], ptype="parameterlist")
+            self.custom_weight_init(
+                m, weight_init["ParameterList"], ptype="parameterlist"
+            )
 
-    
     def _init_weights(self, m):
         self._init_weights_base(m, weight_init=self.weight_init)
-    
+
     def _init_weights_blocks(self, m):
         self._init_weights_base(m, weight_init=self.weight_init_blocks)
 
@@ -461,7 +475,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         shape: [num_atoms * batch_size, irreps_dim]
         irreps_dim = a*1 + b*3 + c*5
         """
-        requires_grad = self.z0_requires_grad # TODO
+        requires_grad = self.z0_requires_grad  # TODO
         if self.z0 == "zero":
             return torch.zeros(
                 [batch_size, dim],
@@ -485,8 +499,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
             mean = self.z0.split("_")[1]
             std = self.z0.split("_")[2]
             return torch.normal(
-                mean=float(mean), std=float(std), 
-                size=[batch_size, dim], 
+                mean=float(mean),
+                std=float(std),
+                size=[batch_size, dim],
                 device=self.device,
                 requires_grad=requires_grad,
             )
@@ -702,7 +717,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         if self.input_injection == False:
             node_features = node_features_injection
         else:
-            node_features = self._init_z(batch_size=node_features_injection.shape[0], dim=self.irreps_node_embedding.dim)
+            node_features = self._init_z(
+                batch_size=node_features_injection.shape[0],
+                dim=self.irreps_node_embedding.dim,
+            )
 
         # f = lambda z: self.mfn_forward(z, u)
         f = lambda node_features: self.deq_implicit_layer(
@@ -754,7 +772,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         if self.input_injection == False:
             node_features = node_features_injection
         else:
-            node_features = self._init_z(batch_size=node_features_injection.shape[0], dim=self.irreps_node_embedding.dim)
+            node_features = self._init_z(
+                batch_size=node_features_injection.shape[0],
+                dim=self.irreps_node_embedding.dim,
+            )
 
         reuse = True
         if fixedpoint is None:
@@ -765,7 +786,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
 
         # debugging
         if self.skip_implicit_layer:
-            node_features = self._init_z(batch_size=node_features_injection.shape[0], dim=self.irreps_node_embedding.dim)
+            node_features = self._init_z(
+                batch_size=node_features_injection.shape[0],
+                dim=self.irreps_node_embedding.dim,
+            )
             z_pred = [node_features]
             # print("! Skipping implicit layer")
         else:
@@ -784,7 +808,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
             )
 
             # z: list[torch.tensor shape [42, 480]]
-            solver_kwargs = {"f_max_iter": 0} if (reuse and self.limit_f_max_iter_fpreuse) else {}
+            solver_kwargs = (
+                {"f_max_iter": 0} if (reuse and self.limit_f_max_iter_fpreuse) else {}
+            )
             # returns the sampled fixed point trajectory (tracked gradients)
             # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
             z_pred, info = self.deq(f, node_features, solver_kwargs=solver_kwargs)
@@ -803,7 +829,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 # log the final fixed-point
                 logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
                 # log the input injection (output of encoder)
-                logging_utils_deq.log_fixed_point_norm(node_features_injection, step, datasplit, name="emb")
+                logging_utils_deq.log_fixed_point_norm(
+                    node_features_injection, step, datasplit, name="emb"
+                )
 
         # decode
         # outputs: list[Tuple(energy: torch.tensor [2, 1], force: torch.tensor [42, 3])]
@@ -814,7 +842,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         # force = outputs[-1][1]
 
         if not z_pred[-1].requires_grad:
-            print("!!!", f"z_pred[-1] node_features.requires_grad: {z_pred[-1].requires_grad} (datasplit: {datasplit})"            )
+            print(
+                "!!!",
+                f"z_pred[-1] node_features.requires_grad: {z_pred[-1].requires_grad} (datasplit: {datasplit})",
+            )
 
         energy, force = self.decode(
             node_features=z_pred[-1],

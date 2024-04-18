@@ -80,13 +80,14 @@ class Module:
         fn(self)
         return self
 
+
 # coloring
 
 import colorama
 from termcolor import colored
- 
+
 colorama.init()
- 
+
 
 def print_base_modules(module, print_without_params=False, bias=True):
     children = [name for name, module in module.named_children()]
@@ -107,7 +108,7 @@ def print_base_modules(module, print_without_params=False, bias=True):
                     if bias:
                         print(text)
                     else:
-                        print(colored(text, 'black', 'on_green'))
+                        print(colored(text, "black", "on_green"))
 
             # LayerNorm is initialized to weight=1, bias=0
             elif isinstance(module, torch.nn.LayerNorm):
@@ -122,7 +123,9 @@ def print_base_modules(module, print_without_params=False, bias=True):
                     if bias:
                         print(text)
                     else:
-                        print(colored(text, 'black', 'on_green')) # bias shouldn't appear
+                        print(
+                            colored(text, "black", "on_green")
+                        )  # bias shouldn't appear
 
             # EquivariantLayerNormV2 are initialized to weight=0, bias=1
             elif isinstance(module, EquivariantLayerNormV2):
@@ -139,7 +142,7 @@ def print_base_modules(module, print_without_params=False, bias=True):
                     if bias:
                         print(text)
                     else:
-                        print(colored(text, 'black', 'on_red')) # bias shouldn't appear
+                        print(colored(text, "black", "on_red"))  # bias shouldn't appear
                 # for p in module.parameters():
                 #     print(p)
 
@@ -152,7 +155,7 @@ def print_base_modules(module, print_without_params=False, bias=True):
                 print(f"  weight: mean={mean}, std={std}, nonzeros={nonzeros}")
                 # for p in module:
                 #     print(p)
-            
+
             else:
                 # compute weight init
                 try:
@@ -166,7 +169,8 @@ def print_base_modules(module, print_without_params=False, bias=True):
 def find_base_modules(model, args: DictConfig):
 
     # model.apply(print_base_modules)
-    model.blocks.apply(print_base_modules) # deq implicit layer
+    model.blocks.apply(print_base_modules)  # deq implicit layer
+
 
 """
 Things to check:
@@ -174,8 +178,9 @@ Things to check:
 - 
 """
 
+
 @hydra.main(
-    config_name="deq", # md17
+    config_name="deq",  # md17
     config_path="../equiformer/config",
     version_base="1.3",
 )
@@ -186,7 +191,7 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     """ Dataset """
     train_dataset, val_dataset, test_dataset = md17_dataset.get_md_datasets(
-        root=os.path.join(args.data_path, 'md17', args.target),
+        root=os.path.join(args.data_path, "md17", args.target),
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
@@ -206,14 +211,14 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     """ Change kwargs """
     # args.model_kwargs.bias = False
-    args.model_kwargs.deq_block='FFNormResidual' 
+    args.model_kwargs.deq_block = "FFNormResidual"
     # args.model_kwargs.weight_init_blocks={'EquivariantLayerNormV2_b':0}
     # args.model_kwargs.weight_init_blocks={'EquivariantLayerNormV2_w':1,'EquivariantLayerNormV2_b':0}
 
     """ Network """
     # create_model = model_entrypoint(args.model_name)
-    model_name = 'deq_' + args.model_name
-    model_name = 'deq_minimal_dpa'
+    model_name = "deq_" + args.model_name
+    model_name = "deq_minimal_dpa"
 
     create_model = model_entrypoint(model_name)
     model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)

@@ -46,6 +46,7 @@ As equivariant tensor products are the computational bottleneck, we want to mini
 plotfolder = pathlib.Path(__file__).parent.absolute()
 plotfolder = os.path.join(plotfolder, "plots")
 
+
 def test(args, max_radius=np.arange(1.0, 10.0), batch_size=1):
 
     args.batch_size = batch_size
@@ -55,7 +56,7 @@ def test(args, max_radius=np.arange(1.0, 10.0), batch_size=1):
         import equiformer.datasets.pyg.md17 as md17_dataset
 
         train_dataset, val_dataset, test_dataset = md17_dataset.get_md17_datasets(
-            root=os.path.join(args.data_path, 'md17', args.target),
+            root=os.path.join(args.data_path, "md17", args.target),
             dataset_arg=args.target,
             train_size=args.train_size,
             val_size=args.val_size,
@@ -97,11 +98,13 @@ def test(args, max_radius=np.arange(1.0, 10.0), batch_size=1):
 
     """ Network """
     create_model = model_entrypoint(args.model_name)
-    if 'deq_kwargs' in args:
-        model = create_model(task_mean=mean, task_std=std, **args.model_kwargs, **args.deq_kwargs)
+    if "deq_kwargs" in args:
+        model = create_model(
+            task_mean=mean, task_std=std, **args.model_kwargs, **args.deq_kwargs
+        )
     else:
         model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)
-    
+
     model = model.to(device)
     model.train()
 
@@ -119,11 +122,11 @@ def test(args, max_radius=np.arange(1.0, 10.0), batch_size=1):
 
             if step == 0 and i == 0:
                 n = node_atom.shape[0]
-                print('')
-                print(f'batch_size: {args.batch_size}')
-                print(f'number of atoms: {n}')
-                print(f'max number of directed edges = n(n-1) = {n * (n - 1)}')
-                print('')
+                print("")
+                print(f"batch_size: {args.batch_size}")
+                print(f"number of atoms: {n}")
+                print(f"max number of directed edges = n(n-1) = {n * (n - 1)}")
+                print("")
 
             # atom type z_i
             atom_embedding, atom_attr, atom_onehot = model.atom_embed(node_atom)
@@ -157,21 +160,22 @@ def test(args, max_radius=np.arange(1.0, 10.0), batch_size=1):
             # node_features = x
             node_features = atom_embedding + edge_degree_embedding
 
-            # node_attr = ? 
+            # node_attr = ?
             # node_attr = torch.ones_like(node_features.narrow(dim=1, start=0, length=1))
             node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
 
-            print(f'\nmax_radius: {max_radius}')
-            print(f'node_attr: {node_attr.shape}')
-            print(f'edge_src: {edge_src.shape}')
-            print(f'edge_dst: {edge_dst.shape}')
-            print(f'edge_sh: {edge_sh.shape}')
+            print(f"\nmax_radius: {max_radius}")
+            print(f"node_attr: {node_attr.shape}")
+            print(f"edge_src: {edge_src.shape}")
+            print(f"edge_dst: {edge_dst.shape}")
+            print(f"edge_sh: {edge_sh.shape}")
 
             ne = edge_src.shape[0]
             num_edges.append(ne)
             break
-    
+
     return num_edges
+
 
 def plot_num_edges_over_max_radius(max_radius, num_edges):
     import matplotlib.pyplot as plt
@@ -179,15 +183,14 @@ def plot_num_edges_over_max_radius(max_radius, num_edges):
 
     plt.figure(figsize=(10, 6))
     sns.set_theme(style="whitegrid")
-    plt.plot(max_radius, num_edges, marker='o')
-    plt.xlabel('Max radius for edges [Angstrom]')
-    plt.ylabel('Number of edges per atom')
+    plt.plot(max_radius, num_edges, marker="o")
+    plt.xlabel("Max radius for edges [Angstrom]")
+    plt.ylabel("Number of edges per atom")
     # vertical line at 5.0 Angstrom
-    plt.axvline(x=5.0, color='gray', linestyle='--')
-    plt.title('Number of directed edges as a function of max_radius')
-    plt.savefig(f'{plotfolder}/num_edges_over_max_radius.png')
-    print(f'Saved plot to {plotfolder}/num_edges_over_max_radius.png')
-
+    plt.axvline(x=5.0, color="gray", linestyle="--")
+    plt.title("Number of directed edges as a function of max_radius")
+    plt.savefig(f"{plotfolder}/num_edges_over_max_radius.png")
+    print(f"Saved plot to {plotfolder}/num_edges_over_max_radius.png")
 
 
 @hydra.main(

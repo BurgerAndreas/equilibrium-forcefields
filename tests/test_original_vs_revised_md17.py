@@ -62,7 +62,7 @@ def test_revised_dataset_creation(args):
 
     # old dataloader, old dataset
     train_dataset_old, _, _ = md17_dataset.get_md17_datasets(
-        root=os.path.join(args.data_path, 'md17', args.target),
+        root=os.path.join(args.data_path, "md17", args.target),
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,

@@ -99,15 +99,19 @@ from equiformer.nets.dp_attention_transformer_md17 import (
 @compile_mode("script")
 class FF(torch.nn.Module):
     def __init__(
-        self, irreps_node_input, irreps_node_attr, irreps_node_output, 
-        irreps_mlp_mid=None, rescale=True, 
+        self,
+        irreps_node_input,
+        irreps_node_attr,
+        irreps_node_output,
+        irreps_mlp_mid=None,
+        rescale=True,
         # added
-        proj_drop=0.0, # 0.1
+        proj_drop=0.0,  # 0.1
         bias=True,
         activation="SiLU",
         dp_tp_irrep_norm=None,
         dp_tp_path_norm="none",
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.rescale = rescale
@@ -133,38 +137,48 @@ class FF(torch.nn.Module):
             path_normalization=dp_tp_path_norm,
         )
 
-        print(f'FF: ignoring kwargs: {kwargs}')
+        print(f"FF: ignoring kwargs: {kwargs}")
 
     def forward(self, node_input, node_attr, **kwargs):
         """node_input = node_features"""
         return self.ffn(node_input, node_attr)
 
+
 @compile_mode("script")
 class FFNorm(FF):
     def __init__(self, affine_ln=True, **kwargs):
         super().__init__(**kwargs)
-        self.norm_pre = get_norm_layer("layer")(self.irreps_node_input, affine=affine_ln)
+        self.norm_pre = get_norm_layer("layer")(
+            self.irreps_node_input, affine=affine_ln
+        )
 
     def forward(self, node_input, node_attr, **kwargs):
         node_input = self.norm_pre(node_input)
         return self.ffn(node_input, node_attr)
 
+
 @compile_mode("script")
 class FFResidual(torch.nn.Module):
     """Second part of DPTransBlock without norm."""
+
     def __init__(
-        self, irreps_node_input, irreps_node_attr, irreps_node_output, irreps_mlp_mid=None, rescale=True,
+        self,
+        irreps_node_input,
+        irreps_node_attr,
+        irreps_node_output,
+        irreps_mlp_mid=None,
+        rescale=True,
         # added
         # FullyConnectedTensorProductRescale
         # only used when irreps_node_input != irreps_node_output
         fc_tp_path_norm="none",
         fc_tp_irrep_norm=None,  # None = 'element'
-        proj_drop=0.1, # 0.1
+        proj_drop=0.1,  # 0.1
         bias=True,
         activation="SiLU",
         dp_tp_irrep_norm=None,
         dp_tp_path_norm="none",
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.rescale = rescale
@@ -207,7 +221,7 @@ class FFResidual(torch.nn.Module):
                 # activation=activation,
                 bias=bias,
             )
-        print(f'FFResidual: ignoring kwargs: {kwargs}')
+        print(f"FFResidual: ignoring kwargs: {kwargs}")
 
     def forward(self, node_input, node_attr, batch, **kwargs):
         """node_input = node_features"""
@@ -223,16 +237,20 @@ class FFResidual(torch.nn.Module):
 
         return node_output + node_features
 
+
 @compile_mode("script")
 class FFNormResidual(FFResidual):
     """Second part of DPTransBlock."""
+
     def __init__(self, affine_ln=True, **kwargs):
         super().__init__(**kwargs)
         self.norm_2 = get_norm_layer("layer")(self.irreps_node_input, affine=affine_ln)
 
+
 @compile_mode("script")
 class DPA(torch.nn.Module):
     """First part of DPTransBlock without norm (if irreps_node_input=irreps_node_output)."""
+
     def __init__(
         self,
         irreps_node_input,
@@ -245,8 +263,8 @@ class DPA(torch.nn.Module):
         irreps_pre_attn=None,
         rescale_degree=False,
         # nonlinear_message=False,
-        alpha_drop=0., # 0.1
-        proj_drop=0., #0.1
+        alpha_drop=0.0,  # 0.1
+        proj_drop=0.0,  # 0.1
         # drop_path_rate=0.0,
         # irreps_mlp_mid=None,
         # norm_layer="layer",
@@ -259,7 +277,7 @@ class DPA(torch.nn.Module):
         # fc_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
         bias=True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.irreps_node_input = o3.Irreps(irreps_node_input)
@@ -289,7 +307,7 @@ class DPA(torch.nn.Module):
             irreps_node_attr=self.irreps_node_attr,
             irreps_edge_attr=self.irreps_edge_attr,
             # irreps_node_output=self.irreps_node_input,
-            irreps_node_output=self.irreps_node_output, # changed
+            irreps_node_output=self.irreps_node_output,  # changed
             fc_neurons=fc_neurons,
             irreps_head=self.irreps_head,
             num_heads=self.num_heads,
@@ -304,8 +322,8 @@ class DPA(torch.nn.Module):
             bias=bias,
         )
 
-        print(f'DPA: ignoring kwargs: {kwargs}')
-    
+        print(f"DPA: ignoring kwargs: {kwargs}")
+
     def forward(
         self,
         node_input,
@@ -320,7 +338,7 @@ class DPA(torch.nn.Module):
         # residual connection can only be applied if irreps_node_input = irreps_node_output
         # node_output = node_input
         node_features = node_input
-        
+
         if self.norm_1 is not None:
             node_features = self.norm_1(node_features, batch=batch)  # batch unused
 
@@ -339,13 +357,16 @@ class DPA(torch.nn.Module):
         # return node_output + node_features
         return node_features
 
+
 @compile_mode("script")
 class DPANorm(DPA):
     """First part of DPTransBlock."""
+
     def __init__(self, affine_ln=True, **kwargs):
         super().__init__(**kwargs)
         self.norm_1 = get_norm_layer("layer")(self.irreps_node_input, affine=affine_ln)
         # self.norm_1 = get_norm_layer(norm_layer)(self.irreps_node_input)
+
 
 from equiformer.nets.dp_attention_transformer import (
     ScaleFactor,
@@ -353,13 +374,15 @@ from equiformer.nets.dp_attention_transformer import (
     DPTransBlock,
 )
 
+
 @compile_mode("script")
 class DPAFFNorm(DPTransBlock):
     """DPTransBlock without residual."""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.ffn_shortcut = None
-    
+
     def forward(
         self,
         node_input,
@@ -401,8 +424,9 @@ class DPAFFNorm(DPTransBlock):
         if self.drop_path is not None:
             # uses batch. TODO
             node_features = self.drop_path(node_features, batch)
-        
+
         return node_features
+
 
 # options = [DPA, DPANorm, FF, FFNorm, FFResidual, FFNormResidual, DPAFFNorm]
 

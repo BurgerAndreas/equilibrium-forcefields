@@ -120,44 +120,55 @@ class DEQGraphAttentionTransformerMD17(DEQDotProductAttentionTransformerMD17):
 
         print(f"\nInitialized {len(self.blocks)} blocks of `TransBlock`.")
 
+
 # Dummies for all the different versions of the model
 # different argument defaults got moved to hydra configs
+
 
 @register_model
 def deq_graph_attention_transformer_l2_md17(**kwargs):
     return DEQGraphAttentionTransformerMD17(**kwargs)
 
+
 @register_model
 def deq_graph_attention_transformer_nonlinear_l2_md17(**kwargs):
     return DEQGraphAttentionTransformerMD17(**kwargs)
+
 
 @register_model
 def deq_graph_attention_transformer_nonlinear_l2_e3_md17(**kwargs):
     return DEQGraphAttentionTransformerMD17(**kwargs)
 
+
 @register_model
 def deq_graph_attention_transformer_nonlinear_bessel_l2_md17(**kwargs):
     return DEQGraphAttentionTransformerMD17(**kwargs)
+
 
 @register_model
 def deq_graph_attention_transformer_nonlinear_exp_l2_md17(**kwargs):
     return DEQGraphAttentionTransformerMD17(**kwargs)
 
+
 @register_model
 def deq_graph_attention_transformer_nonlinear_exp_l3_md17(**kwargs):
     return DEQGraphAttentionTransformerMD17(**kwargs)
+
 
 @register_model
 def deq_graph_attention_transformer_nonlinear_attn_exp_l3_md17(**kwargs):
     return DEQGraphAttentionTransformerMD17(**kwargs)
 
+
 @register_model
 def deq_graph_attention_transformer_nonlinear_exp_l3_e3_md17(**kwargs):
     return DEQGraphAttentionTransformerMD17(**kwargs)
 
+
 @register_model
 def deq_graph_attention_transformer_nonlinear_bessel_l3_md17(**kwargs):
     return DEQGraphAttentionTransformerMD17(**kwargs)
+
 
 @register_model
 def deq_graph_attention_transformer_nonlinear_bessel_l3_e3_md17(**kwargs):

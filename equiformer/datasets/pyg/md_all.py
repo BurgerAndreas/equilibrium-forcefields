@@ -43,27 +43,26 @@ class MDAll(InMemoryDataset):
     raw_url = "http://www.quantum-machine.org/gdml/data/npz/"  # gdml
     revised_url = "https://archive.materialscloud.org/record/file?filename=rmd17.tar.bz2&record_id=466"
 
-
     # We note that the file names have been changed.
     # For example, `aspirin_dft` -> `md17_aspirin`
     # See https://github.com/pyg-team/pytorch_geometric/commit/213f0ff95140eb1a1fbf7d99b012d458ef360f71#diff-a85570faabaf1806684e5b6654deed3863273bbe703f237846accd11948f4675
     # https://github.com/pyg-team/pytorch_geometric/pull/6734
     molecule_files = {
         "md17": {
-            'aspirin': "md17_aspirin.npz",
-            'benzene': "md17_benzene2017.npz",
-            'ethanol': "md17_ethanol.npz",
-            'malonaldehyde': "md17_malonaldehyde.npz",
-            'naphthalene': "md17_naphthalene.npz",
-            'salicylic_acid': "md17_salicylic.npz",
-            'toluene': "md17_toluene.npz",
-            'uracil': "md17_uracil.npz",
+            "aspirin": "md17_aspirin.npz",
+            "benzene": "md17_benzene2017.npz",
+            "ethanol": "md17_ethanol.npz",
+            "malonaldehyde": "md17_malonaldehyde.npz",
+            "naphthalene": "md17_naphthalene.npz",
+            "salicylic_acid": "md17_salicylic.npz",
+            "toluene": "md17_toluene.npz",
+            "uracil": "md17_uracil.npz",
         },
-        'extended': {
+        "extended": {
             "paracetamol": "paracetamol_dft.npz",
             "azobenzene": "azobenzene_dft.npz",
         },
-        'revised': {
+        "revised": {
             "revised benzene": "rmd17_benzene.npz",
             "revised uracil": "rmd17_uracil.npz",
             "revised naphthalene": "rmd17_naphthalene.npz",
@@ -75,7 +74,7 @@ class MDAll(InMemoryDataset):
             "revised paracetamol": "rmd17_paracetamol.npz",
             "revised azobenzene": "rmd17_azobenzene.npz",
         },
-        'ccsd': {
+        "ccsd": {
             "benzene CCSD(T)": "benzene_ccsd_t.zip",
             "aspirin CCSD": "aspirin_ccsd.zip",
             "malonaldehyde CCSD(T)": "malonaldehyde_ccsd_t.zip",
@@ -83,17 +82,17 @@ class MDAll(InMemoryDataset):
             "toluene CCSD(T)": "toluene_ccsd_t.zip",
             "benzene FHI-aims": "benzene2018_dft.npz",
         },
-        'md22': {
+        "md22": {
             "AT-AT-CG-CG": "md22_AT-AT-CG-CG.npz",
-            "AT-AT": "md22_AT-AT.npz",	
-            "Ac-Ala3-NHMe": "md22_Ac-Ala3-NHMe.npz",	
+            "AT-AT": "md22_AT-AT.npz",
+            "Ac-Ala3-NHMe": "md22_Ac-Ala3-NHMe.npz",
             "DHA": "md22_DHA.npz",
             "buckyball-catcher": "md22_buckyball-catcher.npz",
             "dw-nanotube": "md22_dw_nanotube.npz",
             "stachyose": "md22_stachyose.npz",
         },
     }
-    molecule_files['rmd17og'] = molecule_files['md17']
+    molecule_files["rmd17og"] = molecule_files["md17"]
 
     def __init__(
         self,
@@ -101,7 +100,7 @@ class MDAll(InMemoryDataset):
         dataset_arg,
         transform=None,
         pre_transform=None,
-        dname='md17',
+        dname="md17",
         # revised=False,
         # revised_old=False,
         # ccsd=False,
@@ -110,11 +109,17 @@ class MDAll(InMemoryDataset):
             "Please provide the desired comma separated molecule(s) through"
             f"'dataset_arg'."
         )
-        assert dname in MDAll.molecule_files.keys(), f"Unknown data arguments {dname}. Try: {MDAll.molecule_files.keys()}"
-        if dname == 'rmd17':
-            assert 'revised ' + dataset_arg in MDAll.molecule_files[dname], f"Unknown data arguments {dataset_arg} with {dname}. Try: {MDAll.available_molecules[dname]}"
+        assert (
+            dname in MDAll.molecule_files.keys()
+        ), f"Unknown data arguments {dname}. Try: {MDAll.molecule_files.keys()}"
+        if dname == "rmd17":
+            assert (
+                "revised " + dataset_arg in MDAll.molecule_files[dname]
+            ), f"Unknown data arguments {dataset_arg} with {dname}. Try: {MDAll.available_molecules[dname]}"
         else:
-            assert dataset_arg in MDAll.molecule_files[dname], f"Unknown data arguments {dataset_arg} with {dname}. Try: {MDAll.available_molecules[dname]}"
+            assert (
+                dataset_arg in MDAll.molecule_files[dname]
+            ), f"Unknown data arguments {dataset_arg} with {dname}. Try: {MDAll.available_molecules[dname]}"
 
         self.name = dataset_arg
         self.dname = dname
@@ -177,10 +182,12 @@ class MDAll(InMemoryDataset):
     # MD17
     @property
     def raw_file_names(self):
-        if self.dname == 'rmd17':
+        if self.dname == "rmd17":
             return [
                 osp.join(
-                    "rmd17", "npz_data", MDAll.molecule_files[self.dname][f"revised {mol}"]
+                    "rmd17",
+                    "npz_data",
+                    MDAll.molecule_files[self.dname][f"revised {mol}"],
                 )
                 for mol in self.molecules
             ]
@@ -189,15 +196,15 @@ class MDAll(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        if self.dname == 'rmd17og':
+        if self.dname == "rmd17og":
             return [f"rmd17og-{mol}.pt" for mol in self.molecules]
-        elif self.dname == 'rmd17':
+        elif self.dname == "rmd17":
             return [f"rmd17-{mol}.pt" for mol in self.molecules]
-        elif self.dname == 'md22':
+        elif self.dname == "md22":
             return [f"md22-{mol}.pt" for mol in self.molecules]
-        elif self.dname == 'md17':
+        elif self.dname == "md17":
             return [f"md17-{mol}.pt" for mol in self.molecules]
-        elif self.dname == 'ccsd':
+        elif self.dname == "ccsd":
             return [f"ccsd-{mol}.pt" for mol in self.molecules]
         else:
             raise ValueError(f"Unknown dataset name: {self.dname}")
@@ -211,7 +218,7 @@ class MDAll(InMemoryDataset):
 
     def download(self):
         for file_name in self.raw_file_names:
-            if self.dname == 'rmd17':
+            if self.dname == "rmd17":
                 path = download_url(self.revised_url, self.raw_dir)
                 extract_tar(path, self.raw_dir, mode="r:bz2")
                 os.unlink(path)
@@ -219,7 +226,7 @@ class MDAll(InMemoryDataset):
                 # download_url(MD17.raw_url + file_name, self.raw_dir)
                 url = f"{self.raw_url}/{file_name}"
                 path = download_url(url, self.raw_dir)
-                if self.dname == 'ccsd':
+                if self.dname == "ccsd":
                     extract_zip(path, self.raw_dir)
                     os.unlink(path)
 
@@ -238,8 +245,8 @@ class MDAll(InMemoryDataset):
         old_indices = None
         for raw_path, processed_path in it:
             raw_data = np.load(raw_path)
-            print(f'keys in raw_data: {raw_data.keys()}')
-            if self.dname == 'rmd17og':
+            print(f"keys in raw_data: {raw_data.keys()}")
+            if self.dname == "rmd17og":
                 z = torch.from_numpy(raw_data["nuclear_charges"]).long()
                 pos = torch.from_numpy(raw_data["coords"]).float()
                 # https://figshare.com/articles/dataset/Revised_MD17_dataset_rMD17_/12672038
@@ -249,7 +256,7 @@ class MDAll(InMemoryDataset):
                 energy = torch.from_numpy(raw_data["old_energies"]).float()
                 force = torch.from_numpy(raw_data["old_forces"]).float()
                 old_indices = torch.from_numpy(raw_data["old_indices"]).long()
-            elif self.dname == 'rmd17':
+            elif self.dname == "rmd17":
                 z = torch.from_numpy(raw_data["nuclear_charges"]).long()
                 pos = torch.from_numpy(raw_data["coords"]).float()
                 energy = torch.from_numpy(raw_data["energies"]).float()  # [100000]
@@ -376,7 +383,7 @@ def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=
         idx_train = idxs_rand[:train_size]
         idx_val = idxs_rand[train_size : train_size + val_size]
         # test: random consecutive block
-        test_start_idx = np.random.randint(0, dset_len - test_size -1)
+        test_start_idx = np.random.randint(0, dset_len - test_size - 1)
         idx_test = idxs[test_start_idx : test_start_idx + test_size]
         return np.array(idx_train), np.array(idx_val), idx_test
 
@@ -450,7 +457,7 @@ def get_md_datasets(
     test_size,
     seed,
     # added
-    dname='md17',
+    dname="md17",
     max_samples: int = -1,
     order=None,
     return_idx=False,
@@ -460,7 +467,7 @@ def get_md_datasets(
     Return training, validation and testing sets of MD17 with the same data partition as TorchMD-NET.
 
     Args:
-        rmd17: use revised version of MD17 with more accurate energies and forces 
+        rmd17: use revised version of MD17 with more accurate energies and forces
         rmd17og: Use the non-revised (old) data downloaded from the revised dataset and processed with the revised dataset's preprocessing script (bool)
         max_samples: take the first max_samples samples from the dataset. Ensures reproducibility between datasets of different lengths.
 
@@ -516,12 +523,19 @@ def get_md_datasets(
 
     if return_idx:
         return idx_train, idx_val, idx_test
-    
+
     # log split to wandb
     if wandb.run is not None:
         max_num = 1000
         # wandb.log({"idx_train": idx_train[:max_num].tolist(), "idx_val": idx_val[:max_num].tolist(), "idx_test": idx_test[:max_num].tolist()}, step=0)
-        wandb.log({"idx_train": idx_train[:max_num], "idx_val": idx_val[:max_num], "idx_test": idx_test[:max_num]}, step=0)
+        wandb.log(
+            {
+                "idx_train": idx_train[:max_num],
+                "idx_val": idx_val[:max_num],
+                "idx_test": idx_test[:max_num],
+            },
+            step=0,
+        )
 
     train_dataset = Subset(all_dataset, idx_train)
     val_dataset = Subset(all_dataset, idx_val)

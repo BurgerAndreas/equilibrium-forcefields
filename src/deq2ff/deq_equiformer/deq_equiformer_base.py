@@ -13,7 +13,6 @@ from deq2ff.deq_base import _init_deq
 
 
 class EquiformerDEQBase:
-    
     def _set_deq_vars(
         self,
         irreps_node_embedding,
@@ -41,7 +40,7 @@ class EquiformerDEQBase:
         **kwargs,
     ):
         """Sets extra variables we have added for the DEQ model.
-        
+
         Args:
             weight_init (str | dict): weight initialization method. Will default to 'equiformer' for all unspecified keys.
                 Keys: 'EquivariantLayerNormV2_w', 'EquivariantLayerNormV2_b', 'LayerNorm_w', 'LayerNorm_b', 'Linear_w', 'Linear_b', 'ParameterList'.
@@ -94,12 +93,25 @@ class EquiformerDEQBase:
         self.z0_requires_grad = z0_requires_grad
         # deprecated: tables to log to wandb (should be False and removed in the future)
         self.log_fp_error_traj = log_fp_error_traj
-        self.fp_error_traj = {"train": None, "val": None, "test": None, "test_final": None}
+        self.fp_error_traj = {
+            "train": None,
+            "val": None,
+            "test": None,
+            "test_final": None,
+        }
 
         self.bias = bias
 
         # weight initialization
-        weight_init_keys = ["EquivariantLayerNormV2_w", "EquivariantLayerNormV2_b", "LayerNorm_w", "LayerNorm_b", "Linear_w", "Linear_b", "ParameterList"]
+        weight_init_keys = [
+            "EquivariantLayerNormV2_w",
+            "EquivariantLayerNormV2_b",
+            "LayerNorm_w",
+            "LayerNorm_b",
+            "Linear_w",
+            "Linear_b",
+            "ParameterList",
+        ]
         if isinstance(weight_init, omegaconf.dictconfig.DictConfig):
             weight_init = dict(weight_init)
             # weight_init = omegaconf.OmegaConf.to_container(weight_init)
@@ -108,28 +120,32 @@ class EquiformerDEQBase:
             # weight_init_blocks = omegaconf.OmegaConf.to_container(weight_init_blocks)
         #
         if weight_init is None:
-            self.weight_init = {k: 'equiformer' for k in weight_init_keys}
+            self.weight_init = {k: "equiformer" for k in weight_init_keys}
         elif isinstance(weight_init, str):
             self.weight_init = {k: weight_init for k in weight_init_keys}
         elif isinstance(weight_init_blocks, dict):
-            self.weight_init = {k: 'equiformer' for k in weight_init_keys}
+            self.weight_init = {k: "equiformer" for k in weight_init_keys}
             self.weight_init.update(weight_init)
         else:
             raise ValueError(f"Invalid weight_init: {weight_init} ({type(weight_init)}")
         # weight_init_blocks will overwrite weight_init for the blocks
         if weight_init_blocks is None:
-            self.weight_init_blocks = {k: 'equiformer' for k in weight_init_keys}
+            self.weight_init_blocks = {k: "equiformer" for k in weight_init_keys}
         elif isinstance(weight_init, str):
             self.weight_init_blocks = {k: weight_init for k in weight_init_keys}
         elif isinstance(weight_init_blocks, dict):
-            self.weight_init_blocks = {k: 'equiformer' for k in weight_init_keys}
+            self.weight_init_blocks = {k: "equiformer" for k in weight_init_keys}
             self.weight_init_blocks.update(weight_init_blocks)
         else:
-            raise ValueError(f"Invalid weight_init_blocks: {weight_init_blocks} ({type(weight_init_blocks)}")
+            raise ValueError(
+                f"Invalid weight_init_blocks: {weight_init_blocks} ({type(weight_init_blocks)}"
+            )
         # update wandb config
         if wandb.run is not None:
             wandb.config.update({"model_kwargs.weight_init": self.weight_init})
-            wandb.config.update({"model_kwargs.weight_init_blocks": self.weight_init_blocks})
+            wandb.config.update(
+                {"model_kwargs.weight_init_blocks": self.weight_init_blocks}
+            )
 
         self.skip_implicit_layer = skip_implicit_layer
 
@@ -166,9 +182,7 @@ class EquiformerDEQBase:
             print(
                 f"\nInitialized decoder projection head `{self.dec_proj}` with {sum(p.numel() for p in self.final_block.parameters() if p.requires_grad)} parameters."
             )
-        
+
     def _init_deq(self, **kwargs):
         """Initializes TorchDEQ."""
         return _init_deq(self, **kwargs)
-
-    

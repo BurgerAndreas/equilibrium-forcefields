@@ -40,6 +40,7 @@ import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
+
 @hydra.main(config_name="md17", config_path="config", version_base="1.3")
 def hydra_wrapper(args: DictConfig) -> None:
     """Run training loop.
@@ -66,9 +67,10 @@ def hydra_wrapper(args: DictConfig) -> None:
             args.target = mol
             args.dname = dsets
 
-
     from deq2ff.logging_utils import init_wandb
+
     init_wandb(args)
 
     from equiformer.main_md17 import main
+
     main(args)

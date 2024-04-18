@@ -162,7 +162,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         proj_drop=0.0,
         weight_init="normal",
         # added
-        z0 = "zero",
+        z0="zero",
         sphere_channels_fixedpoint=None,
         **kwargs,
     ):
@@ -170,8 +170,8 @@ class DEQ_EquiformerV2_OC20(BaseModel):
 
         # added
         if sphere_channels_fixedpoint is None:
-            self.sphere_channels_fixedpoint = sphere_channels  
-        else: 
+            self.sphere_channels_fixedpoint = sphere_channels
+        else:
             self.sphere_channels_fixedpoint = sphere_channels_fixedpoint
 
         self.use_pbc = use_pbc
@@ -313,7 +313,9 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         for i in range(self.num_layers):
             if i == 0:
                 # add input_injection
-                sphere_channels_in = self.sphere_channels_fixedpoint + self.sphere_channels
+                sphere_channels_in = (
+                    self.sphere_channels_fixedpoint + self.sphere_channels
+                )
             else:
                 sphere_channels_in = self.sphere_channels
             block = TransBlockV2(
@@ -394,8 +396,8 @@ class DEQ_EquiformerV2_OC20(BaseModel):
 
         # DEQ
         kwargs = self._init_deq(**kwargs)
-        print(f'Ignoring kwargs: {kwargs}')
-    
+        print(f"Ignoring kwargs: {kwargs}")
+
     def _init_deq(self, **kwargs):
         return _init_deq(self, **kwargs)
 
@@ -506,7 +508,14 @@ class DEQ_EquiformerV2_OC20(BaseModel):
 
         # Transformer blocks
         # f = lambda z: self.mfn_forward(z, u)
-        f = lambda x: self.deq_implicit_layer(x, emb=emb, edge_index=edge_index, edge_distance=edge_distance, atomic_numbers=atomic_numbers, data=data)
+        f = lambda x: self.deq_implicit_layer(
+            x,
+            emb=emb,
+            edge_index=edge_index,
+            edge_distance=edge_distance,
+            atomic_numbers=atomic_numbers,
+            data=data,
+        )
 
         # find fixed-point
         # solver_kwargs = {"f_max_iter": 0} if reuse else {} # TODO
@@ -542,7 +551,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         # Force estimation
         ###############################################################
         if self.regress_forces:
-            # atom-wise forces using a block of equivariant graph attention 
+            # atom-wise forces using a block of equivariant graph attention
             # and treating the output of degree 1 as the predictions
             forces = self.force_block(x, atomic_numbers, edge_distance, edge_index)
             forces = forces.embedding.narrow(1, 1, 3)
@@ -552,8 +561,10 @@ class DEQ_EquiformerV2_OC20(BaseModel):
             return energy
         else:
             return energy, forces
-    
-    def deq_implicit_layer(self, x: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, data) -> torch.Tensor:
+
+    def deq_implicit_layer(
+        self, x: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, data
+    ) -> torch.Tensor:
         """Implicit layer for DEQ that defines the fixed-point.
         Make sure to input and output only torch.tensor, not SO3_Embedding, to not break TorchDEQ.
         """
@@ -564,7 +575,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
             num_channels=self.sphere_channels + self.sphere_channels_fixedpoint,
             device=self.device,
             dtype=self.dtype,
-            embedding = torch.cat([x, emb], dim=-1)
+            embedding=torch.cat([x, emb], dim=-1),
         )
         for i in range(self.num_layers):
             x = self.blocks[i](
@@ -575,7 +586,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
                 batch=data.batch,  # for GraphDropPath
             )
         return x.embedding
-    
+
     def _init_z(self, shape):
         """Initializes fixed-point for DEQ
         shape: [num_atoms * batch_size, irreps_dim]

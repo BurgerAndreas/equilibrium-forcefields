@@ -13,9 +13,9 @@ from e3nn.math import perm
 
 
 class TensorProductRescale(torch.nn.Module):
-    """o3 equivariant tensor product layer with bias. 
+    """o3 equivariant tensor product layer with bias.
     Rescale refers only to weight initialization?
-    
+
     normalization (aka irrep_normalization): {'component', 'norm', 'none'}
     path_normalization: {'element', 'path', 'none'}
         If set to ``element`` or None, each output is normalized by the total number of elements (independently of their paths).

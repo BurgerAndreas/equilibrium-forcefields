@@ -1,4 +1,3 @@
-
 import copy
 import logging
 import os
@@ -28,12 +27,14 @@ import equiformer_v2.oc20.trainer.dist_setup
 from deq2ff.deq_equiformer_v2.deq_equiformer_v2_oc20 import DEQ_EquiformerV2_OC20
 
 # in PyG version <= 2.0.4
-# UserWarning: An output with one or more elements was resized since it had shape [528], 
-# which does not match the required output shape [176, 3]. 
-# This behavior is deprecated, and in a future PyTorch release outputs will not be resized unless they have zero elements. 
+# UserWarning: An output with one or more elements was resized since it had shape [528],
+# which does not match the required output shape [176, 3].
+# This behavior is deprecated, and in a future PyTorch release outputs will not be resized unless they have zero elements.
 # You can explicitly reuse an out tensor t by resizing it, inplace, to zero elements with t.resize_(0)
 import warnings
+
 warnings.filterwarnings("ignore", category=UserWarning)
+
 
 class Runner(submitit.helpers.Checkpointable):
     def __init__(self):
@@ -75,12 +76,14 @@ class Runner(submitit.helpers.Checkpointable):
             self.task = registry.get_task_class(config["mode"])(self.config)
             self.task.setup(self.trainer)
             start_time = time.time()
-            print(f'Starting task: {self.task.__class__.__name__}')
+            print(f"Starting task: {self.task.__class__.__name__}")
             self.task.run()
             distutils.synchronize()
             if distutils.is_master():
                 time_total = time.time() - start_time
-                logging.info(f"Total time taken: {time_total}s ({time_total/3600:.2f}h)")
+                logging.info(
+                    f"Total time taken: {time_total}s ({time_total/3600:.2f}h)"
+                )
         finally:
             pass
             # if args.distributed:
@@ -102,7 +105,9 @@ import omegaconf
 from omegaconf import DictConfig, OmegaConf
 
 
-@hydra.main(config_name="oc20", config_path="../equiformer_v2/config", version_base="1.3")
+@hydra.main(
+    config_name="oc20", config_path="../equiformer_v2/config", version_base="1.3"
+)
 def hydra_wrapper(args: DictConfig) -> None:
     """Run training loop.
 

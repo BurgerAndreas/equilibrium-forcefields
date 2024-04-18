@@ -286,7 +286,9 @@ class DPTransBlock(torch.nn.Module):
             else self.irreps_node_input
         )
 
-        self.norm_1 = get_norm_layer(norm_layer)(self.irreps_node_input, affine=affine_ln)
+        self.norm_1 = get_norm_layer(norm_layer)(
+            self.irreps_node_input, affine=affine_ln
+        )
         self.dpa = DotProductAttention(
             irreps_node_input=self.irreps_node_input,
             irreps_node_attr=self.irreps_node_attr,
@@ -309,7 +311,9 @@ class DPTransBlock(torch.nn.Module):
         # regularization
         self.drop_path = GraphDropPath(drop_path_rate) if drop_path_rate > 0.0 else None
 
-        self.norm_2 = get_norm_layer(norm_layer)(self.irreps_node_input, affine=affine_ln)
+        self.norm_2 = get_norm_layer(norm_layer)(
+            self.irreps_node_input, affine=affine_ln
+        )
         # ~20k params
         self.ffn = FeedForwardNetwork(
             irreps_node_input=self.irreps_node_input,

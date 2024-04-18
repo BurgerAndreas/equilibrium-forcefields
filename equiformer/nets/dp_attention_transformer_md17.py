@@ -284,7 +284,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         # node_features = x
         node_features = atom_embedding + edge_degree_embedding
 
-        # node_attr = ? 
+        # node_attr = ?
         # node_attr = torch.ones_like(node_features.narrow(dim=1, start=0, length=1))
         node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
 

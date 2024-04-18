@@ -33,7 +33,11 @@ model_kwargs_keys = [
     "drop_path",
 ]
 keys_to_ignore = ["task_mean", "task_std"]
-keys_to_replace = {"input_irreps": "irreps_in", "radius": "max_radius", "num_basis": "number_of_basis"}
+keys_to_replace = {
+    "input_irreps": "irreps_in",
+    "radius": "max_radius",
+    "num_basis": "number_of_basis",
+}
 
 for file in all_files:
     if "md17" in file:

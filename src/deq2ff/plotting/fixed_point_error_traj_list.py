@@ -20,7 +20,10 @@ plotfolder = os.path.join(plotfolder, "plots")
 
 # columns = ['abs', 'rel', 'solver_step', 'train_step']
 
-def main(run_id: str, datasplit: str = "train", error_type="abs", ymax=None, logscale=False):
+
+def main(
+    run_id: str, datasplit: str = "train", error_type="abs", ymax=None, logscale=False
+):
     # https://github.com/wandb/wandb/issues/3966
 
     artifact_name = f"{error_type}_fixed_point_error_traj_{datasplit}"
@@ -36,7 +39,6 @@ def main(run_id: str, datasplit: str = "train", error_type="abs", ymax=None, log
     # dict_table = {column: table.get_column(column) for column in table.columns}
     # df = pd.DataFrame(dict_table)
 
-
     # run = wandb.init()
     # artifact = run.use_artifact(f'{entity}/{project}/{artifact_name}:{alias}')
     # artifact_table = artifact.get(artifact_name)
@@ -46,7 +48,11 @@ def main(run_id: str, datasplit: str = "train", error_type="abs", ymax=None, log
     # metrics_dataframe = run.history()
 
     history = run.scan_history()
-    losses = [[row[artifact_name], row["_step"]] for row in history if artifact_name in row.keys()]
+    losses = [
+        [row[artifact_name], row["_step"]]
+        for row in history
+        if artifact_name in row.keys()
+    ]
 
     losses_nonone = [[r, s] for r, s in losses if r is not None]
     print(f"rows that were None: {len(losses) - len(losses_nonone)} / {len(losses)}")
@@ -57,11 +63,13 @@ def main(run_id: str, datasplit: str = "train", error_type="abs", ymax=None, log
         {
             error_type: pd.Series(r),
             "train_step": pd.Series([s] * len(r)),
-            "solver_step": pd.Series(range(len(r)))
+            "solver_step": pd.Series(range(len(r))),
         }
         for r, s in losses
     ]
-    losses_concat = {k: pd.concat([d[k] for d in losses], axis=0) for k in losses[0].keys()}
+    losses_concat = {
+        k: pd.concat([d[k] for d in losses], axis=0) for k in losses[0].keys()
+    }
     # print(f"losses_concat: {losses_concat}")
     df = pd.DataFrame(losses_concat)
 

@@ -14,7 +14,11 @@ defaults:
 override_test: 1
 
 # passed into model
-model_kwargs:
+model:
+  # dot_product_attention_transformer_exp_l2_md17
+  # name="graph_attention_transformer_nonlinear_l2_md17" # paper
+  # name: "graph_attention_transformer_nonlinear_l2_md17"
+  name: "dot_product_attention_transformer_exp_l2_md17"
   # (int)
   num_layers: 6
   activation: "SiLU" 
@@ -69,11 +73,6 @@ target: "aspirin"
 
 # (str)
 output_dir: null
-# (str)
-# dot_product_attention_transformer_exp_l2_md17
-# model_name="graph_attention_transformer_nonlinear_l2_md17" # paper
-# model_name: "graph_attention_transformer_nonlinear_l2_md17"
-model_name: "dot_product_attention_transformer_exp_l2_md17"
 # (int)
 epochs: 1000
 # (int)
@@ -84,7 +83,7 @@ eval_batch_size: 24
 model_ema: False
 # (float)
 model_ema_decay: 0.9999
-#      (float)
+# (float)
 model_ema_force_cpu: False
 # 'Optimizer (default: adamw' (str)
 opt: "adamw"

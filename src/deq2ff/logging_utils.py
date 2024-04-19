@@ -18,18 +18,18 @@ def fix_args(args: OmegaConf):
 
     if "model_is_deq" in args:
         if args.model_is_deq is True:
-            if args.model_name[:3] != "deq":
-                args.model_name = f"deq_{args.model_name}"
+            if args.model.name[:3] != "deq":
+                args.model.name = f"deq_{args.model.name}"
 
     if "noforcemodel" in args:
         if args.noforcemodel is True:
-            if args.model_name[-7:] != "noforce":
-                args.model_name = f"{args.model_name}_noforce"
+            if args.model.name[-7:] != "noforce":
+                args.model.name = f"{args.model.name}_noforce"
             args.meas_force = False
 
     if args.wandb_run_name is None:
         # args.wandb_run_name = args.data_path.split("/")[-1]
-        model_name = args.model_name.split("_attention_transformer")
+        model_name = args.model.name.split("_attention_transformer")
         model_name = model_name[0] + model_name[-1]
         model_name = model_name.replace("_exp_l2", "")
         args.wandb_run_name = model_name

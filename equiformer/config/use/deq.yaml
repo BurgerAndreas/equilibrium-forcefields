@@ -28,7 +28,7 @@ limit_f_max_iter_fpreuse: False
 noforcemodel: False
 
 # passed into model
-model_kwargs:
+model:
   deq_mode: True
   num_layers: 2
   # weight, spectral, both, or none

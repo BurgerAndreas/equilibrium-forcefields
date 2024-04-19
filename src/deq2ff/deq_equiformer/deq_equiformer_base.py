@@ -45,7 +45,7 @@ class EquiformerDEQBase:
             weight_init (str | dict): weight initialization method. Will default to 'equiformer' for all unspecified keys.
                 Keys: 'EquivariantLayerNormV2_w', 'EquivariantLayerNormV2_b', 'LayerNorm_w', 'LayerNorm_b', 'Linear_w', 'Linear_b', 'ParameterList'.
                 Values: 'equiformer', 'torch', <float>, normal_<mean>_<std>, uniform_<low>_<high>.
-                python scripts/deq_equiformer.py model_kwargs.weight_init_blocks='{EquivariantLayerNormV2_w:1,EquivariantLayerNormV2_b:normal_0.0_0.1}'
+                python scripts/deq_equiformer.py model.weight_init_blocks='{EquivariantLayerNormV2_w:1,EquivariantLayerNormV2_b:normal_0.0_0.1}'
         """
 
         self.dp_tp_path_norm = dp_tp_path_norm
@@ -142,9 +142,9 @@ class EquiformerDEQBase:
             )
         # update wandb config
         if wandb.run is not None:
-            wandb.config.update({"model_kwargs.weight_init": self.weight_init})
+            wandb.config.update({"model.weight_init": self.weight_init})
             wandb.config.update(
-                {"model_kwargs.weight_init_blocks": self.weight_init_blocks}
+                {"model.weight_init_blocks": self.weight_init_blocks}
             )
 
         self.skip_implicit_layer = skip_implicit_layer

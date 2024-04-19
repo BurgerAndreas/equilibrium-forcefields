@@ -140,18 +140,18 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     """ Network """
-    create_model = model_entrypoint(args.model_name)
+    create_model = model_entrypoint(args.model.name)
     if "deq_kwargs" in args:
         model = create_model(
             task_mean=mean,
             task_std=std,
-            **args.model_kwargs,
+            **args.model,
             deq_kwargs=args.deq_kwargs,
         )
     else:
-        model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)
+        model = create_model(task_mean=mean, task_std=std, **args.model)
     _log.info(
-        f"model {args.model_name} created with kwargs \n{omegaconf.OmegaConf.to_yaml(args.model_kwargs)}"
+        f"model {args.model.name} created with kwargs \n{omegaconf.OmegaConf.to_yaml(args.model)}"
     )
     _log.info(f"Model: \n{model}")
 
@@ -957,7 +957,7 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     # graph_attention_transformer_nonlinear_exp_l2_md17
     # dot_product_attention_transformer_exp_l2_md17
-    # args.model_name = "graph_attention_transformer_nonlinear_exp_l2_md17"
+    # args.model.name = "graph_attention_transformer_nonlinear_exp_l2_md17"
 
     args.output_dir = "models/md17/equiformer/se_l2/target@aspirin/lr@5e-4_wd@1e-6_epochs@1500_w-f2e@80_dropout@0.0_exp@32_l2mae-loss"
     # args.input_irreps = "64x0e"

@@ -17,11 +17,11 @@ hydra:
   run:
     dir: .
 
+model:
+  name: "transformer_ti"
 
 # (str)
 output_dir: null
-# (str)
-model_name: "transformer_ti"
 # (str)
 input_irreps: null
 # (float)

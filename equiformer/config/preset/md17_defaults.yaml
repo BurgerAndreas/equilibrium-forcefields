@@ -5,7 +5,7 @@
 
 override_test: 0
 
-model_kwargs:
+model:
   num_layers: 6
   number_of_basis: 128
   atomref: null

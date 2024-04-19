@@ -97,20 +97,20 @@ def test(args, max_radius=np.arange(1.0, 10.0), batch_size=1):
     )
 
     """ Network """
-    create_model = model_entrypoint(args.model_name)
+    create_model = model_entrypoint(args.model.name)
     if "deq_kwargs" in args:
         model = create_model(
-            task_mean=mean, task_std=std, **args.model_kwargs, **args.deq_kwargs
+            task_mean=mean, task_std=std, **args.model, **args.deq_kwargs
         )
     else:
-        model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)
+        model = create_model(task_mean=mean, task_std=std, **args.model)
 
     model = model.to(device)
     model.train()
 
     num_edges = []
     for i, max_radius in enumerate(max_radius):
-        args.model_kwargs.max_radius = max_radius.item()
+        args.model.max_radius = max_radius.item()
         model.max_radius = max_radius.item()
 
         for step, data in enumerate(train_loader):
@@ -201,7 +201,7 @@ def plot_num_edges_over_max_radius(max_radius, num_edges):
 def hydra_wrapper(args: DictConfig) -> None:
 
     # for deq:
-    # args.model_name = "deq_graph_attention_transformer_l2_md17"
+    # args.model.name = "deq_graph_attention_transformer_l2_md17"
 
     # run tests
     max_radius = np.arange(1.0, 10.0)

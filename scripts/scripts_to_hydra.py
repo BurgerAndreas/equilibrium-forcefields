@@ -25,7 +25,7 @@ dest_dir = "equiformer/config/preset"
 # task_std=std,
 # atomref=None,
 # drop_path=args.drop_path
-model_kwargs_keys = [
+model_keys = [
     "irreps_in",
     "radius",
     "number_of_basis",
@@ -72,7 +72,7 @@ for file in all_files:
             # read the file
             model_name = None
             keys = []
-            model_kwargs = {}
+            model = {}
             with open(file, "r") as oldf:
                 lines = oldf.readlines()
 
@@ -105,14 +105,14 @@ for file in all_files:
                             if key == k:
                                 continue
 
-                        if key in model_kwargs_keys:
-                            model_kwargs[key] = value
+                        if key in model_keys:
+                            model[key] = value
                         else:
                             # write the line
                             f.write(f"{key}: {value}\n")
 
                         keys.append(key)
-                        if key == "model_name":
+                        if key in ["model_name", "model", "name"]:
                             model_name = value
 
             model_name = model_name.replace("-", "_").replace("'", "")
@@ -140,7 +140,7 @@ for file in all_files:
                             start_recording = True
                             # print(f' Found {model_name} in {cfg}')
                             f.write(f"# auto-generated from {cfg}\n")
-                            f.write(f"model_kwargs:\n")
+                            f.write(f"model:\n")
 
                         elif start_recording:
                             if cfgline.startswith("):") or cfgline.startswith(
@@ -171,10 +171,10 @@ for file in all_files:
                             f.write(f"  {cfgline}\n")
 
                     if start_recording:
-                        # finally write the model_kwargs
-                        if len(model_kwargs) > 0:
-                            # f.write('model_kwargs:\n')
-                            for key, value in model_kwargs.items():
+                        # finally write the model
+                        if len(model) > 0:
+                            # f.write('model:\n')
+                            for key, value in model.items():
                                 f.write(f"  {key}: {value}\n")
                         break
             if not start_recording:

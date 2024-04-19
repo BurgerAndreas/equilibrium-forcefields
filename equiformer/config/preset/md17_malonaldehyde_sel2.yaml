@@ -4,7 +4,6 @@
 # auto-generated from equiformer/scripts/train/md17/equiformer/se_l2/target@malonaldehyde.sh
 
 output_dir: 'models/md17/equiformer/se_l2/target@malonaldehyde/lr@5e-4_wd@1e-6_epochs@1500_w-f2e@100_dropout@0.0_exp@32_l2mae-loss'
-model_name: 'graph_attention_transformer_nonlinear_exp_l2_md17'
 target: 'malonaldehyde'
 data_path: 'datasets/md17'
 epochs: 1500
@@ -16,7 +15,8 @@ force_weight: 100
 
 
 # auto-generated from equiformer/nets/graph_attention_transformer_md17.py
-model_kwargs:
+model:
+  name: 'graph_attention_transformer_nonlinear_exp_l2_md17'
   atomref: null
   num_layers: 6
   irreps_node_embedding: "128x0e+64x1e+32x2e"

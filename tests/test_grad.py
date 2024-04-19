@@ -115,8 +115,8 @@ def do_test(args_base: DictConfig) -> None:
         if len(deq_kwargs) == 0:
             args.model_is_deq = False
         if args.model_is_deq == True:
-            args.model_name = f"deq_{args.model_name}"
-        print(f"\nmodel_name: {args.model_name}")
+            args.model.name = f"deq_{args.model.name}"
+        print(f"\nmodel_name: {args.model.name}")
 
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
@@ -143,7 +143,7 @@ def do_test(args_base: DictConfig) -> None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         """ Network """
-        create_model = model_entrypoint(args.model_name)
+        create_model = model_entrypoint(args.model.name)
         if args.model_is_deq:
             model = create_model(
                 irreps_in=args.input_irreps,

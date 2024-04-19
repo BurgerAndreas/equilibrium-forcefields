@@ -166,18 +166,18 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     """ Network """
-    create_model = model_entrypoint(args.model_name)
+    create_model = model_entrypoint(args.model.name)
     if "deq_kwargs" in args:
         model = create_model(
             task_mean=mean,
             task_std=std,
-            **args.model_kwargs,
+            **args.model,
             deq_kwargs=args.deq_kwargs,
         )
     else:
-        model = create_model(task_mean=mean, task_std=std, **args.model_kwargs)
+        model = create_model(task_mean=mean, task_std=std, **args.model)
     _log.info(
-        f"model {args.model_name} created with kwargs \n{omegaconf.OmegaConf.to_yaml(args.model_kwargs)}"
+        f"model {args.model.name} created with kwargs \n{omegaconf.OmegaConf.to_yaml(args.model)}"
     )
     _log.info(f"Model: \n{model}")
 
@@ -964,6 +964,7 @@ def evaluate(
 
     return mae_metrics, loss_metrics
 
+
 @hydra.main(config_name="md17", config_path="../equiformer/config", version_base="1.3")
 def hydra_wrapper(args: DictConfig) -> None:
     """Run training loop."""
@@ -981,8 +982,4 @@ def hydra_wrapper(args: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-
-    # TODO try to overfit on tiny subset of data
-    # args.train_size = 100
-
     hydra_wrapper()

@@ -715,6 +715,7 @@ def train_one_epoch(
     task_mean = model.task_mean
     task_std = model.task_std
 
+    max_steps = len(data_loader)
     for step, data in enumerate(data_loader):
         data = data.to(device)
 
@@ -785,11 +786,11 @@ def train_one_epoch(
         torch.cuda.synchronize()
 
         # logging
-        if step % print_freq == 0 or step == len(data_loader) - 1:
+        if step % print_freq == 0 or step == max_steps - 1:
             w = time.perf_counter() - start_time
-            e = (step + 1) / len(data_loader)
+            e = (step + 1) / max_steps
             info_str = "Epoch: [{epoch}][{step}/{length}] \t".format(
-                epoch=epoch, step=step, length=len(data_loader)
+                epoch=epoch, step=step, length=max_steps
             )
             info_str += "loss_e: {loss_e:.5f}, loss_f: {loss_f:.5f}, e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
                 loss_e=loss_metrics["energy"].avg,
@@ -798,7 +799,7 @@ def train_one_epoch(
                 f_mae=mae_metrics["force"].avg,
             )
             info_str += "time/step={time_per_step:.0f}ms, ".format(
-                time_per_step=(1e3 * w / e / len(data_loader))
+                time_per_step=(1e3 * w / e / max_steps)
             )
             info_str += "lr={:.2e}".format(optimizer.param_groups[0]["lr"])
             logger.info(info_str)
@@ -916,27 +917,27 @@ def evaluate(
             n_fsolver_steps += info['nstep'][0].mean().item()
 
         # --- logging ---
-        if (step % print_freq == 0 or step == max_iter - 1) and print_progress:
+        if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
             w = time.perf_counter() - start_time
-            e = (step + 1) / max_iter
-            info_str = "[{step}/{length}] \t".format(step=step, length=max_iter)
+            e = (step + 1) / max_steps
+            info_str = "[{step}/{length}] \t".format(step=step, length=max_steps)
             info_str += "e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
                 e_mae=mae_metrics["energy"].avg,
                 f_mae=mae_metrics["force"].avg,
             )
             info_str += "time/step={time_per_step:.0f}ms".format(
-                time_per_step=(1e3 * w / e / max_iter)
+                time_per_step=(1e3 * w / e / max_steps)
             )
             logger.info(info_str)
 
-        if ((step + 1) >= max_iter) and (max_iter != -1):
+        if ((step + 1) >= max_steps):
             break
     
     eval_time = time.perf_counter() - start_time
     wandb.log({f"time_{datasplit}": eval_time}, step=global_step)
 
     if n_fsolver_steps > 0:
-        n_fsolver_steps /= len(data_loader)
+        n_fsolver_steps /= max_steps
         wandb.log({f"avg_n_fsolver_steps_{datasplit}": n_fsolver_steps}, step=global_step)
 
     return mae_metrics, loss_metrics

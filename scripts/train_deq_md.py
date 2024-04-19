@@ -969,8 +969,6 @@ def evaluate(
 def hydra_wrapper(args: DictConfig) -> None:
     """Run training loop."""
 
-    args.output_dir = "models/md17/deq-equiformer/test1"
-
     from deq2ff.logging_utils import init_wandb
 
     init_wandb(args)

@@ -17,6 +17,7 @@ class EquiformerDEQBase:
         self,
         irreps_node_embedding,
         input_injection="first_layer",  # False=V1, 'first_layer'=V2
+        cat_injection=False,
         irreps_node_embedding_injection="64x0e+32x1e+16x2e",
         limit_f_max_iter_fpreuse=False,
         z0="zero",
@@ -59,33 +60,45 @@ class EquiformerDEQBase:
         self.limit_f_max_iter_fpreuse = limit_f_max_iter_fpreuse
         self.affine_ln = affine_ln
 
+        # concat input injection or add it to the node features (embeddings)
+        self.cat_injection = cat_injection
+        if cat_injection is False:
+            if irreps_node_embedding_injection != irreps_node_embedding:
+                irreps_node_embedding_injection = irreps_node_embedding
+                print(
+                    f"Warning: `cat_injection` is False and addition is used. " 
+                    f"Setting `irreps_node_embedding_injection` = `irreps_node_embedding` = " 
+                    f"{irreps_node_embedding}."
+                )
+                # assert input_injection in ["first_layer", "every_layer", True, "legacy"]
+
         self.input_injection = input_injection
         if input_injection is False:
             # V1: node_features are initialized as the output of the encoder
-            self.irreps_node_injection = o3.Irreps(
-                irreps_node_embedding
-            )  # output of encoder
-            self.irreps_node_z = o3.Irreps(irreps_node_embedding)  # input to block
-            self.irreps_node_embedding = o3.Irreps(
-                irreps_node_embedding
-            )  # output of block
+            # output of encoder
+            self.irreps_node_injection = o3.Irreps(irreps_node_embedding)  
+            # input to block
+            self.irreps_node_z = o3.Irreps(irreps_node_embedding)  
+            # output of block
+            self.irreps_node_embedding = o3.Irreps(irreps_node_embedding)  
         elif self.input_injection in ["first_layer", "every_layer", True, "legacy"]:
             # V2: node features are initialized as 0
             # and the node features from the encoder are used as input injection
             # encoder = atom_embed() and edge_deg_embed()
             # both encoder shapes are defined by irreps_node_embedding
             # input to self.blocks is the concat of node_input and node_injection
-            self.irreps_node_injection = o3.Irreps(
-                irreps_node_embedding_injection
-            )  # output of encoder
-            self.irreps_node_embedding = o3.Irreps(
-                irreps_node_embedding
-            )  # output of block
+            # output of encoder
+            self.irreps_node_injection = o3.Irreps(irreps_node_embedding_injection)  
+            # output of block
+            self.irreps_node_embedding = o3.Irreps(irreps_node_embedding)  
             # "128x0e+64x1e+32x2e" + "64x0e+32x1e+16x2e"
             # 128x0e+64x1e+32x2e+64x0e+32x1e+16x2e
-            irreps_node_z = self.irreps_node_embedding + self.irreps_node_injection
-            irreps_node_z.simplify()
-            self.irreps_node_z = o3.Irreps(irreps_node_z).simplify()  # input to block
+            # input to block
+            if self.cat_injection:
+                irreps_node_z = self.irreps_node_embedding + self.irreps_node_injection
+                self.irreps_node_z = o3.Irreps(irreps_node_z) 
+            else:
+                self.irreps_node_z = self.irreps_node_embedding
         else:
             raise ValueError(f"Invalid input_injection: {input_injection}")
 

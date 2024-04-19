@@ -600,9 +600,12 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         elif self.input_injection == "every_layer":
             # input injection at every layer
             for blknum, blk in enumerate(self.blocks):
-                node_features = torch.cat(
-                    [node_features, node_features_injection], dim=1
-                )
+                if self.cat_injection:
+                    node_features = torch.cat(
+                        [node_features, node_features_injection], dim=1
+                    )
+                else:
+                    node_features = node_features + node_features_injection
                 node_features = blk(
                     node_input=node_features,
                     node_attr=node_attr,
@@ -615,7 +618,10 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         elif self.input_injection == "first_layer":
             # input injection only at the first layer
             # node features does not require_grad until concat with injection
-            node_features = torch.cat([node_features, node_features_injection], dim=1)
+            if self.cat_injection:
+                node_features = torch.cat([node_features, node_features_injection], dim=1)
+            else:
+                node_features = node_features + node_features_injection
             for blknum, blk in enumerate(self.blocks):
                 node_features = blk(
                     node_input=node_features,
@@ -626,24 +632,6 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                     edge_scalars=edge_length_embedding,
                     batch=batch,
                 )
-
-        elif self.input_injection == "legacy":
-            # print("!"*60, "\nDepricated: Legacy input injection")
-            node_features_in = torch.cat(
-                [node_features, node_features_injection], dim=1
-            )
-            # # print("node_features.shape", node_features.shape)
-            for blknum, blk in enumerate(self.blocks):
-                node_features = blk(
-                    node_input=node_features_in,
-                    node_attr=node_attr,
-                    edge_src=edge_src,
-                    edge_dst=edge_dst,
-                    edge_attr=edge_sh,
-                    edge_scalars=edge_length_embedding,
-                    batch=batch,
-                )
-
         else:
             raise ValueError(f"Invalid input_injection: {self.input_injection}")
 

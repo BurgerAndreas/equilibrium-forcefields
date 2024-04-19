@@ -11,7 +11,6 @@ Perks of Equilibrium Models:
 ```bash
 python scripts/deq_equiformer.py +use=deq
 # baseline equiformer
-python equiformer/main_md17.py 
 python scripts/deq_equiformer.py 
 # for the model version used in the equiformer paper:
 python scripts/deq_equiformer.py +use=deq +preset=md17_aspirin_sel2
@@ -21,7 +20,6 @@ On a slurm cluster:
 ```bash
 sbatch scripts/slurm_launcher.slrm deq_equiformer.py +use=deq
 # baseline equiformer
-sbatch scripts/slurm_launcher.slrm main_md17.py num_layers=2
 sbatch scripts/slurm_launcher.slrm deq_equiformer.py num_layers=2
 ```
 

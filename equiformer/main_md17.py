@@ -1,8 +1,4 @@
-import argparse
-import datetime
-import itertools
-import pickle
-import subprocess
+
 import time
 import torch
 import numpy as np
@@ -12,7 +8,8 @@ import os
 from pathlib import Path
 from typing import Iterable, Optional
 
-import sys, os
+import sys
+import os
 
 
 from equiformer.logger import FileLogger
@@ -256,7 +253,6 @@ def main(args):
 
     global_step = 0
 
-    # TODO
     # dryrun (tryrun) for logging
     try:
         model.train()

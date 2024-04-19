@@ -94,8 +94,8 @@ from equiformer.nets.graph_attention_transformer import (
 from equiformer.nets.dp_attention_transformer_md17 import (
     _RESCALE,
     _MAX_ATOM_TYPE,
-    _AVG_DEGREE,
-    _AVG_NUM_NODES,
+    # _AVG_DEGREE,
+    # _AVG_NUM_NODES,
 )
 
 import deq2ff.logging_utils_deq as logging_utils_deq
@@ -173,11 +173,19 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         scale: float = None,
         atomref=None,
         use_attn_head=False,
+        # Statistics of QM9 with cutoff max_radius = 5
+        # For simplicity, use the same statistics for MD17
+        _AVG_NUM_NODES = 18.03065905448718,
+        _AVG_DEGREE = 15.57930850982666,
+        name=None,
         **kwargs,
     ):
         super().__init__()
 
         kwargs = self._set_deq_vars(irreps_node_embedding, **kwargs)
+
+        self._AVG_NUM_NODES = _AVG_NUM_NODES
+        self._AVG_DEGREE = _AVG_DEGREE
 
         self.max_radius = max_radius
         self.number_of_basis = number_of_basis
@@ -529,8 +537,15 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         """Encode the input graph into node features and edge features.
         Input injection.
         Basically the first third of DotProductAttentionTransformerMD17.forward()
+
+        Translation to EquiformerV2:
+        edge_distance = edge_length
+        edge_distance_vec = edge_vec
+        edge_index = edge_src, edge_dst
         """
 
+        # edge_index = radius_graph
+        # edge_dst = edge_destination
         edge_src, edge_dst = radius_graph(
             pos, r=self.max_radius, batch=batch, max_num_neighbors=1000
         )
@@ -544,6 +559,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
 
         atom_embedding, atom_attr, atom_onehot = self.atom_embed(node_atom)
         edge_length = edge_vec.norm(dim=1)
+
+        # embeddings
         edge_length_embedding = self.rbf(edge_length)
         edge_degree_embedding = self.edge_deg_embed(
             atom_embedding, edge_sh, edge_length_embedding, edge_src, edge_dst, batch
@@ -751,11 +768,11 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         node_atom,
         pos,
         batch,
-        z=None,
         step=None,
         datasplit=None,
         return_fixedpoint=False,
         fixedpoint=None,
+        **kwargs
     ):
         """Forward pass of the DEQ model."""
         pos = pos.requires_grad_(True)

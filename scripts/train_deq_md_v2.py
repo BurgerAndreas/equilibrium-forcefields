@@ -21,7 +21,7 @@ def equiformer_v2(**kwargs):
     return EquiformerV2_OC20(**kwargs)
 
 @hydra.main(
-    config_name="oc20", config_path="../equiformer_v2/config", version_base="1.3"
+    config_name="md17", config_path="../equiformer_v2/config", version_base="1.3"
 )
 def hydra_wrapper(args: DictConfig) -> None:
     """Run training loop."""
@@ -29,9 +29,9 @@ def hydra_wrapper(args: DictConfig) -> None:
     # also load the args from equiformer/config/md17.yaml
     # and update the args with the new args (if not already present)
     # args = OmegaConf.merge(args, OmegaConf.load("equiformer/config/md17.yaml"))
-    argsmd17 = OmegaConf.load("equiformer/config/md17.yaml")
-    argsmd17.update(args)
-    args = argsmd17
+    # argsmd17 = OmegaConf.load("equiformer/config/md17.yaml")
+    # argsmd17.update(args)
+    # args = argsmd17
 
     from deq2ff.logging_utils import init_wandb
 

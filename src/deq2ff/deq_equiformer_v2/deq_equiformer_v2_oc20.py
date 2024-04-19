@@ -59,10 +59,10 @@ from torchdeq.norm import apply_norm, reset_norm, register_norm, register_norm_m
 from torchdeq.loss import fp_correction
 
 # Statistics of IS2RE 100K
-from equiformer_v2.nets.equiformer_v2.equiformer_v2_oc20 import (
-    _AVG_DEGREE,
-    _AVG_NUM_NODES,
-)
+# from equiformer_v2.nets.equiformer_v2.equiformer_v2_oc20 import (
+#     _AVG_DEGREE,
+#     _AVG_NUM_NODES,
+# )
 
 
 """
@@ -123,9 +123,9 @@ class DEQ_EquiformerV2_OC20(BaseModel):
 
     def __init__(
         self,
-        num_atoms,  # not used
-        bond_feat_dim,  # not used
-        num_targets,  # not used
+        num_atoms=None,  # not used
+        bond_feat_dim=None,  # not used
+        num_targets=None,  # not used
         use_pbc=True,
         regress_forces=True,
         otf_graph=True,
@@ -164,9 +164,21 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         # added
         z0="zero",
         sphere_channels_fixedpoint=None,
+        # Statistics of IS2RE 100K
+        # IS2RE: 100k, max_radius = 5, max_neighbors = 100
+        _AVG_NUM_NODES = 77.81317,
+        _AVG_DEGREE = 23.395238876342773,
+        task_mean=None,
+        task_std=None,
+        name=None,
         **kwargs,
     ):
         super().__init__()
+
+        self._AVG_NUM_NODES = _AVG_NUM_NODES
+        self._AVG_DEGREE = _AVG_DEGREE
+        self.task_mean = task_mean
+        self.task_std = task_std
 
         # added
         if sphere_channels_fixedpoint is None:
@@ -305,7 +317,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
             self.max_num_elements,
             self.edge_channels_list,
             self.block_use_atom_edge_embedding,
-            rescale_factor=_AVG_DEGREE,
+            rescale_factor=self._AVG_DEGREE,
         )
 
         # Initialize the blocks for each layer of EquiformerV2
@@ -396,22 +408,38 @@ class DEQ_EquiformerV2_OC20(BaseModel):
 
         # DEQ
         kwargs = self._init_deq(**kwargs)
-        print(f"Ignoring kwargs: {kwargs}")
+        print(f'Ignoring kwargs in {self.__class__.__name__}:', kwargs)
 
     def _init_deq(self, **kwargs):
         return _init_deq(self, **kwargs)
 
     @conditional_grad(torch.enable_grad())
     def forward(self, data, fixedpoint=None, **kwargs):
+        # data.natoms: [batch_size] 
+        # data.pos: [batch_size*num_atoms, 3])
+        # data.atomic_numbers = data.z: [batch_size*num_atoms]
+        # data.cell: [batch_size, 3, 3]    
         self.batch_size = len(data.natoms)
         self.dtype = data.pos.dtype
         self.device = data.pos.device
 
+        if hasattr(data, "atomic_numbers"):
+            atomic_numbers = data.atomic_numbers.long()
+        else:
+            # MD17
+            atomic_numbers = data.z.long()
+            data.atomic_numbers = data.z
+
+        # When using MD17 instead of OC20
+        # cell is not used unless (otf_graph is False) or (use_pbc is not None)
+        if not hasattr(data, "cell"):
+            data.cell = None
+
         # molecules in batch can be of different sizes
-        atomic_numbers = data.atomic_numbers.long()
         num_atoms = len(atomic_numbers)
         pos = data.pos
 
+        # basically the same as edge_src, edge_dst, edge_vec, edge_length in V1
         (
             edge_index,
             edge_distance,
@@ -426,6 +454,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         ###############################################################
 
         # Compute 3x3 rotation matrix per edge
+        # data unused
         edge_rot_mat = self._init_edge_rot_mat(data, edge_index, edge_distance_vec)
 
         # Initialize the WignerD matrices and other values for spherical harmonic calculations
@@ -545,7 +574,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
             len(data.natoms), device=node_energy.device, dtype=node_energy.dtype
         )
         energy.index_add_(0, data.batch, node_energy.view(-1))
-        energy = energy / _AVG_NUM_NODES
+        energy = energy / self._AVG_NUM_NODES
 
         ###############################################################
         # Force estimation
@@ -557,10 +586,10 @@ class DEQ_EquiformerV2_OC20(BaseModel):
             forces = forces.embedding.narrow(1, 1, 3)
             forces = forces.view(-1, 3)
 
-        if not self.regress_forces:
-            return energy
+        if self.regress_forces:
+            return energy, forces, info
         else:
-            return energy, forces
+            return energy, info
 
     def deq_implicit_layer(
         self, x: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, data

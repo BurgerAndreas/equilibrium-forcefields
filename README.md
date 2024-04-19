@@ -9,18 +9,18 @@ Perks of Equilibrium Models:
 ### EquiformerV1
 
 ```bash
-python scripts/deq_equiformer.py +use=deq
+python scripts/train_deq_md.py +use=deq
 # baseline equiformer
-python scripts/deq_equiformer.py 
+python scripts/train_deq_md.py 
 # for the model version used in the equiformer paper:
-python scripts/deq_equiformer.py +use=deq +preset=md17_aspirin_sel2
+python scripts/train_deq_md.py +use=deq +preset=md17_aspirin_sel2
 ```
 
 On a slurm cluster:
 ```bash
-sbatch scripts/slurm_launcher.slrm deq_equiformer.py +use=deq
+sbatch scripts/slurm_launcher.slrm train_deq_md.py +use=deq
 # baseline equiformer
-sbatch scripts/slurm_launcher.slrm deq_equiformer.py num_layers=2
+sbatch scripts/slurm_launcher.slrm train_deq_md.py num_layers=2
 ```
 
 ### EquiformerV2
@@ -32,14 +32,14 @@ Please follow [here](equiformer_v2/docs/env_setup.md) for details.
 
 Baseline Equiformer V2
 ```bash
-python scripts/deq_equiformer_v2.py
-sbatch scripts/slurm_launcher.slrm deq_equiformer_v2.py
+python scripts/train_deq_oc20_v2.py
+sbatch scripts/slurm_launcher.slrm train_deq_oc20_v2.py
 ```
 
 DEQ Equiformer V2
 ```bash
-python scripts/deq_equiformer_v2.py +use=deq ++preset=small_l6
-sbatch scripts/slurm_launcher.slrm deq_equiformer_v2.py +use=deq
+python scripts/train_deq_oc20_v2.py +use=deq ++preset=small_l6
+sbatch scripts/slurm_launcher.slrm train_deq_oc20_v2.py +use=deq
 ```
 
 #### Old (argparse+yml)

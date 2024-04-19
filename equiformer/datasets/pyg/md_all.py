@@ -287,6 +287,7 @@ class MDAll(InMemoryDataset):
                     y=e,
                     dy=force[i],
                     idx=i,
+                    natoms=len(z),
                     old_idx=None if old_indices is None else old_indices[i],
                 )
                 if self.pre_filter is not None and not self.pre_filter(data):

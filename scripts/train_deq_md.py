@@ -213,11 +213,14 @@ def main(args):
     wandb.run.summary["DEQLayer Parameters"] = n_parameters
 
     # decoder
-    n_parameters = sum(
-        p.numel() for p in model.final_block.parameters() if p.requires_grad
-    )
-    _log.info("Number of FinalBlock params: {}".format(n_parameters))
-    wandb.run.summary["FinalBlock Parameters"] = n_parameters
+    try:
+        n_parameters = sum(
+            p.numel() for p in model.final_block.parameters() if p.requires_grad
+        )
+        _log.info("Number of FinalBlock params: {}".format(n_parameters))
+        wandb.run.summary["FinalBlock Parameters"] = n_parameters
+    except:
+        print(f"AttributeError: '{model.__class__.__name__}' object has no attribute 'final_block'")
 
     """ Optimizer and LR Scheduler """
     optimizer = create_optimizer(args, model)
@@ -250,8 +253,9 @@ def main(args):
     )
 
     """ Compute stats """
+    # Compute _AVG_NUM_NODES, _AVG_DEGREE
     if args.compute_stats:
-        compute_stats(
+        avg_node, avg_edge, avg_degree = compute_stats(
             train_loader,
             max_radius=args.max_radius,
             logger=_log,
@@ -743,6 +747,7 @@ def train_one_epoch(
 
         # energy, force
         pred_y, pred_dy, info = model(
+            data=data, # for EquiformerV2
             node_atom=data.z,
             pos=data.pos,
             batch=data.batch,
@@ -895,6 +900,7 @@ def evaluate(
             prev_idx = data.idx
             # call model and pass fixedpoint
             pred_y, pred_dy, fixedpoint, info = model(
+                data=data, # for EquiformerV2
                 node_atom=data.z,
                 pos=data.pos,
                 batch=data.batch,
@@ -906,6 +912,7 @@ def evaluate(
         else:
             # energy, force
             pred_y, pred_dy, info = model(
+                data=data, # for EquiformerV2
                 node_atom=data.z,
                 pos=data.pos,
                 batch=data.batch,

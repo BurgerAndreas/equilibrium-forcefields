@@ -1,0 +1,135 @@
+# @package _global_
+# ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
+
+model:
+  # Statistics of QM9 with cutoff max_radius = 5
+  # For simplicity, use the same statistics for MD17
+  _AVG_NUM_NODES: 18.03065905448718
+  _AVG_DEGREE: 15.57930850982666
+
+# [md17, rmd17og, rmd17, md22]
+# rmd17: use revised version of MD17 with more accurate energies and forces 
+# rmd17og: use the non-revised (old) data but downloaded from the revised dataset (should be the same as md17)
+dname: "md17"
+use_revised_splits: False
+use_original_datasetcreation: False # will only work with dname=md17
+# (str)
+data_path: "datasets"
+# http://www.sgdml.org/#datasets
+target: "aspirin"
+# (str)
+output_dir: models/md17/equiformer/test
+
+# (int)
+epochs: 1000
+# (int)
+batch_size: 8
+# (int)
+eval_batch_size: 24
+# (int)
+model_ema: False
+# (float)
+model_ema_decay: 0.9999
+# (float)
+model_ema_force_cpu: False
+# 'Optimizer (default: adamw' (str)
+opt: "adamw"
+# Optimizer Epsilon (default: 1e-8 (float)
+opt_eps: 1e-8
+# Optimizer Betas (default: None (float)
+opt_betas: null
+# Clip gradient norm (default: None (float)
+clip_grad: null
+# SGD momentum (default: 0.9 (float)
+momentum: 0.9
+# weight decay (default: 5e-3 (float) # 1e-6 for paper
+weight_decay: 5e-3 
+# 'LR scheduler (default: cosine' (str)
+sched: "cosine"
+# learning rate (default: 5e-4 or 1.5e-4) (float)
+lr: 5e-4
+# learning rate noise on/off epoch percentages (float)
+lr_noise: null
+# learning rate noise limit percent (default: 0.67 (float)
+lr_noise_pct: 0.67
+# learning rate noise std-dev (default: 1.0 (float)
+lr_noise_std: 1.0
+# warmup learning rate (default: 1e-6 (float)
+warmup_lr: 1e-6
+# lower lr bound for cyclic schedulers that hit 0 (1e-6 (float)
+min_lr: 1e-6
+# epoch interval to decay LR (float)
+decay_epochs: 30
+# epochs to warmup LR (int)
+warmup_epochs: 10
+# epochs to cooldown LR at min_lr (int)
+cooldown_epochs: 10
+# patience epochs for Plateau LR scheduler (default: 10 (int)
+patience_epochs: 10
+# LR decay rate (default: 0.1 (float)
+decay_rate: 0.1
+# size of training dataset (int)
+train_size: 950
+# size of validation dataset (int)
+val_size: 50
+compute_stats: False
+# epoch interval to evaluate on the testing set (int)
+test_interval: 10
+# max iteration to evaluate on the testing set (int)
+test_max_iter: 1000
+# after training is done (-1 means whole test set ~ 100-200k) (int)
+test_max_iter_final: -1
+# (float)
+energy_weight: 0.2 # 1
+# (float)
+force_weight: 0.8 # 80
+# (int)
+seed: 1
+# (int)
+workers: 4
+# Pin CPU memory in DataLoader for more efficient (sometimes (int)
+pin_mem: False
+# (int)
+no_pin_mem: False
+# load checkpoint (str)
+checkpoint_path: null
+# (bool)
+save_best_checkpoint: False
+save_periodic_checkpoint: False
+save_final_checkpoint: False
+# (str)
+evaluate: False
+# Include force in loss calculation. (str2bool)
+meas_force: True
+clip_grad_norm: False # False, 5.0, 100
+
+# use model.eval() during evaluation (bool)
+eval_mode: False
+
+# logging
+# (int)
+print_freq: 100
+# major stuff (int)
+log_every_step_major: 1000
+# minor stuff (int)
+log_every_step_minor: 100
+
+dummy_logging_only: False
+wandb: True
+wandb_run_name: null
+wandb_group: null
+slurm_job_id: null
+model_is_deq: False
+fpreuse_test: False
+
+# wandb.watch gradients, activations, model parameters (bool)
+watch_model: False
+
+# variables we can access in our code
+job_name: 'results'
+# job_name: ${hydra:job.name}
+config_name: ${hydra:job.config_name}
+# Stores the command line arguments overrides
+override_dirname: ${hydra:job.override_dirname}
+# Changes the current working directory to the output directory for each job
+# hydra.job.chdir: False

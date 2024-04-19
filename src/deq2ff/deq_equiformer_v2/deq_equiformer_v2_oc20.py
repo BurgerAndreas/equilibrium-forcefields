@@ -663,3 +663,9 @@ class DEQ_EquiformerV2_OC20(BaseModel):
                     assert global_parameter_name in named_parameters_list
                     no_wd_list.append(global_parameter_name)
         return set(no_wd_list)
+
+# register model to be used with EquiformerV1 training loop (MD17)
+from equiformer.nets.registry import register_model
+@register_model
+def deq_equiformer_v2_oc20(**kwargs):
+    return DEQ_EquiformerV2_OC20(**kwargs)

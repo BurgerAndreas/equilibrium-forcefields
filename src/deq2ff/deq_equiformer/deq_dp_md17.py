@@ -121,8 +121,24 @@ from deq2ff.deq_equiformer.deq_dp_minimal import (
 
 
 class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
-    """
-    Modified from equiformer.nets.dp_attention_transformer_md17.DotProductAttentionTransformerMD17
+    """Dot product attention (DPA) + linear message passing.
+    Modified from equiformer.nets.dp_attention_transformer_md17.DotProductAttentionTransformerMD17.
+
+    Equiformer comes in two variants: 
+    (1) linear message passing + dot product attention 
+    (2) MLP attention + non-linear message passing (‘equivariant graph attention’)
+
+    Message = attention weights * values
+    Values: linear / non-linear message passing
+    Attention weights: MLP / DP attention
+
+    Overall, MLPA+NLMP (graph attention) is much slower.
+    Speed: MLPA+LMP > DPA+LMP > MLPA+NLMP
+    Accuracy: MLPA+NLMP > MLPA+LMP ~> DPA+LMP
+    MLP attention generates less and smaller intermediate irrep features for attention weights and is faster than dot product attention.
+    Non-linear messages increase the number of tensor product operations in each block from 1 to 2, increases training and inference time.
+
+    MLPA+LMP is faster and better than DPA+LMP!
     """
 
     def __init__(

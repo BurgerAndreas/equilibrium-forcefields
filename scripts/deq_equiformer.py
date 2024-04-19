@@ -54,7 +54,7 @@ from omegaconf import DictConfig, OmegaConf
 import wandb
 
 """
-uses equiformer/main_md17.py
+Calls equiformer/main_md17.py with deq model.
 """
 
 import deq2ff
@@ -67,6 +67,10 @@ from deq2ff.deq_equiformer.deq_graph_md17 import (
 from deq2ff.deq_equiformer.deq_dp_md17_noforce import (
     deq_dot_product_attention_transformer_exp_l2_md17_noforce,
 )
+# DEQ EquiformerV2
+from deq2ff.deq_equiformer_v2.deq_equiformer_v2_oc20 import (
+    deq_equiformer_v2_oc20,
+)
 
 # silence:
 # UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`.
@@ -76,23 +80,9 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-@hydra.main(config_name="deq", config_path="../equiformer/config", version_base="1.3")
+@hydra.main(config_name="md17", config_path="../equiformer/config", version_base="1.3")
 def hydra_wrapper(args: DictConfig) -> None:
-    """Run training loop.
-
-    Usage:
-        python deq_equiformer.py
-        python deq_equiformer.py batch_size=8
-        python deq_equiformer.py +machine=vector
-
-    Usage with slurm:
-        sbatch scripts/slurm_launcher.slrm deq_equiformer.py +machine=vector
-    """
-
-    # args.model_name = "deq_dot_product_attention_transformer_exp_l2_md17"
-    # args.deq_mode = True
-    # args.num_layers = 2 # 6 -> 1
-    # args.meas_force = True
+    """Run training loop."""
 
     args.output_dir = "models/md17/deq-equiformer/test1"
 
@@ -101,6 +91,9 @@ def hydra_wrapper(args: DictConfig) -> None:
     from deq2ff.logging_utils import init_wandb
 
     init_wandb(args)
+
+    # args: omegaconf.dictconfig.DictConfig -> dict
+    # args = OmegaConf.to_container(args, resolve=True)
 
     main(args)
 

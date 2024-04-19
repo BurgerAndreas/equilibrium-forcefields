@@ -51,12 +51,11 @@ from deq2ff.deq_equiformer.deq_dp_md17 import DEQDotProductAttentionTransformerM
 
 
 class DEQGraphAttentionTransformerMD17(DEQDotProductAttentionTransformerMD17):
-    """
-    Modified from equiformer.nets.graph_attention_transformer_md17.GraphAttentionTransformerMD17
+    """Graph attention = MLP attention + non-linear message passing.
+    Modified from equiformer.nets.graph_attention_transformer_md17.GraphAttentionTransformerMD17.
 
-    Gets from DEQDotProductAttentionTransformerMD17:
-    forward, encode, deq_implicit_layer,
-    no_weight_decay, _init_weights, init_z
+    Much slower than DotProductAttention, and only gives improvements on OC20.
+    QM9 and MD17 are too easy.
 
     Only difference to between GraphAttention and DotProductAttention:
     - blocks contain TransBlock instead of DPTransBlock

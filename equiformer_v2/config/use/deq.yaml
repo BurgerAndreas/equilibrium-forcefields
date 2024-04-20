@@ -19,13 +19,19 @@ model:
   name: deq_equiformer_v2
   num_layers: 1
 
+  # deq
+  z0: "zero"
+  cat_injection: True
+  path_norm: "none"
+  irrep_norm: None 
+
 
 # passed to torchdeq
 deq_kwargs:
   # https://torchdeq.readthedocs.io/en/latest/torchdeq/core.html#torchdeq.core.get_deq
   # 'broyden' anderson newton
   # (str, optional) – The forward solver function. Default 'fixed_point_iter'
-  f_solver: 'anderson'
+  f_solver: 'fixed_point_iter'
   # (str, optional) – The backward solver function. Default 'fixed_point_iter'.
   b_solver: 'fixed_point_iter'
   # f_tol (float, optional) – The forward pass solver stopping criterion. Default 1e-3.
@@ -51,11 +57,5 @@ deq_kwargs:
   # jac_loss_freq: 0.0
   # jac_incremental: 0.0
   # torchdeq.loss.jac_reg(f0, z0, vecs=1, create_graph=True)
-
-  # deq
-  z0: "zero"
-  cat_injection: True
-  path_norm: "none"
-  irrep_norm: None 
 
 output_dir: model/md17/deq_v2/test

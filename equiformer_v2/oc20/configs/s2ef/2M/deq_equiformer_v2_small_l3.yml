@@ -1,0 +1,5 @@
+includes:
+- equiformer_v2/oc20/configs/s2ef/2M/equiformer_v2_small_l3.yml
+
+model: 
+  name: deq_equiformer_v2

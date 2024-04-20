@@ -838,15 +838,15 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
 
             if step is not None:
                 # log fixed-point trajectory
-                _data = logging_utils_deq.log_fixed_point_error(
-                    info,
-                    step,
-                    datasplit,
-                    self.fp_error_traj[datasplit],
-                    log_fp_error_traj=self.log_fp_error_traj,
-                )
-                if _data is not None:
-                    self.fp_error_traj[datasplit] = _data
+                # _data = logging_utils_deq.log_fixed_point_error(
+                #     info,
+                #     step,
+                #     datasplit,
+                #     self.fp_error_traj[datasplit],
+                #     log_fp_error_traj=self.log_fp_error_traj,
+                # )
+                # if _data is not None:
+                #     self.fp_error_traj[datasplit] = _data
                 # log the final fixed-point
                 logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
                 # log the input injection (output of encoder)

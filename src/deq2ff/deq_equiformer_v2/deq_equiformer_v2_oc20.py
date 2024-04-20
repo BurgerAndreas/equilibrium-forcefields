@@ -48,6 +48,7 @@ from equiformer_v2.nets.equiformer_v2.transformer_block import (
     TransBlockV2,
 )
 from equiformer_v2.nets.equiformer_v2.input_block import EdgeDegreeEmbedding
+import deq2ff.logging_utils_deq as logging_utils_deq
 
 import torch
 import omegaconf
@@ -162,7 +163,6 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         proj_drop=0.0,
         weight_init="normal",
         # added
-        z0="zero",
         sphere_channels_fixedpoint=None,
         # Statistics of IS2RE 100K
         # IS2RE: 100k, max_radius = 5, max_neighbors = 100
@@ -171,20 +171,30 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         task_mean=None,
         task_std=None,
         name=None,
+        # deq
+        z0="zero",
+        cat_injection=True,
+        path_norm="none",
+        irrep_norm=None, 
         **kwargs,
     ):
         super().__init__()
-
         self._AVG_NUM_NODES = _AVG_NUM_NODES
         self._AVG_DEGREE = _AVG_DEGREE
         self.task_mean = task_mean
         self.task_std = task_std
 
         # added
+        self.z0 = z0
+        self.cat_injection = cat_injection
+        self.path_norm = path_norm
+        self.irrep_norm = irrep_norm
         if sphere_channels_fixedpoint is None:
             self.sphere_channels_fixedpoint = sphere_channels
         else:
             self.sphere_channels_fixedpoint = sphere_channels_fixedpoint
+        if self.cat_injection:
+            assert self.sphere_channels_fixedpoint == sphere_channels
 
         self.use_pbc = use_pbc
         self.regress_forces = regress_forces
@@ -235,9 +245,6 @@ class DEQ_EquiformerV2_OC20(BaseModel):
 
         self.weight_init = weight_init
         assert self.weight_init in ["normal", "uniform"]
-
-        # added
-        self.z0 = z0
 
         # TODO
         self.device = "cpu"  # torch.cuda.current_device()
@@ -323,13 +330,13 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         # Initialize the blocks for each layer of EquiformerV2
         self.blocks = nn.ModuleList()
         for i in range(self.num_layers):
+            sphere_channels_in = self.sphere_channels
             if i == 0:
                 # add input_injection
-                sphere_channels_in = (
-                    self.sphere_channels_fixedpoint + self.sphere_channels
-                )
-            else:
-                sphere_channels_in = self.sphere_channels
+                if self.cat_injection:
+                    sphere_channels_in = (
+                        self.sphere_channels_fixedpoint + self.sphere_channels
+                    )
             block = TransBlockV2(
                 # sphere_channels=self.sphere_channels,
                 sphere_channels=sphere_channels_in,
@@ -412,9 +419,9 @@ class DEQ_EquiformerV2_OC20(BaseModel):
 
     def _init_deq(self, **kwargs):
         return _init_deq(self, **kwargs)
-
+    
     @conditional_grad(torch.enable_grad())
-    def forward(self, data, fixedpoint=None, **kwargs):
+    def forward(self, data, fixedpoint=None, step=None, datasplit=None, **kwargs):
         # data.natoms: [batch_size] 
         # data.pos: [batch_size*num_atoms, 3])
         # data.atomic_numbers = data.z: [batch_size*num_atoms]
@@ -565,6 +572,27 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         # Final layer norm
         x.embedding = self.norm(x.embedding)
 
+        ######################################################
+        # Logging
+        ######################################################
+        if step is not None:
+            # log fixed-point trajectory
+            # _data = logging_utils_deq.log_fixed_point_error(
+            #     info,
+            #     step,
+            #     datasplit,
+            #     self.fp_error_traj[datasplit],
+            #     log_fp_error_traj=self.log_fp_error_traj,
+            # )
+            # if _data is not None:
+            #     self.fp_error_traj[datasplit] = _data
+            # log the final fixed-point
+            logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
+            # log the input injection (output of encoder)
+            logging_utils_deq.log_fixed_point_norm(
+                emb, step, datasplit, name="emb"
+            )
+
         ###############################################################
         # Energy estimation
         ###############################################################
@@ -597,15 +625,25 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         """Implicit layer for DEQ that defines the fixed-point.
         Make sure to input and output only torch.tensor, not SO3_Embedding, to not break TorchDEQ.
         """
-        # x = torch.cat([x, emb], dim=-1)
-        x = SO3_Embedding(
-            length=x.shape[0],
-            lmax_list=self.lmax_list,
-            num_channels=self.sphere_channels + self.sphere_channels_fixedpoint,
-            device=self.device,
-            dtype=self.dtype,
-            embedding=torch.cat([x, emb], dim=-1),
-        )
+        if self.cat_injection:
+            # x = torch.cat([x, emb], dim=-1)
+            x = SO3_Embedding(
+                length=x.shape[0],
+                lmax_list=self.lmax_list,
+                num_channels=self.sphere_channels + self.sphere_channels_fixedpoint,
+                device=self.device,
+                dtype=self.dtype,
+                embedding=torch.cat([x, emb], dim=-1),
+            )
+        else:
+            x = SO3_Embedding(
+                length=x.shape[0],
+                lmax_list=self.lmax_list,
+                num_channels=self.sphere_channels,
+                device=self.device,
+                dtype=self.dtype,
+                embedding=x + emb,
+            )
         for i in range(self.num_layers):
             x = self.blocks[i](
                 x,  # SO3_Embedding

@@ -57,6 +57,7 @@ Adapted from equiformer/main_md17.py
 """
 
 import deq2ff
+import deq2ff.logging_utils_deq as logging_utils_deq
 from deq2ff.deq_equiformer.deq_dp_md17 import (
     deq_dot_product_attention_transformer_exp_l2_md17,
 )
@@ -793,6 +794,14 @@ def train_one_epoch(
             grad_norm = torch.cat(grads).norm()
             wandb.log({"grad_norm": grad_norm}, step=global_step)
         optimizer.step()
+
+        if len(info) > 0:
+            # log fixed-point trajectory
+            logging_utils_deq.log_fixed_point_error(
+                info,
+                step=global_step,
+                datasplit='train',
+            )
 
         loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
         loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])

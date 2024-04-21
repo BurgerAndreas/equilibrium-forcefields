@@ -625,7 +625,9 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         if self.cat_injection:
             z = torch.cat([z, u], dim=1)
         else:
-            norm_before = z.norm()
+            # we can't use previous of z because we initialize z as 0
+            # norm_before = z.norm() 
+            norm_before = u.norm()
             z = z + u
             if self.norm_injection == 'prev':
                 scale = z.norm() / norm_before
@@ -652,7 +654,9 @@ class DEQ_EquiformerV2_OC20(BaseModel):
                 embedding=torch.cat([x, emb], dim=-1),
             )
         else:
-            norm_before = x.norm()
+            # we can't use previous of x because we initialize z as 0
+            # norm_before = x.norm() 
+            norm_before = emb.norm()
             z = x + emb
             if self.norm_injection == 'prev':
                 scale = z.norm() / norm_before

@@ -605,7 +605,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
             if self.cat_injection:
                 z = torch.cat([z, u], dim=1)
             else:
-                norm_before = z.norm()
+                # we can't use previous of z because we initialize z as 0
+                # norm_before = z.norm() 
+                norm_before = u.norm()
                 z = z + u
                 if self.norm_injection == 'prev':
                     scale = z.norm() / norm_before

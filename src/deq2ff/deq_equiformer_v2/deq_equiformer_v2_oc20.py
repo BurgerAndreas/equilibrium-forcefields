@@ -566,8 +566,8 @@ class DEQ_EquiformerV2_OC20(BaseModel):
             num_channels=self.sphere_channels_fixedpoint,
             device=self.device,
             dtype=self.dtype,
+            embedding=z_pred[-1],
         )
-        x.embedding = z_pred[-1]
 
         # Final layer norm
         x.embedding = self.norm(x.embedding)

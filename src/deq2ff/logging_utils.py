@@ -136,6 +136,8 @@ REPLACE = {
     # Equiformer v2
     "equiformer v2equiformer v2 use-DEQ": "DEQE2",
     "equiformer v2equiformer v2": "E2",
+    "equiformer v2 use-DEQ": "DEQE2",
+    "DEQ DEQ": "DEQ",
 }
 
 

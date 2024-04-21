@@ -756,6 +756,32 @@ def train_one_epoch(
             datasplit="train",
         )
 
+        # _AVG_NUM_NODES: 18.03065905448718
+        # _AVG_DEGREE: 15.57930850982666
+        print(f'_AVG_NUM_NODES', model._AVG_NUM_NODES)
+
+        print(f'pred_y requires_grad:', pred_y.requires_grad)
+        print(f'pred_dy requires_grad:', pred_dy.requires_grad)
+        print(f'energy_weight:', args.energy_weight)
+        print(f'force_weight:', args.force_weight)
+
+        # force_coefficient", 30
+        # metric: force_mae # default: mae, equiformer_v2: force_mae
+        # labels:
+        #     - potential energy
+        # grad_input: atomic forces
+
+        # pred_y: torch.Size([8, 1]), pred_dy: torch.Size([168, 3]), data.y: torch.Size([8, 1]), data.dy: torch.Size([168, 3])
+        # pred_y: torch.Size([8, 1]), pred_dy: torch.Size([168, 3]), data.y: torch.Size([8, 1]), data.dy: torch.Size([168, 3])
+
+        # if out_energy.shape[-1] == 1:
+        #     out_energy = out_energy.view(-1)
+
+        # if self.normalizer.get("normalize_labels", False):
+        #     energy_target = self.normalizers["target"].norm(energy_target)
+        # energy_mult = self.config["optim"].get("energy_coefficient", 1)
+        # loss.append(energy_mult * self.loss_fn["energy"](out["energy"], energy_target))
+
         loss_e = criterion(pred_y, ((data.y - task_mean) / task_std))
         loss = args.energy_weight * loss_e
         if meas_force == True:
@@ -847,6 +873,8 @@ def train_one_epoch(
                     "train_loss": loss.item(),
                     "train_e_mae": mae_metrics["energy"].avg,
                     "train_f_mae": mae_metrics["force"].avg,
+                    "train_loss_e": loss_metrics["energy"].avg,
+                    "train_loss_f": loss_metrics["force"].avg,
                     "lr": optimizer.param_groups[0]["lr"],
                 },
                 step=global_step,

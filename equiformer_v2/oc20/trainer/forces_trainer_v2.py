@@ -288,6 +288,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         import pprint
 
         pp = pprint.PrettyPrinter(depth=4)
+        print(f'ForcesTrainerV2: self.config:')
         pp.pprint(self.config)
         self.logger.config.update(self.config)
 
@@ -510,6 +511,15 @@ class ForcesTrainerV2(BaseTrainerV2):
         energy_mult = self.config["optim"].get("energy_coefficient", 1)
         loss.append(energy_mult * self.loss_fn["energy"](out["energy"], energy_target))
 
+        # TODO
+        # self.normalizer.get("normalize_labels", False) == True
+        # self.loss_fn["energy"] == L1Loss()
+        # self.config["task"].get("tag_specific_weights", []) == []
+        # self.loss_fn["force"] == L2MAELoss()
+        # self.config["optim"]["loss_force"] == l2mae
+        # self.config["task"].get("train_on_free_atoms", False) == True
+        # self.config["optim"].get("force_coefficient", 1) == 100
+
         # Force loss.
         if self.config["model_attributes"].get("regress_forces", True) or self.config[
             "model_attributes"
@@ -571,6 +581,7 @@ class ForcesTrainerV2(BaseTrainerV2):
                         )
                         loss.append(force_loss)
                     else:
+                        # ------------ Default ------------
                         loss.append(
                             force_mult
                             * self.loss_fn["force"](

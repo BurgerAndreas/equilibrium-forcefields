@@ -57,9 +57,7 @@ class BaseModel(nn.Module):
                 )
                 otf_graph = True
 
-        if use_pbc: # default: None
-            print("use_pbc: ", use_pbc)
-            print("use_pbc: ", self.use_pbc)
+        if use_pbc: # True for OC20 S2EF
             if otf_graph:
                 edge_index, cell_offsets, neighbors = radius_graph_pbc(
                     data, cutoff, max_neighbors

@@ -42,6 +42,12 @@ python scripts/train_deq_oc20_v2.py +use=deq ++preset=small_l6
 sbatch scripts/slurm_launcher.slrm train_deq_oc20_v2.py +use=deq
 ```
 
+On MD17
+```bash
+python scripts/train_deq_md_v2.py
+sbatch scripts/slurm_launcher.slrm train_deq_md_v2.py
+```
+
 #### Old (argparse+yml)
 
 Baseline Equiformer V2

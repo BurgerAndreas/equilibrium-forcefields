@@ -174,6 +174,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         # deq
         z0="zero",
         cat_injection=True,
+        norm_injection=None,
         path_norm="none",
         irrep_norm=None, 
         **kwargs,
@@ -187,6 +188,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         # added
         self.z0 = z0
         self.cat_injection = cat_injection
+        self.norm_injection = norm_injection
         self.path_norm = path_norm
         self.irrep_norm = irrep_norm
         if sphere_channels_fixedpoint is None:
@@ -619,12 +621,26 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         else:
             return energy, info
 
+    def inject_input(self, z, u):
+        if self.cat_injection:
+            z = torch.cat([z, u], dim=1)
+        else:
+            norm_before = z.norm()
+            z = z + u
+            if self.norm_injection == 'prev':
+                scale = z.norm() / norm_before
+                z = z / scale
+            elif self.norm_injection == 'one':
+                z = z / z.norm()
+        return z
+    
     def deq_implicit_layer(
         self, x: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, data
     ) -> torch.Tensor:
         """Implicit layer for DEQ that defines the fixed-point.
         Make sure to input and output only torch.tensor, not SO3_Embedding, to not break TorchDEQ.
         """
+        # input injection
         if self.cat_injection:
             # x = torch.cat([x, emb], dim=-1)
             x = SO3_Embedding(
@@ -636,14 +652,22 @@ class DEQ_EquiformerV2_OC20(BaseModel):
                 embedding=torch.cat([x, emb], dim=-1),
             )
         else:
+            norm_before = x.norm()
+            z = x + emb
+            if self.norm_injection == 'prev':
+                scale = z.norm() / norm_before
+                z = z / scale
+            elif self.norm_injection == 'one':
+                z = z / z.norm()
             x = SO3_Embedding(
                 length=x.shape[0],
                 lmax_list=self.lmax_list,
                 num_channels=self.sphere_channels,
                 device=self.device,
                 dtype=self.dtype,
-                embedding=x + emb,
+                embedding=z,
             )
+        # layers
         for i in range(self.num_layers):
             x = self.blocks[i](
                 x,  # SO3_Embedding

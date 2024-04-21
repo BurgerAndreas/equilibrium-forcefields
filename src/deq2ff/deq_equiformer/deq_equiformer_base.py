@@ -18,6 +18,7 @@ class EquiformerDEQBase:
         irreps_node_embedding,
         input_injection="first_layer",  # False=V1, 'first_layer'=V2
         cat_injection=False,
+        norm_injection=None,
         irreps_node_embedding_injection="64x0e+32x1e+16x2e",
         limit_f_max_iter_fpreuse=False,
         z0="zero",

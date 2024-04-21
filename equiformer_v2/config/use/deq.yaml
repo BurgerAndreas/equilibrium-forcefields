@@ -22,6 +22,7 @@ model:
   # deq
   z0: "zero"
   cat_injection: True
+  norm_injection: None # None=False, 'one', 'prev'
   path_norm: "none"
   irrep_norm: None 
 

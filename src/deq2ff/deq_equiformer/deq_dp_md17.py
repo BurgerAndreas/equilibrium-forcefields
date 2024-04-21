@@ -601,7 +601,20 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         Basically the middle third of DotProductAttentionTransformerMD17.forward()
         """
 
-        # [num_atoms*batch_size, 480]
+        def inject_input(z, u):
+            if self.cat_injection:
+                z = torch.cat([z, u], dim=1)
+            else:
+                norm_before = z.norm()
+                z = z + u
+                if self.norm_injection == 'prev':
+                    scale = z.norm() / norm_before
+                    z = z / scale
+                elif self.norm_injection == 'one':
+                    z = z / z.norm()
+            return z
+        
+        # [num_atoms*batch_size, irrep_dim]
         if self.input_injection == False:
             # no injection, injection becomes the initial input
             for blknum, blk in enumerate(self.blocks):
@@ -617,12 +630,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         elif self.input_injection == "every_layer":
             # input injection at every layer
             for blknum, blk in enumerate(self.blocks):
-                if self.cat_injection:
-                    node_features = torch.cat(
-                        [node_features, node_features_injection], dim=1
-                    )
-                else:
-                    node_features = node_features + node_features_injection
+                node_features = inject_input(node_features, node_features_injection)
                 node_features = blk(
                     node_input=node_features,
                     node_attr=node_attr,
@@ -635,10 +643,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         elif self.input_injection == "first_layer":
             # input injection only at the first layer
             # node features does not require_grad until concat with injection
-            if self.cat_injection:
-                node_features = torch.cat([node_features, node_features_injection], dim=1)
-            else:
-                node_features = node_features + node_features_injection
+            node_features = inject_input(node_features, node_features_injection)
             for blknum, blk in enumerate(self.blocks):
                 node_features = blk(
                     node_input=node_features,

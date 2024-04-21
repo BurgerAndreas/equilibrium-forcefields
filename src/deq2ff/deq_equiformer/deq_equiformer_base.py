@@ -72,6 +72,7 @@ class EquiformerDEQBase:
                     f"{irreps_node_embedding}."
                 )
                 # assert input_injection in ["first_layer", "every_layer", True, "legacy"]
+        self.norm_injection = norm_injection
 
         self.input_injection = input_injection
         if input_injection is False:

@@ -230,6 +230,7 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
         )
 
     def forward(self, x, atomic_numbers, edge_distance, edge_index):
+        """atom_edge_embedding, S03_Embedding, SO(2)-convolution, Activation, SO(2)-convolution, Attention, Projection (SO3_LinearV2)"""
 
         # Compute edge scalar features (invariant to rotations)
         # Uses atomic numbers and edge distance as inputs

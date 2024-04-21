@@ -226,9 +226,8 @@ def main(args):
     """ Optimizer and LR Scheduler """
     optimizer = create_optimizer(args, model)
     lr_scheduler, _ = create_scheduler(args, optimizer)
-    criterion = (
-        L2MAELoss()
-    )  # torch.nn.L1Loss()  #torch.nn.MSELoss() # torch.nn.L1Loss()
+    # torch.nn.L1Loss()  #torch.nn.MSELoss() # torch.nn.L1Loss()
+    criterion = L2MAELoss() 
 
     """ Data Loader """
     train_loader = DataLoader(
@@ -758,12 +757,6 @@ def train_one_epoch(
 
         # _AVG_NUM_NODES: 18.03065905448718
         # _AVG_DEGREE: 15.57930850982666
-        print(f'_AVG_NUM_NODES', model._AVG_NUM_NODES)
-
-        print(f'pred_y requires_grad:', pred_y.requires_grad)
-        print(f'pred_dy requires_grad:', pred_dy.requires_grad)
-        print(f'energy_weight:', args.energy_weight)
-        print(f'force_weight:', args.force_weight)
 
         # force_coefficient", 30
         # metric: force_mae # default: mae, equiformer_v2: force_mae

@@ -12,7 +12,7 @@ defaults:
   - trainer_base
   - _self_
 
-override_test: 1
+override_test: md17
 
 # passed into model
 model:
@@ -58,4 +58,6 @@ model:
   fc_tp_irrep_norm: null 
   bias: True
   affine_ln: True
+
+  override_test: md17
 

@@ -154,6 +154,7 @@ class EquiformerV2_OC20(BaseModel):
         task_mean=None,
         task_std=None,
         name=None,
+        force_head='SO2EquivariantGraphAttention',
         **kwargs,
     ):
         super().__init__()
@@ -346,27 +347,28 @@ class EquiformerV2_OC20(BaseModel):
             self.use_sep_s2_act,
         )
         if self.regress_forces:
-            self.force_block = SO2EquivariantGraphAttention(
-                self.sphere_channels,
-                self.attn_hidden_channels,
-                self.num_heads,
-                self.attn_alpha_channels,
-                self.attn_value_channels,
-                1,
-                self.lmax_list,
-                self.mmax_list,
-                self.SO3_rotation,
-                self.mappingReduced,
-                self.SO3_grid,
-                self.max_num_elements,
-                self.edge_channels_list,
-                self.block_use_atom_edge_embedding,
-                self.use_m_share_rad,
-                self.attn_activation,
-                self.use_s2_act_attn,
-                self.use_attn_renorm,
-                self.use_gate_act,
-                self.use_sep_s2_act,
+            # self.force_block = SO2EquivariantGraphAttention(
+            self.force_block = eval(force_head)(
+                sphere_channels=self.sphere_channels,
+                hidden_channels=self.attn_hidden_channels,
+                num_heads=self.num_heads,
+                attn_alpha_channels=self.attn_alpha_channels,
+                attn_value_channels=self.attn_value_channels,
+                output_channels=1,
+                lmax_list=self.lmax_list,
+                mmax_list=self.mmax_list,
+                SO3_rotation=self.SO3_rotation,
+                mappingReduced=self.mappingReduced,
+                SO3_grid=self.SO3_grid,
+                max_num_elements=self.max_num_elements,
+                edge_channels_list=self.edge_channels_list,
+                use_atom_edge_embedding=self.block_use_atom_edge_embedding,
+                use_m_share_rad=self.use_m_share_rad,
+                activation=self.attn_activation, # unused
+                use_s2_act_attn=self.use_s2_act_attn,
+                use_attn_renorm=self.use_attn_renorm,
+                use_gate_act=self.use_gate_act,
+                use_sep_s2_act=self.use_sep_s2_act,
                 alpha_drop=0.0,
             )
 

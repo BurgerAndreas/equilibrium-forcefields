@@ -252,9 +252,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         # pos = node feature matrix
         pos = pos.requires_grad_(True)
 
-        # atom type z_i
-        atom_embedding, atom_attr, atom_onehot = self.atom_embed(node_atom)
-
+        # encode edges
         # get graph edges based on radius
         edge_src, edge_dst = radius_graph(
             x=pos, r=self.max_radius, batch=batch, max_num_neighbors=1000
@@ -270,6 +268,10 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
             normalize=True,
             normalization="component",
         )
+
+        # encode atom type z_i
+        atom_embedding, atom_attr, atom_onehot = self.atom_embed(node_atom)
+
         # Constant One, r_ij -> Linear, Depthwise TP, Linear, Scaled Scatter
         edge_degree_embedding = self.edge_deg_embed(
             # atom_embedding is just used for the shape

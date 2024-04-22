@@ -82,6 +82,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
+# from ocpmodels.modules.loss import DDPLoss, L2MAELoss
 # from https://github.com/Open-Catalyst-Project/ocp/blob/main/ocpmodels/modules/loss.py#L7
 class L2MAELoss(torch.nn.Module):
     def __init__(self, reduction="mean"):
@@ -96,6 +97,20 @@ class L2MAELoss(torch.nn.Module):
         elif self.reduction == "sum":
             return torch.sum(dists)
 
+# from equiformer/oc20/trainer/base_trainer_oc20.py
+def load_loss(loss_fn={"energy": "mae", "force": "mae"}):
+    for loss, loss_name in loss_fn.items():
+        if loss_name in ["l1", "mae"]:
+            loss_fn[loss] = nn.L1Loss()
+        elif loss_name == "mse":
+            loss_fn[loss] = nn.MSELoss()
+        elif loss_name == "l2mae":
+            loss_fn[loss] = L2MAELoss()
+        else:
+            raise NotImplementedError(f"Unknown loss function name: {loss_name}")
+        # if distutils.initialized():
+        #     self.loss_fn[loss] = DDPLoss(self.loss_fn[loss])
+    return loss_fn
 
 def get_force_placeholder(dy, loss_e):
     """if meas_force is False, return a placeholder for force prediction and loss_f"""
@@ -226,8 +241,11 @@ def main(args):
     """ Optimizer and LR Scheduler """
     optimizer = create_optimizer(args, model)
     lr_scheduler, _ = create_scheduler(args, optimizer)
-    # torch.nn.L1Loss()  #torch.nn.MSELoss() # torch.nn.L1Loss()
-    criterion = L2MAELoss() 
+    
+    # criterion = L2MAELoss() 
+    loss_fn = load_loss({'energy': args.loss_energy, 'force': args.loss_force})
+    criterion_energy = loss_fn['energy']
+    criterion_force = loss_fn['force']
 
     """ Data Loader """
     train_loader = DataLoader(
@@ -286,7 +304,9 @@ def main(args):
     # dryrun (tryrun) for logging
     try:
         model.train()
-        criterion.train()
+        # criterion.train()
+        criterion_energy.train()
+        criterion_force.train()
 
         for step, data in enumerate(train_loader):
             data = data.to(device)
@@ -322,7 +342,8 @@ def main(args):
         test_err, test_loss = evaluate(
             args=args,
             model=model,
-            criterion=criterion,
+            criterion_energy=criterion_energy,
+            criterion_force=criterion_force,
             data_loader=test_loader,
             device=device,
             print_freq=args.print_freq,
@@ -345,7 +366,9 @@ def main(args):
         train_err, train_loss, global_step = train_one_epoch(
             args=args,
             model=model,
-            criterion=criterion,
+            # criterion=criterion,
+            criterion_energ=criterion_energy,
+            criterion_force=criterion_force,
             data_loader=train_loader,
             optimizer=optimizer,
             device=device,
@@ -361,7 +384,9 @@ def main(args):
         val_err, val_loss = evaluate(
             args=args,
             model=model,
-            criterion=criterion,
+            # criterion=criterion,
+            criterion_energ=criterion_energy,
+            criterion_force=criterion_force,
             data_loader=val_loader,
             optimizer=optimizer,
             device=device,
@@ -379,7 +404,9 @@ def main(args):
             test_err, test_loss = evaluate(
                 args=args,
                 model=model,
-                criterion=criterion,
+                # criterion=criterion,
+                criterion_energ=criterion_energy,
+                criterion_force=criterion_force,
                 data_loader=test_loader,
                 optimizer=optimizer,
                 device=device,
@@ -504,7 +531,9 @@ def main(args):
             ema_val_err, _ = evaluate(
                 args=args,
                 model=model_ema.module,
-                criterion=criterion,
+                # criterion=criterion,
+                criterion_energ=criterion_energy,
+                criterion_force=criterion_force,
                 data_loader=val_loader,
                 optimizer=optimizer,
                 device=device,
@@ -521,7 +550,9 @@ def main(args):
                 ema_test_err, _ = evaluate(
                     args=args,
                     model=model_ema.module,
-                    criterion=criterion,
+                    # criterion=criterion,
+                    criterion_energ=criterion_energy,
+                    criterion_force=criterion_force,
                     data_loader=test_loader,
                     optimizer=optimizer,
                     device=device,
@@ -641,7 +672,9 @@ def main(args):
     test_err, test_loss = evaluate(
         args=args,
         model=model,
-        criterion=criterion,
+        # criterion=criterion,
+        criterion_energ=criterion_energy,
+        criterion_force=criterion_force,
         data_loader=test_loader,
         optimizer=optimizer,
         device=device,
@@ -715,7 +748,9 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
 def train_one_epoch(
     args,
     model: torch.nn.Module,
-    criterion: torch.nn.Module,
+    # criterion: torch.nn.Module,
+    criterion_energy: torch.nn.Module,
+    criterion_force: torch.nn.Module,
     data_loader: Iterable,
     optimizer: torch.optim.Optimizer,
     device: torch.device,
@@ -731,7 +766,9 @@ def train_one_epoch(
     """
 
     model.train()
-    criterion.train()
+    # criterion.train()
+    criterion_energy.train()
+    criterion_force.train()
 
     loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
     mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
@@ -775,10 +812,10 @@ def train_one_epoch(
         # energy_mult = self.config["optim"].get("energy_coefficient", 1)
         # loss.append(energy_mult * self.loss_fn["energy"](out["energy"], energy_target))
 
-        loss_e = criterion(pred_y, ((data.y - task_mean) / task_std))
+        loss_e = criterion_energy(pred_y, ((data.y - task_mean) / task_std))
         loss = args.energy_weight * loss_e
         if meas_force == True:
-            loss_f = criterion(pred_dy, (data.dy / task_std))
+            loss_f = criterion_force(pred_dy, (data.dy / task_std))
             loss += args.force_weight * loss_f
         else:
             pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
@@ -874,6 +911,11 @@ def train_one_epoch(
             )
 
         global_step += 1
+    
+    # if loss_metrics is all nan
+    # probably because deq_kwargs.f_solver=broyden,anderson did not converge
+    if torch.isnan(loss_metrics["energy"].avg):
+        raise ValueError("loss_metrics['energy'].avg is nan. Try deq_kwargs.f_solver=fixed_point_iter")
 
     return mae_metrics, loss_metrics, global_step
 
@@ -881,7 +923,9 @@ def train_one_epoch(
 def evaluate(
     args,
     model: torch.nn.Module,
-    criterion: torch.nn.Module,
+    # criterion: torch.nn.Module,
+    criterion_energy: torch.nn.Module,
+    criterion_force: torch.nn.Module,
     data_loader: Iterable,
     optimizer: torch.optim.Optimizer,
     device: torch.device,
@@ -895,7 +939,9 @@ def evaluate(
 
     if args.eval_mode is True:
         model.eval()
-        criterion.eval()
+        # criterion.eval()
+        criterion_energy.eval()
+        criterion_force.eval()
 
     loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
     mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
@@ -951,9 +997,9 @@ def evaluate(
                 fixedpoint=None,
             )
 
-        loss_e = criterion(pred_y, ((data.y - task_mean) / task_std))
+        loss_e = criterion_energy(pred_y, ((data.y - task_mean) / task_std))
         if args.meas_force == True:
-            loss_f = criterion(pred_dy, (data.dy / task_std))
+            loss_f = criterion_force(pred_dy, (data.dy / task_std))
         else:
             pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
 

@@ -226,6 +226,7 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
 
         self.use_auxiliary_task = use_auxiliary_task
         if self.use_auxiliary_task:
+            # ouput one vector for each node = forces
             irreps_out_auxiliary = o3.Irreps("1x1o")
             if o3.Irrep("1o") not in self.irreps_feature:
                 irreps_out_auxiliary = o3.Irreps("1x1e")
@@ -304,6 +305,7 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
         return set(no_wd_list)
 
     def _forward_otf_graph(self, data):
+        """Construct graph on the fly."""
         if self.otf_graph:
             edge_index, cell_offsets, neighbors = radius_graph_pbc(
                 data, self.max_radius, self.max_neighbors
@@ -349,11 +351,21 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
         return edge_index, edge_vec, dist, offsets
 
     def forward(self, data):
+        """
+        1. Handling periodic boundary conditions (PBC)
+        2. [TODO] Predicting forces
+        3. Using tag (0: sub-surface, 1: surface, 2: adsorbate)
+            for extra input information.
+        4. Using OC20 registry to register models
+        5. Not using one-hot encoded atom type as node attributes since there are much more
+            atom types than QM9.
+        """
         # Following OC20 models
         data = self._forward_otf_graph(data)
         edge_index, edge_vec, edge_length, offsets = self._forward_use_pbc(data)
         batch = data.batch
 
+        # encode edges
         edge_src, edge_dst = edge_index[0], edge_index[1]
         edge_sh = o3.spherical_harmonics(
             l=self.irreps_edge_attr,
@@ -368,6 +380,7 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
         tags = data.tags.long()
         tag_embedding, _, _ = self.tag_embed(tags)
 
+        # MD17: rbf(edge_length)
         edge_length_embedding = self.rbf(
             edge_length, atomic_numbers, edge_src, edge_dst
         )

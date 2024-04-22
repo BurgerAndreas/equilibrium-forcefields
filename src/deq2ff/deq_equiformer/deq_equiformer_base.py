@@ -15,8 +15,8 @@ from deq2ff.deq_base import _init_deq
 class EquiformerDEQBase:
     def _set_deq_vars(
         self,
-        irreps_feature,
         irreps_node_embedding,
+        irreps_feature,
         input_injection="first_layer",  # False=V1, 'first_layer'=V2
         cat_injection=False,
         norm_injection=None,
@@ -69,12 +69,13 @@ class EquiformerDEQBase:
         self.use_attn_head = use_attn_head
         if self.force_head is not None:
             # can't have scalar-only features when predicting forces (aka vectors)
-            self.irreps_feature = irreps_node_embedding
+            irreps_feature = irreps_node_embedding
             # need attention head to deal with non-scalar irreps
             self.use_attn_head = True
             if wandb.run is not None:
                 wandb.config.update({'irreps_feature': irreps_feature, 'use_attn_head': use_attn_head})
-
+        self.irreps_feature = o3.Irreps(irreps_feature)
+        
         # concat input injection or add it to the node features (embeddings)
         self.cat_injection = cat_injection
         if cat_injection is False:

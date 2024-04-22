@@ -175,9 +175,9 @@ def main(args):
 
     # statistics
     y = torch.cat([batch.y for batch in train_dataset], dim=0)
-    mean = float(y.mean())
-    std = float(y.std())
-    _log.info("Training set mean: {}, std: {}\n".format(mean, std))
+    task_mean = float(y.mean())
+    task_std = float(y.std())
+    _log.info("Training set mean: {}, std: {}\n".format(task_mean, task_std))
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -185,13 +185,13 @@ def main(args):
     create_model = model_entrypoint(args.model.name)
     if "deq_kwargs" in args:
         model = create_model(
-            task_mean=mean,
-            task_std=std,
+            task_mean=task_mean,
+            task_std=task_std,
             **args.model,
             deq_kwargs=args.deq_kwargs,
         )
     else:
-        model = create_model(task_mean=mean, task_std=std, **args.model)
+        model = create_model(task_mean=task_mean, task_std=task_std, **args.model)
     _log.info(
         f"model {args.model.name} created with kwargs \n{omegaconf.OmegaConf.to_yaml(args.model)}"
     )
@@ -797,11 +797,6 @@ def train_one_epoch(
         # _AVG_NUM_NODES: 18.03065905448718
         # _AVG_DEGREE: 15.57930850982666
 
-        # force_coefficient", 30
-        # metric: force_mae # default: mae, equiformer_v2: force_mae
-        # labels:
-        #     - potential energy
-        # grad_input: atomic forces
 
         # pred_y: torch.Size([8, 1]), pred_dy: torch.Size([168, 3]), data.y: torch.Size([8, 1]), data.dy: torch.Size([168, 3])
         # pred_y: torch.Size([8, 1]), pred_dy: torch.Size([168, 3]), data.y: torch.Size([8, 1]), data.dy: torch.Size([168, 3])
@@ -821,6 +816,21 @@ def train_one_epoch(
             loss += args.force_weight * loss_f
         else:
             pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
+        
+        # print(f"energy: mean={pred_y.mean()}, std={pred_y.std()}, max={pred_y.max()}, min={pred_y.min()}", pred_y.shape)
+        # print(f"energy target: mean={data.y.mean()}, std={data.y.std()}, max={data.y.max()}, min={data.y.min()}", data.y.shape)
+        # e_target = ((data.y - task_mean) / task_std)
+        # print(f'energy target normalized: mean={e_target.mean()}, std={e_target.std()}, max={e_target.max()}, min={e_target.min()}', e_target.shape)
+        # print(f"loss_e: {loss_e}")
+        # print(f'weight: {args.energy_weight}')
+
+        # print(f"pred_dy: mean={pred_dy.mean()}, std={pred_dy.std()}, max={pred_dy.max()}, min={pred_dy.min()}", pred_dy.shape)
+        # print(f"data.dy: mean={data.dy.mean()}, std={data.dy.std()}, max={data.dy.max()}, min={data.dy.min()}", data.dy.shape)
+        # f_target = (data.dy / task_std)
+        # print(f'force target normalized: mean={f_target.mean()}, std={f_target.std()}, max={f_target.max()}, min={f_target.min()}', f_target.shape)
+        # print(f"loss_f: {loss_f}")
+        # print(f'weight: {args.force_weight}')
+        # exit()
 
         # If you use trajectory sampling, fp_correction automatically
         # aligns the tensors and applies your loss function.

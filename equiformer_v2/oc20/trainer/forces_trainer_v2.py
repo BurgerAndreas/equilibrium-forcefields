@@ -511,6 +511,19 @@ class ForcesTrainerV2(BaseTrainerV2):
         energy_mult = self.config["optim"].get("energy_coefficient", 1)
         loss.append(energy_mult * self.loss_fn["energy"](out["energy"], energy_target))
 
+        # print energy out: mean, std, min, max
+        print(f'out["energy"].mean(): {out["energy"].mean()}')
+        print(f'out["energy"].std(): {out["energy"].std()}')
+        print(f'out["energy"].min(): {out["energy"].min()}')
+        print(f'out["energy"].max(): {out["energy"].max()}')
+        # energy target
+        print(f'energy_target.mean(): {energy_target.mean()}')
+        print(f'energy_target.std(): {energy_target.std()}')
+        print(f'energy_target.min(): {energy_target.min()}')
+        print(f'energy_target.max(): {energy_target.max()}')
+        print(f'energy_mult: {energy_mult}')
+        print(f'loss e: {loss[-1]}')
+
         # TODO
         # self.normalizer.get("normalize_labels", False) == True
         # self.loss_fn["energy"] == L1Loss()
@@ -582,6 +595,7 @@ class ForcesTrainerV2(BaseTrainerV2):
                         loss.append(force_loss)
                     else:
                         # ------------ Default ------------
+                        print('Default force loss')
                         loss.append(
                             force_mult
                             * self.loss_fn["force"](
@@ -592,6 +606,21 @@ class ForcesTrainerV2(BaseTrainerV2):
                     loss.append(
                         force_mult * self.loss_fn["force"](out["forces"], force_target)
                     )
+
+        # print force out: mean, std, min, max
+        print(f'out["forces"].mean(): {out["forces"].mean()}')
+        print(f'out["forces"].std(): {out["forces"].std()}')
+        print(f'out["forces"].min(): {out["forces"].min()}')
+        print(f'out["forces"].max(): {out["forces"].max()}')
+        # force target
+        print(f'force_target.mean(): {force_target.mean()}')
+        print(f'force_target.std(): {force_target.std()}')
+        print(f'force_target.min(): {force_target.min()}')
+        print(f'force_target.max(): {force_target.max()}')
+        print(f'force_mult: {force_mult}')
+        print(f'loss f: {loss[-1]}')
+        exit()
+
 
         # Sanity check to make sure the compute graph is correct.
         for lc in loss:
@@ -617,6 +646,7 @@ class ForcesTrainerV2(BaseTrainerV2):
 
         out["natoms"] = natoms
 
+        # print(f'eval_on_free_atoms: {self.config["task"].get("eval_on_free_atoms", True)}')
         if self.config["task"].get("eval_on_free_atoms", True):
             fixed = torch.cat([batch.fixed.to(self.device) for batch in batch_list])
             mask = fixed == 0

@@ -57,7 +57,7 @@ import deq2ff.logging_utils_deq as logging_utils_deq
 # _AVG_DEGREE = 23.395238876342773  
 
 
-@registry.register_model("equiformer_v2")
+@registry.register_model("equiformer_v2_oc20")
 class EquiformerV2_OC20(BaseModel):
     """
     Equiformer with graph attention built upon SO(2) convolution and feedforward network built upon S2 activation
@@ -394,7 +394,7 @@ class EquiformerV2_OC20(BaseModel):
             data.cell = None
 
         num_atoms = len(atomic_numbers)
-        pos = data.pos
+        # pos = data.pos
 
         (
             edge_index,
@@ -444,6 +444,7 @@ class EquiformerV2_OC20(BaseModel):
             offset_res = offset_res + int((self.lmax_list[i] + 1) ** 2)
 
         # Edge encoding (distance and atom edge)
+        # E1: edge_length_embedding = self.rbf(edge_length)
         edge_distance = self.distance_expansion(edge_distance)
         if self.share_atom_edge_embedding and self.use_atom_edge_embedding:
             source_element = atomic_numbers[edge_index[0]]  # Source atom atomic number

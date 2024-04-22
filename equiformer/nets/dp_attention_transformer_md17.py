@@ -84,6 +84,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         proj_drop=0.0,
         out_drop=0.0,
         drop_path_rate=0.0,
+        # MD17 specific
         task_mean=None,
         task_std=None,
         scale=None,
@@ -104,7 +105,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         self.register_buffer("atomref", atomref)
 
         self.irreps_node_attr = o3.Irreps(irreps_node_attr)
-        self.irreps_node_input = o3.Irreps(irreps_in)
+        # self.irreps_node_input = o3.Irreps(irreps_in)
         self.irreps_node_embedding = o3.Irreps(irreps_node_embedding)
         self.lmax = self.irreps_node_embedding.lmax
         self.irreps_feature = o3.Irreps(irreps_feature)
@@ -125,6 +126,14 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         self.atom_embed = NodeEmbeddingNetwork(
             self.irreps_node_embedding, _MAX_ATOM_TYPE
         )
+        # self.tag_embed = NodeEmbeddingNetwork(self.irreps_node_embedding, _NUM_TAGS)
+
+        # self.attr_embed = None
+        # if self.use_node_attr:
+        #     self.attr_embed = NodeEmbeddingNetwork(
+        #         self.irreps_node_attr, _MAX_ATOM_TYPE
+        #     )
+
         self.basis_type = basis_type
         if self.basis_type == "gaussian":
             self.rbf = GaussianRadialBasisLayer(
@@ -145,12 +154,22 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
             )
         else:
             raise ValueError
+        
         self.edge_deg_embed = EdgeDegreeEmbeddingNetwork(
             self.irreps_node_embedding,
             self.irreps_edge_attr,
             self.fc_neurons,
             _AVG_DEGREE,
         )
+        # self.edge_src_embed = None
+        # self.edge_dst_embed = None
+        # if self.use_atom_edge_attr:
+        #     self.edge_src_embed = NodeEmbeddingNetwork(
+        #         self.irreps_atom_edge_attr, _MAX_ATOM_TYPE
+        #     )
+        #     self.edge_dst_embed = NodeEmbeddingNetwork(
+        #         self.irreps_atom_edge_attr, _MAX_ATOM_TYPE
+        #     )
 
         self.blocks = torch.nn.ModuleList()
         self.build_blocks()
@@ -160,6 +179,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         self.out_dropout = None
         if self.out_drop != 0.0:
             self.out_dropout = EquivariantDropout(self.irreps_feature, self.out_drop)
+
         # Output head
         self.head = torch.nn.Sequential(
             LinearRS(self.irreps_feature, self.irreps_feature, rescale=_RESCALE),
@@ -252,11 +272,13 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         # pos = node feature matrix
         pos = pos.requires_grad_(True)
 
-        # encode edges
         # get graph edges based on radius
-        edge_src, edge_dst = radius_graph(
+        edge_index = radius_graph(
             x=pos, r=self.max_radius, batch=batch, max_num_neighbors=1000
         )
+
+        # encode edges
+        edge_src, edge_dst = edge_index[0], edge_index[1]
         edge_vec = pos.index_select(0, edge_src) - pos.index_select(0, edge_dst)
         # radial basis function embedding of edge length
         edge_length = edge_vec.norm(dim=1)
@@ -289,6 +311,10 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         # node_attr = ?
         # node_attr = torch.ones_like(node_features.narrow(dim=1, start=0, length=1))
         node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
+
+        ###############################################################
+        # Update node embeddings
+        ###############################################################
 
         for blknum, blk in enumerate(self.blocks):
             node_features = blk(
@@ -326,6 +352,8 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
             outputs = self.scale * outputs
 
         energy = outputs
+
+        # TODO: force_head
         # https://github.com/Open-Catalyst-Project/ocp/blob/main/ocpmodels/models/spinconv.py#L321-L328
         forces = -1 * (
             torch.autograd.grad(

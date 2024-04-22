@@ -37,6 +37,7 @@ class BaseModel(nn.Module):
         use_pbc=None,
         otf_graph=None,
     ):
+        """On-the-fly graph and periodic boundary conditions."""
         cutoff = cutoff or self.cutoff
         max_neighbors = max_neighbors or self.max_neighbors
         use_pbc = use_pbc or self.use_pbc

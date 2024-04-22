@@ -16,7 +16,7 @@ override_test: 2
 model_is_deq: True
 
 model:
-  name: deq_equiformer_v2
+  name: deq_equiformer_v2_oc20
   num_layers: 1
 
   # deq

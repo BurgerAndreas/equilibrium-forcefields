@@ -374,11 +374,15 @@ class GraphAttentionTransformerOC20(torch.nn.Module):
         return edge_index, edge_vec, dist, offsets
 
     def forward(self, data):
+        """Exactly the same as dp_attention_transformer_oc20.py, 
+        except optional attention head for energy and force prediction.
+        """
         # Following OC20 models
         data = self._forward_otf_graph(data)
         edge_index, edge_vec, edge_length, offsets = self._forward_use_pbc(data)
         batch = data.batch
 
+        # encode edges
         edge_src, edge_dst = edge_index[0], edge_index[1]
         edge_sh = o3.spherical_harmonics(
             l=self.irreps_edge_attr,
@@ -387,12 +391,20 @@ class GraphAttentionTransformerOC20(torch.nn.Module):
             normalization="component",
         )
 
+        # atomic_numbers = data.atomic_numbers.long()
+        if hasattr(data, "atomic_numbers"):
+            atomic_numbers = data.atomic_numbers.long()
+        else:
+            # MD17
+            atomic_numbers = data.z.long()
+            data.atomic_numbers = data.z
+
         # Following Graphoformer, which encodes both atom type and tag
-        atomic_numbers = data.atomic_numbers.long()
         atom_embedding, atom_attr, atom_onehot = self.atom_embed(atomic_numbers)
         tags = data.tags.long()
         tag_embedding, _, _ = self.tag_embed(tags)
 
+        # MD17: rbf(edge_length)
         edge_length_embedding = self.rbf(
             edge_length, atomic_numbers, edge_src, edge_dst
         )
@@ -411,6 +423,10 @@ class GraphAttentionTransformerOC20(torch.nn.Module):
             node_attr, _, _ = self.attr_embed(atomic_numbers)
         else:
             node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
+        
+        ###############################################################
+        # Update node embeddings
+        ###############################################################
 
         for blk in self.blocks:
             node_features = blk(
@@ -429,6 +445,10 @@ class GraphAttentionTransformerOC20(torch.nn.Module):
             outputs = self.out_dropout(node_features)
         else:
             outputs = node_features
+        
+        ###############################################################
+        # Energy and Force estimation
+        ###############################################################
 
         # When `self.use_attention_head` is True,
         # use GraphAttention for energy and force prediction
@@ -452,10 +472,18 @@ class GraphAttentionTransformerOC20(torch.nn.Module):
                 return outputs, outputs_aux
             else:
                 return outputs
+        
+        ###############################################################
+        # Energy estimation
+        ###############################################################
 
         # FFN for energy prediction
         outputs = self.head(outputs)
         outputs = self.scale_scatter(outputs, batch, dim=0)
+
+        ###############################################################
+        # Force estimation
+        ###############################################################
 
         # auxiliary IS2RS
         if self.use_auxiliary_task:

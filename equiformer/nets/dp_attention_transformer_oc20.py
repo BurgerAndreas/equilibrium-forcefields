@@ -99,17 +99,19 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
         num_atoms,
         bond_feat_dim,
         num_targets,
+        # irreps_in
         irreps_node_embedding="256x0e+128x1e",
+        irreps_feature="512x0e",
         num_layers=6,
         irreps_node_attr="1x0e",
         use_node_attr=False,
         irreps_sh="1x0e+1x1e",
         max_radius=6.0,
         number_of_basis=128,
+        # basis_type="gaussian",
         fc_neurons=[64, 64],
         use_atom_edge_attr=False,
         irreps_atom_edge_attr="8x0e",
-        irreps_feature="512x0e",
         irreps_head="32x0e+16x1e",
         num_heads=8,
         irreps_pre_attn=None,
@@ -121,6 +123,7 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
         proj_drop=0.0,
         out_drop=0.0,
         drop_path_rate=0.0,
+        # OC20 specific
         use_auxiliary_task=False,
         otf_graph=False,
         use_pbc=True,
@@ -183,6 +186,26 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
         self.rbf = GaussianRadialBasisLayer(
             self.number_of_basis, cutoff=self.max_radius
         )
+        # self.basis_type = basis_type
+        # if self.basis_type == "gaussian":
+        #     self.rbf = GaussianRadialBasisLayer(
+        #         self.number_of_basis, cutoff=self.max_radius
+        #     )
+        # elif self.basis_type == "bessel":
+        #     self.rbf = RadialBasis(
+        #         self.number_of_basis,
+        #         cutoff=self.max_radius,
+        #         rbf={"name": "spherical_bessel"},
+        #     )
+        # elif self.basis_type == "exp":
+        #     self.rbf = ExpNormalSmearing(
+        #         cutoff_lower=0.0,
+        #         cutoff_upper=self.max_radius,
+        #         num_rbf=self.number_of_basis,
+        #         trainable=False,
+        #     )
+        # else:
+        #     raise ValueError
         self.edge_deg_embed = EdgeDegreeEmbeddingNetwork(
             self.irreps_node_embedding,
             self.irreps_edge_attr,
@@ -209,12 +232,14 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
                 self.irreps_feature, self.out_drop
             )
 
+        # difference to just irreps_feature?
         self.irreps_feature_scalars = []
         for mul, ir in self.irreps_feature:
             if ir.l == 0 and ir.p == 1:
                 self.irreps_feature_scalars.append((mul, (ir.l, ir.p)))
         self.irreps_feature_scalars = o3.Irreps(self.irreps_feature_scalars)
 
+        # Output head
         self.head = torch.nn.Sequential(
             LinearRS(
                 self.irreps_feature, self.irreps_feature_scalars, rescale=_RESCALE
@@ -352,6 +377,7 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
 
     def forward(self, data):
         """
+        Difference to MD17:
         1. Handling periodic boundary conditions (PBC)
         2. [TODO] Predicting forces
         3. Using tag (0: sub-surface, 1: surface, 2: adsorbate)
@@ -359,8 +385,12 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
         4. Using OC20 registry to register models
         5. Not using one-hot encoded atom type as node attributes since there are much more
             atom types than QM9.
+
+        Difference to EquiformerV2:
+        - Uses tags
         """
         # Following OC20 models
+        # In E2 otf_graph and pbc are combined in generate_graph()
         data = self._forward_otf_graph(data)
         edge_index, edge_vec, edge_length, offsets = self._forward_use_pbc(data)
         batch = data.batch
@@ -374,8 +404,16 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
             normalization="component",
         )
 
+        # atomic_numbers = data.atomic_numbers.long()
+        if hasattr(data, "atomic_numbers"):
+            atomic_numbers = data.atomic_numbers.long()
+        else:
+            # MD17
+            atomic_numbers = data.z.long()
+            data.atomic_numbers = data.z
+
         # Following Graphoformer, which encodes both atom type and tag
-        atomic_numbers = data.atomic_numbers.long()
+        # E2 does not use tags
         atom_embedding, atom_attr, atom_onehot = self.atom_embed(atomic_numbers)
         tags = data.tags.long()
         tag_embedding, _, _ = self.tag_embed(tags)
@@ -390,6 +428,8 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
             edge_length_embedding = torch.cat(
                 (src_attr[edge_src], dst_attr[edge_dst], edge_length_embedding), dim=1
             )
+        
+        # same as MD17
         edge_degree_embedding = self.edge_deg_embed(
             atom_embedding, edge_sh, edge_length_embedding, edge_src, edge_dst, batch
         )
@@ -399,6 +439,10 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
             node_attr, _, _ = self.attr_embed(atomic_numbers)
         else:
             node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
+        
+        ###############################################################
+        # Update node embeddings
+        ###############################################################
 
         for blk in self.blocks:
             node_features = blk(
@@ -417,8 +461,17 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
             outputs = self.out_dropout(node_features)
         else:
             outputs = node_features
+
+        ###############################################################
+        # Energy estimation
+        ###############################################################
+
         outputs = self.head(outputs)
         outputs = self.scale_scatter(outputs, batch, dim=0)
+
+        ###############################################################
+        # Force estimation
+        ###############################################################
 
         # auxiliary IS2RS
         if self.use_auxiliary_task:

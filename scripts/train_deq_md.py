@@ -778,6 +778,8 @@ def train_one_epoch(
     task_mean = model.task_mean
     task_std = model.task_std
 
+    isnan_cnt = 0
+
     max_steps = len(data_loader)
     for step, data in enumerate(data_loader):
         data = data.to(device)
@@ -824,6 +826,9 @@ def train_one_epoch(
         # aligns the tensors and applies your loss function.
         # loss_fn = lambda y_gt, y: ((y_gt - y) ** 2).mean()
         # train_loss = fp_correction(loss_fn, (y_train, y_pred))
+
+        if torch.isnan(pred_y).any():
+            isnan_cnt += 1
 
         optimizer.zero_grad()
         loss.backward()
@@ -914,8 +919,8 @@ def train_one_epoch(
     
     # if loss_metrics is all nan
     # probably because deq_kwargs.f_solver=broyden,anderson did not converge
-    if torch.isnan(loss_metrics["energy"].avg):
-        raise ValueError("loss_metrics['energy'].avg is nan. Try deq_kwargs.f_solver=fixed_point_iter")
+    if isnan_cnt > max_steps // 2:
+        raise ValueError(f"Most energy predictions are nan ({isnan_cnt}/{max_steps}). Try deq_kwargs.f_solver=fixed_point_iter")
 
     return mae_metrics, loss_metrics, global_step
 

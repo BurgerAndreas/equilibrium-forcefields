@@ -11,6 +11,7 @@ defaults:
   - _self_
 
 model:
+  name: equiformer_v2_md17 # equiformer_v2_oc20
   use_pbc: False                  # True for OC20 # use periodic boundary conditions
   # otf_graph:                True
   # regress_forces:           True

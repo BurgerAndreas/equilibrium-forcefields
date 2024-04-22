@@ -73,7 +73,7 @@ equiformer_v2/nets/equiformer_v2/equiformer_v2_oc20.py
 from deq2ff.deq_base import _init_deq
 
 
-@registry.register_model("deq_equiformer_v2")
+@registry.register_model("deq_equiformer_v2_oc20")
 class DEQ_EquiformerV2_OC20(BaseModel):
     """
     Equiformer with graph attention built upon SO(2) convolution and feedforward network built upon S2 activation

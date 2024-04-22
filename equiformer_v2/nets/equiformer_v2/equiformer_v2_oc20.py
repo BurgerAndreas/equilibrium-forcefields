@@ -125,6 +125,8 @@ class EquiformerV2_OC20(BaseModel):
         attn_value_channels=16,
         ffn_hidden_channels=512,
         norm_type="rms_norm_sh",
+        # num_coefficients = sum_i int((lmax_list[i] + 1) ** 2)
+        # lmax_list=[3] -> num_coefficients = 16
         lmax_list=[6],
         mmax_list=[2],
         grid_resolution=None,
@@ -493,7 +495,7 @@ class EquiformerV2_OC20(BaseModel):
         ###############################################################
         # Energy estimation
         ###############################################################
-        # (B, 16, 1)
+        # (B, num_coefficients, 1)
         node_energy = self.energy_block(x)
         # (B, 1, 1)
         node_energy = node_energy.embedding.narrow(dim=1, start=0, length=1)
@@ -507,8 +509,12 @@ class EquiformerV2_OC20(BaseModel):
         # Force estimation
         ###############################################################
         if self.regress_forces:
+            # x: [num_atoms*batch_size, num_coefficients, sphere_channels/num_sphere_samples/edge_channels]
+            # forces: [num_atoms*batch_size, num_coefficients, 1]
             forces = self.force_block(x, atomic_numbers, edge_distance, edge_index)
-            forces = forces.embedding.narrow(1, 1, 3)
+            # [num_atoms*batch_size, 3, 1]
+            forces = forces.embedding.narrow(dim=1, start=1, length=3)
+            # [num_atoms*batch_size, 3]
             forces = forces.view(-1, 3)
 
         if not self.regress_forces:

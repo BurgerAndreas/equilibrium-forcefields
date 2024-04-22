@@ -56,8 +56,10 @@ model:
   dp_tp_irrep_norm: null # None = 'element'
   fc_tp_path_norm: "path"
   fc_tp_irrep_norm: null 
-  bias: True
   affine_ln: True
+  bias: True
+  # instead of F=dE/dx, use a prediction head DPTransBlock,
+  force_head: null 
 
   override_test: md17
 

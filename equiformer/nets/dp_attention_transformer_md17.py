@@ -42,6 +42,7 @@ from .graph_attention_transformer import (
     Vec2AttnHeads,
     AttnHeads2Vec,
     FeedForwardNetwork,
+    GraphAttention,
     NodeEmbeddingNetwork,
     ScaledScatter,
     EdgeDegreeEmbeddingNetwork,
@@ -49,6 +50,8 @@ from .graph_attention_transformer import (
 from .dp_attention_transformer import ScaleFactor, DotProductAttention, DPTransBlock
 
 import copy
+import wandb
+import omegaconf
 
 _RESCALE = True
 _USE_BIAS = True
@@ -59,8 +62,10 @@ _MAX_ATOM_TYPE = 64
 _AVG_NUM_NODES = 18.03065905448718
 _AVG_DEGREE = 15.57930850982666
 
+# used to init path norm, weight init, and other tricks added for DEQ
+from deq2ff.deq_equiformer.deq_equiformer_base import EquiformerDEQBase
 
-class DotProductAttentionTransformerMD17(torch.nn.Module):
+class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
     def __init__(
         self,
         irreps_in="64x0e",
@@ -89,8 +94,11 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         task_std=None,
         scale=None,
         atomref=None,
+        **kwargs,
     ):
         super().__init__()
+        kwargs = self._set_deq_vars(irreps_node_embedding, irreps_feature, **kwargs)
+        print(f'{self.__class__.__name__} ignoring kwargs: {kwargs}')
 
         self.max_radius = max_radius
         self.number_of_basis = number_of_basis
@@ -108,7 +116,7 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         # self.irreps_node_input = o3.Irreps(irreps_in)
         self.irreps_node_embedding = o3.Irreps(irreps_node_embedding)
         self.lmax = self.irreps_node_embedding.lmax
-        self.irreps_feature = o3.Irreps(irreps_feature)
+        # self.irreps_feature = o3.Irreps(irreps_feature)
         self.num_layers = num_layers
         self.irreps_edge_attr = (
             o3.Irreps(irreps_sh)
@@ -180,13 +188,76 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
         if self.out_drop != 0.0:
             self.out_dropout = EquivariantDropout(self.irreps_feature, self.out_drop)
 
-        # Output head
-        self.head = torch.nn.Sequential(
-            LinearRS(self.irreps_feature, self.irreps_feature, rescale=_RESCALE),
-            Activation(self.irreps_feature, acts=[torch.nn.SiLU()]),
-            LinearRS(self.irreps_feature, o3.Irreps("1x0e"), rescale=_RESCALE),
-        )
+        # Output head for energy
+        if self.use_attn_head:
+            self.head = GraphAttention(
+                irreps_node_input=self.irreps_feature,
+                irreps_node_attr=self.irreps_node_attr,
+                irreps_edge_attr=self.irreps_edge_attr,
+                irreps_node_output=o3.Irreps("1x0e"),
+                fc_neurons=self.fc_neurons,
+                irreps_head=self.irreps_head,
+                num_heads=self.num_heads,
+                irreps_pre_attn=self.irreps_pre_attn,
+                rescale_degree=self.rescale_degree,
+                nonlinear_message=self.nonlinear_message,
+                alpha_drop=self.alpha_drop,
+                proj_drop=self.proj_drop,
+                # added
+                # dp_tp_path_norm=self.dp_tp_path_norm,
+                # dp_tp_irrep_norm=self.dp_tp_irrep_norm,
+                # fc_tp_path_norm=self.fc_tp_path_norm,
+                # fc_tp_irrep_norm=self.fc_tp_irrep_norm,
+                # activation=self.activation,
+                # bias=self.bias,
+                # affine_ln=self.affine_ln,
+            )
+        else:
+            self.head = torch.nn.Sequential(
+                LinearRS(self.irreps_feature, self.irreps_feature, rescale=_RESCALE),
+                # Activation(self.irreps_feature, acts=[torch.nn.SiLU()]),
+                Activation(
+                    self.irreps_feature, acts=[eval(f"torch.nn.{self.activation}()")]
+                ),
+                LinearRS(self.irreps_feature, o3.Irreps("1x0e"), rescale=_RESCALE),
+            )
         self.scale_scatter = ScaledScatter(_AVG_NUM_NODES)
+
+        # added
+        if self.force_head is None:
+            self.force_block = None
+        else:
+            # outputs = self.irreps_node_embedding # [num_atoms*batch_size, irrep_dim]
+            outputs = o3.Irreps("1x1e") # [num_atoms*batch_size, 3]
+            # DPTransBlock, GraphAttention
+            self.force_block = eval(self.force_head)(
+                # irreps_node_input=self.irreps_node_embedding,
+                irreps_node_input=self.irreps_feature,
+                irreps_node_attr=self.irreps_node_attr,
+                irreps_edge_attr=self.irreps_edge_attr,
+                # output: which l's?
+                irreps_node_output=outputs,
+                fc_neurons=self.fc_neurons,
+                irreps_head=self.irreps_head,
+                num_heads=self.num_heads,
+                irreps_pre_attn=self.irreps_pre_attn,
+                rescale_degree=self.rescale_degree,
+                nonlinear_message=self.nonlinear_message,
+                alpha_drop=self.alpha_drop,
+                proj_drop=self.proj_drop,
+                # only DPTransBlock, not GraphAttention
+                drop_path_rate=self.drop_path_rate,
+                irreps_mlp_mid=self.irreps_mlp_mid,
+                norm_layer=self.norm_layer,
+                # added
+                dp_tp_path_norm=self.dp_tp_path_norm,
+                dp_tp_irrep_norm=self.dp_tp_irrep_norm,
+                fc_tp_path_norm=self.fc_tp_path_norm,
+                fc_tp_irrep_norm=self.fc_tp_irrep_norm,
+                activation=self.activation,
+                bias=self.bias,
+                affine_ln=self.affine_ln,
+            )
 
         self.apply(self._init_weights)
 
@@ -270,7 +341,8 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
     def forward(self, node_atom, pos, batch, **kwargs) -> torch.Tensor:
 
         # pos = node feature matrix
-        pos = pos.requires_grad_(True)
+        if self.force_block is None:
+            pos = pos.requires_grad_(True)
 
         # get graph edges based on radius
         edge_index = radius_graph(
@@ -345,7 +417,19 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
             node_features = self.out_dropout(node_features)
 
         # output head
-        outputs = self.head(node_features)
+        # [num_atoms*batch_size, irreps_dim] -> [num_atoms*batch_size, 1]
+        if self.use_attn_head:
+            outputs = self.head(
+                node_input=node_features,
+                node_attr=node_attr,
+                edge_src=edge_src,
+                edge_dst=edge_dst,
+                edge_attr=edge_sh,
+                edge_scalars=edge_length_embedding,
+                batch=batch,
+            )
+        else:
+            outputs = self.head(node_features)
         outputs = self.scale_scatter(outputs, batch, dim=0)
 
         if self.scale is not None:
@@ -353,16 +437,47 @@ class DotProductAttentionTransformerMD17(torch.nn.Module):
 
         energy = outputs
 
-        # TODO: force_head
-        # https://github.com/Open-Catalyst-Project/ocp/blob/main/ocpmodels/models/spinconv.py#L321-L328
-        forces = -1 * (
-            torch.autograd.grad(
-                energy,
-                pos,
-                grad_outputs=torch.ones_like(energy),
-                create_graph=True,
-            )[0]
-        )
+        ###############################################################
+        # Force estimation
+        ###############################################################
+
+        if self.force_block is None:
+            # https://github.com/Open-Catalyst-Project/ocp/blob/main/ocpmodels/models/spinconv.py#L321-L328
+            # shape: [num_atoms*batch_size, 3]
+            forces = -1 * (
+                torch.autograd.grad(
+                    energy,
+                    # diff with respect to pos
+                    # if you get 'One of the differentiated Tensors appears to not have been used in the graph'
+                    # then because pos is not 'used' to calculate the energy
+                    pos,
+                    grad_outputs=torch.ones_like(energy),
+                    create_graph=True,
+                )[0]
+            )
+        else:
+            # atom-wise forces using a block of equivariant graph attention
+            # and treating the output of degree 1 as the predictions
+            # forces = self.force_block(x, atomic_numbers, edge_distance, edge_index)
+            # x: [num_atoms*batch_size, irrep_dim]
+            # forces: o3.Irreps("1x1e") -> [num_atoms*batch_size, 3]
+            forces = self.force_block(
+                node_input=node_features,
+                node_attr=node_attr,
+                edge_src=edge_src,
+                edge_dst=edge_dst,
+                edge_attr=edge_sh,  # requires_grad
+                edge_scalars=edge_length_embedding,  # requires_grad
+                batch=batch,
+            )
+            # in case we predict more irreps than forces, select the first 3
+            # forces = forces.embedding.narrow(1, 1, 3)
+            if forces.shape[1] != 3:
+                # [num_atoms*batch_size, 3, 1]
+                forces = forces.narrow(1, 1, 3)
+            if len(forces.shape) > 2:
+                # [num_atoms*batch_size, 3]
+                forces = forces.view(-1, 3)
 
         return energy, forces, {}
 
@@ -422,8 +537,8 @@ def dot_product_attention_transformer_exp_l2_md17(
         task_std=task_std,
         scale=scale,
         atomref=atomref,
+        **kwargs,
     )
-    print(f"! Ignoring kwargs: {kwargs}")
     return model
 
 
@@ -482,6 +597,6 @@ def dot_product_attention_transformer_exp_l3_md17(
         task_std=task_std,
         scale=scale,
         atomref=atomref,
+        **kwargs,
     )
-    print(f"! Ignoring kwargs: {kwargs}")
     return model

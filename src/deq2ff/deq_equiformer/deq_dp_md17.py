@@ -126,7 +126,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
 
     Equiformer comes in two variants: 
     (1) linear message passing + dot product attention 
-    (2) MLP attention + non-linear message passing (‘equivariant graph attention’)
+    (2) MLP attention + non-linear message passing (`equivariant graph attention`)
 
     Message = attention weights * values
     Values: linear / non-linear message passing
@@ -172,7 +172,6 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         # scale the final output by this number
         scale: float = None,
         atomref=None,
-        use_attn_head=False,
         # Statistics of QM9 with cutoff max_radius = 5
         # For simplicity, use the same statistics for MD17
         _AVG_NUM_NODES = 18.03065905448718,
@@ -182,7 +181,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
     ):
         super().__init__()
 
-        kwargs = self._set_deq_vars(irreps_node_embedding, **kwargs)
+        kwargs = self._set_deq_vars(irreps_node_embedding, irreps_feature, **kwargs)
 
         self._AVG_NUM_NODES = _AVG_NUM_NODES
         self._AVG_DEGREE = _AVG_DEGREE
@@ -203,7 +202,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         # self.irreps_node_input = o3.Irreps(irreps_in)
         # self.irreps_node_embedding = o3.Irreps(irreps_node_embedding)
         self.lmax = self.irreps_node_embedding.lmax
-        self.irreps_feature = o3.Irreps(irreps_feature)
+        # self.irreps_feature = o3.Irreps(irreps_feature)
         self.num_layers = num_layers
         self.irreps_edge_attr = (
             o3.Irreps(irreps_sh)
@@ -262,8 +261,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         self.out_dropout = None
         if self.out_drop != 0.0:
             self.out_dropout = EquivariantDropout(self.irreps_feature, self.out_drop)
-        # Output head
-        self.use_attn_head = use_attn_head
+        # Output head for energy
         if self.use_attn_head:
             self.head = GraphAttention(
                 irreps_node_input=self.irreps_feature,
@@ -278,6 +276,14 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 nonlinear_message=self.nonlinear_message,
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
+                # added
+                # dp_tp_path_norm=self.dp_tp_path_norm,
+                # dp_tp_irrep_norm=self.dp_tp_irrep_norm,
+                # fc_tp_path_norm=self.fc_tp_path_norm,
+                # fc_tp_irrep_norm=self.fc_tp_irrep_norm,
+                # activation=self.activation,
+                # bias=self.bias,
+                # affine_ln=self.affine_ln,
             )
         else:
             self.head = torch.nn.Sequential(
@@ -289,6 +295,42 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 LinearRS(self.irreps_feature, o3.Irreps("1x0e"), rescale=_RESCALE),
             )
         self.scale_scatter = ScaledScatter(_AVG_NUM_NODES)
+
+        # added
+        if self.force_head is None:
+            self.force_block = None
+        else:
+            # outputs = self.irreps_node_embedding # [num_atoms*batch_size, irrep_dim]
+            outputs = o3.Irreps("1x1e") # [num_atoms*batch_size, 3]
+            # DPTransBlock, GraphAttention
+            self.force_block = eval(self.force_head)(
+                # irreps_node_input=self.irreps_node_embedding,
+                irreps_node_input=self.irreps_feature,
+                irreps_node_attr=self.irreps_node_attr,
+                irreps_edge_attr=self.irreps_edge_attr,
+                # output: which l's?
+                irreps_node_output=outputs,
+                fc_neurons=self.fc_neurons,
+                irreps_head=self.irreps_head,
+                num_heads=self.num_heads,
+                irreps_pre_attn=self.irreps_pre_attn,
+                rescale_degree=self.rescale_degree,
+                nonlinear_message=self.nonlinear_message,
+                alpha_drop=self.alpha_drop,
+                proj_drop=self.proj_drop,
+                # only DPTransBlock, not GraphAttention
+                drop_path_rate=self.drop_path_rate,
+                irreps_mlp_mid=self.irreps_mlp_mid,
+                norm_layer=self.norm_layer,
+                # added
+                dp_tp_path_norm=self.dp_tp_path_norm,
+                dp_tp_irrep_norm=self.dp_tp_irrep_norm,
+                fc_tp_path_norm=self.fc_tp_path_norm,
+                fc_tp_irrep_norm=self.fc_tp_irrep_norm,
+                activation=self.activation,
+                bias=self.bias,
+                affine_ln=self.affine_ln,
+            )
 
         self.apply(self._init_weights)
         self.blocks.apply(self._init_weights_blocks)
@@ -672,6 +714,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         edge_length_embedding,
         batch,
         pos,
+        # atomic_numbers,
     ):
         """Decode the node features into energy and forces (scalars).
         Basically the last third of DotProductAttentionTransformerMD17.forward()
@@ -710,21 +753,62 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         if self.scale is not None:
             outputs = self.scale * outputs
 
+        ###############################################################
+        # Energy estimation
+        ###############################################################
         energy = outputs
-        # https://github.com/Open-Catalyst-Project/ocp/blob/main/ocpmodels/models/spinconv.py#L321-L328
-        # shape: [num_atoms*batch_size, 3]
-        forces = -1 * (
-            torch.autograd.grad(
-                energy,
-                # diff with respect to pos
-                # if you get 'One of the differentiated Tensors appears to not have been used in the graph'
-                # then because pos is not 'used' to calculate the energy
-                pos,
-                grad_outputs=torch.ones_like(energy),
-                create_graph=True,
-                # allow_unused=True, # TODO
-            )[0]
-        )
+
+        # E2 OC20
+        # node_energy = self.energy_block(x)
+        # node_energy = node_energy.embedding.narrow(1, 0, 1)
+        # energy = torch.zeros(
+        #     len(data.natoms), device=node_energy.device, dtype=node_energy.dtype
+        # )
+        # energy.index_add_(0, data.batch, node_energy.view(-1))
+        # energy = energy / self._AVG_NUM_NODES
+
+        ###############################################################
+        # Force estimation
+        ###############################################################
+
+        if self.force_block is None:
+            # https://github.com/Open-Catalyst-Project/ocp/blob/main/ocpmodels/models/spinconv.py#L321-L328
+            # shape: [num_atoms*batch_size, 3]
+            forces = -1 * (
+                torch.autograd.grad(
+                    energy,
+                    # diff with respect to pos
+                    # if you get 'One of the differentiated Tensors appears to not have been used in the graph'
+                    # then because pos is not 'used' to calculate the energy
+                    pos,
+                    grad_outputs=torch.ones_like(energy),
+                    create_graph=True,
+                    # allow_unused=True,
+                )[0]
+            )
+        else:
+            # atom-wise forces using a block of equivariant graph attention
+            # and treating the output of degree 1 as the predictions
+            # forces = self.force_block(x, atomic_numbers, edge_distance, edge_index)
+            # x: [num_atoms*batch_size, irrep_dim]
+            # forces: o3.Irreps("1x1e") -> [num_atoms*batch_size, 3]
+            forces = self.force_block(
+                node_input=node_features,
+                node_attr=node_attr,
+                edge_src=edge_src,
+                edge_dst=edge_dst,
+                edge_attr=edge_sh,  # requires_grad
+                edge_scalars=edge_length_embedding,  # requires_grad
+                batch=batch,
+            )
+            # in case we predict more irreps than forces, select the first 3
+            # forces = forces.embedding.narrow(1, 1, 3)
+            if forces.shape[1] != 3:
+                # [num_atoms*batch_size, 3, 1]
+                forces = forces.narrow(1, 1, 3)
+            if len(forces.shape) > 2:
+                # [num_atoms*batch_size, 3]
+                forces = forces.view(-1, 3)
 
         return energy, forces
 
@@ -782,7 +866,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         **kwargs
     ):
         """Forward pass of the DEQ model."""
-        pos = pos.requires_grad_(True)
+        if self.force_head in [None, False]:
+            pos = pos.requires_grad_(True)
 
         # encode
         # u = self.encode(x)
@@ -869,7 +954,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         # energy = outputs[-1][0]
         # force = outputs[-1][1]
 
-        if not z_pred[-1].requires_grad:
+        if (not z_pred[-1].requires_grad) and (self.force_head is None):
             print(
                 "!!!",
                 f"z_pred[-1] node_features.requires_grad: {z_pred[-1].requires_grad} (datasplit: {datasplit})",

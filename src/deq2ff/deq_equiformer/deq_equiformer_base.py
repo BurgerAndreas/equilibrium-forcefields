@@ -15,6 +15,7 @@ from deq2ff.deq_base import _init_deq
 class EquiformerDEQBase:
     def _set_deq_vars(
         self,
+        irreps_feature,
         irreps_node_embedding,
         input_injection="first_layer",  # False=V1, 'first_layer'=V2
         cat_injection=False,
@@ -32,6 +33,9 @@ class EquiformerDEQBase:
         # blocks
         dec_proj=None,
         deq_block=None,
+        force_head=None,
+        use_attn_head=False,
+        # force_head=None,
         # weight initialization
         weight_init=None,
         weight_init_blocks=None,
@@ -50,16 +54,26 @@ class EquiformerDEQBase:
                 python scripts/deq_equiformer.py model.weight_init_blocks='{EquivariantLayerNormV2_w:1,EquivariantLayerNormV2_b:normal_0.0_0.1}'
         """
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.dp_tp_path_norm = dp_tp_path_norm
         self.dp_tp_irrep_norm = dp_tp_irrep_norm
         self.fc_tp_path_norm = fc_tp_path_norm
         self.fc_tp_irrep_norm = fc_tp_irrep_norm
         self.activation = activation
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.dec_proj = dec_proj
         self.deq_block = deq_block
-        self.limit_f_max_iter_fpreuse = limit_f_max_iter_fpreuse
         self.affine_ln = affine_ln
+        self.limit_f_max_iter_fpreuse = limit_f_max_iter_fpreuse
+
+        self.force_head = force_head
+        self.use_attn_head = use_attn_head
+        if self.force_head is not None:
+            # can't have scalar-only features when predicting forces (aka vectors)
+            self.irreps_feature = irreps_node_embedding
+            # need attention head to deal with non-scalar irreps
+            self.use_attn_head = True
+            if wandb.run is not None:
+                wandb.config.update({'irreps_feature': irreps_feature, 'use_attn_head': use_attn_head})
 
         # concat input injection or add it to the node features (embeddings)
         self.cat_injection = cat_injection
@@ -67,7 +81,7 @@ class EquiformerDEQBase:
             if irreps_node_embedding_injection != irreps_node_embedding:
                 irreps_node_embedding_injection = irreps_node_embedding
                 print(
-                    f"Warning: `cat_injection` is False and addition is used. " 
+                    f"Warning: `cat_injection` is False and thus addition is used. " 
                     f"Setting `irreps_node_embedding_injection` = `irreps_node_embedding` = " 
                     f"{irreps_node_embedding}."
                 )

@@ -532,6 +532,7 @@ class GraphAttention(torch.nn.Module):
         path_normalization="none",
         activation="SiLU",
         bias=True,
+        **kwargs,
     ):
 
         super().__init__()

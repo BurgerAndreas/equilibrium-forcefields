@@ -2,8 +2,11 @@
 # ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
 
 # 11,770,946 parameters
+
+defaults:
+  - base
+
 model:
-  name: equiformer_v2_oc20
   
   use_pbc:                  True
   regress_forces:           True

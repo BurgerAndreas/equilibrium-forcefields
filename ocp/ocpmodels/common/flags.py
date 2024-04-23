@@ -127,12 +127,8 @@ class Flags:
             default="nccl",
             help="Backend for DDP",
         )
-        self.parser.add_argument(
-            "--local_rank", default=0, type=int, help="Local rank"
-        )
-        self.parser.add_argument(
-            "--no-ddp", action="store_true", help="Do not use DDP"
-        )
+        self.parser.add_argument("--local_rank", default=0, type=int, help="Local rank")
+        self.parser.add_argument("--no-ddp", action="store_true", help="Do not use DDP")
         self.parser.add_argument(
             "--gp-gpus",
             type=int,

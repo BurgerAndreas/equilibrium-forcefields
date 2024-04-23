@@ -47,9 +47,7 @@ class TrainTask(BaseTask):
     def run(self):
         try:
             self.trainer.train(
-                disable_eval_tqdm=self.config.get(
-                    "hide_eval_progressbar", False
-                )
+                disable_eval_tqdm=self.config.get("hide_eval_progressbar", False)
             )
         except RuntimeError as e:
             self._process_error(e)

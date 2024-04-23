@@ -273,9 +273,7 @@ class GraphParallelGemNetT(BaseModel):
         """
         idx_s, idx_t = edge_index  # c->a (source=c, target=a)
 
-        value = torch.arange(
-            idx_s.size(0), device=idx_s.device, dtype=idx_s.dtype
-        )
+        value = torch.arange(idx_s.size(0), device=idx_s.device, dtype=idx_s.dtype)
         # Possibly contains multiple copies of the same edge (for periodic interactions)
         adj = SparseTensor(
             row=idx_t,
@@ -362,9 +360,7 @@ class GraphParallelGemNetT(BaseModel):
             neighbors,
         )
         batch_edge = batch_edge[mask]
-        neighbors_new = 2 * torch.bincount(
-            batch_edge, minlength=neighbors.size(0)
-        )
+        neighbors_new = 2 * torch.bincount(batch_edge, minlength=neighbors.size(0))
 
         # Create indexing array
         edge_reorder_idx = repeat_blocks(
@@ -635,9 +631,7 @@ class GraphParallelGemNetT(BaseModel):
                     F_t = torch.stack(forces, dim=1)
                     # (nAtoms, num_targets, 3)
                 else:
-                    F_t = -torch.autograd.grad(
-                        E_t.sum(), pos, create_graph=True
-                    )[0]
+                    F_t = -torch.autograd.grad(E_t.sum(), pos, create_graph=True)[0]
                     # (nAtoms, 3)
 
             return E_t, F_t  # (nMolecules, num_targets), (nAtoms, 3)

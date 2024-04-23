@@ -104,9 +104,7 @@ class SphericalChannelNetwork(BaseModel):
         import sys
 
         if "e3nn" not in sys.modules:
-            logging.error(
-                "You need to install e3nn v0.2.6 to use the SCN model"
-            )
+            logging.error("You need to install e3nn v0.2.6 to use the SCN model")
             raise ImportError
 
         assert e3nn.__version__ == "0.2.6"
@@ -185,9 +183,7 @@ class SphericalChannelNetwork(BaseModel):
         if num_resolutions == 1:
             self.num_resolutions = 1
             self.hidden_channels_list = torch.tensor([self.hidden_channels])
-            self.lmax_list = torch.tensor(
-                [self.lmax, -1]
-            )  # always end with -1
+            self.lmax_list = torch.tensor([self.lmax, -1])  # always end with -1
             self.cutoff_list = torch.tensor([self.max_num_neighbors - 0.01])
         if num_resolutions == 2:
             self.num_resolutions = 2
@@ -195,9 +191,7 @@ class SphericalChannelNetwork(BaseModel):
                 [self.hidden_channels, self.hidden_channels // 4]
             )
             self.lmax_list = torch.tensor([self.lmax, max(4, self.lmax - 2)])
-            self.cutoff_list = torch.tensor(
-                [12 - 0.01, self.max_num_neighbors - 0.01]
-            )
+            self.cutoff_list = torch.tensor([12 - 0.01, self.max_num_neighbors - 0.01])
 
         self.sphharm_list = []
         for i in range(self.num_resolutions):
@@ -230,16 +224,12 @@ class SphericalChannelNetwork(BaseModel):
 
         # Energy estimation
         self.energy_fc1 = nn.Linear(self.sphere_channels, self.sphere_channels)
-        self.energy_fc2 = nn.Linear(
-            self.sphere_channels, self.sphere_channels_reduce
-        )
+        self.energy_fc2 = nn.Linear(self.sphere_channels, self.sphere_channels_reduce)
         self.energy_fc3 = nn.Linear(self.sphere_channels_reduce, 1)
 
         # Force estimation
         if self.regress_forces:
-            self.force_fc1 = nn.Linear(
-                self.sphere_channels, self.sphere_channels
-            )
+            self.force_fc1 = nn.Linear(self.sphere_channels, self.sphere_channels)
             self.force_fc2 = nn.Linear(
                 self.sphere_channels, self.sphere_channels_reduce
             )
@@ -320,9 +310,9 @@ class SphericalChannelNetwork(BaseModel):
             edge_index_reorder = torch.cat(
                 [
                     edge_index_reorder,
-                    torch.masked_select(
-                        edge_index, mask.view(1, -1).repeat(2, 1)
-                    ).view(2, -1),
+                    torch.masked_select(edge_index, mask.view(1, -1).repeat(2, 1)).view(
+                        2, -1
+                    ),
                 ],
                 dim=1,
             )
@@ -335,9 +325,7 @@ class SphericalChannelNetwork(BaseModel):
             cutoff_index = torch.cat(
                 [
                     cutoff_index,
-                    torch.tensor(
-                        [len(edge_distance_reorder)], device=self.device
-                    ),
+                    torch.tensor([len(edge_distance_reorder)], device=self.device),
                 ],
                 dim=0,
             )
@@ -347,9 +335,7 @@ class SphericalChannelNetwork(BaseModel):
         edge_distance_vec = edge_distance_vec_reorder
 
         # Compute 3x3 rotation matrix per edge
-        edge_rot_mat = self._init_edge_rot_mat(
-            data, edge_index, edge_distance_vec
-        )
+        edge_rot_mat = self._init_edge_rot_mat(data, edge_index, edge_distance_vec)
 
         # Initialize the WignerD matrices and other values for spherical harmonic calculations
         for i in range(self.num_resolutions):
@@ -388,17 +374,13 @@ class SphericalChannelNetwork(BaseModel):
         ###############################################################
 
         # Create a roughly evenly distributed point sampling of the sphere
-        sphere_points = CalcSpherePoints(
-            self.num_sphere_samples, x.device
-        ).detach()
+        sphere_points = CalcSpherePoints(self.num_sphere_samples, x.device).detach()
         sphharm_weights = o3.spherical_harmonics(
             torch.arange(0, self.lmax + 1).tolist(), sphere_points, False
         ).detach()
 
         # Energy estimation
-        node_energy = torch.einsum(
-            "abc, pb->apc", x, sphharm_weights
-        ).contiguous()
+        node_energy = torch.einsum("abc, pb->apc", x, sphharm_weights).contiguous()
         node_energy = node_energy.view(-1, self.sphere_channels)
         node_energy = self.act(self.energy_fc1(node_energy))
         node_energy = self.act(self.energy_fc2(node_energy))
@@ -410,9 +392,7 @@ class SphericalChannelNetwork(BaseModel):
 
         # Force estimation
         if self.regress_forces:
-            forces = torch.einsum(
-                "abc, pb->apc", x, sphharm_weights
-            ).contiguous()
+            forces = torch.einsum("abc, pb->apc", x, sphharm_weights).contiguous()
             forces = forces.view(-1, self.sphere_channels)
             forces = self.act(self.force_fc1(forces))
             forces = self.act(self.force_fc2(forces))
@@ -432,9 +412,7 @@ class SphericalChannelNetwork(BaseModel):
 
         if torch.min(edge_vec_0_distance) < 0.0001:
             print(
-                "Error edge_vec_0_distance: {}".format(
-                    torch.min(edge_vec_0_distance)
-                )
+                "Error edge_vec_0_distance: {}".format(torch.min(edge_vec_0_distance))
             )
             (minval, minidx) = torch.min(edge_vec_0_distance, 0)
             print(
@@ -461,37 +439,23 @@ class SphericalChannelNetwork(BaseModel):
         edge_vec_2c = edge_vec_2.clone()
         edge_vec_2c[:, 1] = -edge_vec_2[:, 2]
         edge_vec_2c[:, 2] = edge_vec_2[:, 1]
-        vec_dot_b = torch.abs(torch.sum(edge_vec_2b * norm_x, dim=1)).view(
-            -1, 1
-        )
-        vec_dot_c = torch.abs(torch.sum(edge_vec_2c * norm_x, dim=1)).view(
-            -1, 1
-        )
+        vec_dot_b = torch.abs(torch.sum(edge_vec_2b * norm_x, dim=1)).view(-1, 1)
+        vec_dot_c = torch.abs(torch.sum(edge_vec_2c * norm_x, dim=1)).view(-1, 1)
 
         vec_dot = torch.abs(torch.sum(edge_vec_2 * norm_x, dim=1)).view(-1, 1)
-        edge_vec_2 = torch.where(
-            torch.gt(vec_dot, vec_dot_b), edge_vec_2b, edge_vec_2
-        )
+        edge_vec_2 = torch.where(torch.gt(vec_dot, vec_dot_b), edge_vec_2b, edge_vec_2)
         vec_dot = torch.abs(torch.sum(edge_vec_2 * norm_x, dim=1)).view(-1, 1)
-        edge_vec_2 = torch.where(
-            torch.gt(vec_dot, vec_dot_c), edge_vec_2c, edge_vec_2
-        )
+        edge_vec_2 = torch.where(torch.gt(vec_dot, vec_dot_c), edge_vec_2c, edge_vec_2)
 
         vec_dot = torch.abs(torch.sum(edge_vec_2 * norm_x, dim=1))
         # Check the vectors aren't aligned
         assert torch.max(vec_dot) < 0.99
 
         norm_z = torch.cross(norm_x, edge_vec_2, dim=1)
-        norm_z = norm_z / (
-            torch.sqrt(torch.sum(norm_z**2, dim=1, keepdim=True))
-        )
-        norm_z = norm_z / (
-            torch.sqrt(torch.sum(norm_z**2, dim=1)).view(-1, 1)
-        )
+        norm_z = norm_z / (torch.sqrt(torch.sum(norm_z**2, dim=1, keepdim=True)))
+        norm_z = norm_z / (torch.sqrt(torch.sum(norm_z**2, dim=1)).view(-1, 1))
         norm_y = torch.cross(norm_x, norm_z, dim=1)
-        norm_y = norm_y / (
-            torch.sqrt(torch.sum(norm_y**2, dim=1, keepdim=True))
-        )
+        norm_y = norm_y / (torch.sqrt(torch.sum(norm_y**2, dim=1, keepdim=True)))
 
         norm_x = norm_x.view(-1, 3, 1)
         norm_y = -norm_y.view(-1, 3, 1)
@@ -502,16 +466,12 @@ class SphericalChannelNetwork(BaseModel):
 
         return edge_rot_mat.detach()
 
-    def _rank_edge_distances(
-        self, edge_distance, edge_index, max_num_neighbors
-    ):
+    def _rank_edge_distances(self, edge_distance, edge_index, max_num_neighbors):
         device = edge_distance.device
         # Create an index map to map distances from atom_distance to distance_sort
         # index_sort_map assumes index to be sorted
         output, num_neighbors = torch.unique(edge_index[1], return_counts=True)
-        index_neighbor_offset = (
-            torch.cumsum(num_neighbors, dim=0) - num_neighbors
-        )
+        index_neighbor_offset = torch.cumsum(num_neighbors, dim=0) - num_neighbors
         index_neighbor_offset_expand = torch.repeat_interleave(
             index_neighbor_offset, num_neighbors
         )
@@ -622,18 +582,12 @@ class EdgeBlock(torch.nn.Module):
         if self.use_grid:
             # Network for each node to combine edge messages
             self.fc1_sphere = nn.Linear(
-                self.sphharm_list[0].num_bands
-                * 2
-                * self.sphere_channels_reduce,
-                self.sphharm_list[0].num_bands
-                * 2
-                * self.sphere_channels_reduce,
+                self.sphharm_list[0].num_bands * 2 * self.sphere_channels_reduce,
+                self.sphharm_list[0].num_bands * 2 * self.sphere_channels_reduce,
             )
 
             self.fc2_sphere = nn.Linear(
-                self.sphharm_list[0].num_bands
-                * 2
-                * self.sphere_channels_reduce,
+                self.sphharm_list[0].num_bands * 2 * self.sphere_channels_reduce,
                 2 * self.sphere_channels_reduce,
             )
 
@@ -692,15 +646,11 @@ class EdgeBlock(torch.nn.Module):
 
         if self.use_grid:
             # Feed in the spherical functions from the previous time step
-            x_grid = self.sphharm_list[0].ToGrid(
-                x_down, self.sphere_channels_reduce
-            )
+            x_grid = self.sphharm_list[0].ToGrid(x_down, self.sphere_channels_reduce)
             x_grid = torch.cat(
                 [
                     x_grid,
-                    self.sphharm_list[0].ToGrid(
-                        x_new, self.sphere_channels_reduce
-                    ),
+                    self.sphharm_list[0].ToGrid(x_new, self.sphere_channels_reduce),
                 ],
                 dim=1,
             )
@@ -708,16 +658,12 @@ class EdgeBlock(torch.nn.Module):
             x_grid = self.act(self.fc1_sphere(x_grid))
             x_grid = self.act(self.fc2_sphere(x_grid))
             x_grid = self.fc3_sphere(x_grid)
-            x_new = self.sphharm_list[0].FromGrid(
-                x_grid, self.sphere_channels_reduce
-            )
+            x_new = self.sphharm_list[0].FromGrid(x_grid, self.sphere_channels_reduce)
 
         if self.sphere_channels != self.sphere_channels_reduce:
             x_new = x_new.view(-1, self.sphere_channels_reduce)
             x_new = self.upsample(x_new)
-        x_new = x_new.view(
-            -1, self.sphharm_list[0].sphere_basis, self.sphere_channels
-        )
+        x_new = x_new.view(-1, self.sphharm_list[0].sphere_basis, self.sphere_channels)
 
         return x_new
 
@@ -775,9 +721,7 @@ class MessageBlock(torch.nn.Module):
         x_message = torch.cat([x_msg_source, x_msg_target], dim=1)
         x_message = self.act(self.fc1_edge_proj(x_message))
         x_message = (
-            x_message.view(
-                -1, self.sphharm.num_y_rotations, self.hidden_channels
-            )
+            x_message.view(-1, self.sphharm.num_y_rotations, self.hidden_channels)
         ) * x_edge.view(-1, 1, self.hidden_channels)
         x_message = x_message.view(-1, self.hidden_channels)
 

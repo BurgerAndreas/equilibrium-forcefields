@@ -1,4 +1,3 @@
-
 import time
 import torch
 import numpy as np
@@ -111,7 +110,9 @@ def main(args):
         import equiformer.datasets.pyg.md_all as md_all
 
         order = None
-        if ('fpreuse_test' in args and args.fpreuse_test) or ('fpreuse_datasplit' in args and args.fpreuse_datasplit):
+        if ("fpreuse_test" in args and args.fpreuse_test) or (
+            "fpreuse_datasplit" in args and args.fpreuse_datasplit
+        ):
             order = "consecutive_test"
 
         train_dataset, val_dataset, test_dataset = md_all.get_md_datasets(
@@ -909,8 +910,8 @@ def evaluate(
         ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
         mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
-        if 'nstep' in info:
-            n_fsolver_steps += info['nstep'][0].mean().item()
+        if "nstep" in info:
+            n_fsolver_steps += info["nstep"][0].mean().item()
 
         # --- logging ---
         if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
@@ -926,15 +927,17 @@ def evaluate(
             )
             logger.info(info_str)
 
-        if ((step + 1) >= max_steps):
+        if (step + 1) >= max_steps:
             break
-    
+
     eval_time = time.perf_counter() - start_time
     wandb.log({f"time_{datasplit}": eval_time}, step=global_step)
 
     if n_fsolver_steps > 0:
         n_fsolver_steps /= max_steps
-        wandb.log({f"avg_n_fsolver_steps_{datasplit}": n_fsolver_steps}, step=global_step)
+        wandb.log(
+            {f"avg_n_fsolver_steps_{datasplit}": n_fsolver_steps}, step=global_step
+        )
 
     return mae_metrics, loss_metrics
 

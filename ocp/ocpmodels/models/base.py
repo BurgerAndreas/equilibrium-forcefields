@@ -44,7 +44,7 @@ class BaseModel(nn.Module):
         otf_graph = otf_graph or self.otf_graph
 
         # only uses cell if otf_graph is False or use_pbc is not None
-        if not otf_graph: # default: True
+        if not otf_graph:  # default: True
             try:
                 edge_index = data.edge_index
 
@@ -58,7 +58,7 @@ class BaseModel(nn.Module):
                 )
                 otf_graph = True
 
-        if use_pbc: # True for OC20 S2EF
+        if use_pbc:  # True for OC20 S2EF
             if otf_graph:
                 edge_index, cell_offsets, neighbors = radius_graph_pbc(
                     data, cutoff, max_neighbors
@@ -96,9 +96,7 @@ class BaseModel(nn.Module):
             # edge_length = edge_vec.norm(dim=1)
             edge_dist = distance_vec.norm(dim=-1)
 
-            cell_offsets = torch.zeros(
-                edge_index.shape[1], 3, device=data.pos.device
-            )
+            cell_offsets = torch.zeros(edge_index.shape[1], 3, device=data.pos.device)
             cell_offset_distances = torch.zeros_like(
                 cell_offsets, device=data.pos.device
             )

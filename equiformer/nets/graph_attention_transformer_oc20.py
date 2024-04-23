@@ -374,7 +374,7 @@ class GraphAttentionTransformerOC20(torch.nn.Module):
         return edge_index, edge_vec, dist, offsets
 
     def forward(self, data):
-        """Exactly the same as dp_attention_transformer_oc20.py, 
+        """Exactly the same as dp_attention_transformer_oc20.py,
         except optional attention head for energy and force prediction.
         """
         # Following OC20 models
@@ -423,7 +423,7 @@ class GraphAttentionTransformerOC20(torch.nn.Module):
             node_attr, _, _ = self.attr_embed(atomic_numbers)
         else:
             node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
-        
+
         ###############################################################
         # Update node embeddings
         ###############################################################
@@ -445,7 +445,7 @@ class GraphAttentionTransformerOC20(torch.nn.Module):
             outputs = self.out_dropout(node_features)
         else:
             outputs = node_features
-        
+
         ###############################################################
         # Energy and Force estimation
         ###############################################################
@@ -472,7 +472,7 @@ class GraphAttentionTransformerOC20(torch.nn.Module):
                 return outputs, outputs_aux
             else:
                 return outputs
-        
+
         ###############################################################
         # Energy estimation
         ###############################################################

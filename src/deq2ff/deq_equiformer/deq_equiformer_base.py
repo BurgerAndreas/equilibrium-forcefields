@@ -60,7 +60,9 @@ class EquiformerDEQBase:
         # and uses a IdentityBlock instead of the TransformerBlock in the decoder.
         # only works if force_head is set -> irreps_feature=irreps_node_embedding
         if dec is False:
-            assert (force_head is not None) or (irreps_feature == irreps_node_embedding), f'Try: model.force_head=GraphAttention model.dec=False'
+            assert (force_head is not None) or (
+                irreps_feature == irreps_node_embedding
+            ), f"Try: model.force_head=GraphAttention model.dec=False"
             if dec_proj is None:
                 dec_proj = "IdentityBlock"
             num_layers += 1
@@ -86,17 +88,19 @@ class EquiformerDEQBase:
             # need attention head to deal with non-scalar irreps
             self.use_attn_head = True
             if wandb.run is not None:
-                wandb.config.update({'irreps_feature': irreps_feature, 'use_attn_head': use_attn_head})
+                wandb.config.update(
+                    {"irreps_feature": irreps_feature, "use_attn_head": use_attn_head}
+                )
         self.irreps_feature = o3.Irreps(irreps_feature)
-        
+
         # concat input injection or add it to the node features (embeddings)
         self.cat_injection = cat_injection
         if cat_injection is False:
             if irreps_node_embedding_injection != irreps_node_embedding:
                 irreps_node_embedding_injection = irreps_node_embedding
                 print(
-                    f"Warning: `cat_injection` is False and thus addition is used. " 
-                    f"Setting `irreps_node_embedding_injection` = `irreps_node_embedding` = " 
+                    f"Warning: `cat_injection` is False and thus addition is used. "
+                    f"Setting `irreps_node_embedding_injection` = `irreps_node_embedding` = "
                     f"{irreps_node_embedding}."
                 )
                 # assert input_injection in ["first_layer", "every_layer", True, "legacy"]
@@ -106,11 +110,11 @@ class EquiformerDEQBase:
         if input_injection is False:
             # V1: node_features are initialized as the output of the encoder
             # output of encoder
-            self.irreps_node_injection = o3.Irreps(irreps_node_embedding)  
+            self.irreps_node_injection = o3.Irreps(irreps_node_embedding)
             # input to block
-            self.irreps_node_z = o3.Irreps(irreps_node_embedding)  
+            self.irreps_node_z = o3.Irreps(irreps_node_embedding)
             # output of block
-            self.irreps_node_embedding = o3.Irreps(irreps_node_embedding)  
+            self.irreps_node_embedding = o3.Irreps(irreps_node_embedding)
         elif self.input_injection in ["first_layer", "every_layer", True, "legacy"]:
             # V2: node features are initialized as 0
             # and the node features from the encoder are used as input injection
@@ -118,15 +122,15 @@ class EquiformerDEQBase:
             # both encoder shapes are defined by irreps_node_embedding
             # input to self.blocks is the concat of node_input and node_injection
             # output of encoder
-            self.irreps_node_injection = o3.Irreps(irreps_node_embedding_injection)  
+            self.irreps_node_injection = o3.Irreps(irreps_node_embedding_injection)
             # output of block
-            self.irreps_node_embedding = o3.Irreps(irreps_node_embedding)  
+            self.irreps_node_embedding = o3.Irreps(irreps_node_embedding)
             # "128x0e+64x1e+32x2e" + "64x0e+32x1e+16x2e"
             # 128x0e+64x1e+32x2e+64x0e+32x1e+16x2e
             # input to block
             if self.cat_injection:
                 irreps_node_z = self.irreps_node_embedding + self.irreps_node_injection
-                self.irreps_node_z = o3.Irreps(irreps_node_z) 
+                self.irreps_node_z = o3.Irreps(irreps_node_z)
             else:
                 self.irreps_node_z = self.irreps_node_embedding
         else:
@@ -186,9 +190,7 @@ class EquiformerDEQBase:
         # update wandb config
         if wandb.run is not None:
             wandb.config.update({"model.weight_init": self.weight_init})
-            wandb.config.update(
-                {"model.weight_init_blocks": self.weight_init_blocks}
-            )
+            wandb.config.update({"model.weight_init_blocks": self.weight_init_blocks})
 
         self.skip_implicit_layer = skip_implicit_layer
 

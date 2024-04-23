@@ -85,6 +85,7 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
         use_gate_act=False,
         use_sep_s2_act=True,
         alpha_drop=0.0,
+        **kwargs,
     ):
         super(SO2EquivariantGraphAttention, self).__init__()
 
@@ -229,7 +230,7 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
             lmax=self.lmax_list[0],
         )
 
-    def forward(self, x, atomic_numbers, edge_distance, edge_index):
+    def forward(self, x, atomic_numbers, edge_distance, edge_index, **kwargs):
         """atom_edge_embedding, S03_Embedding, SO(2)-convolution, Activation, SO(2)-convolution, Attention, Projection (SO3_LinearV2)"""
 
         # Compute edge scalar features (invariant to rotations)
@@ -382,6 +383,7 @@ class FeedForwardNetwork(torch.nn.Module):
         use_gate_act=False,
         use_grid_mlp=False,
         use_sep_s2_act=True,
+        **kwargs,
     ):
         super(FeedForwardNetwork, self).__init__()
         self.sphere_channels = sphere_channels
@@ -439,7 +441,7 @@ class FeedForwardNetwork(torch.nn.Module):
             self.hidden_channels, self.output_channels, lmax=self.max_lmax
         )
 
-    def forward(self, input_embedding):
+    def forward(self, input_embedding, **kwargs):
 
         gating_scalars = None
         if self.use_grid_mlp:
@@ -637,6 +639,7 @@ class TransBlockV2(torch.nn.Module):
         edge_distance,
         edge_index,
         batch,  # for GraphDropPath
+        **kwargs,
     ):
 
         output_embedding = x

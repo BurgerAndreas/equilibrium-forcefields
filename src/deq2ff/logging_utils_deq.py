@@ -67,9 +67,7 @@ def log_fixed_point_error_trace_table(
                     create_new_table = False
                 except Exception as e:
                     print(f"Error loading table: {e}")
-                    print(
-                        f"Creating new table for {table_key} (split: {datasplit})."
-                    )
+                    print(f"Creating new table for {table_key} (split: {datasplit}).")
                     create_new_table = True
 
                 if create_new_table:
@@ -83,14 +81,10 @@ def log_fixed_point_error_trace_table(
                             table.add_data(*data_df.iloc[i].values)
                         except Exception as e:
                             print(f"Error adding data to table: {e}")
-                            print(
-                                f"data_df.iloc[i].values: {data_df.iloc[i].values}"
-                            )
+                            print(f"data_df.iloc[i].values: {data_df.iloc[i].values}")
 
                 wandb.log({table_key: table}, step=step)
-                print(
-                    f"Logged table {table_key} (split: {datasplit}) at step {step}."
-                )
+                print(f"Logged table {table_key} (split: {datasplit}) at step {step}.")
                 return [data_dict]
 
             else:
@@ -104,20 +98,14 @@ def log_fixed_point_error_trace_table(
                 data_df = pd.DataFrame(series_concat)
                 table = wandb.Table(dataframe=data_df)
                 wandb.log({table_key: table}, step=step)
-                print(
-                    f"Logged table {table_key} (split: {datasplit}) at step {step}."
-                )
+                print(f"Logged table {table_key} (split: {datasplit}) at step {step}.")
                 return data_dicts
         else:
             # do not log anything
             return None
-        
 
-def log_fixed_point_error(
-    info,
-    step,
-    datasplit=None
-):
+
+def log_fixed_point_error(info, step, datasplit=None):
     """Log fixed point error to wandb."""
     # absolute fixed point errors along the solver trajectory
     f_abs_trace = info["abs_trace"]
@@ -139,7 +127,10 @@ def log_fixed_point_error(
             wandb.log({f"abs_fixed_point_error{n}": f_abs_trace[-1].item()}, step=step)
             wandb.log({f"rel_fixed_point_error{n}": f_rel_trace[-1].item()}, step=step)
             # log how many steps it took to reach the fixed point
-            wandb.log({f"f_steps_to_fixed_point{n}": info['nstep'][0].mean().item()}, step=step)
+            wandb.log(
+                {f"f_steps_to_fixed_point{n}": info["nstep"][0].mean().item()},
+                step=step,
+            )
 
         # log, but not as table
         if (step % log_every_step_major == 0) or datasplit in ["test", "val"]:
@@ -159,13 +150,17 @@ def log_fixed_point_error(
                     step=step,
                 )
                 print(
-                    f'Logged fixed point error trajectory. (split: {datasplit} at step {step}). ' 
+                    f"Logged fixed point error trajectory. (split: {datasplit} at step {step}). "
                     f'Dimension: {len(_abs)}, {info["abs_trace"].mean(dim=0)[1:].shape}'
                 )
             # log again in float64 format
-            if 'abs_trace64' in info:
-                _abs64 = info['abs_trace64'].mean(dim=0)[1:].detach().cpu().numpy().tolist()
-                _rel64 = info['rel_trace64'].mean(dim=0)[1:].detach().cpu().numpy().tolist()
+            if "abs_trace64" in info:
+                _abs64 = (
+                    info["abs_trace64"].mean(dim=0)[1:].detach().cpu().numpy().tolist()
+                )
+                _rel64 = (
+                    info["rel_trace64"].mean(dim=0)[1:].detach().cpu().numpy().tolist()
+                )
                 # only log if the list does not contain NaNs or Nones
                 if all([x is not None for x in _abs]) and all(
                     [x is not None for x in _rel]
@@ -178,9 +173,9 @@ def log_fixed_point_error(
                         step=step,
                     )
                     print(
-                        f'Logged fixed point error trajectory in float64. (split: {datasplit} at step {step}). '
+                        f"Logged fixed point error trajectory in float64. (split: {datasplit} at step {step}). "
                         f'Dimension: {len(_abs64)}, {info["abs_trace64"].mean(dim=0)[1:].shape}'
-                    ) 
+                    )
 
     return None
 

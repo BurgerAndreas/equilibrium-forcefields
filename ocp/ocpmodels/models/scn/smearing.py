@@ -11,14 +11,10 @@ import torch.nn as nn
 
 # Different encodings for the atom distance embeddings
 class GaussianSmearing(torch.nn.Module):
-    def __init__(
-        self, start=-5.0, stop=5.0, num_gaussians=50, basis_width_scalar=1.0
-    ):
+    def __init__(self, start=-5.0, stop=5.0, num_gaussians=50, basis_width_scalar=1.0):
         super(GaussianSmearing, self).__init__()
         offset = torch.linspace(start, stop, num_gaussians)
-        self.coeff = (
-            -0.5 / (basis_width_scalar * (offset[1] - offset[0])).item() ** 2
-        )
+        self.coeff = -0.5 / (basis_width_scalar * (offset[1] - offset[0])).item() ** 2
         self.register_buffer("offset", offset)
         # https://github.com/Open-Catalyst-Project/ocp/blob/4ac64520f1a17c14989f6d933f7e8887df1adc07/ocpmodels/models/scn/smearing.py#L22
         self.num_output = num_gaussians
@@ -29,9 +25,7 @@ class GaussianSmearing(torch.nn.Module):
 
 
 class SigmoidSmearing(torch.nn.Module):
-    def __init__(
-        self, start=-5.0, stop=5.0, num_sigmoid=50, basis_width_scalar=1.0
-    ):
+    def __init__(self, start=-5.0, stop=5.0, num_sigmoid=50, basis_width_scalar=1.0):
         super(SigmoidSmearing, self).__init__()
         offset = torch.linspace(start, stop, num_sigmoid)
         self.coeff = (basis_width_scalar / (offset[1] - offset[0])).item()
@@ -43,9 +37,7 @@ class SigmoidSmearing(torch.nn.Module):
 
 
 class LinearSigmoidSmearing(torch.nn.Module):
-    def __init__(
-        self, start=-5.0, stop=5.0, num_sigmoid=50, basis_width_scalar=1.0
-    ):
+    def __init__(self, start=-5.0, stop=5.0, num_sigmoid=50, basis_width_scalar=1.0):
         super(LinearSigmoidSmearing, self).__init__()
         offset = torch.linspace(start, stop, num_sigmoid)
         self.coeff = (basis_width_scalar / (offset[1] - offset[0])).item()
@@ -58,9 +50,7 @@ class LinearSigmoidSmearing(torch.nn.Module):
 
 
 class SiLUSmearing(torch.nn.Module):
-    def __init__(
-        self, start=-5.0, stop=5.0, num_output=50, basis_width_scalar=1.0
-    ):
+    def __init__(self, start=-5.0, stop=5.0, num_output=50, basis_width_scalar=1.0):
         super(SiLUSmearing, self).__init__()
         self.fc1 = nn.Linear(2, num_output)
         self.act = nn.SiLU()

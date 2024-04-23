@@ -288,7 +288,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         import pprint
 
         pp = pprint.PrettyPrinter(depth=4)
-        print(f'ForcesTrainerV2: self.config:')
+        print(f"ForcesTrainerV2: self.config:")
         pp.pprint(self.config)
         self.logger.config.update(self.config)
 
@@ -512,17 +512,17 @@ class ForcesTrainerV2(BaseTrainerV2):
         loss.append(energy_mult * self.loss_fn["energy"](out["energy"], energy_target))
 
         # print energy out: mean, std, min, max
-        print(f'out["energy"].mean(): {out["energy"].mean()}')
-        print(f'out["energy"].std(): {out["energy"].std()}')
-        print(f'out["energy"].min(): {out["energy"].min()}')
-        print(f'out["energy"].max(): {out["energy"].max()}')
-        # energy target
-        print(f'energy_target.mean(): {energy_target.mean()}')
-        print(f'energy_target.std(): {energy_target.std()}')
-        print(f'energy_target.min(): {energy_target.min()}')
-        print(f'energy_target.max(): {energy_target.max()}')
-        print(f'energy_mult: {energy_mult}')
-        print(f'loss e: {loss[-1]}')
+        # print(f'out["energy"].mean(): {out["energy"].mean()}')
+        # print(f'out["energy"].std(): {out["energy"].std()}')
+        # print(f'out["energy"].min(): {out["energy"].min()}')
+        # print(f'out["energy"].max(): {out["energy"].max()}')
+        # # energy target
+        # print(f'energy_target.mean(): {energy_target.mean()}')
+        # print(f'energy_target.std(): {energy_target.std()}')
+        # print(f'energy_target.min(): {energy_target.min()}')
+        # print(f'energy_target.max(): {energy_target.max()}')
+        # print(f'energy_mult: {energy_mult}')
+        # print(f'loss e: {loss[-1]}')
 
         # TODO
         # self.normalizer.get("normalize_labels", False) == True
@@ -595,7 +595,7 @@ class ForcesTrainerV2(BaseTrainerV2):
                         loss.append(force_loss)
                     else:
                         # ------------ Default ------------
-                        print('Default force loss')
+                        print("Default force loss")
                         loss.append(
                             force_mult
                             * self.loss_fn["force"](
@@ -608,19 +608,18 @@ class ForcesTrainerV2(BaseTrainerV2):
                     )
 
         # print force out: mean, std, min, max
-        print(f'out["forces"].mean(): {out["forces"].mean()}')
-        print(f'out["forces"].std(): {out["forces"].std()}')
-        print(f'out["forces"].min(): {out["forces"].min()}')
-        print(f'out["forces"].max(): {out["forces"].max()}')
-        # force target
-        print(f'force_target.mean(): {force_target.mean()}')
-        print(f'force_target.std(): {force_target.std()}')
-        print(f'force_target.min(): {force_target.min()}')
-        print(f'force_target.max(): {force_target.max()}')
-        print(f'force_mult: {force_mult}')
-        print(f'loss f: {loss[-1]}')
-        exit()
-
+        # print(f'out["forces"].mean(): {out["forces"].mean()}')
+        # print(f'out["forces"].std(): {out["forces"].std()}')
+        # print(f'out["forces"].min(): {out["forces"].min()}')
+        # print(f'out["forces"].max(): {out["forces"].max()}')
+        # # force target
+        # print(f'force_target.mean(): {force_target.mean()}')
+        # print(f'force_target.std(): {force_target.std()}')
+        # print(f'force_target.min(): {force_target.min()}')
+        # print(f'force_target.max(): {force_target.max()}')
+        # print(f'force_mult: {force_mult}')
+        # print(f'loss f: {loss[-1]}')
+        # exit()
 
         # Sanity check to make sure the compute graph is correct.
         for lc in loss:

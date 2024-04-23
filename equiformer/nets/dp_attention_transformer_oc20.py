@@ -428,7 +428,7 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
             edge_length_embedding = torch.cat(
                 (src_attr[edge_src], dst_attr[edge_dst], edge_length_embedding), dim=1
             )
-        
+
         # same as MD17
         edge_degree_embedding = self.edge_deg_embed(
             atom_embedding, edge_sh, edge_length_embedding, edge_src, edge_dst, batch
@@ -439,7 +439,7 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
             node_attr, _, _ = self.attr_embed(atomic_numbers)
         else:
             node_attr = torch.ones_like(node_features.narrow(1, 0, 1))
-        
+
         ###############################################################
         # Update node embeddings
         ###############################################################

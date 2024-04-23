@@ -45,9 +45,7 @@ def pyg2_data_transform(data: Data):
     we need to convert the data to the new format
     """
     if torch_geometric.__version__ >= "2.0" and "_store" not in data.__dict__:
-        return Data(
-            **{k: v for k, v in data.__dict__.items() if v is not None}
-        )
+        return Data(**{k: v for k, v in data.__dict__.items() if v is not None})
 
     return data
 
@@ -176,9 +174,7 @@ def collate(data_list):
     for item, key in product(data_list, keys):
         data[key].append(item[key])
         if torch.is_tensor(item[key]):
-            s = slices[key][-1] + item[key].size(
-                item.__cat_dim__(key, item[key])
-            )
+            s = slices[key][-1] + item[key].size(item.__cat_dim__(key, item[key]))
         elif isinstance(item[key], int) or isinstance(item[key], float):
             s = slices[key][-1] + 1
         else:
@@ -224,9 +220,7 @@ def add_edge_distance_to_graph(
     gdf_filter = torch.linspace(dmin, dmax, num_gaussians)
     var = gdf_filter[1] - gdf_filter[0]
     gdf_filter, var = gdf_filter.to(device), var.to(device)
-    gdf_distances = torch.exp(
-        -((distances.view(-1, 1) - gdf_filter) ** 2) / var**2
-    )
+    gdf_distances = torch.exp(-((distances.view(-1, 1) - gdf_filter) ** 2) / var**2)
     # Reassign edge attributes.
     batch.edge_weight = distances
     batch.edge_attr = gdf_distances.float()
@@ -247,10 +241,7 @@ def _import_local_file(path: Path, *, project_root: Path):
     project_root = project_root.resolve()
 
     module_name = ".".join(
-        path.absolute()
-        .relative_to(project_root.absolute())
-        .with_suffix("")
-        .parts
+        path.absolute().relative_to(project_root.absolute()).with_suffix("").parts
     )
     logging.debug(f"Resolved module name of {path} to {module_name}")
     importlib.import_module(module_name)
@@ -270,9 +261,7 @@ def setup_experimental_imports(project_root: Path):
         with open(ignore_file, "r") as f:
             for line in f.read().splitlines():
                 for ignored_file in (experimental_folder / line).rglob("*.py"):
-                    experimental_files.remove(
-                        ignored_file.resolve().absolute()
-                    )
+                    experimental_files.remove(ignored_file.resolve().absolute())
 
     for f in experimental_files:
         _import_local_file(f, project_root=project_root)
@@ -305,9 +294,7 @@ def _get_project_root():
 def setup_imports(config: Optional[dict] = None):
     from ocpmodels.common.registry import registry
 
-    skip_experimental_imports = (config or {}).get(
-        "skip_experimental_imports", None
-    )
+    skip_experimental_imports = (config or {}).get("skip_experimental_imports", None)
 
     # First, check if imports are already setup
     has_already_setup = registry.get("imports_setup", no_warning=True)
@@ -561,13 +548,9 @@ def radius_graph_pbc(
     num_atoms_per_image_sqr = (num_atoms_per_image**2).long()
 
     # index offset between images
-    index_offset = (
-        torch.cumsum(num_atoms_per_image, dim=0) - num_atoms_per_image
-    )
+    index_offset = torch.cumsum(num_atoms_per_image, dim=0) - num_atoms_per_image
 
-    index_offset_expand = torch.repeat_interleave(
-        index_offset, num_atoms_per_image_sqr
-    )
+    index_offset_expand = torch.repeat_interleave(index_offset, num_atoms_per_image_sqr)
     num_atoms_per_image_expand = torch.repeat_interleave(
         num_atoms_per_image, num_atoms_per_image_sqr
     )
@@ -584,20 +567,14 @@ def radius_graph_pbc(
     index_sqr_offset = torch.repeat_interleave(
         index_sqr_offset, num_atoms_per_image_sqr
     )
-    atom_count_sqr = (
-        torch.arange(num_atom_pairs, device=device) - index_sqr_offset
-    )
+    atom_count_sqr = torch.arange(num_atom_pairs, device=device) - index_sqr_offset
 
     # Compute the indices for the pairs of atoms (using division and mod)
     # If the systems get too large this apporach could run into numerical precision issues
     index1 = (
-        torch.div(
-            atom_count_sqr, num_atoms_per_image_expand, rounding_mode="floor"
-        )
+        torch.div(atom_count_sqr, num_atoms_per_image_expand, rounding_mode="floor")
     ) + index_offset_expand
-    index2 = (
-        atom_count_sqr % num_atoms_per_image_expand
-    ) + index_offset_expand
+    index2 = (atom_count_sqr % num_atoms_per_image_expand) + index_offset_expand
     # Get the positions for each atom
     pos1 = torch.index_select(atom_pos, 0, index1)
     pos2 = torch.index_select(atom_pos, 0, index2)
@@ -641,18 +618,13 @@ def radius_graph_pbc(
 
     # Tensor of unit cells
     cells_per_dim = [
-        torch.arange(-rep, rep + 1, device=device, dtype=torch.float)
-        for rep in max_rep
+        torch.arange(-rep, rep + 1, device=device, dtype=torch.float) for rep in max_rep
     ]
     unit_cell = torch.cartesian_prod(*cells_per_dim)
     num_cells = len(unit_cell)
-    unit_cell_per_atom = unit_cell.view(1, num_cells, 3).repeat(
-        len(index2), 1, 1
-    )
+    unit_cell_per_atom = unit_cell.view(1, num_cells, 3).repeat(len(index2), 1, 1)
     unit_cell = torch.transpose(unit_cell, 0, 1)
-    unit_cell_batch = unit_cell.view(1, 3, num_cells).expand(
-        batch_size, -1, -1
-    )
+    unit_cell_batch = unit_cell.view(1, 3, num_cells).expand(batch_size, -1, -1)
 
     # Compute the x, y, z positional offsets for each cell in each image
     data_cell = torch.transpose(data.cell, 1, 2)
@@ -707,9 +679,7 @@ def radius_graph_pbc(
     return edge_index, unit_cell, num_neighbors_image
 
 
-def get_max_neighbors_mask(
-    natoms, index, atom_distance, max_num_neighbors_threshold
-):
+def get_max_neighbors_mask(natoms, index, atom_distance, max_num_neighbors_threshold):
     """
     Give a mask that filters out edges so that each atom has at most
     `max_num_neighbors_threshold` neighbors.
@@ -723,14 +693,10 @@ def get_max_neighbors_mask(
     ones = index.new_ones(1).expand_as(index)
     num_neighbors = segment_coo(ones, index, dim_size=num_atoms)
     max_num_neighbors = num_neighbors.max()
-    num_neighbors_thresholded = num_neighbors.clamp(
-        max=max_num_neighbors_threshold
-    )
+    num_neighbors_thresholded = num_neighbors.clamp(max=max_num_neighbors_threshold)
 
     # Get number of (thresholded) neighbors per image
-    image_indptr = torch.zeros(
-        natoms.shape[0] + 1, device=device, dtype=torch.long
-    )
+    image_indptr = torch.zeros(natoms.shape[0] + 1, device=device, dtype=torch.long)
     image_indptr[1:] = torch.cumsum(natoms, dim=0)
     num_neighbors_image = segment_csr(num_neighbors_thresholded, image_indptr)
 
@@ -739,16 +705,14 @@ def get_max_neighbors_mask(
         max_num_neighbors <= max_num_neighbors_threshold
         or max_num_neighbors_threshold <= 0
     ):
-        mask_num_neighbors = torch.tensor(
-            [True], dtype=bool, device=device
-        ).expand_as(index)
+        mask_num_neighbors = torch.tensor([True], dtype=bool, device=device).expand_as(
+            index
+        )
         return mask_num_neighbors, num_neighbors_image
 
     # Create a tensor of size [num_atoms, max_num_neighbors] to sort the distances of the neighbors.
     # Fill with infinity so we can easily remove unused distances later.
-    distance_sort = torch.full(
-        [num_atoms * max_num_neighbors], np.inf, device=device
-    )
+    distance_sort = torch.full([num_atoms * max_num_neighbors], np.inf, device=device)
 
     # Create an index map to map distances from atom_distance to distance_sort
     # index_sort_map assumes index to be sorted
@@ -794,9 +758,7 @@ def get_pruned_edge_idx(edge_index, num_atoms=None, max_neigh=1e9):
     # assumes neighbors are sorted in increasing distance
     _nonmax_idx = []
     for i in range(num_atoms):
-        idx_i = torch.arange(len(edge_index[1]))[(edge_index[1] == i)][
-            :max_neigh
-        ]
+        idx_i = torch.arange(len(edge_index[1]))[(edge_index[1] == i)][:max_neigh]
         _nonmax_idx.append(idx_i)
     _nonmax_idx = torch.cat(_nonmax_idx)
 
@@ -869,9 +831,7 @@ def setup_logging():
 
         # Send INFO to stdout
         handler_out = logging.StreamHandler(sys.stdout)
-        handler_out.addFilter(
-            SeverityLevelBetween(logging.INFO, logging.WARNING)
-        )
+        handler_out.addFilter(SeverityLevelBetween(logging.INFO, logging.WARNING))
         handler_out.setFormatter(log_formatter)
         root.addHandler(handler_out)
 
@@ -886,9 +846,7 @@ def compute_neighbors(data, edge_index):
     # Get number of neighbors
     # segment_coo assumes sorted index
     ones = edge_index[1].new_ones(1).expand_as(edge_index[1])
-    num_neighbors = segment_coo(
-        ones, edge_index[1], dim_size=data.natoms.sum()
-    )
+    num_neighbors = segment_coo(ones, edge_index[1], dim_size=data.natoms.sum())
 
     # Get number of neighbors per image
     image_indptr = torch.zeros(
@@ -932,9 +890,7 @@ def new_trainer_context(*, config: Dict[str, Any], args: Namespace):
             gp_utils.setup_gp(config)
     try:
         setup_imports(config)
-        trainer_cls = registry.get_trainer_class(
-            config.get("trainer", "energy")
-        )
+        trainer_cls = registry.get_trainer_class(config.get("trainer", "energy"))
         assert trainer_cls is not None, "Trainer not found"
         trainer = trainer_cls(
             task=config["task"],
@@ -959,9 +915,7 @@ def new_trainer_context(*, config: Dict[str, Any], args: Namespace):
         assert task_cls is not None, "Task not found"
         task = task_cls(config)
         start_time = time.time()
-        ctx = _TrainingContext(
-            config=original_config, task=task, trainer=trainer
-        )
+        ctx = _TrainingContext(config=original_config, task=task, trainer=trainer)
         yield ctx
         distutils.synchronize()
         if distutils.is_master():
@@ -992,9 +946,7 @@ def _report_incompat_keys(
     missing_keys: List[str] = []
     for full_key_name in keys.missing_keys:
         parent_module_name, _ = full_key_name.rsplit(".", 1)
-        scale_factor = _resolve_scale_factor_submodule(
-            model, parent_module_name
-        )
+        scale_factor = _resolve_scale_factor_submodule(model, parent_module_name)
         if scale_factor is not None:
             continue
         missing_keys.append(full_key_name)
@@ -1003,9 +955,7 @@ def _report_incompat_keys(
     unexpected_keys: List[str] = []
     for full_key_name in keys.unexpected_keys:
         parent_module_name, _ = full_key_name.rsplit(".", 1)
-        scale_factor = _resolve_scale_factor_submodule(
-            model, parent_module_name
-        )
+        scale_factor = _resolve_scale_factor_submodule(model, parent_module_name)
         if scale_factor is not None:
             continue
         unexpected_keys.append(full_key_name)

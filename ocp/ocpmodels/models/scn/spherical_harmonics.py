@@ -104,9 +104,7 @@ class SphericalHarmonicsHelper:
             else:
                 self.to_grid_sha = torch.block_diag(self.to_grid_sha, sha)
 
-        self.to_grid_sha = self.to_grid_sha.view(
-            self.num_bands, self.grid_res + 1, -1
-        )
+        self.to_grid_sha = self.to_grid_sha.view(self.num_bands, self.grid_res + 1, -1)
         self.to_grid_sha = torch.transpose(self.to_grid_sha, 0, 1).contiguous()
         self.to_grid_sha = self.to_grid_sha.view(
             (self.grid_res + 1) * self.num_bands, -1
@@ -168,9 +166,7 @@ class SphericalHarmonicsHelper:
             wignerD_reduce = wignerD_reduce[:, :, basis_in.long()]
 
             if y_rot == 0.0:
-                wigner_inv = (
-                    torch.transpose(wignerD_reduce, 1, 2).contiguous().detach()
-                )
+                wigner_inv = torch.transpose(wignerD_reduce, 1, 2).contiguous().detach()
 
             wigner = torch.cat([wigner, wignerD_reduce.unsqueeze(1)], dim=1)
 
@@ -186,9 +182,7 @@ class SphericalHarmonicsHelper:
         if self.mmax == 0:
             y_rotations = torch.tensor([0.0], device=self.device)
             num_y_rotations = 1
-            mapping_y_rot = torch.eye(
-                self.sphere_basis_reduce, device=self.device
-            )
+            mapping_y_rot = torch.eye(self.sphere_basis_reduce, device=self.device)
 
         if self.mmax == 1:
 
@@ -218,17 +212,17 @@ class SphericalHarmonicsHelper:
                     if l == 0:  # noqa: E741
                         offset = 0
                     for y in range(num_y_rotations):
-                        mapping_y_rot[
-                            offset + y * self.sphere_basis_reduce, offset
-                        ] = (1.0 / num_y_rotations)
+                        mapping_y_rot[offset + y * self.sphere_basis_reduce, offset] = (
+                            1.0 / num_y_rotations
+                        )
 
                 # m = -1
                 for l in range(1, self.lmax + 1):  # noqa: E741
                     offset = (l - 1) * 3 + 1
                     for y in range(num_y_rotations):
-                        mapping_y_rot[
-                            offset + y * self.sphere_basis_reduce, offset
-                        ] = (math.cos(y_rotations[y]) / num_y_rotations)
+                        mapping_y_rot[offset + y * self.sphere_basis_reduce, offset] = (
+                            math.cos(y_rotations[y]) / num_y_rotations
+                        )
                         mapping_y_rot[
                             (offset + 2) + y * self.sphere_basis_reduce, offset
                         ] = (math.sin(y_rotations[y]) / num_y_rotations)
@@ -237,9 +231,9 @@ class SphericalHarmonicsHelper:
                 for l in range(1, self.lmax + 1):  # noqa: E741
                     offset = (l - 1) * 3 + 3
                     for y in range(num_y_rotations):
-                        mapping_y_rot[
-                            offset + y * self.sphere_basis_reduce, offset
-                        ] = (math.cos(y_rotations[y]) / num_y_rotations)
+                        mapping_y_rot[offset + y * self.sphere_basis_reduce, offset] = (
+                            math.cos(y_rotations[y]) / num_y_rotations
+                        )
                         mapping_y_rot[
                             offset - 2 + y * self.sphere_basis_reduce, offset
                         ] = (-math.sin(y_rotations[y]) / num_y_rotations)
@@ -252,9 +246,7 @@ class SphericalHarmonicsHelper:
     def ToGrid(self, x, channels):
         x = x.view(-1, self.sphere_basis, channels)
         x_grid = torch.einsum("mbi,zic->zbmc", self.to_grid_shb, x)
-        x_grid = torch.einsum(
-            "am,zbmc->zbac", self.to_grid_sha, x_grid
-        ).contiguous()
+        x_grid = torch.einsum("am,zbmc->zbac", self.to_grid_sha, x_grid).contiguous()
         x_grid = x_grid.view(-1, self.num_bands * channels)
         return x_grid
 
@@ -268,9 +260,7 @@ class SphericalHarmonicsHelper:
 
     def CombineYRotations(self, x):
         num_channels = x.size()[-1]
-        x = x.view(
-            -1, self.num_y_rotations * self.sphere_basis_reduce, num_channels
-        )
+        x = x.view(-1, self.num_y_rotations * self.sphere_basis_reduce, num_channels)
         x = torch.einsum("abc, bd->adc", x, self.mapping_y_rot).contiguous()
         return x
 
@@ -335,9 +325,7 @@ class SphericalHarmonicsHelper:
         x = edge_rot_mat @ edge_rot_mat.new_tensor([0.0, 1.0, 0.0])
         alpha, beta = o3.xyz_to_angles(x)
         R = (
-            o3.angles_to_matrix(
-                alpha, beta, torch.zeros_like(alpha)
-            ).transpose(-1, -2)
+            o3.angles_to_matrix(alpha, beta, torch.zeros_like(alpha)).transpose(-1, -2)
             @ edge_rot_mat
         )
         gamma = torch.atan2(R[..., 0, 2], R[..., 0, 0])

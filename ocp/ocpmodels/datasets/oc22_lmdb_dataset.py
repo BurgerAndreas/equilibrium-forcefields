@@ -84,8 +84,7 @@ class OC22LmdbDataset(Dataset):
             self.metadata_path = self.path.parent / "metadata.npz"
             self.env = self.connect_db(self.path)
             self._keys = [
-                f"{j}".encode("ascii")
-                for j in range(self.env.stat()["entries"])
+                f"{j}".encode("ascii") for j in range(self.env.stat()["entries"])
             ]
             self.num_samples = len(self._keys)
 
@@ -97,9 +96,7 @@ class OC22LmdbDataset(Dataset):
             self.oc20_ref = pickle.load(open(config["oc20_ref"], "rb"))
         if self.config.get("lin_ref", False):
             coeff = np.load(self.config["lin_ref"], allow_pickle=True)["coeff"]
-            self.lin_ref = torch.nn.Parameter(
-                torch.tensor(coeff), requires_grad=False
-            )
+            self.lin_ref = torch.nn.Parameter(torch.tensor(coeff), requires_grad=False)
         self.subsample = self.config.get("subsample", False)
 
     def __len__(self):

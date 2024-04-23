@@ -125,8 +125,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
     """Dot product attention (DPA) + linear message passing.
     Modified from equiformer.nets.dp_attention_transformer_md17.DotProductAttentionTransformerMD17.
 
-    Equiformer comes in two variants: 
-    (1) linear message passing + dot product attention 
+    Equiformer comes in two variants:
+    (1) linear message passing + dot product attention
     (2) MLP attention + non-linear message passing (`equivariant graph attention`)
 
     Message = attention weights * values
@@ -175,14 +175,16 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         atomref=None,
         # Statistics of QM9 with cutoff max_radius = 5
         # For simplicity, use the same statistics for MD17
-        _AVG_NUM_NODES = 18.03065905448718,
-        _AVG_DEGREE = 15.57930850982666,
+        _AVG_NUM_NODES=18.03065905448718,
+        _AVG_DEGREE=15.57930850982666,
         name=None,
         **kwargs,
     ):
         super().__init__()
 
-        kwargs = self._set_deq_vars(irreps_node_embedding, irreps_feature, num_layers, **kwargs)
+        kwargs = self._set_deq_vars(
+            irreps_node_embedding, irreps_feature, num_layers, **kwargs
+        )
 
         self._AVG_NUM_NODES = _AVG_NUM_NODES
         self._AVG_DEGREE = _AVG_DEGREE
@@ -264,7 +266,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
             self.out_dropout = EquivariantDropout(self.irreps_feature, self.out_drop)
         # Output head for energy
         if self.use_attn_head:
-            self.head = GraphAttention(
+            self.energy_block = GraphAttention(
                 irreps_node_input=self.irreps_feature,
                 irreps_node_attr=self.irreps_node_attr,
                 irreps_edge_attr=self.irreps_edge_attr,
@@ -285,7 +287,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 # affine_ln=self.affine_ln,
             )
         else:
-            self.head = torch.nn.Sequential(
+            self.energy_block = torch.nn.Sequential(
                 LinearRS(self.irreps_feature, self.irreps_feature, rescale=_RESCALE),
                 # Activation(self.irreps_feature, acts=[torch.nn.SiLU()]),
                 Activation(
@@ -300,8 +302,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
             self.force_block = None
         else:
             # outputs = self.irreps_node_embedding # [num_atoms*batch_size, irrep_dim]
-            outputs = o3.Irreps("1x1e") # [num_atoms*batch_size, 3]
-            # DPTransBlock, GraphAttention
+            outputs = o3.Irreps("1x1e")  # [num_atoms*batch_size, 3]
+            # DPTransBlock, GraphAttention, DotProductAttention
             self.force_block = eval(self.force_head)(
                 # irreps_node_input=self.irreps_node_embedding,
                 irreps_node_input=self.irreps_feature,
@@ -643,16 +645,16 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 z = torch.cat([z, u], dim=1)
             else:
                 # we can't use previous of z because we initialize z as 0
-                # norm_before = z.norm() 
+                # norm_before = z.norm()
                 norm_before = u.norm()
                 z = z + u
-                if self.norm_injection == 'prev':
+                if self.norm_injection == "prev":
                     scale = z.norm() / norm_before
                     z = z / scale
-                elif self.norm_injection == 'one':
+                elif self.norm_injection == "one":
                     z = z / z.norm()
             return z
-        
+
         # [num_atoms*batch_size, irrep_dim]
         if self.input_injection == False:
             # no injection, injection becomes the initial input
@@ -732,7 +734,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         # outputs
         # [num_atoms*batch_size, irreps_dim] -> [num_atoms*batch_size, 1]
         if self.use_attn_head:
-            outputs = self.head(
+            outputs = self.energy_block(
                 node_input=node_features,
                 node_attr=node_attr,
                 edge_src=edge_src,
@@ -742,7 +744,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 batch=batch,
             )
         else:
-            outputs = self.head(node_features)
+            outputs = self.energy_block(node_features)
         outputs = self.scale_scatter(outputs, batch, dim=0)
 
         if self.scale is not None:
@@ -858,7 +860,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         datasplit=None,
         return_fixedpoint=False,
         fixedpoint=None,
-        **kwargs
+        **kwargs,
     ):
         """Forward pass of the DEQ model."""
         if self.force_head in [None, False]:

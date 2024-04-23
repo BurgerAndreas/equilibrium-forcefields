@@ -3,8 +3,11 @@
 
 # 4 layers: 11,770,946 parameters
 # 3 layers: 9,436,034 parameters
+
+defaults:
+  - base
+
 model:
-  name: equiformer_v2_oc20
   
   use_pbc:                  True
   regress_forces:           True

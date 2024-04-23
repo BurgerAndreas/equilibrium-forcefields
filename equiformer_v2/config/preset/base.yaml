@@ -1,0 +1,7 @@
+# @package _global_
+# ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
+
+model:
+  name: equiformer_v2_oc201
+  # FeedForwardNetwork, SO2EquivariantGraphAttention
+  energy_head: FeedForwardNetwork

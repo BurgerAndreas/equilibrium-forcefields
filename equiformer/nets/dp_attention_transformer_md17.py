@@ -65,6 +65,7 @@ _AVG_DEGREE = 15.57930850982666
 # used to init path norm, weight init, and other tricks added for DEQ
 from deq2ff.deq_equiformer.deq_equiformer_base import EquiformerDEQBase
 
+
 class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
     def __init__(
         self,
@@ -97,8 +98,10 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
         **kwargs,
     ):
         super().__init__()
-        kwargs = self._set_deq_vars(irreps_node_embedding, irreps_feature, num_layers, **kwargs)
-        print(f'{self.__class__.__name__} ignoring kwargs: {kwargs}')
+        kwargs = self._set_deq_vars(
+            irreps_node_embedding, irreps_feature, num_layers, **kwargs
+        )
+        print(f"{self.__class__.__name__} ignoring kwargs: {kwargs}")
 
         self.max_radius = max_radius
         self.number_of_basis = number_of_basis
@@ -162,7 +165,7 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
             )
         else:
             raise ValueError
-        
+
         self.edge_deg_embed = EdgeDegreeEmbeddingNetwork(
             self.irreps_node_embedding,
             self.irreps_edge_attr,
@@ -224,7 +227,7 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
             self.force_block = None
         else:
             # outputs = self.irreps_node_embedding # [num_atoms*batch_size, irrep_dim]
-            outputs = o3.Irreps("1x1e") # [num_atoms*batch_size, 3]
+            outputs = o3.Irreps("1x1e")  # [num_atoms*batch_size, 3]
             # DPTransBlock, GraphAttention
             self.force_block = eval(self.force_head)(
                 # irreps_node_input=self.irreps_node_embedding,

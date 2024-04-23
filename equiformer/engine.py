@@ -204,5 +204,5 @@ def compute_stats(data_loader, max_radius, logger, print_freq=1000):
             log_str += "avg edge: {}, ".format(avg_edge.avg)
             log_str += "avg degree: {}, ".format(avg_degree.avg)
             logger.info(log_str)
-    
+
     return avg_node.avg, avg_edge.avg, avg_degree.avg

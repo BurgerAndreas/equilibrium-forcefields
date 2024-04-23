@@ -67,6 +67,7 @@ from deq2ff.deq_equiformer.deq_graph_md17 import (
 from deq2ff.deq_equiformer.deq_dp_md17_noforce import (
     deq_dot_product_attention_transformer_exp_l2_md17_noforce,
 )
+
 # DEQ EquiformerV2
 # from deq2ff.deq_equiformer_v2.deq_equiformer_v2_oc20 import (
 #     deq_equiformer_v2_oc20,
@@ -97,6 +98,7 @@ class L2MAELoss(torch.nn.Module):
         elif self.reduction == "sum":
             return torch.sum(dists)
 
+
 # from equiformer/oc20/trainer/base_trainer_oc20.py
 def load_loss(loss_fn={"energy": "mae", "force": "mae"}):
     for loss, loss_name in loss_fn.items():
@@ -111,6 +113,7 @@ def load_loss(loss_fn={"energy": "mae", "force": "mae"}):
         # if distutils.initialized():
         #     self.loss_fn[loss] = DDPLoss(self.loss_fn[loss])
     return loss_fn
+
 
 def get_force_placeholder(dy, loss_e):
     """if meas_force is False, return a placeholder for force prediction and loss_f"""
@@ -153,7 +156,9 @@ def main(args):
         import equiformer.datasets.pyg.md_all as md_all
 
         order = None
-        if ('fpreuse_test' in args and args.fpreuse_test) or ('fpreuse_datasplit' in args and args.fpreuse_datasplit):
+        if ("fpreuse_test" in args and args.fpreuse_test) or (
+            "fpreuse_datasplit" in args and args.fpreuse_datasplit
+        ):
             order = "consecutive_test"
 
         train_dataset, val_dataset, test_dataset = md_all.get_md_datasets(
@@ -236,16 +241,18 @@ def main(args):
         _log.info("Number of FinalBlock params: {}".format(n_parameters))
         wandb.run.summary["FinalBlock Parameters"] = n_parameters
     except:
-        print(f"AttributeError: '{model.__class__.__name__}' object has no attribute 'final_block'")
+        print(
+            f"AttributeError: '{model.__class__.__name__}' object has no attribute 'final_block'"
+        )
 
     """ Optimizer and LR Scheduler """
     optimizer = create_optimizer(args, model)
     lr_scheduler, _ = create_scheduler(args, optimizer)
-    
-    # criterion = L2MAELoss() 
-    loss_fn = load_loss({'energy': args.loss_energy, 'force': args.loss_force})
-    criterion_energy = loss_fn['energy']
-    criterion_force = loss_fn['force']
+
+    # criterion = L2MAELoss()
+    loss_fn = load_loss({"energy": args.loss_energy, "force": args.loss_force})
+    criterion_energy = loss_fn["energy"]
+    criterion_force = loss_fn["force"]
 
     """ Data Loader """
     train_loader = DataLoader(
@@ -786,7 +793,7 @@ def train_one_epoch(
 
         # energy, force
         pred_y, pred_dy, info = model(
-            data=data, # for EquiformerV2
+            data=data,  # for EquiformerV2
             node_atom=data.z,
             pos=data.pos,
             batch=data.batch,
@@ -796,7 +803,6 @@ def train_one_epoch(
 
         # _AVG_NUM_NODES: 18.03065905448718
         # _AVG_DEGREE: 15.57930850982666
-
 
         # pred_y: torch.Size([8, 1]), pred_dy: torch.Size([168, 3]), data.y: torch.Size([8, 1]), data.dy: torch.Size([168, 3])
         # pred_y: torch.Size([8, 1]), pred_dy: torch.Size([168, 3]), data.y: torch.Size([8, 1]), data.dy: torch.Size([168, 3])
@@ -816,7 +822,7 @@ def train_one_epoch(
             loss += args.force_weight * loss_f
         else:
             pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
-        
+
         # print(f"energy: mean={pred_y.mean()}, std={pred_y.std()}, max={pred_y.max()}, min={pred_y.min()}", pred_y.shape)
         # print(f"energy target: mean={data.y.mean()}, std={data.y.std()}, max={data.y.max()}, min={data.y.min()}", data.y.shape)
         # e_target = ((data.y - task_mean) / task_std)
@@ -871,7 +877,7 @@ def train_one_epoch(
             logging_utils_deq.log_fixed_point_error(
                 info,
                 step=global_step,
-                datasplit='train',
+                datasplit="train",
             )
 
         loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
@@ -926,11 +932,13 @@ def train_one_epoch(
             )
 
         global_step += 1
-    
+
     # if loss_metrics is all nan
     # probably because deq_kwargs.f_solver=broyden,anderson did not converge
     if isnan_cnt > max_steps // 2:
-        raise ValueError(f"Most energy predictions are nan ({isnan_cnt}/{max_steps}). Try deq_kwargs.f_solver=fixed_point_iter")
+        raise ValueError(
+            f"Most energy predictions are nan ({isnan_cnt}/{max_steps}). Try deq_kwargs.f_solver=fixed_point_iter"
+        )
 
     return mae_metrics, loss_metrics, global_step
 
@@ -991,7 +999,7 @@ def evaluate(
             prev_idx = data.idx
             # call model and pass fixedpoint
             pred_y, pred_dy, fixedpoint, info = model(
-                data=data, # for EquiformerV2
+                data=data,  # for EquiformerV2
                 node_atom=data.z,
                 pos=data.pos,
                 batch=data.batch,
@@ -1003,7 +1011,7 @@ def evaluate(
         else:
             # energy, force
             pred_y, pred_dy, info = model(
-                data=data, # for EquiformerV2
+                data=data,  # for EquiformerV2
                 node_atom=data.z,
                 pos=data.pos,
                 batch=data.batch,
@@ -1033,8 +1041,8 @@ def evaluate(
         ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
         mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
-        if 'nstep' in info:
-            n_fsolver_steps += info['nstep'][0].mean().item()
+        if "nstep" in info:
+            n_fsolver_steps += info["nstep"][0].mean().item()
 
         # --- logging ---
         if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
@@ -1050,15 +1058,17 @@ def evaluate(
             )
             logger.info(info_str)
 
-        if ((step + 1) >= max_steps):
+        if (step + 1) >= max_steps:
             break
-    
+
     eval_time = time.perf_counter() - start_time
     wandb.log({f"time_{datasplit}": eval_time}, step=global_step)
 
     if n_fsolver_steps > 0:
         n_fsolver_steps /= max_steps
-        wandb.log({f"avg_n_fsolver_steps_{datasplit}": n_fsolver_steps}, step=global_step)
+        wandb.log(
+            {f"avg_n_fsolver_steps_{datasplit}": n_fsolver_steps}, step=global_step
+        )
 
     return mae_metrics, loss_metrics
 

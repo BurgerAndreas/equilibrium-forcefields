@@ -54,7 +54,7 @@ import deq2ff.logging_utils_deq as logging_utils_deq
 # # Statistics of IS2RE 100K
 # # IS2RE: 100k, max_radius = 5, max_neighbors = 100
 # _AVG_NUM_NODES = 77.81317
-# _AVG_DEGREE = 23.395238876342773  
+# _AVG_DEGREE = 23.395238876342773
 
 
 @registry.register_model("equiformer_v2_oc20")
@@ -151,22 +151,27 @@ class EquiformerV2_OC20(BaseModel):
         # added
         # Statistics of IS2RE 100K
         # IS2RE: 100k, max_radius = 5, max_neighbors = 100
-        _AVG_NUM_NODES = 77.81317,
-        _AVG_DEGREE = 23.395238876342773,
+        _AVG_NUM_NODES=77.81317,
+        _AVG_DEGREE=23.395238876342773,
         task_mean=None,
         task_std=None,
         name=None,
-        force_head='SO2EquivariantGraphAttention',
+        force_head="SO2EquivariantGraphAttention",
+        energy_head="FeedForwardNetwork",
         **kwargs,
     ):
         super().__init__()
 
-        print(f'Ignoring kwargs in {self.__class__.__name__}:', kwargs)
+        print(f"Ignoring kwargs in {self.__class__.__name__}:", kwargs)
 
+        # added
         self._AVG_NUM_NODES = _AVG_NUM_NODES
         self._AVG_DEGREE = _AVG_DEGREE
         self.task_mean = task_mean
         self.task_std = task_std
+
+        self.force_head = force_head
+        self.energy_head = energy_head
 
         self.use_pbc = use_pbc
         self.regress_forces = regress_forces
@@ -298,56 +303,54 @@ class EquiformerV2_OC20(BaseModel):
             rescale_factor=self._AVG_DEGREE,
         )
 
-        # Initialize the blocks for each layer of EquiformerV2
-        self.blocks = nn.ModuleList()
-        for i in range(self.num_layers):
-            block = TransBlockV2(
-                self.sphere_channels,
-                self.attn_hidden_channels,
-                self.num_heads,
-                self.attn_alpha_channels,
-                self.attn_value_channels,
-                self.ffn_hidden_channels,
-                self.sphere_channels,
-                self.lmax_list,
-                self.mmax_list,
-                self.SO3_rotation,
-                self.mappingReduced,
-                self.SO3_grid,
-                self.max_num_elements,
-                self.edge_channels_list,
-                self.block_use_atom_edge_embedding,
-                self.use_m_share_rad,
-                self.attn_activation,
-                self.use_s2_act_attn,
-                self.use_attn_renorm,
-                self.ffn_activation,
-                self.use_gate_act,
-                self.use_grid_mlp,
-                self.use_sep_s2_act,
-                self.norm_type,
-                self.alpha_drop,
-                self.drop_path_rate,
-                self.proj_drop,
-            )
-            self.blocks.append(block)
+        self.build_blocks()
 
         # Output blocks for energy and forces
         self.norm = get_normalization_layer(
             self.norm_type, lmax=max(self.lmax_list), num_channels=self.sphere_channels
         )
-        self.energy_block = FeedForwardNetwork(
-            self.sphere_channels,
-            self.ffn_hidden_channels,
-            1,
-            self.lmax_list,
-            self.mmax_list,
-            self.SO3_grid,
-            self.ffn_activation,
-            self.use_gate_act,
-            self.use_grid_mlp,
-            self.use_sep_s2_act,
-        )
+        # FeedForwardNetwork, SO2EquivariantGraphAttention
+        if self.energy_head == "FeedForwardNetwork":
+            self.energy_block = FeedForwardNetwork(
+                sphere_channels=self.sphere_channels,
+                ffn_hidden_channels=self.ffn_hidden_channels,
+                output_channels=1,
+                lmax_list=self.lmax_list,
+                mmax_list=self.mmax_list,
+                SO3_grid=self.SO3_grid,
+                activation=self.ffn_activation,
+                use_gate_act=self.use_gate_act,
+                use_grid_mlp=self.use_grid_mlp,
+                use_sep_s2_act=self.use_sep_s2_act,
+            )
+        elif self.energy_head == "SO2EquivariantGraphAttention":
+            self.energy_block = SO2EquivariantGraphAttention(
+                sphere_channels=self.sphere_channels,
+                hidden_channels=self.attn_hidden_channels,
+                num_heads=self.num_heads,
+                attn_alpha_channels=self.attn_alpha_channels,
+                attn_value_channels=self.attn_value_channels,
+                output_channels=1,
+                lmax_list=self.lmax_list,
+                mmax_list=self.mmax_list,
+                SO3_rotation=self.SO3_rotation,
+                mappingReduced=self.mappingReduced,
+                SO3_grid=self.SO3_grid,
+                max_num_elements=self.max_num_elements,
+                edge_channels_list=self.edge_channels_list,
+                use_atom_edge_embedding=self.block_use_atom_edge_embedding,
+                use_m_share_rad=self.use_m_share_rad,
+                activation=self.attn_activation,
+                use_s2_act_attn=self.use_s2_act_attn,
+                use_attn_renorm=self.use_attn_renorm,
+                use_gate_act=self.use_gate_act,
+                use_sep_s2_act=self.use_sep_s2_act,
+                alpha_drop=0.0,
+            )
+        else:
+            raise ValueError(
+                f"Unknown energy_head: {self.energy_head}. Try model.energy_head=SO2EquivariantGraphAttention"
+            )
         if self.regress_forces:
             # self.force_block = SO2EquivariantGraphAttention(
             self.force_block = eval(force_head)(
@@ -366,7 +369,7 @@ class EquiformerV2_OC20(BaseModel):
                 edge_channels_list=self.edge_channels_list,
                 use_atom_edge_embedding=self.block_use_atom_edge_embedding,
                 use_m_share_rad=self.use_m_share_rad,
-                activation=self.attn_activation, # unused
+                activation=self.attn_activation,
                 use_s2_act_attn=self.use_s2_act_attn,
                 use_attn_renorm=self.use_attn_renorm,
                 use_gate_act=self.use_gate_act,
@@ -376,6 +379,43 @@ class EquiformerV2_OC20(BaseModel):
 
         self.apply(self._init_weights)
         self.apply(self._uniform_init_rad_func_linear_weights)
+
+    def build_blocks(self):
+        # Initialize the blocks for each layer of EquiformerV2
+        self.blocks = nn.ModuleList()
+        for i in range(self.num_layers):
+            sphere_channels_in = self.sphere_channels
+            block = TransBlockV2(
+                # sphere_channels=self.sphere_channels,
+                sphere_channels=sphere_channels_in,
+                attn_hidden_channels=self.attn_hidden_channels,
+                num_heads=self.num_heads,
+                attn_alpha_channels=self.attn_alpha_channels,
+                attn_value_channels=self.attn_value_channels,
+                ffn_hidden_channels=self.ffn_hidden_channels,
+                output_channels=self.sphere_channels,
+                lmax_list=self.lmax_list,
+                mmax_list=self.mmax_list,
+                SO3_rotation=self.SO3_rotation,
+                mappingReduced=self.mappingReduced,
+                SO3_grid=self.SO3_grid,
+                max_num_elements=self.max_num_elements,
+                edge_channels_list=self.edge_channels_list,
+                use_atom_edge_embedding=self.block_use_atom_edge_embedding,
+                use_m_share_rad=self.use_m_share_rad,
+                attn_activation=self.attn_activation,
+                use_s2_act_attn=self.use_s2_act_attn,
+                use_attn_renorm=self.use_attn_renorm,
+                ffn_activation=self.ffn_activation,
+                use_gate_act=self.use_gate_act,
+                use_grid_mlp=self.use_grid_mlp,
+                use_sep_s2_act=self.use_sep_s2_act,
+                norm_type=self.norm_type,
+                alpha_drop=self.alpha_drop,
+                drop_path_rate=self.drop_path_rate,
+                proj_drop=self.proj_drop,
+            )
+            self.blocks.append(block)
 
     @conditional_grad(torch.enable_grad())
     def forward(self, data, step=None, datasplit=None, **kwargs):
@@ -486,11 +526,11 @@ class EquiformerV2_OC20(BaseModel):
         # Logging
         ######################################################
         if step is not None:
-            logging_utils_deq.log_fixed_point_norm(x.embedding.clone().detach(), step, datasplit)
-            # log the input injection (output of encoder)
             logging_utils_deq.log_fixed_point_norm(
-                emb, step, datasplit, name="emb"
+                x.embedding.clone().detach(), step, datasplit
             )
+            # log the input injection (output of encoder)
+            logging_utils_deq.log_fixed_point_norm(emb, step, datasplit, name="emb")
 
         ###############################################################
         # Energy estimation

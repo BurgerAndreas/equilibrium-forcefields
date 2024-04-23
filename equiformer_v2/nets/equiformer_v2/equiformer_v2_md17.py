@@ -56,13 +56,13 @@ import deq2ff.logging_utils_deq as logging_utils_deq
 # # Statistics of IS2RE 100K
 # # IS2RE: 100k, max_radius = 5, max_neighbors = 100
 # _AVG_NUM_NODES = 77.81317
-# _AVG_DEGREE = 23.395238876342773  
+# _AVG_DEGREE = 23.395238876342773
 
 from equiformer_v2.nets.equiformer_v2.equiformer_v2_oc20 import EquiformerV2_OC20
 
+
 @registry.register_model("equiformer_v2_md17")
 class EquiformerV2_MD17(EquiformerV2_OC20):
-
     @conditional_grad(torch.enable_grad())
     def forward(self, data, step=None, datasplit=None, **kwargs):
         """Difference to EquiformerV2_OC20:
@@ -180,10 +180,10 @@ class EquiformerV2_MD17(EquiformerV2_OC20):
 
         for i in range(self.num_layers):
             x = self.blocks[i](
-                x,  # SO3_Embedding
-                atomic_numbers,
-                edge_distance,
-                edge_index,
+                x=x,  # SO3_Embedding
+                atomic_numbers=atomic_numbers,
+                edge_distance=edge_distance,
+                edge_index=edge_index,
                 batch=data.batch,  # for GraphDropPath
             )
 
@@ -194,17 +194,23 @@ class EquiformerV2_MD17(EquiformerV2_OC20):
         # Logging
         ######################################################
         if step is not None:
-            logging_utils_deq.log_fixed_point_norm(x.embedding.clone().detach(), step, datasplit)
-            # log the input injection (output of encoder)
             logging_utils_deq.log_fixed_point_norm(
-                emb, step, datasplit, name="emb"
+                x.embedding.clone().detach(), step, datasplit
             )
+            # log the input injection (output of encoder)
+            logging_utils_deq.log_fixed_point_norm(emb, step, datasplit, name="emb")
 
         ###############################################################
         # Energy estimation
         ###############################################################
         # (B, 16, 1)
-        node_energy = self.energy_block(x)
+        node_energy = self.energy_block(
+            input_embedding=x,
+            x=x,
+            atomic_numbers=atomic_numbers,
+            edge_distance=edge_distance,
+            edge_index=edge_index,
+        )
         # (B, 1, 1)
         node_energy = node_energy.embedding.narrow(dim=1, start=0, length=1)
         energy = torch.zeros(

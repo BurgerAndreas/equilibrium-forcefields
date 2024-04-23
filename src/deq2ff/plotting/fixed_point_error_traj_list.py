@@ -53,7 +53,7 @@ def main(
         for row in history
         if artifact_name in row.keys()
     ]
-    print(f' Error shape: {len(losses[0][0]) if len(losses) > 0 else None}')
+    print(f" Error shape: {len(losses[0][0]) if len(losses) > 0 else None}")
 
     losses_nonone = [[r, s] for r, s in losses if r is not None]
     print(f" Rows that were None: {len(losses) - len(losses_nonone)} / {len(losses)}")
@@ -87,9 +87,7 @@ def main(
         # cant plot 0 on logscale
         # plt.ylim(1e-12, ymax)
         plt.ylim(top=ymax)
-    fname = (
-        f"{plotfolder}/fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}_{error_type}.png"
-    )
+    fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}_{error_type}.png"
     plt.savefig(fname)
     print(f"Saved plot to {fname}")
 
@@ -108,11 +106,11 @@ if __name__ == "__main__":
     # main("f9bg18sp", datasplit="train", logscale=True, ymax=0.001)
     # main("f9bg18sp", error_type='rel', datasplit="train", logscale=True, ymax=0.001)
     # main("f9bg18sp", error_type='rel', datasplit="train", logscale=True, ymax=0.001)
-    
+
     # broyden pathnorm 64precision
     run_id = "6cfnokgr"
-    main(run_id, error_type='abs', datasplit="train", logscale=True)
-    main(run_id, error_type='rel', datasplit="train", logscale=True)
+    main(run_id, error_type="abs", datasplit="train", logscale=True)
+    main(run_id, error_type="rel", datasplit="train", logscale=True)
     # main(run_id, error_type='abs64', datasplit="train", logscale=True)
     # main(run_id, error_type='rel64', datasplit="train", logscale=True)
     # main(run_id, error_type='abs64', datasplit="train", logscale=True, ymax=0.001)

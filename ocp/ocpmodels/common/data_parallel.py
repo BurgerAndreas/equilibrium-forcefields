@@ -35,10 +35,7 @@ class OCPDataParallel(torch.nn.DataParallel):
         elif num_gpus == 1:
             device_ids = [self.src_device]
         else:
-            if (
-                self.src_device.type == "cuda"
-                and self.src_device.index >= num_gpus
-            ):
+            if self.src_device.type == "cuda" and self.src_device.index >= num_gpus:
                 raise ValueError("Main device must be less than # of GPUs")
             device_ids = list(range(num_gpus))
 
@@ -58,9 +55,7 @@ class OCPDataParallel(torch.nn.DataParallel):
             return self.module(batch_list[0])
 
         if len(self.device_ids) == 1:
-            return self.module(
-                batch_list[0].to(f"cuda:{self.device_ids[0]}"), **kwargs
-            )
+            return self.module(batch_list[0].to(f"cuda:{self.device_ids[0]}"), **kwargs)
 
         for t in chain(self.module.parameters(), self.module.buffers()):
             if t.device != self.src_device:
@@ -72,8 +67,7 @@ class OCPDataParallel(torch.nn.DataParallel):
                 )
 
         inputs = [
-            batch.to(f"cuda:{self.device_ids[i]}")
-            for i, batch in enumerate(batch_list)
+            batch.to(f"cuda:{self.device_ids[i]}") for i, batch in enumerate(batch_list)
         ]
         replicas = self.replicate(self.module, self.device_ids[: len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
@@ -96,9 +90,7 @@ class ParallelCollater:
             count = torch.tensor([data.num_nodes for data in data_list])
             cumsum = count.cumsum(0)
             cumsum = torch.cat([cumsum.new_zeros(1), cumsum], dim=0)
-            device_id = (
-                num_devices * cumsum.to(torch.float) / cumsum[-1].item()
-            )
+            device_id = num_devices * cumsum.to(torch.float) / cumsum[-1].item()
             device_id = (device_id[:-1] + device_id[1:]) / 2.0
             device_id = device_id.to(torch.long)
             split = device_id.bincount().cumsum(0)
@@ -143,14 +135,10 @@ class BalancedBatchSampler(Sampler):
     def _load_dataset(self, dataset, mode: Literal["atoms", "neighbors"]):
         errors: List[str] = []
         if not isinstance(dataset, _HasMetadata):
-            errors.append(
-                f"Dataset {dataset} does not have a metadata_path attribute."
-            )
+            errors.append(f"Dataset {dataset} does not have a metadata_path attribute.")
             return None, errors
         if not dataset.metadata_path.exists():
-            errors.append(
-                f"Metadata file {dataset.metadata_path} does not exist."
-            )
+            errors.append(f"Metadata file {dataset.metadata_path} does not exist.")
             return None, errors
 
         key = {"atoms": "natoms", "neighbors": "neighbors"}[mode]
@@ -207,9 +195,7 @@ class BalancedBatchSampler(Sampler):
         self.balance_batches = False
 
         if self.num_replicas <= 1:
-            logging.info(
-                "Batch balancing is disabled for single GPU training."
-            )
+            logging.info("Batch balancing is disabled for single GPU training.")
             return
 
         if self.mode is False:
@@ -267,9 +253,7 @@ class BalancedBatchSampler(Sampler):
             else:
                 sizes = [self.sizes[idx] for idx in batch_idx]
 
-            idx_sizes = torch.stack(
-                [torch.tensor(batch_idx), torch.tensor(sizes)]
-            )
+            idx_sizes = torch.stack([torch.tensor(batch_idx), torch.tensor(sizes)])
             idx_sizes_all = distutils.all_gather(idx_sizes, device=self.device)
             idx_sizes_all = torch.cat(idx_sizes_all, dim=-1).cpu()
             if gp_utils.initialized():

@@ -102,6 +102,12 @@ After DEQ we have to project the irreps_embeddings (all l's) to the output irrep
 A projection head is a small alternative to a full transformer block.
 """
 
+class IdentityBlock(torch.nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+
+    def forward(self, node_input, **kwargs):
+        return node_input
 
 class FCTPProjection(torch.nn.Module):
     """See ffn_shortcut in DPTransBlock"""
@@ -117,8 +123,6 @@ class FCTPProjection(torch.nn.Module):
         bias=True,
         # proj_drop=0.1, # 0.1
         # activation="SiLU",
-        # tp_irrep_norm=None,
-        # tp_path_norm="none",
         **kwargs
     ):
         super().__init__()
@@ -230,8 +234,6 @@ class FFProjection(torch.nn.Module):
         irreps_mlp_mid=None,
         rescale=True,
         # added
-        # tp_path_norm="none",
-        # tp_irrep_norm=None,  # None = 'element'
         proj_drop=0.1,  # 0.1
         bias=True,
         activation="SiLU",

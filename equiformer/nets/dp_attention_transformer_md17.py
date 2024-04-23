@@ -254,7 +254,6 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
                 # only GraphAttention
                 normalization=self.outhead_tp_irrep_norm,
                 path_normalization=self.outhead_tp_path_norm,
-                activation="SiLU",
             )
 
         self.apply(self._init_weights)

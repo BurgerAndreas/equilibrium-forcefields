@@ -101,12 +101,13 @@ from equiformer.nets.dp_attention_transformer_md17 import (
 import deq2ff.logging_utils_deq as logging_utils_deq
 from deq2ff.deq_equiformer.deq_equiformer_base import EquiformerDEQBase
 
-from deq2ff.deq_equiformer.deq_decprojhead_dp_md17 import (
+from deq2ff.deq_equiformer.decoder_projector import (
     FFProjection,
     FFProjectionNorm,
     FFResidualFCTPProjection,
     FCTPProjection,
     FCTPProjectionNorm,
+    IdentityBlock,
 )
 
 from deq2ff.deq_equiformer.deq_dp_minimal import (

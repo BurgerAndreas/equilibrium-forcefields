@@ -187,7 +187,7 @@ class EquiformerDEQBase:
         A projection head is a small alternative to a full transformer block.
         """
         if self.dec_proj is not None:
-            from deq2ff.deq_equiformer.deq_decprojhead_dp_md17 import (
+            from deq2ff.deq_equiformer.decoder_projector import (
                 FFProjection,
                 FFProjectionNorm,
                 FFResidualFCTPProjection,

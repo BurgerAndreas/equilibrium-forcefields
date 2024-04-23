@@ -86,8 +86,8 @@ class DotProductAttention(torch.nn.Module):
         alpha_drop=0.1,
         proj_drop=0.1,
         # added
-        dp_tp_path_norm="none",
-        dp_tp_irrep_norm=None,  # None = 'element'
+        tp_path_norm="none",
+        tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
         bias=True,
     ):
@@ -112,8 +112,8 @@ class DotProductAttention(torch.nn.Module):
         self.query = LinearRS(
             self.irreps_node_input,
             irreps_attn_heads,
-            normalization=dp_tp_irrep_norm,
-            path_normalization=dp_tp_path_norm,
+            normalization=tp_irrep_norm,
+            path_normalization=tp_path_norm,
             # added
             bias=bias,
         )
@@ -127,16 +127,16 @@ class DotProductAttention(torch.nn.Module):
             self.irreps_pre_attn,
             # bias=True,
             bias=bias,
-            normalization=dp_tp_irrep_norm,
-            path_normalization=dp_tp_path_norm,
+            normalization=tp_irrep_norm,
+            path_normalization=tp_path_norm,
         )
         self.merge_dst = LinearRS(
             self.irreps_node_input,
             self.irreps_pre_attn,
             # bias=False,
             bias=bias,
-            normalization=dp_tp_irrep_norm,
-            path_normalization=dp_tp_path_norm,
+            normalization=tp_irrep_norm,
+            path_normalization=tp_path_norm,
         )
         # key and value = FullyConnectedTensorProductRescale
         self.key_value = SeparableFCTP(
@@ -147,8 +147,8 @@ class DotProductAttention(torch.nn.Module):
             use_activation=False,
             norm_layer=None,
             # added
-            path_normalization=dp_tp_path_norm,
-            normalization=dp_tp_irrep_norm,
+            path_normalization=tp_path_norm,
+            normalization=tp_irrep_norm,
             activation=activation,
             bias=bias,
         )
@@ -166,8 +166,8 @@ class DotProductAttention(torch.nn.Module):
         self.proj = LinearRS(
             irreps_attn_heads,
             self.irreps_node_output,
-            normalization=dp_tp_irrep_norm,
-            path_normalization=dp_tp_path_norm,
+            normalization=tp_irrep_norm,
+            path_normalization=tp_path_norm,
             bias=bias,
         )
         self.proj_drop = None
@@ -255,12 +255,10 @@ class DPTransBlock(torch.nn.Module):
         irreps_mlp_mid=None,
         norm_layer="layer",
         # added
-        dp_tp_path_norm="none",
-        dp_tp_irrep_norm=None,  # None = 'element'
+        tp_path_norm="none",
+        tp_irrep_norm=None,  # None = 'element'
         # FullyConnectedTensorProductRescale
         # only used when irreps_node_input != irreps_node_output
-        fc_tp_path_norm="none",
-        fc_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
         bias=True,
         affine_ln=True,
@@ -302,8 +300,8 @@ class DPTransBlock(torch.nn.Module):
             alpha_drop=alpha_drop,
             proj_drop=proj_drop,
             # added
-            dp_tp_path_norm=dp_tp_path_norm,
-            dp_tp_irrep_norm=dp_tp_irrep_norm,
+            tp_path_norm=tp_path_norm,
+            tp_irrep_norm=tp_irrep_norm,
             activation=activation,
             bias=bias,
         )
@@ -323,8 +321,8 @@ class DPTransBlock(torch.nn.Module):
             proj_drop=proj_drop,
             # added
             activation=activation,
-            path_normalization=fc_tp_path_norm,
-            normalization=fc_tp_irrep_norm,  # prior default: None = 'element'
+            path_normalization=tp_path_norm,
+            normalization=tp_irrep_norm,  # prior default: None = 'element'
             bias=bias,
         )
 
@@ -340,8 +338,8 @@ class DPTransBlock(torch.nn.Module):
                 # bias=True,
                 rescale=_RESCALE,
                 # added
-                path_normalization=fc_tp_path_norm,
-                normalization=fc_tp_irrep_norm,  # prior default: None = 'element'
+                path_normalization=tp_path_norm,
+                normalization=tp_irrep_norm,  # prior default: None = 'element'
                 # activation=activation,
                 bias=bias,
             )

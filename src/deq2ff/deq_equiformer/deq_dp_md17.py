@@ -277,10 +277,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
                 # added
-                # dp_tp_path_norm=self.dp_tp_path_norm,
-                # dp_tp_irrep_norm=self.dp_tp_irrep_norm,
-                # fc_tp_path_norm=self.fc_tp_path_norm,
-                # fc_tp_irrep_norm=self.fc_tp_irrep_norm,
+                # tp_path_norm=self.tp_path_norm,
+                # tp_irrep_norm=self.tp_irrep_norm,
                 # activation=self.activation,
                 # bias=self.bias,
                 # affine_ln=self.affine_ln,
@@ -323,10 +321,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
                 # added
-                dp_tp_path_norm=self.dp_tp_path_norm,
-                dp_tp_irrep_norm=self.dp_tp_irrep_norm,
-                fc_tp_path_norm=self.fc_tp_path_norm,
-                fc_tp_irrep_norm=self.fc_tp_irrep_norm,
+                tp_path_norm=self.tp_path_norm,
+                tp_irrep_norm=self.tp_irrep_norm,
                 activation=self.activation,
                 bias=self.bias,
                 affine_ln=self.affine_ln,
@@ -399,10 +395,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
                 # added
-                dp_tp_path_norm=self.dp_tp_path_norm,
-                dp_tp_irrep_norm=self.dp_tp_irrep_norm,
-                fc_tp_path_norm=self.fc_tp_path_norm,
-                fc_tp_irrep_norm=self.fc_tp_irrep_norm,
+                tp_path_norm=self.tp_path_norm,
+                tp_irrep_norm=self.tp_irrep_norm,
                 activation=self.activation,
                 bias=self.bias,
                 affine_ln=self.affine_ln,
@@ -1015,10 +1009,8 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     # input_injection="first_layer",
     # z0="zero",
     # log_fp_error_traj=False,
-    # dp_tp_path_norm="none",
-    # dp_tp_irrep_norm=None, # None = 'element'
-    # fc_tp_path_norm="none",
-    # fc_tp_irrep_norm=None, # None = 'element'
+    # tp_path_norm="none",
+    # tp_irrep_norm=None, # None = 'element'
     **kwargs,
 ):
     # dot_product_attention_transformer_exp_l2_md17

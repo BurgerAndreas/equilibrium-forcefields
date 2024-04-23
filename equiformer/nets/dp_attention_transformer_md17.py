@@ -204,13 +204,9 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
                 # added
-                # dp_tp_path_norm=self.dp_tp_path_norm,
-                # dp_tp_irrep_norm=self.dp_tp_irrep_norm,
-                # fc_tp_path_norm=self.fc_tp_path_norm,
-                # fc_tp_irrep_norm=self.fc_tp_irrep_norm,
-                # activation=self.activation,
-                # bias=self.bias,
-                # affine_ln=self.affine_ln,
+                normalization=None,
+                path_normalization="none",
+                activation="SiLU",
             )
         else:
             self.head = torch.nn.Sequential(
@@ -245,18 +241,20 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
                 nonlinear_message=self.nonlinear_message,
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
+                activation=self.activation,
+                # added
+                bias=self.bias,
                 # only DPTransBlock, not GraphAttention
                 drop_path_rate=self.drop_path_rate,
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
-                # added
-                dp_tp_path_norm=self.dp_tp_path_norm,
-                dp_tp_irrep_norm=self.dp_tp_irrep_norm,
-                fc_tp_path_norm=self.fc_tp_path_norm,
-                fc_tp_irrep_norm=self.fc_tp_irrep_norm,
-                activation=self.activation,
-                bias=self.bias,
+                tp_path_norm=self.outhead_tp_path_norm,
+                tp_irrep_norm=self.outhead_tp_irrep_norm,
                 affine_ln=self.affine_ln,
+                # only GraphAttention
+                normalization=self.outhead_tp_irrep_norm,
+                path_normalization=self.outhead_tp_path_norm,
+                activation="SiLU",
             )
 
         self.apply(self._init_weights)

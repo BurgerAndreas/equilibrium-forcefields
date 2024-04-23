@@ -109,8 +109,8 @@ class FF(torch.nn.Module):
         proj_drop=0.0,  # 0.1
         bias=True,
         activation="SiLU",
-        dp_tp_irrep_norm=None,
-        dp_tp_path_norm="none",
+        tp_irrep_norm=None,
+        tp_path_norm="none",
         **kwargs,
     ):
         super().__init__()
@@ -133,8 +133,8 @@ class FF(torch.nn.Module):
             proj_drop=proj_drop,
             bias=bias,
             activation=activation,
-            normalization=dp_tp_irrep_norm,
-            path_normalization=dp_tp_path_norm,
+            normalization=tp_irrep_norm,
+            path_normalization=tp_path_norm,
         )
 
         print(f"FF: ignoring kwargs: {kwargs}")
@@ -171,13 +171,11 @@ class FFResidual(torch.nn.Module):
         # added
         # FullyConnectedTensorProductRescale
         # only used when irreps_node_input != irreps_node_output
-        fc_tp_path_norm="none",
-        fc_tp_irrep_norm=None,  # None = 'element'
+        tp_path_norm="none",
+        tp_irrep_norm=None,  # None = 'element'
         proj_drop=0.1,  # 0.1
         bias=True,
         activation="SiLU",
-        dp_tp_irrep_norm=None,
-        dp_tp_path_norm="none",
         **kwargs,
     ):
         super().__init__()
@@ -202,8 +200,8 @@ class FFResidual(torch.nn.Module):
             proj_drop=proj_drop,
             bias=bias,
             activation=activation,
-            normalization=dp_tp_irrep_norm,
-            path_normalization=dp_tp_path_norm,
+            normalization=tp_irrep_norm,
+            path_normalization=tp_path_norm,
         )
 
         self.ffn_shortcut = None
@@ -216,8 +214,8 @@ class FFResidual(torch.nn.Module):
                 # bias=True,
                 rescale=_RESCALE,
                 # added
-                path_normalization=fc_tp_path_norm,
-                normalization=fc_tp_irrep_norm,  # prior default: None = 'element'
+                path_normalization=tp_path_norm,
+                normalization=tp_irrep_norm,  # prior default: None = 'element'
                 # activation=activation,
                 bias=bias,
             )
@@ -269,12 +267,10 @@ class DPA(torch.nn.Module):
         # irreps_mlp_mid=None,
         # norm_layer="layer",
         # added
-        dp_tp_path_norm="none",
-        dp_tp_irrep_norm=None,  # None = 'element'
+        tp_path_norm="none",
+        tp_irrep_norm=None,  # None = 'element'
         # FullyConnectedTensorProductRescale
         # only used when irreps_node_input != irreps_node_output
-        # fc_tp_path_norm="none",
-        # fc_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
         bias=True,
         **kwargs,
@@ -316,8 +312,8 @@ class DPA(torch.nn.Module):
             alpha_drop=alpha_drop,
             proj_drop=proj_drop,
             # added
-            dp_tp_path_norm=dp_tp_path_norm,
-            dp_tp_irrep_norm=dp_tp_irrep_norm,
+            tp_path_norm=tp_path_norm,
+            tp_irrep_norm=tp_irrep_norm,
             activation=activation,
             bias=bias,
         )
@@ -496,10 +492,8 @@ class DEQMinimalDotProductAttention(DEQDotProductAttentionTransformerMD17):
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
                 # added
-                dp_tp_path_norm=self.dp_tp_path_norm,
-                dp_tp_irrep_norm=self.dp_tp_irrep_norm,
-                fc_tp_path_norm=self.fc_tp_path_norm,
-                fc_tp_irrep_norm=self.fc_tp_irrep_norm,
+                tp_path_norm=self.tp_path_norm,
+                tp_irrep_norm=self.tp_irrep_norm,
                 activation=self.activation,
                 bias=self.bias,
             )

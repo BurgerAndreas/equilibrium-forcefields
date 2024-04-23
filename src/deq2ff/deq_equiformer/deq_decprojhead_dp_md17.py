@@ -112,13 +112,13 @@ class FCTPProjection(torch.nn.Module):
         irreps_node_attr,
         irreps_node_output,
         rescale=True,
-        fc_tp_path_norm="none",
-        fc_tp_irrep_norm=None,  # None = 'element'
+        tp_path_norm="none",
+        tp_irrep_norm=None,  # None = 'element'
         bias=True,
         # proj_drop=0.1, # 0.1
         # activation="SiLU",
-        # dp_tp_irrep_norm=None,
-        # dp_tp_path_norm="none",
+        # tp_irrep_norm=None,
+        # tp_path_norm="none",
         **kwargs
     ):
         super().__init__()
@@ -132,8 +132,8 @@ class FCTPProjection(torch.nn.Module):
             self.irreps_node_output,
             rescale=rescale,
             # added
-            path_normalization=fc_tp_path_norm,
-            normalization=fc_tp_irrep_norm,  # prior default: None = 'element'
+            path_normalization=tp_path_norm,
+            normalization=tp_irrep_norm,  # prior default: None = 'element'
             # activation=activation,
             bias=bias,
         )
@@ -165,13 +165,11 @@ class FFResidualFCTPProjection(torch.nn.Module):
         irreps_mlp_mid=None,
         norm_layer="layer",
         # added
-        fc_tp_path_norm="none",
-        fc_tp_irrep_norm=None,  # None = 'element'
+        tp_path_norm="none",
+        tp_irrep_norm=None,  # None = 'element'
         proj_drop=0.1,  # 0.1
         bias=True,
         activation="SiLU",
-        dp_tp_irrep_norm=None,
-        dp_tp_path_norm="none",
         **kwargs
     ):
         super().__init__()
@@ -195,8 +193,8 @@ class FFResidualFCTPProjection(torch.nn.Module):
             proj_drop=proj_drop,
             bias=bias,
             activation=activation,
-            normalization=dp_tp_irrep_norm,
-            path_normalization=dp_tp_path_norm,
+            normalization=tp_irrep_norm,
+            path_normalization=tp_path_norm,
         )
         self.ffn_shortcut = FullyConnectedTensorProductRescale(
             self.irreps_node_input,
@@ -205,8 +203,8 @@ class FFResidualFCTPProjection(torch.nn.Module):
             # bias=True,
             rescale=rescale,
             # added
-            path_normalization=fc_tp_path_norm,
-            normalization=fc_tp_irrep_norm,  # prior default: None = 'element'
+            path_normalization=tp_path_norm,
+            normalization=tp_irrep_norm,  # prior default: None = 'element'
             # activation=activation,
             bias=bias,
         )
@@ -232,13 +230,13 @@ class FFProjection(torch.nn.Module):
         irreps_mlp_mid=None,
         rescale=True,
         # added
-        # fc_tp_path_norm="none",
-        # fc_tp_irrep_norm=None,  # None = 'element'
+        # tp_path_norm="none",
+        # tp_irrep_norm=None,  # None = 'element'
         proj_drop=0.1,  # 0.1
         bias=True,
         activation="SiLU",
-        dp_tp_irrep_norm=None,
-        dp_tp_path_norm="none",
+        tp_irrep_norm=None,
+        tp_path_norm="none",
         **kwargs
     ):
         super().__init__()
@@ -261,8 +259,8 @@ class FFProjection(torch.nn.Module):
             proj_drop=proj_drop,
             bias=bias,
             activation=activation,
-            normalization=dp_tp_irrep_norm,
-            path_normalization=dp_tp_path_norm,
+            normalization=tp_irrep_norm,
+            path_normalization=tp_path_norm,
         )
         print(self.__class__.__name__, "discarded kwargs:", kwargs)
 

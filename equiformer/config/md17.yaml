@@ -52,10 +52,10 @@ model:
   max_radius: 5.0 # 5 = 50 Angstrom?
   # normalization for TensorProduct (see o3 library)
   # https://docs.e3nn.org/en/stable/api/o3/o3_tp.html#e3nn.o3.TensorProduct
-  dp_tp_path_norm: "path" # element, path, default="none"
-  dp_tp_irrep_norm: null # None = 'element'
-  fc_tp_path_norm: "path"
-  fc_tp_irrep_norm: null 
+  tp_path_norm: "path" # element, path, default="none"
+  tp_irrep_norm: null # None = 'element'
+  outhead_tp_path_norm: "path" # element, path, default="none"
+  outhead_tp_irrep_norm: null # None = 'element'
   affine_ln: True
   bias: True
   # instead of F=dE/dx, use a prediction head DPTransBlock,

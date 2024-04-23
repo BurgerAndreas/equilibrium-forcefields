@@ -803,12 +803,10 @@ class TransBlock(torch.nn.Module):
         irreps_mlp_mid=None,
         norm_layer="layer",
         # added
-        dp_tp_path_norm="none",
-        dp_tp_irrep_norm=None,  # None = 'element'
+        tp_path_norm="none",
+        tp_irrep_norm=None,  # None = 'element'
         # FullyConnectedTensorProductRescale
         # only used when irreps_node_input != irreps_node_output
-        fc_tp_path_norm="none",
-        fc_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
     ):
 
@@ -847,8 +845,8 @@ class TransBlock(torch.nn.Module):
             alpha_drop=alpha_drop,
             proj_drop=proj_drop,
             # added
-            normalization=dp_tp_irrep_norm,
-            path_normalization=dp_tp_path_norm,
+            normalization=tp_irrep_norm,
+            path_normalization=tp_path_norm,
             activation=activation,
         )
 
@@ -865,8 +863,8 @@ class TransBlock(torch.nn.Module):
             proj_drop=proj_drop,
             # added
             activation=activation,
-            normalization=dp_tp_irrep_norm,
-            path_normalization=dp_tp_path_norm,
+            normalization=tp_irrep_norm,
+            path_normalization=tp_path_norm,
         )
         self.ffn_shortcut = None
         if self.irreps_node_input != self.irreps_node_output:
@@ -877,8 +875,8 @@ class TransBlock(torch.nn.Module):
                 bias=True,
                 rescale=_RESCALE,
                 # added
-                normalization=fc_tp_irrep_norm,
-                path_normalization=fc_tp_path_norm,
+                normalization=tp_irrep_norm,
+                path_normalization=tp_path_norm,
             )
 
     def forward(

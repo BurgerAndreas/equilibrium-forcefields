@@ -25,10 +25,10 @@ class EquiformerDEQBase:
         z0="zero",
         z0_requires_grad=False,
         log_fp_error_traj=False,
-        dp_tp_path_norm="none",
-        dp_tp_irrep_norm=None,  # None = 'element'
-        fc_tp_path_norm="none",
-        fc_tp_irrep_norm=None,  # None = 'element'
+        tp_path_norm="none",
+        tp_irrep_norm=None,  # None = 'element'
+        outhead_tp_path_norm="none",
+        outhead_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
         # blocks
         dec_proj=None,
@@ -55,10 +55,10 @@ class EquiformerDEQBase:
         """
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.dp_tp_path_norm = dp_tp_path_norm
-        self.dp_tp_irrep_norm = dp_tp_irrep_norm
-        self.fc_tp_path_norm = fc_tp_path_norm
-        self.fc_tp_irrep_norm = fc_tp_irrep_norm
+        self.tp_path_norm = tp_path_norm
+        self.tp_irrep_norm = tp_irrep_norm
+        self.outhead_tp_path_norm = outhead_tp_path_norm
+        self.outhead_tp_irrep_norm = outhead_tp_irrep_norm
         self.activation = activation
         self.dec_proj = dec_proj
         self.deq_block = deq_block

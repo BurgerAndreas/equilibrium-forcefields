@@ -106,10 +106,8 @@ class DEQGraphAttentionTransformerMD17(DEQDotProductAttentionTransformerMD17):
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
                 # added
-                dp_tp_path_norm=self.dp_tp_path_norm,
-                dp_tp_irrep_norm=self.dp_tp_irrep_norm,
-                fc_tp_path_norm=self.fc_tp_path_norm,
-                fc_tp_irrep_norm=self.fc_tp_irrep_norm,
+                tp_path_norm=self.tp_path_norm,
+                tp_irrep_norm=self.tp_irrep_norm,
                 activation=self.activation,
             )
             if i != (self.num_layers - 1):

@@ -102,6 +102,13 @@ IGNORE_OVERRIDES = [
 ]
 
 REPLACE = {
+    "deq_dot_product_attention_transformer_exp_l2_md17": "DEQE1",
+    "dot_product_attention_transformer_exp_l2_md17": "E1",
+    "deq_equiformer_v2_oc20": "DEQE2 OC20",
+    "equiformer_v2_oc20": "E2 OC20",
+    "deq_equiformer_v2_md17": "DEQE2 MD17",
+    "equiformer_v2_md17": "E2 MD17",
+    # other stuff
     "dot_product": " dp",
     "deq": "DEQ",
     "initzfromenc-True": "V1",

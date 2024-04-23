@@ -135,10 +135,10 @@ REPLACE = {
     "normtype-": " ",
     "_": " ",
     "preset-": "",
-    "modelcatinjection-False": "add-inj",
+    "catinjection-False": "add-inj",
     " minimalaDEQ minimala": "min",
     "DEQblock-": "block-",
-    "modelname-minimalEquiformer": "",
+    "name-minimalEquiformer": "",
     "pathnorm-": "-",
     "EquivariantLayerNormV2": "ELN",
     "ParameterList": "PL",
@@ -149,6 +149,7 @@ REPLACE = {
     "equiformer v2 use-DEQ": "DEQE2",
     "DEQ DEQ": "DEQ",
     "DEQ equiformer v2DEQE2": "DEQE2",
+    "DEQ  dp use-DEQ": "DEQ E1",
 }
 
 

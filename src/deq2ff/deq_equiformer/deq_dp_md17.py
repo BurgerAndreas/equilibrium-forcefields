@@ -278,8 +278,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
                 # added
-                # tp_path_norm=self.tp_path_norm,
-                # tp_irrep_norm=self.tp_irrep_norm,
+                # tp_path_norm=self.outhead_tp_path_norm,
+                # tp_irrep_norm=self.outhead_tp_path_norm,
                 # activation=self.activation,
                 # bias=self.bias,
                 # affine_ln=self.affine_ln,
@@ -322,8 +322,8 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
                 # added
-                tp_path_norm=self.tp_path_norm,
-                tp_irrep_norm=self.tp_irrep_norm,
+                tp_path_norm=self.outhead_tp_path_norm,
+                tp_irrep_norm=self.outhead_tp_path_norm,
                 activation=self.activation,
                 bias=self.bias,
                 affine_ln=self.affine_ln,

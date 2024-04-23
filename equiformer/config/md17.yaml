@@ -54,7 +54,7 @@ model:
   # https://docs.e3nn.org/en/stable/api/o3/o3_tp.html#e3nn.o3.TensorProduct
   tp_path_norm: "path" # element, path, default="none"
   tp_irrep_norm: null # None = 'element'
-  outhead_tp_path_norm: "path" # element, path, default="none"
+  outhead_tp_path_norm: "none" # element, path, default="none"
   outhead_tp_irrep_norm: null # None = 'element'
   affine_ln: True
   bias: True

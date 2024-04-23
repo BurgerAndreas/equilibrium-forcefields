@@ -248,7 +248,7 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         self.weight_init = weight_init
         assert self.weight_init in ["normal", "uniform"]
 
-        # TODO
+        # I think this is ignored / overwritten in forward
         self.device = "cpu"  # torch.cuda.current_device()
 
         self.grad_forces = False

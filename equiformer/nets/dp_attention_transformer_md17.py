@@ -97,7 +97,7 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
         **kwargs,
     ):
         super().__init__()
-        kwargs = self._set_deq_vars(irreps_node_embedding, irreps_feature, **kwargs)
+        kwargs = self._set_deq_vars(irreps_node_embedding, irreps_feature, num_layers, **kwargs)
         print(f'{self.__class__.__name__} ignoring kwargs: {kwargs}')
 
         self.max_radius = max_radius
@@ -117,7 +117,7 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
         self.irreps_node_embedding = o3.Irreps(irreps_node_embedding)
         self.lmax = self.irreps_node_embedding.lmax
         # self.irreps_feature = o3.Irreps(irreps_feature)
-        self.num_layers = num_layers
+        # self.num_layers = num_layers
         self.irreps_edge_attr = (
             o3.Irreps(irreps_sh)
             if irreps_sh is not None

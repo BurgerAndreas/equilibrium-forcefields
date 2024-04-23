@@ -182,7 +182,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
     ):
         super().__init__()
 
-        kwargs = self._set_deq_vars(irreps_node_embedding, irreps_feature, **kwargs)
+        kwargs = self._set_deq_vars(irreps_node_embedding, irreps_feature, num_layers, **kwargs)
 
         self._AVG_NUM_NODES = _AVG_NUM_NODES
         self._AVG_DEGREE = _AVG_DEGREE
@@ -204,7 +204,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         # self.irreps_node_embedding = o3.Irreps(irreps_node_embedding)
         self.lmax = self.irreps_node_embedding.lmax
         # self.irreps_feature = o3.Irreps(irreps_feature)
-        self.num_layers = num_layers
+        # self.num_layers = num_layers
         self.irreps_edge_attr = (
             o3.Irreps(irreps_sh)
             if irreps_sh is not None

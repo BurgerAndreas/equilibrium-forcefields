@@ -60,6 +60,10 @@ model:
   bias: True
   # instead of F=dE/dx, use a prediction head DPTransBlock,
   force_head: null 
+  # if False, moves the last TransformerBlock to the implicit layers
+  # and uses a IdentityBlock instead of the TransformerBlock in the decoder.
+  # only works if force_head is set and irreps_feature=irreps_node_embedding
+  dec: True
 
   override_test: md17
 

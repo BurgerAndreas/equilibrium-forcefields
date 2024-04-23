@@ -17,6 +17,7 @@ class EquiformerDEQBase:
         self,
         irreps_node_embedding,
         irreps_feature,
+        num_layers,
         input_injection="first_layer",  # False=V1, 'first_layer'=V2
         cat_injection=False,
         norm_injection=None,
@@ -31,6 +32,7 @@ class EquiformerDEQBase:
         outhead_tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
         # blocks
+        dec=True,
         dec_proj=None,
         deq_block=None,
         force_head=None,
@@ -53,6 +55,17 @@ class EquiformerDEQBase:
                 Values: 'equiformer', 'torch', <float>, normal_<mean>_<std>, uniform_<low>_<high>.
                 python scripts/deq_equiformer.py model.weight_init_blocks='{EquivariantLayerNormV2_w:1,EquivariantLayerNormV2_b:normal_0.0_0.1}'
         """
+
+        # if False, moves the last TransformerBlock to the implicit layers
+        # and uses a IdentityBlock instead of the TransformerBlock in the decoder.
+        # only works if force_head is set -> irreps_feature=irreps_node_embedding
+        if dec is False:
+            assert (force_head is not None) or (irreps_feature == irreps_node_embedding), f'Try: model.force_head=GraphAttention model.dec=False'
+            if dec_proj is None:
+                dec_proj = "IdentityBlock"
+            num_layers += 1
+        self.num_layers = num_layers
+        self.dec = dec
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.tp_path_norm = tp_path_norm

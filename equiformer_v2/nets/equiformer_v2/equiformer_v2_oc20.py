@@ -313,7 +313,7 @@ class EquiformerV2_OC20(BaseModel):
         if self.energy_head == "FeedForwardNetwork":
             self.energy_block = FeedForwardNetwork(
                 sphere_channels=self.sphere_channels,
-                ffn_hidden_channels=self.ffn_hidden_channels,
+                hidden_channels=self.ffn_hidden_channels,
                 output_channels=1,
                 lmax_list=self.lmax_list,
                 mmax_list=self.mmax_list,

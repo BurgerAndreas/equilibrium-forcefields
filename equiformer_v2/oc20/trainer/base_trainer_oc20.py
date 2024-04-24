@@ -182,6 +182,7 @@ class BaseTrainer(ABC):
         # This supports the legacy way of providing norm parameters in dataset
         if self.config.get("dataset", None) is not None and normalizer is None:
             self.normalizer = self.config["dataset"]
+        print(f'{self.__class__.__name__} Normalizer: {self.normalizer}')
 
         if not is_debug and distutils.is_master() and not is_hpo:
             os.makedirs(self.config["cmd"]["checkpoint_dir"], exist_ok=True)

@@ -499,7 +499,7 @@ class ForcesTrainerV2(BaseTrainerV2):
 
         return out
 
-    def _compute_loss(self, out, batch_list):
+    def _compute_loss(self, out, batch_list, step=None):
         loss = []
 
         # Energy loss.
@@ -511,20 +511,23 @@ class ForcesTrainerV2(BaseTrainerV2):
         energy_mult = self.config["optim"].get("energy_coefficient", 1)
         loss.append(energy_mult * self.loss_fn["energy"](out["energy"], energy_target))
 
-        # print energy out: mean, std, min, max
-        # print(f'out["energy"].mean(): {out["energy"].mean()}')
-        # print(f'out["energy"].std(): {out["energy"].std()}')
-        # print(f'out["energy"].min(): {out["energy"].min()}')
-        # print(f'out["energy"].max(): {out["energy"].max()}')
-        # # energy target
-        # print(f'energy_target.mean(): {energy_target.mean()}')
-        # print(f'energy_target.std(): {energy_target.std()}')
-        # print(f'energy_target.min(): {energy_target.min()}')
-        # print(f'energy_target.max(): {energy_target.max()}')
-        # print(f'energy_mult: {energy_mult}')
-        # print(f'loss e: {loss[-1]}')
+        if self.logger is not None:
+            self.logger.log(
+                {
+                    "energy_pred_mean": out["energy"].mean().item(),
+                    "energy_pred_std": out["energy"].std().item(),
+                    "energy_pred_min": out["energy"].min().item(),
+                    "energy_pred_max": out["energy"].max().item(),
+                    "energy_target_mean": energy_target.mean().item(),
+                    "energy_target_std": energy_target.std().item(),
+                    "energy_target_min": energy_target.min().item(),
+                    "energy_target_max": energy_target.max().item(),
+                    "scaled_energy_loss": loss[-1].item(),
+                },
+                step=self.step,
+                split="train",
+            )
 
-        # TODO
         # self.normalizer.get("normalize_labels", False) == True
         # self.loss_fn["energy"] == L1Loss()
         # self.config["task"].get("tag_specific_weights", []) == []
@@ -595,7 +598,6 @@ class ForcesTrainerV2(BaseTrainerV2):
                         loss.append(force_loss)
                     else:
                         # ------------ Default ------------
-                        print("Default force loss")
                         loss.append(
                             force_mult
                             * self.loss_fn["force"](
@@ -606,20 +608,23 @@ class ForcesTrainerV2(BaseTrainerV2):
                     loss.append(
                         force_mult * self.loss_fn["force"](out["forces"], force_target)
                     )
-
-        # print force out: mean, std, min, max
-        # print(f'out["forces"].mean(): {out["forces"].mean()}')
-        # print(f'out["forces"].std(): {out["forces"].std()}')
-        # print(f'out["forces"].min(): {out["forces"].min()}')
-        # print(f'out["forces"].max(): {out["forces"].max()}')
-        # # force target
-        # print(f'force_target.mean(): {force_target.mean()}')
-        # print(f'force_target.std(): {force_target.std()}')
-        # print(f'force_target.min(): {force_target.min()}')
-        # print(f'force_target.max(): {force_target.max()}')
-        # print(f'force_mult: {force_mult}')
-        # print(f'loss f: {loss[-1]}')
-        # exit()
+            # computed forces
+            if self.logger is not None:
+                self.logger.log(
+                    {
+                        "force_pred_mean": out["forces"].mean().item(),
+                        "force_pred_std": out["forces"].std().item(),
+                        "force_pred_min": out["forces"].min().item(),
+                        "force_pred_max": out["forces"].max().item(),
+                        "force_target_mean": force_target.mean().item(),
+                        "force_target_std": force_target.std().item(),
+                        "force_target_min": force_target.min().item(),
+                        "force_target_max": force_target.max().item(),
+                        "scaled_force_loss": loss[-1].item(),
+                    },
+                    step=self.step,
+                    split="train",
+                )
 
         # Sanity check to make sure the compute graph is correct.
         for lc in loss:

@@ -52,6 +52,8 @@ import omegaconf
 from omegaconf import DictConfig, OmegaConf
 import wandb
 
+from typing import List
+
 """
 Adapted from equiformer/main_md17.py
 """
@@ -91,7 +93,7 @@ class L2MAELoss(torch.nn.Module):
         self.reduction = reduction
         assert reduction in ["mean", "sum"]
 
-    def forward(self, input: torch.Tensor, target: torch.Tensor):
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         dists = torch.norm(input - target, p=2, dim=-1)
         if self.reduction == "mean":
             return torch.mean(dists)
@@ -823,20 +825,32 @@ def train_one_epoch(
         else:
             pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
 
-        # print(f"energy: mean={pred_y.mean()}, std={pred_y.std()}, max={pred_y.max()}, min={pred_y.min()}", pred_y.shape)
-        # print(f"energy target: mean={data.y.mean()}, std={data.y.std()}, max={data.y.max()}, min={data.y.min()}", data.y.shape)
-        # e_target = ((data.y - task_mean) / task_std)
-        # print(f'energy target normalized: mean={e_target.mean()}, std={e_target.std()}, max={e_target.max()}, min={e_target.min()}', e_target.shape)
-        # print(f"loss_e: {loss_e}")
-        # print(f'weight: {args.energy_weight}')
-
-        # print(f"pred_dy: mean={pred_dy.mean()}, std={pred_dy.std()}, max={pred_dy.max()}, min={pred_dy.min()}", pred_dy.shape)
-        # print(f"data.dy: mean={data.dy.mean()}, std={data.dy.std()}, max={data.dy.max()}, min={data.dy.min()}", data.dy.shape)
-        # f_target = (data.dy / task_std)
-        # print(f'force target normalized: mean={f_target.mean()}, std={f_target.std()}, max={f_target.max()}, min={f_target.min()}', f_target.shape)
-        # print(f"loss_f: {loss_f}")
-        # print(f'weight: {args.force_weight}')
-        # exit()
+        if wandb.run is not None:
+            wandb.log(
+                {
+                    "energy_pred_mean": pred_y.mean().item(),
+                    "energy_pred_std": pred_y.std().item(),
+                    "energy_pred_min": pred_y.min().item(),
+                    "energy_pred_max": pred_y.max().item(),
+                    "energy_target_mean": data.y.mean().item(),
+                    "energy_target_std": data.y.std().item(),
+                    "energy_target_min": data.y.min().item(),
+                    "energy_target_max": data.y.max().item(),
+                    "scaled_energy_loss": (args.energy_weight * loss_e).item(),
+                    # force
+                    "force_pred_mean": pred_dy.mean().item(),
+                    "force_pred_std": pred_dy.std().item(),
+                    "force_pred_min": pred_dy.min().item(),
+                    "force_pred_max": pred_dy.max().item(),
+                    "force_target_mean": data.dy.mean().item(),
+                    "force_target_std": data.dy.std().item(),
+                    "force_target_min": data.dy.min().item(),
+                    "force_target_max": data.dy.max().item(),
+                    "scaled_force_loss": (args.force_weight * loss_f).item(),
+                },
+                step=global_step,
+                # split="train",
+            )
 
         # If you use trajectory sampling, fp_correction automatically
         # aligns the tensors and applies your loss function.

@@ -90,6 +90,7 @@ class DotProductAttention(torch.nn.Module):
         tp_irrep_norm=None,  # None = 'element'
         activation="SiLU",
         bias=True,
+        **kwargs,
     ):
 
         super().__init__()

@@ -62,6 +62,7 @@ def init_wandb(args: OmegaConf, project="EquilibriumEquiFormer"):
         name=args.wandb_run_name,
         config=args_wandb,
         # reinit=True,
+        # settings=wandb.Settings(start_method="fork")
     )
 
     print("wandb group:", args.wandb_group, "==", wandb.run.group)

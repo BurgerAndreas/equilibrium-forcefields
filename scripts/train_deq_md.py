@@ -54,6 +54,8 @@ import wandb
 
 from typing import List
 
+from equiformer_v2.oc20.trainer.base_trainer_oc20 import Normalizer
+
 """
 Adapted from equiformer/main_md17.py
 """
@@ -187,6 +189,27 @@ def main(args):
     _log.info("Training set mean: {}, std: {}\n".format(task_mean, task_std))
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Normalizers
+    if args.normalizer == 'md17':
+        normalizer_e = lambda x: (x - task_mean) / task_std
+        normalizer_f = lambda x: x / task_std
+    elif args.normalizer == 'oc20':
+        normalizer_e = Normalizer(
+            mean=task_mean,
+            std=task_std,
+            device=device,
+        )
+        normalizer_f = Normalizer(
+            mean=0,
+            std=task_std,
+            device=device,
+        )
+    else:
+        raise NotImplementedError(f"Unknown normalizer: {args.normalizer}")
+
+    normalizers = {'energy': normalizer_e, 'force': normalizer_f}
+
 
     """ Network """
     create_model = model_entrypoint(args.model.name)
@@ -361,6 +384,7 @@ def main(args):
             max_iter=-1,
             global_step=global_step,
             datasplit="test",
+            normalizers=normalizers,
         )
         return
 
@@ -387,6 +411,7 @@ def main(args):
             print_freq=args.print_freq,
             logger=_log,
             meas_force=args.meas_force,
+            normalizers=normalizers,
         )
 
         optimizer.zero_grad()
@@ -405,6 +430,7 @@ def main(args):
             max_iter=-1,
             global_step=global_step,
             datasplit="val",
+            normalizers=normalizers,
         )
         optimizer.zero_grad()
 
@@ -425,6 +451,7 @@ def main(args):
                 max_iter=args.test_max_iter,
                 global_step=global_step,
                 datasplit="test",
+                normalizers=normalizers,
             )
             optimizer.zero_grad()
         else:
@@ -551,6 +578,7 @@ def main(args):
                 print_progress=False,
                 global_step=global_step,
                 datasplit="ema_val",
+                normalizers=normalizers,
             )
             optimizer.zero_grad()
 
@@ -571,6 +599,7 @@ def main(args):
                     max_iter=args.test_max_iter,
                     global_step=global_step,
                     datasplit="ema_test",
+                    normalizers=normalizers,
                 )
                 optimizer.zero_grad()
             else:
@@ -693,6 +722,7 @@ def main(args):
         max_iter=args.test_max_iter_final,  # -1 means evaluate the whole dataset
         global_step=global_step,
         datasplit="test_final",
+        normalizers=normalizers,
     )
     optimizer.zero_grad()
 
@@ -769,6 +799,7 @@ def train_one_epoch(
     print_freq: int = 100,
     logger=None,
     meas_force=True,
+    normalizers={'energy': None, 'force': None},
 ):
     """Train for one epoch.
     Keys in dataloader: ['z', 'pos', 'batch', 'y', 'dy']
@@ -790,169 +821,173 @@ def train_one_epoch(
     isnan_cnt = 0
 
     max_steps = len(data_loader)
-    for step, data in enumerate(data_loader):
-        data = data.to(device)
+    for rep in range(args.epochs_per_epochs):
+        for step, data in enumerate(data_loader):
+            data = data.to(device)
 
-        # energy, force
-        pred_y, pred_dy, info = model(
-            data=data,  # for EquiformerV2
-            node_atom=data.z,
-            pos=data.pos,
-            batch=data.batch,
-            step=global_step,
-            datasplit="train",
-        )
-
-        # _AVG_NUM_NODES: 18.03065905448718
-        # _AVG_DEGREE: 15.57930850982666
-
-        # pred_y: torch.Size([8, 1]), pred_dy: torch.Size([168, 3]), data.y: torch.Size([8, 1]), data.dy: torch.Size([168, 3])
-        # pred_y: torch.Size([8, 1]), pred_dy: torch.Size([168, 3]), data.y: torch.Size([8, 1]), data.dy: torch.Size([168, 3])
-
-        # if out_energy.shape[-1] == 1:
-        #     out_energy = out_energy.view(-1)
-
-        # if self.normalizer.get("normalize_labels", False):
-        #     energy_target = self.normalizers["target"].norm(energy_target)
-        # energy_mult = self.config["optim"].get("energy_coefficient", 1)
-        # loss.append(energy_mult * self.loss_fn["energy"](out["energy"], energy_target))
-
-        loss_e = criterion_energy(pred_y, ((data.y - task_mean) / task_std))
-        loss = args.energy_weight * loss_e
-        if meas_force == True:
-            loss_f = criterion_force(pred_dy, (data.dy / task_std))
-            loss += args.force_weight * loss_f
-        else:
-            pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
-
-        if wandb.run is not None:
-            wandb.log(
-                {
-                    "energy_pred_mean": pred_y.mean().item(),
-                    "energy_pred_std": pred_y.std().item(),
-                    "energy_pred_min": pred_y.min().item(),
-                    "energy_pred_max": pred_y.max().item(),
-                    "energy_target_mean": data.y.mean().item(),
-                    "energy_target_std": data.y.std().item(),
-                    "energy_target_min": data.y.min().item(),
-                    "energy_target_max": data.y.max().item(),
-                    "scaled_energy_loss": (args.energy_weight * loss_e).item(),
-                    # force
-                    "force_pred_mean": pred_dy.mean().item(),
-                    "force_pred_std": pred_dy.std().item(),
-                    "force_pred_min": pred_dy.min().item(),
-                    "force_pred_max": pred_dy.max().item(),
-                    "force_target_mean": data.dy.mean().item(),
-                    "force_target_std": data.dy.std().item(),
-                    "force_target_min": data.dy.min().item(),
-                    "force_target_max": data.dy.max().item(),
-                    "scaled_force_loss": (args.force_weight * loss_f).item(),
-                },
-                step=global_step,
-                # split="train",
-            )
-
-        # If you use trajectory sampling, fp_correction automatically
-        # aligns the tensors and applies your loss function.
-        # loss_fn = lambda y_gt, y: ((y_gt - y) ** 2).mean()
-        # train_loss = fp_correction(loss_fn, (y_train, y_pred))
-
-        if torch.isnan(pred_y).any():
-            isnan_cnt += 1
-
-        optimizer.zero_grad()
-        loss.backward()
-        # optionally clip and log grad norm
-        if args.clip_grad_norm:
-            grad_norm = torch.nn.utils.clip_grad_norm_(
-                model.parameters(),
-                max_norm=args.clip_grad_norm,
-            )
-            # if args.global_step % args.log_every_step_minor == 0:
-            wandb.log({"grad_norm": grad_norm}, step=global_step)
-            # .log({"grad_norm": grad_norm}, step=self.step, split="train")
-        else:
-            # grad_norm = 0
-            # for p in model.parameters():
-            #     param_norm = p.grad.detach().data.norm(2)
-            #     grad_norm += param_norm.item() ** 2
-            # grad_norm = grad_norm ** 0.5
-            grads = [
-                param.grad.detach().flatten()
-                for param in model.parameters()
-                if param.grad is not None
-            ]
-            grad_norm = torch.cat(grads).norm()
-            wandb.log({"grad_norm": grad_norm}, step=global_step)
-        optimizer.step()
-
-        if len(info) > 0:
-            # log fixed-point trajectory
-            logging_utils_deq.log_fixed_point_error(
-                info,
+            # energy, force
+            pred_y, pred_dy, info = model(
+                data=data,  # for EquiformerV2
+                node_atom=data.z,
+                pos=data.pos,
+                batch=data.batch,
                 step=global_step,
                 datasplit="train",
             )
 
-        loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
-        loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
+            # _AVG_NUM_NODES: 18.03065905448718
+            # _AVG_DEGREE: 15.57930850982666
 
-        energy_err = pred_y.detach() * task_std + task_mean - data.y
-        energy_err = torch.mean(torch.abs(energy_err)).item()
-        mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
+            # pred_y: torch.Size([8, 1]), pred_dy: torch.Size([168, 3]), data.y: torch.Size([8, 1]), data.dy: torch.Size([168, 3])
+            # pred_y: torch.Size([8, 1]), pred_dy: torch.Size([168, 3]), data.y: torch.Size([8, 1]), data.dy: torch.Size([168, 3])
 
-        force_err = pred_dy.detach() * task_std - data.dy
-        force_err = torch.mean(
-            torch.abs(force_err)
-        ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
-        mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
+            # if out_energy.shape[-1] == 1:
+            #     out_energy = out_energy.view(-1)
 
-        if model_ema is not None:
-            model_ema.update(model)
+            # if self.normalizer.get("normalize_labels", False):
+            #     energy_target = self.normalizers["target"].norm(energy_target)
+            # energy_mult = self.config["optim"].get("energy_coefficient", 1)
+            # loss.append(energy_mult * self.loss_fn["energy"](out["energy"], energy_target))
 
-        torch.cuda.synchronize()
+            target_y = normalizers["energy"](data.y)
+            target_dy = normalizers["force"](data.dy)
 
-        # logging
-        if step % print_freq == 0 or step == max_steps - 1:
-            w = time.perf_counter() - start_time
-            e = (step + 1) / max_steps
-            info_str = "Epoch: [{epoch}][{step}/{length}] \t".format(
-                epoch=epoch, step=step, length=max_steps
+            loss_e = criterion_energy(pred_y, target_y)
+            loss = args.energy_weight * loss_e
+            if meas_force == True:
+                loss_f = criterion_force(pred_dy, target_dy)
+                loss += args.force_weight * loss_f
+            else:
+                pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
+
+            if wandb.run is not None:
+                wandb.log(
+                    {
+                        "energy_pred_mean": pred_y.mean().item(),
+                        "energy_pred_std": pred_y.std().item(),
+                        "energy_pred_min": pred_y.min().item(),
+                        "energy_pred_max": pred_y.max().item(),
+                        "energy_target_mean": target_y.mean().item(),
+                        "energy_target_std": target_y.std().item(),
+                        "energy_target_min": target_y.min().item(),
+                        "energy_target_max": target_y.max().item(),
+                        "scaled_energy_loss": (args.energy_weight * loss_e).item(),
+                        # force
+                        "force_pred_mean": pred_dy.mean().item(),
+                        "force_pred_std": pred_dy.std().item(),
+                        "force_pred_min": pred_dy.min().item(),
+                        "force_pred_max": pred_dy.max().item(),
+                        "force_target_mean": target_dy.mean().item(),
+                        "force_target_std": target_dy.std().item(),
+                        "force_target_min": target_dy.min().item(),
+                        "force_target_max": target_dy.max().item(),
+                        "scaled_force_loss": (args.force_weight * loss_f).item(),
+                    },
+                    step=global_step,
+                    # split="train",
+                )
+
+            # If you use trajectory sampling, fp_correction automatically
+            # aligns the tensors and applies your loss function.
+            # loss_fn = lambda y_gt, y: ((y_gt - y) ** 2).mean()
+            # train_loss = fp_correction(loss_fn, (y_train, y_pred))
+
+            if torch.isnan(pred_y).any():
+                isnan_cnt += 1
+
+            optimizer.zero_grad()
+            loss.backward()
+            # optionally clip and log grad norm
+            if args.clip_grad_norm:
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(),
+                    max_norm=args.clip_grad_norm,
+                )
+                # if args.global_step % args.log_every_step_minor == 0:
+                wandb.log({"grad_norm": grad_norm}, step=global_step)
+                # .log({"grad_norm": grad_norm}, step=self.step, split="train")
+            else:
+                # grad_norm = 0
+                # for p in model.parameters():
+                #     param_norm = p.grad.detach().data.norm(2)
+                #     grad_norm += param_norm.item() ** 2
+                # grad_norm = grad_norm ** 0.5
+                grads = [
+                    param.grad.detach().flatten()
+                    for param in model.parameters()
+                    if param.grad is not None
+                ]
+                grad_norm = torch.cat(grads).norm()
+                wandb.log({"grad_norm": grad_norm}, step=global_step)
+            optimizer.step()
+
+            if len(info) > 0:
+                # log fixed-point trajectory
+                logging_utils_deq.log_fixed_point_error(
+                    info,
+                    step=global_step,
+                    datasplit="train",
+                )
+
+            loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
+            loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
+
+            energy_err = pred_y.detach() * task_std + task_mean - data.y
+            energy_err = torch.mean(torch.abs(energy_err)).item()
+            mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
+
+            force_err = pred_dy.detach() * task_std - data.dy
+            force_err = torch.mean(
+                torch.abs(force_err)
+            ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
+            mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
+
+            if model_ema is not None:
+                model_ema.update(model)
+
+            torch.cuda.synchronize()
+
+            # logging
+            if step % print_freq == 0 or step == max_steps - 1:
+                w = time.perf_counter() - start_time
+                e = (step + 1) / max_steps
+                info_str = "Epoch: [{epoch}][{step}/{length}] \t".format(
+                    epoch=epoch, step=step, length=max_steps
+                )
+                info_str += "loss_e: {loss_e:.5f}, loss_f: {loss_f:.5f}, e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
+                    loss_e=loss_metrics["energy"].avg,
+                    loss_f=loss_metrics["force"].avg,
+                    e_mae=mae_metrics["energy"].avg,
+                    f_mae=mae_metrics["force"].avg,
+                )
+                info_str += "time/step={time_per_step:.0f}ms, ".format(
+                    time_per_step=(1e3 * w / e / max_steps)
+                )
+                info_str += "lr={:.2e}".format(optimizer.param_groups[0]["lr"])
+                logger.info(info_str)
+
+            if step % args.log_every_step_minor == 0:
+                # log to wandb
+                wandb.log(
+                    {
+                        "train_loss": loss.item(),
+                        "train_e_mae": mae_metrics["energy"].avg,
+                        "train_f_mae": mae_metrics["force"].avg,
+                        "train_loss_e": loss_metrics["energy"].avg,
+                        "train_loss_f": loss_metrics["force"].avg,
+                        "lr": optimizer.param_groups[0]["lr"],
+                    },
+                    step=global_step,
+                )
+
+            global_step += 1
+
+        # if loss_metrics is all nan
+        # probably because deq_kwargs.f_solver=broyden,anderson did not converge
+        if isnan_cnt > max_steps // 2:
+            raise ValueError(
+                f"Most energy predictions are nan ({isnan_cnt}/{max_steps}). Try deq_kwargs.f_solver=fixed_point_iter"
             )
-            info_str += "loss_e: {loss_e:.5f}, loss_f: {loss_f:.5f}, e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
-                loss_e=loss_metrics["energy"].avg,
-                loss_f=loss_metrics["force"].avg,
-                e_mae=mae_metrics["energy"].avg,
-                f_mae=mae_metrics["force"].avg,
-            )
-            info_str += "time/step={time_per_step:.0f}ms, ".format(
-                time_per_step=(1e3 * w / e / max_steps)
-            )
-            info_str += "lr={:.2e}".format(optimizer.param_groups[0]["lr"])
-            logger.info(info_str)
-
-        if step % args.log_every_step_minor == 0:
-            # log to wandb
-            wandb.log(
-                {
-                    "train_loss": loss.item(),
-                    "train_e_mae": mae_metrics["energy"].avg,
-                    "train_f_mae": mae_metrics["force"].avg,
-                    "train_loss_e": loss_metrics["energy"].avg,
-                    "train_loss_f": loss_metrics["force"].avg,
-                    "lr": optimizer.param_groups[0]["lr"],
-                },
-                step=global_step,
-            )
-
-        global_step += 1
-
-    # if loss_metrics is all nan
-    # probably because deq_kwargs.f_solver=broyden,anderson did not converge
-    if isnan_cnt > max_steps // 2:
-        raise ValueError(
-            f"Most energy predictions are nan ({isnan_cnt}/{max_steps}). Try deq_kwargs.f_solver=fixed_point_iter"
-        )
 
     return mae_metrics, loss_metrics, global_step
 
@@ -972,6 +1007,7 @@ def evaluate(
     max_iter=-1,
     global_step=None,
     datasplit=None,
+    normalizers={'energy': None, 'force': None},
 ):
 
     if args.eval_mode is True:
@@ -1034,9 +1070,12 @@ def evaluate(
                 fixedpoint=None,
             )
 
-        loss_e = criterion_energy(pred_y, ((data.y - task_mean) / task_std))
+        target_y = normalizers['energy'](data.y)
+        target_dy = normalizers['force'](data.dy)
+
+        loss_e = criterion_energy(pred_y, target_y)
         if args.meas_force == True:
-            loss_f = criterion_force(pred_dy, (data.dy / task_std))
+            loss_f = criterion_force(pred_dy, target_dy)
         else:
             pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
 

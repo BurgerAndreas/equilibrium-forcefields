@@ -50,7 +50,8 @@ from equiformer_v2.nets.equiformer_v2.transformer_block import (
 from equiformer_v2.nets.equiformer_v2.input_block import EdgeDegreeEmbedding
 import deq2ff.logging_utils_deq as logging_utils_deq
 
-import torch
+from equiformer_v2.nets.equiformer_v2.equiformer_v2_oc20 import EquiformerV2_OC20
+
 import omegaconf
 import wandb
 import copy
@@ -58,6 +59,11 @@ import copy
 from torchdeq import get_deq
 from torchdeq.norm import apply_norm, reset_norm, register_norm, register_norm_module
 from torchdeq.loss import fp_correction
+
+# register model to be used with EquiformerV1 training loop (MD17)
+from equiformer.nets.registry import register_model
+
+from deq2ff.deq_base import _init_deq
 
 # Statistics of IS2RE 100K
 # from equiformer_v2.nets.equiformer_v2.equiformer_v2_oc20 import (
@@ -70,57 +76,8 @@ from torchdeq.loss import fp_correction
 equiformer_v2/nets/equiformer_v2/equiformer_v2_oc20.py
 """
 
-from deq2ff.deq_base import _init_deq
-
-
 @registry.register_model("deq_equiformer_v2_oc20")
-class DEQ_EquiformerV2_OC20(BaseModel):
-    """
-    Equiformer with graph attention built upon SO(2) convolution and feedforward network built upon S2 activation
-
-    Args:
-        use_pbc (bool):         Use periodic boundary conditions
-        regress_forces (bool):  Compute forces
-        otf_graph (bool):       Compute graph On The Fly (OTF)
-        max_neighbors (int):    Maximum number of neighbors per atom
-        max_radius (float):     Maximum distance between nieghboring atoms in Angstroms
-        max_num_elements (int): Maximum atomic number
-
-        num_layers (int):             Number of layers in the GNN
-        sphere_channels (int):        Number of spherical channels (one set per resolution)
-        attn_hidden_channels (int): Number of hidden channels used during SO(2) graph attention
-        num_heads (int):            Number of attention heads
-        attn_alpha_head (int):      Number of channels for alpha vector in each attention head
-        attn_value_head (int):      Number of channels for value vector in each attention head
-        ffn_hidden_channels (int):  Number of hidden channels used during feedforward network
-        norm_type (str):            Type of normalization layer (['layer_norm', 'layer_norm_sh', 'rms_norm_sh'])
-
-        lmax_list (int):              List of maximum degree of the spherical harmonics (1 to 10)
-        mmax_list (int):              List of maximum order of the spherical harmonics (0 to lmax)
-        grid_resolution (int):        Resolution of SO3_Grid
-
-        num_sphere_samples (int):     Number of samples used to approximate the integration of the sphere in the output blocks
-
-        edge_channels (int):                Number of channels for the edge invariant features
-        use_atom_edge_embedding (bool):     Whether to use atomic embedding along with relative distance for edge scalar features
-        share_atom_edge_embedding (bool):   Whether to share `atom_edge_embedding` across all blocks
-        use_m_share_rad (bool):             Whether all m components within a type-L vector of one channel share radial function weights
-        distance_function ("gaussian", "sigmoid", "linearsigmoid", "silu"):  Basis function used for distances
-
-        attn_activation (str):      Type of activation function for SO(2) graph attention
-        use_s2_act_attn (bool):     Whether to use attention after S2 activation. Otherwise, use the same attention as Equiformer
-        use_attn_renorm (bool):     Whether to re-normalize attention weights
-        ffn_activation (str):       Type of activation function for feedforward network
-        use_gate_act (bool):        If `True`, use gate activation. Otherwise, use S2 activation
-        use_grid_mlp (bool):        If `True`, use projecting to grids and performing MLPs for FFNs.
-        use_sep_s2_act (bool):      If `True`, use separable S2 activation when `use_gate_act` is False.
-
-        alpha_drop (float):         Dropout rate for attention weights
-        drop_path_rate (float):     Drop path rate
-        proj_drop (float):          Dropout rate for outputs of attention and FFN in Transformer blocks
-
-        weight_init (str):          ['normal', 'uniform'] initialization of weights of linear layers except those in radial functions
-    """
+class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
     def __init__(
         self,
@@ -134,19 +91,19 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         irrep_norm=None,
         **kwargs,
     ):
-        super().__init__(sphere_channels=sphere_channels, **kwargs)
-
-        # deq
+        # DEQ
         self.z0 = z0
         self.cat_injection = cat_injection
         self.norm_injection = norm_injection
-        self.path_norm = path_norm
-        self.irrep_norm = irrep_norm
+        self.path_norm = path_norm # TODO: unused
+        self.irrep_norm = irrep_norm # TODO: unused
         if sphere_channels_fixedpoint is None:
             sphere_channels_fixedpoint = sphere_channels
         self.sphere_channels_fixedpoint = sphere_channels_fixedpoint
         if self.cat_injection:
             assert self.sphere_channels_fixedpoint == sphere_channels
+
+        super().__init__(sphere_channels=sphere_channels, **kwargs)
 
         # DEQ
         kwargs = self._init_deq(**kwargs)
@@ -354,16 +311,6 @@ class DEQ_EquiformerV2_OC20(BaseModel):
         # Logging
         ######################################################
         if step is not None:
-            # log fixed-point trajectory
-            # _data = logging_utils_deq.log_fixed_point_error(
-            #     info,
-            #     step,
-            #     datasplit,
-            #     self.fp_error_traj[datasplit],
-            #     log_fp_error_traj=self.log_fp_error_traj,
-            # )
-            # if _data is not None:
-            #     self.fp_error_traj[datasplit] = _data
             # log the final fixed-point
             logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
             # log the input injection (output of encoder)
@@ -532,10 +479,6 @@ class DEQ_EquiformerV2_OC20(BaseModel):
                     assert global_parameter_name in named_parameters_list
                     no_wd_list.append(global_parameter_name)
         return set(no_wd_list)
-
-
-# register model to be used with EquiformerV1 training loop (MD17)
-from equiformer.nets.registry import register_model
 
 
 @register_model

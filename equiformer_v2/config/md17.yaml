@@ -13,6 +13,8 @@ defaults:
 batch_size: ${optim.batch_size}
 eval_batch_size: ${optim.eval_batch_size}
 
+unsqueeze_e_dim: True
+
 model:
   name: equiformer_v2_md17 # equiformer_v2_oc20
   use_pbc: False                  # True for OC20 # use periodic boundary conditions

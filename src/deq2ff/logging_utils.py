@@ -107,6 +107,7 @@ REPLACE = {
     "equiformer_v2_md17": "E2 MD17",
     # other stuff
     "dot_product": " dp",
+    "use-deq": "",
     "deq": "DEQ",
     "initzfromenc-True": "V1",
     "initzfromenc-False": "V2",
@@ -147,6 +148,7 @@ REPLACE = {
     "DEQ DEQ": "DEQ",
     "DEQ equiformer v2DEQE2": "DEQE2",
     "DEQ  dp use-DEQ": "DEQ E1",
+    "  ": " ",
 }
 
 

@@ -281,7 +281,7 @@ def main(args):
         ppr.pprint(shapes_to_log)
         wandb.run.summary.update(shapes_to_log)
 
-        if args.dummy_logging_only:
+        if args.test_forward:
             return True
 
         success = True

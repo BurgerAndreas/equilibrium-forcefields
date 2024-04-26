@@ -333,7 +333,30 @@ def main(args):
 
     global_step = 0
 
-    # dryrun (tryrun) for logging
+    """ Dryrun (tryrun?!) of forward pass for testing """
+    first_batch = next(iter(train_loader))
+
+    data = first_batch.to(device)
+
+    # energy, force
+    pred_y, pred_dy, info = model(
+        data=data,  # for EquiformerV2
+        node_atom=data.z,
+        pos=data.pos,
+        batch=data.batch,
+        # step=global_step,
+        # datasplit="train",
+    )
+
+    # print(f'pred_y: {pred_y.shape}')
+    # print(f'pred_dy: {pred_dy.shape}')
+    # print(f'data.y: {data.y.shape}')
+    # print(f'data.dy: {data.dy.shape}')
+
+    if args.test_forward:
+        return True
+
+    """ Dryrun (tryrun?!) for logging shapes """
     try:
         model.train()
         # criterion.train()
@@ -362,9 +385,6 @@ def main(args):
         ppr.pprint(shapes_to_log)
         wandb.run.summary.update(shapes_to_log)
 
-        if args.dummy_logging_only:
-            return True
-
         success = True
     except Exception as e:
         success = False
@@ -388,6 +408,7 @@ def main(args):
         )
         return
 
+    """ Train! """
     _log.info("\nStart training!\n")
     start_time = time.perf_counter()
     for epoch in range(args.epochs):
@@ -838,19 +859,19 @@ def train_one_epoch(
             # _AVG_NUM_NODES: 18.03065905448718
             # _AVG_DEGREE: 15.57930850982666
 
-            # pred_y: torch.Size([8, 1]), pred_dy: torch.Size([168, 3]), data.y: torch.Size([8, 1]), data.dy: torch.Size([168, 3])
-            # pred_y: torch.Size([8, 1]), pred_dy: torch.Size([168, 3]), data.y: torch.Size([8, 1]), data.dy: torch.Size([168, 3])
-
             # if out_energy.shape[-1] == 1:
             #     out_energy = out_energy.view(-1)
 
-            # if self.normalizer.get("normalize_labels", False):
-            #     energy_target = self.normalizers["target"].norm(energy_target)
-            # energy_mult = self.config["optim"].get("energy_coefficient", 1)
-            # loss.append(energy_mult * self.loss_fn["energy"](out["energy"], energy_target))
-
             target_y = normalizers["energy"](data.y)
             target_dy = normalizers["force"](data.dy)
+
+            # reshape model output [B] (OC20) -> [B,1] (MD17)
+            if args.unsqueeze_e_dim and pred_y.dim() == 1:
+                pred_y = pred_y.unsqueeze(-1)
+            
+            # reshape data [B,1] (MD17) -> [B] (OC20)
+            if args.squeeze_e_dim and target_y.dim() == 2:
+                target_y = target_y.squeeze(1)
 
             loss_e = criterion_energy(pred_y, target_y)
             loss = args.energy_weight * loss_e
@@ -1072,6 +1093,17 @@ def evaluate(
 
         target_y = normalizers['energy'](data.y)
         target_dy = normalizers['force'](data.dy)
+
+        target_y = normalizers["energy"](data.y)
+        target_dy = normalizers["force"](data.dy)
+
+        # reshape model output [B] (OC20) -> [B,1] (MD17)
+        if args.expand_e_dim and pred_y.dim() == 1:
+            pred_y = pred_y.unsqueeze(-1)
+        
+        # reshape data [B,1] (MD17) -> [B] (OC20)
+        if args.squeeze_e_dim and target_y.dim() == 2:
+            target_y = pred_y.squeeze(1)
 
         loss_e = criterion_energy(pred_y, target_y)
         if args.meas_force == True:

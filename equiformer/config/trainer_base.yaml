@@ -121,13 +121,17 @@ log_every_step_major: 1000
 # minor stuff (int)
 log_every_step_minor: 100
 
-dummy_logging_only: False
+# if to stop after one forward pass (bool)
+test_forward: False
 wandb: True
 wandb_run_name: null
 wandb_group: null
 slurm_job_id: null
 model_is_deq: False
 fpreuse_test: False
+
+unsqueeze_e_dim: False # if to reshape model output [B] (OC20) -> [B,1] (MD17)
+squeeze_e_dim: False # if to reshape data [B,1] (MD17) -> [B] (OC20)
 
 # wandb.watch gradients, activations, model parameters (bool)
 watch_model: False

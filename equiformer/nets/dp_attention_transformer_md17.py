@@ -212,6 +212,7 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
                 activation="SiLU",
             )
         else:
+            # [num_atoms*batch_size, 1] ?
             self.head = torch.nn.Sequential(
                 LinearRS(self.irreps_feature, self.irreps_feature, rescale=_RESCALE),
                 # Activation(self.irreps_feature, acts=[torch.nn.SiLU()]),

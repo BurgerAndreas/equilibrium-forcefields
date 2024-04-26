@@ -240,6 +240,7 @@ class DotProductAttentionTransformerOC20(torch.nn.Module):
         self.irreps_feature_scalars = o3.Irreps(self.irreps_feature_scalars)
 
         # Output head
+        # same as E1 Md17
         self.head = torch.nn.Sequential(
             LinearRS(
                 self.irreps_feature, self.irreps_feature_scalars, rescale=_RESCALE

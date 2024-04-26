@@ -181,6 +181,7 @@ def name_from_config(args: omegaconf.DictConfig) -> str:
         raise error
     # logger.info("name_from_config() mname: %s, override_names: %s", mname, override_names)
     _name = mname + override_names
+    print(f'Generated name: "{_name}"')
     for key, value in REPLACE.items():
         _name = _name.replace(key, value)
     return _name

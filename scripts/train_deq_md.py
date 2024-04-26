@@ -1098,7 +1098,7 @@ def evaluate(
         target_dy = normalizers["force"](data.dy)
 
         # reshape model output [B] (OC20) -> [B,1] (MD17)
-        if args.expand_e_dim and pred_y.dim() == 1:
+        if args.unsqueeze_e_dim and pred_y.dim() == 1:
             pred_y = pred_y.unsqueeze(-1)
         
         # reshape data [B,1] (MD17) -> [B] (OC20)

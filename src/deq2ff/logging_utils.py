@@ -28,11 +28,7 @@ def fix_args(args: OmegaConf):
             args.meas_force = False
 
     if args.wandb_run_name is None:
-        # args.wandb_run_name = args.data_path.split("/")[-1]
-        model_name = args.model.name.split("_attention_transformer")
-        model_name = model_name[0] + model_name[-1]
-        model_name = model_name.replace("_exp_l2", "")
-        args.wandb_run_name = model_name
+        args.wandb_run_name = args.model.name
     args.wandb_run_name = name_from_config(args)
 
     return args
@@ -173,15 +169,15 @@ def name_from_config(args: omegaconf.DictConfig) -> str:
                 else:
                     override = arg.replace("+", "").replace("_", "")
                     override = override.replace("=", "-").replace(".", "")
-                    override = override.replace("deqkwargs", "")
-                    override_names += "_" + override
+                    override = override.replace("deqkwargs", "").replace("model", "")
+                    override_names += " " + override
     except Exception as error:
         print("\nname_from_config() failed:", error)
         print("args:", args)
         raise error
     # logger.info("name_from_config() mname: %s, override_names: %s", mname, override_names)
     _name = mname + override_names
-    print(f'Generated name: "{_name}"')
+    print(f'mname + overrides: "{_name}"')
     for key, value in REPLACE.items():
         _name = _name.replace(key, value)
     return _name

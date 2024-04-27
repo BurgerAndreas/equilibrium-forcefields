@@ -21,8 +21,9 @@ model:
 
   # deq
   z0: "zero"
-  cat_injection: True
-  norm_injection: None # None=False, 'one', 'prev'
+  # concat or add input injection to node_features (fixed-point estimate)
+  cat_injection: False
+  norm_injection: prev # None=False, 'one', 'prev'
   path_norm: "none"
   irrep_norm: None 
 
@@ -32,7 +33,7 @@ deq_kwargs:
   # https://torchdeq.readthedocs.io/en/latest/torchdeq/core.html#torchdeq.core.get_deq
   # 'broyden' anderson newton
   # (str, optional) – The forward solver function. Default 'fixed_point_iter'
-  f_solver: 'fixed_point_iter'
+  f_solver: 'anderson'
   # (str, optional) – The backward solver function. Default 'fixed_point_iter'.
   b_solver: 'fixed_point_iter'
   # f_tol (float, optional) – The forward pass solver stopping criterion. Default 1e-3.

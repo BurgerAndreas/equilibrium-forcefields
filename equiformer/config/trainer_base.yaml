@@ -84,9 +84,8 @@ test_max_iter_final: -1
 #
 loss_energy: l2mae
 loss_force: l2mae
-# (float)
+# loss multiplier
 energy_weight: 0.2 # 1
-# (float)
 force_weight: 0.8 # 80
 # (int)
 seed: 1

@@ -77,6 +77,9 @@ import omegaconf
 from omegaconf import DictConfig, OmegaConf
 import wandb
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 from typing import List
 
 from equiformer_v2.oc20.trainer.base_trainer_oc20 import Normalizer
@@ -91,9 +94,8 @@ warnings.filterwarnings("ignore", category=UserWarning)
 def myround(x):
     return round(x)
 
-def deq_implicit_layer_wrapper(model, x, emb, edge_index, edge_distance, atomic_numbers, data, cnt):
+def deq_implicit_layer_wrapper(model, x, emb, edge_index, edge_distance, atomic_numbers, data, norms):
     # ints are immutable but lists are mutable (so we can pass by reference and change inplace)
-    cnt += [1]
     x = model.deq_implicit_layer(
         x,
         emb=emb,
@@ -102,23 +104,24 @@ def deq_implicit_layer_wrapper(model, x, emb, edge_index, edge_distance, atomic_
         atomic_numbers=atomic_numbers,
         data=data,
     )
+    norms.append([x.norm().item(), x.norm(1).item(), x.norm(2).item()])
     print(
-        f'x ({len(cnt)}): fro={myround(x.norm().item())}, l1={myround(x.norm(1).item())}, l2={myround(x.norm(2).item())}'
+        f'x ({len(norms)}): fro={myround(x.norm().item())}, l1={myround(x.norm(1).item())}, l2={myround(x.norm(2).item())}'
     )
     return x
 
-def main(args, weight_init='uniform', num_layers=2, cat_injection=False):
+def main(args, weight_init='uniform', num_layers=2, cat_injection=False, norm_injection='prev', normlayer_norm='component', norm_type='rms_norm_sh'):
 
     args.model.weight_init = weight_init
     args.model.num_layers = num_layers
     args.model.cat_injection = cat_injection
-    args.model.norm_injection = 'prev' # None, prev
+    args.model.norm_injection = norm_injection # None, prev
                
-    args.model.normlayer_norm = 'norm' # component, norm
-    args.model.norm_type = 'layer_norm_sh'    # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
+    args.model.normlayer_norm = normlayer_norm # component, norm
+    args.model.norm_type = norm_type    # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
 
     # pretty print args
-    print(OmegaConf.to_yaml(args))
+    # print(OmegaConf.to_yaml(args))
 
     # since dataset needs random
     torch.manual_seed(args.seed)
@@ -319,7 +322,7 @@ def main(args, weight_init='uniform', num_layers=2, cat_injection=False):
 
     # Transformer blocks
     # f = lambda z: self.mfn_forward(z, u)
-    cnt = []
+    norms = []
     f = lambda x: deq_implicit_layer_wrapper(
         self,
         x,
@@ -328,7 +331,7 @@ def main(args, weight_init='uniform', num_layers=2, cat_injection=False):
         edge_distance=edge_distance,
         atomic_numbers=atomic_numbers,
         data=data,
-        cnt=cnt,
+        norms=norms,
     )
 
     # find fixed-point
@@ -350,8 +353,34 @@ def main(args, weight_init='uniform', num_layers=2, cat_injection=False):
     # Final layer norm
     x.embedding = self.norm(x.embedding)
 
-    return
+    return norms
 
+def plot_norms_layer(args):
+    sns.set_style('whitegrid')
+    colors = sns.color_palette()
+
+    # create two figures
+    fig, (ax1, ax2) = plt.subplots(1,2, figsize=(20,8))
+
+    i = 0
+    for norm_type in ['layer_norm_sh', 'layer_norm', 'rms_norm_sh']:
+        for normlayer_norm in ['component', 'norm']:
+            norms = main(args, norm_injection='prev', norm_type=norm_type, normlayer_norm=normlayer_norm)
+            norms = np.array(norms)
+
+            # plot
+            ax1.plot(norms[:, 0], label=f'{norm_type} {normlayer_norm}', color=colors[i])
+            ax2.plot(norms[:, 1], label=f'{norm_type} {normlayer_norm}', color=colors[i], linestyle='--')
+            i += 1
+    
+    ax1.title.set_text('l2 norm')
+    ax2.title.set_text('l1 norm')
+    plt.legend()
+    plt.xlabel('forward passes through implicit layer')
+    plt.ylabel('norm')
+    fpath = 'figs/layernorm.png'
+    plt.savefig(fpath)
+    print(f'{fpath} saved')
 
 @hydra.main(
     config_name="md17", config_path="../equiformer_v2/config", version_base="1.3"
@@ -398,7 +427,9 @@ def hydra_wrapper(args: DictConfig) -> None:
     # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
     init_wandb(args)
 
-    main(args)
+    # norms = main(args, norm_injection='prev', norm_type='layer_norm_sh', normlayer_norm='component')
+
+    plot_norms_layer(args)
 
 
 if __name__ == "__main__":

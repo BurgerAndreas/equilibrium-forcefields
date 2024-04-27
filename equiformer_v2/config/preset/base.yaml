@@ -8,4 +8,4 @@ model:
 
   # norm_type (str):            Type of normalization layer (['layer_norm', 'layer_norm_sh', 'rms_norm_sh'])
   norm_type:                'layer_norm_sh'    # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
-  normlayer_norm: component # component, norm
+  normlayer_norm: norm # component, norm

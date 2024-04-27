@@ -1,0 +1,44 @@
+# @package _global_
+# ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
+
+# MD17
+# sched: "cosine"
+# # learning rate (default: 5e-4 or 1.5e-4) (float)
+# lr: 5e-4
+# # learning rate noise on/off epoch percentages (float)
+# lr_noise: null
+# # learning rate noise limit percent (default: 0.67 (float)
+# lr_noise_pct: 0.67
+# # learning rate noise std-dev (default: 1.0 (float)
+# lr_noise_std: 1.0
+# # warmup learning rate (default: 1e-6 (float)
+# warmup_lr: 1e-6
+# # lower lr bound for cyclic schedulers that hit 0 (1e-6 (float)
+# min_lr: 1e-6
+# # epoch interval to decay LR (float)
+# decay_epochs: 30
+# # epochs to warmup LR (int)
+# warmup_epochs: 10
+# # epochs to cooldown LR at min_lr (int)
+# cooldown_epochs: 10
+# # patience epochs for Plateau LR scheduler (default: 10 (int)
+# patience_epochs: 10
+# # LR decay rate (default: 0.1 (float)
+# decay_rate: 0.1
+sched: step 
+decay_rate: 1 
+warmup_epochs: 0
+
+# OC20
+# optim:
+#   optimizer: AdamW
+#   optimizer_params:
+#     weight_decay: 0.001
+#   scheduler: LambdaLR
+#   scheduler_params:
+#     lambda_type: cosine
+#     warmup_factor: 0.2
+#     warmup_epochs: 0.1
+#     lr_min_factor: 0.01  
+optim:
+  scheduler: "Null"

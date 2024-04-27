@@ -125,6 +125,7 @@ class EquiformerV2_OC20(BaseModel):
         attn_value_channels=16,
         ffn_hidden_channels=512,
         norm_type="rms_norm_sh",
+        normlayer_norm="component", # component, norm
         # num_coefficients = sum_i int((lmax_list[i] + 1) ** 2)
         # lmax_list=[3] -> num_coefficients = 16
         lmax_list=[6],
@@ -189,6 +190,7 @@ class EquiformerV2_OC20(BaseModel):
         self.attn_value_channels = attn_value_channels
         self.ffn_hidden_channels = ffn_hidden_channels
         self.norm_type = norm_type
+        self.normlayer_norm = normlayer_norm
 
         self.lmax_list = lmax_list
         self.mmax_list = mmax_list
@@ -414,6 +416,8 @@ class EquiformerV2_OC20(BaseModel):
                 alpha_drop=self.alpha_drop,
                 drop_path_rate=self.drop_path_rate,
                 proj_drop=self.proj_drop,
+                # added
+                normlayer_norm=self.normlayer_norm,
             )
             self.blocks.append(block)
 
@@ -504,7 +508,9 @@ class EquiformerV2_OC20(BaseModel):
         x.embedding = x.embedding + edge_degree.embedding
 
         # logging
-        emb = x.embedding.clone().detach()
+        if step is not None:
+            # log the input injection (output of encoder)
+            logging_utils_deq.log_fixed_point_norm(x.embedding.clone().detach(), step, datasplit, name="emb")
 
         ###############################################################
         # Update spherical node embeddings
@@ -529,8 +535,6 @@ class EquiformerV2_OC20(BaseModel):
             logging_utils_deq.log_fixed_point_norm(
                 x.embedding.clone().detach(), step, datasplit
             )
-            # log the input injection (output of encoder)
-            logging_utils_deq.log_fixed_point_norm(emb, step, datasplit, name="emb")
 
         ###############################################################
         # Energy estimation

@@ -126,6 +126,7 @@ class EquiformerV2_OC20(BaseModel):
         ffn_hidden_channels=512,
         norm_type="rms_norm_sh",
         normlayer_norm="component", # component, norm
+        normlayer_affine=True,
         # num_coefficients = sum_i int((lmax_list[i] + 1) ** 2)
         # lmax_list=[3] -> num_coefficients = 16
         lmax_list=[6],
@@ -191,6 +192,7 @@ class EquiformerV2_OC20(BaseModel):
         self.ffn_hidden_channels = ffn_hidden_channels
         self.norm_type = norm_type
         self.normlayer_norm = normlayer_norm
+        self.normlayer_affine = normlayer_affine
 
         self.lmax_list = lmax_list
         self.mmax_list = mmax_list
@@ -418,6 +420,7 @@ class EquiformerV2_OC20(BaseModel):
                 proj_drop=self.proj_drop,
                 # added
                 normlayer_norm=self.normlayer_norm,
+                normlayer_affine=self.normlayer_affine,
             )
             self.blocks.append(block)
 

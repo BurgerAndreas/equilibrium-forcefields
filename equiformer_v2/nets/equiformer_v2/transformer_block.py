@@ -570,12 +570,13 @@ class TransBlockV2(torch.nn.Module):
         proj_drop=0.0,
         # added
         normlayer_norm="component",
+        normlayer_affine=True,
     ):
         super(TransBlockV2, self).__init__()
 
         max_lmax = max(lmax_list)
         self.norm_1 = get_normalization_layer(
-            norm_type, lmax=max_lmax, num_channels=sphere_channels, normalization=normlayer_norm
+            norm_type, lmax=max_lmax, num_channels=sphere_channels, normalization=normlayer_norm, affine=normlayer_affine
         )
 
         self.ga = SO2EquivariantGraphAttention(
@@ -610,7 +611,7 @@ class TransBlockV2(torch.nn.Module):
         )
 
         self.norm_2 = get_normalization_layer(
-            norm_type, lmax=max_lmax, num_channels=sphere_channels, normalization=normlayer_norm
+            norm_type, lmax=max_lmax, num_channels=sphere_channels, normalization=normlayer_norm, affine=normlayer_affine
         )
 
         self.ffn = FeedForwardNetwork(

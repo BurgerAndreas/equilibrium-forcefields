@@ -82,6 +82,7 @@ ModelEma = ModelEmaV2
 # silence:
 # UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`.
 # Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+# torch_geometric/data/collate.py:150: UserWarning: An output with one or more elements was resized since it had shape, which does not match the required output shape
 import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -207,7 +208,6 @@ def main(args):
         )
     else:
         raise NotImplementedError(f"Unknown normalizer: {args.normalizer}")
-
     normalizers = {'energy': normalizer_e, 'force': normalizer_f}
 
 

@@ -149,6 +149,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 alpha_drop=self.alpha_drop,
                 drop_path_rate=self.drop_path_rate,
                 proj_drop=self.proj_drop,
+                # added
+                normlayer_norm=self.normlayer_norm,
+                normlayer_affine=self.normlayer_affine,
             )
             self.blocks.append(block)
 

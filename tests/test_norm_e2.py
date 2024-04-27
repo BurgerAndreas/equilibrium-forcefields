@@ -381,6 +381,41 @@ def plot_norms_layer(args):
     fpath = 'figs/layernorm.png'
     plt.savefig(fpath)
     print(f'{fpath} saved')
+    return
+
+def plot_input_inj(args):
+    sns.set_style('whitegrid')
+    colors = sns.color_palette()
+
+    # create two figures
+    fig, (ax1, ax2) = plt.subplots(1,2, figsize=(20,8))
+
+    i = 0
+    for cat_injection in [True, False]:
+        # for norm_injection in [None, 'one', 'prev']:
+        for norm_injection in ['one', 'prev']:
+            norms = main(args, cat_injection=cat_injection, norm_injection=norm_injection, norm_type='rms_norm_sh', normlayer_norm='norm')
+            norms = np.array(norms)
+
+            # plot
+            cat = 'cat' if cat_injection else 'add'
+            _norm = '' if cat_injection else norm_injection
+            ax1.plot(norms[:, 0], label=f'{cat} {_norm}', color=colors[i])
+            ax2.plot(norms[:, 1], label=f'{cat} {_norm}', color=colors[i], linestyle='--')
+            i += 1
+
+            if cat_injection:
+                break
+    
+    ax1.title.set_text('l2 norm')
+    ax2.title.set_text('l1 norm')
+    plt.legend()
+    plt.xlabel('forward passes through implicit layer')
+    plt.ylabel('norm')
+    fpath = 'figs/inputinjection_norm.png'
+    plt.savefig(fpath)
+    print(f'{fpath} saved')
+    return
 
 @hydra.main(
     config_name="md17", config_path="../equiformer_v2/config", version_base="1.3"
@@ -429,7 +464,8 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     # norms = main(args, norm_injection='prev', norm_type='layer_norm_sh', normlayer_norm='component')
 
-    plot_norms_layer(args)
+    # plot_norms_layer(args)
+    plot_input_inj(args)
 
 
 if __name__ == "__main__":

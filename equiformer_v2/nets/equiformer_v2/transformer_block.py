@@ -14,6 +14,7 @@ from .activation import (
     GateActivation,
     SeparableS2Activation,
     S2Activation,
+    activations_fn,
 )
 from .layer_norm import (
     EquivariantLayerNormArray,
@@ -25,6 +26,7 @@ from .so2_ops import SO2_Convolution, SO2_Linear
 from .so3 import SO3_Embedding, SO3_Linear, SO3_LinearV2
 from .radial_function import RadialFunction
 from .drop import GraphDropPath, EquivariantDropoutArraySphericalHarmonics
+
 
 
 class SO2EquivariantGraphAttention(torch.nn.Module):
@@ -79,7 +81,7 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
         edge_channels_list,
         use_atom_edge_embedding=True,
         use_m_share_rad=False,
-        activation="scaled_silu",
+        activation="scaled_silu", # unused
         use_s2_act_attn=False,
         use_attn_renorm=True,
         use_gate_act=False,
@@ -181,6 +183,7 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
                 self.alpha_norm = torch.nn.LayerNorm(self.attn_alpha_channels)
             else:
                 self.alpha_norm = torch.nn.Identity()
+            # activation
             self.alpha_act = SmoothLeakyReLU()
             self.alpha_dot = torch.nn.Parameter(
                 torch.randn(self.num_heads, self.attn_alpha_channels)
@@ -198,17 +201,23 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
                 lmax=max(self.lmax_list),
                 mmax=max(self.mmax_list),
                 num_channels=self.hidden_channels,
+                # scalar_activation = 'silu',
+                # gate_activation = 'sigmoid',
             )
         else:
             if self.use_sep_s2_act:
                 # separable S2 activation
                 self.s2_act = SeparableS2Activation(
-                    lmax=max(self.lmax_list), mmax=max(self.mmax_list)
+                    lmax=max(self.lmax_list), mmax=max(self.mmax_list),
+                    # added
+                    activation=activation, 
                 )
             else:
                 # S2 activation
                 self.s2_act = S2Activation(
-                    lmax=max(self.lmax_list), mmax=max(self.mmax_list)
+                    lmax=max(self.lmax_list), mmax=max(self.mmax_list),
+                    # added
+                    activation=activation,
                 )
 
         self.so2_conv_2 = SO2_Convolution(
@@ -409,15 +418,19 @@ class FeedForwardNetwork(torch.nn.Module):
                     nn.Linear(
                         self.sphere_channels_all, self.hidden_channels, bias=True
                     ),
-                    nn.SiLU(),
+                    # nn.SiLU(),
+                    activations_fn[activation.lower()],
                 )
             else:
                 self.scalar_mlp = None
+            # TODO: activation
             self.grid_mlp = nn.Sequential(
                 nn.Linear(self.hidden_channels, self.hidden_channels, bias=False),
-                nn.SiLU(),
+                # nn.SiLU(), 
+                activations_fn[activation.lower()],
                 nn.Linear(self.hidden_channels, self.hidden_channels, bias=False),
-                nn.SiLU(),
+                # nn.SiLU(),
+                activations_fn[activation.lower()],
                 nn.Linear(self.hidden_channels, self.hidden_channels, bias=False),
             )
         else:
@@ -426,17 +439,19 @@ class FeedForwardNetwork(torch.nn.Module):
                     self.sphere_channels_all, self.max_lmax * self.hidden_channels
                 )
                 self.gate_act = GateActivation(
-                    self.max_lmax, self.max_lmax, self.hidden_channels
+                    self.max_lmax, self.max_lmax, self.hidden_channels,
+                    # scalar_activation = 'silu',
+                    # gate_activation = 'sigmoid'
                 )
             else:
                 if self.use_sep_s2_act:
                     self.gating_linear = torch.nn.Linear(
                         self.sphere_channels_all, self.hidden_channels
                     )
-                    self.s2_act = SeparableS2Activation(self.max_lmax, self.max_lmax)
+                    self.s2_act = SeparableS2Activation(self.max_lmax, self.max_lmax, activation=activation)
                 else:
                     self.gating_linear = None
-                    self.s2_act = S2Activation(self.max_lmax, self.max_lmax)
+                    self.s2_act = S2Activation(self.max_lmax, self.max_lmax, activation=activation)
         self.so3_linear_2 = SO3_LinearV2(
             self.hidden_channels, self.output_channels, lmax=self.max_lmax
         )
@@ -595,7 +610,7 @@ class TransBlockV2(torch.nn.Module):
             edge_channels_list=edge_channels_list,
             use_atom_edge_embedding=use_atom_edge_embedding,
             use_m_share_rad=use_m_share_rad,
-            activation=attn_activation,
+            activation=attn_activation, 
             use_s2_act_attn=use_s2_act_attn,
             use_attn_renorm=use_attn_renorm,
             use_gate_act=use_gate_act,
@@ -621,7 +636,7 @@ class TransBlockV2(torch.nn.Module):
             lmax_list=lmax_list,
             mmax_list=mmax_list,
             SO3_grid=SO3_grid,
-            activation=ffn_activation,
+            activation=ffn_activation, 
             use_gate_act=use_gate_act,
             use_grid_mlp=use_grid_mlp,
             use_sep_s2_act=use_sep_s2_act,

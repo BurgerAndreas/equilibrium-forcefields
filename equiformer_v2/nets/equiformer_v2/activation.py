@@ -4,7 +4,6 @@ import torch.nn.functional as F
 
 # from .linear import Linear_gaussian_init
 
-
 class ScaledSiLU(nn.Module):
     def __init__(self, inplace=False):
         super(ScaledSiLU, self).__init__()
@@ -56,7 +55,6 @@ class SwiGLU(nn.Module):
         out = w_1 * w_2
         return out
 
-
 class SmoothLeakyReLU(torch.nn.Module):
     def __init__(self, negative_slope=0.2):
         super().__init__()
@@ -95,8 +93,24 @@ class ScaledSigmoid(torch.nn.Module):
         return torch.sigmoid(x) * self.scale_factor
 
 
+activations_fn = {
+    'relu': nn.ReLU(),
+    'sigmoid': nn.Sigmoid(),
+    'tanh': nn.Tanh(),
+    'silu': nn.SiLU(),
+    'swish': nn.SiLU(),
+    'scaled_silu': ScaledSiLU(),
+    'scaled_swish': ScaledSiLU(),
+    'swiglu': SwiGLU(),
+    'scaled_swiglu': ScaledSwiGLU(),
+    'smoothleakyrelu': SmoothLeakyReLU(),
+    'scaled_smoothleakyrelu': ScaledSmoothLeakyReLU(),
+    'scaled_sigmoid': ScaledSigmoid(),
+}
+
+
 class GateActivation(torch.nn.Module):
-    def __init__(self, lmax, mmax, num_channels):
+    def __init__(self, lmax, mmax, num_channels, scalar_activation='silu', gate_activation='sigmoid'):
         super().__init__()
 
         self.lmax = lmax
@@ -117,9 +131,11 @@ class GateActivation(torch.nn.Module):
         self.register_buffer("expand_index", expand_index)
 
         self.scalar_act = (
-            torch.nn.SiLU()
+            # torch.nn.SiLU()
+            activations_fn[scalar_activation.lower()]
         )  # SwiGLU(self.num_channels, self.num_channels)  # #
-        self.gate_act = torch.nn.Sigmoid()  # torch.nn.SiLU() # #
+        # self.gate_act = torch.nn.Sigmoid()  # torch.nn.SiLU() # #
+        self.gate_act = activations_fn[gate_activation.lower()]
 
     def forward(self, gating_scalars, input_tensors):
         """
@@ -153,11 +169,12 @@ class S2Activation(torch.nn.Module):
     Assume we only have one resolution
     """
 
-    def __init__(self, lmax, mmax):
+    def __init__(self, lmax, mmax, activation='silu'):
         super().__init__()
         self.lmax = lmax
         self.mmax = mmax
-        self.act = torch.nn.SiLU()
+        # self.act = torch.nn.SiLU()
+        self.act = activations_fn[activation.lower()]
 
     def forward(self, inputs, SO3_grid):
         to_grid_mat = SO3_grid[self.lmax][self.mmax].get_to_grid_mat(
@@ -171,13 +188,14 @@ class S2Activation(torch.nn.Module):
 
 
 class SeparableS2Activation(torch.nn.Module):
-    def __init__(self, lmax, mmax):
+    def __init__(self, lmax, mmax, activation='silu'):
         super().__init__()
 
         self.lmax = lmax
         self.mmax = mmax
 
-        self.scalar_act = torch.nn.SiLU()
+        # self.scalar_act = torch.nn.SiLU()
+        self.scalar_act = activations_fn[activation.lower()]
         self.s2_act = S2Activation(self.lmax, self.mmax)
 
     def forward(self, input_scalars, input_tensors, SO3_grid):

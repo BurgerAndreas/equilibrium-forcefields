@@ -61,6 +61,9 @@ def init_wandb(args: OmegaConf, project="EquilibriumEquiFormer"):
         # settings=wandb.Settings(start_method="fork")
     )
 
+    # add runid to config
+    wandb.config.update({"run_id": wandb.run.id})
+
     print("wandb group:", args.wandb_group, "==", wandb.run.group)
     print("wandb run name:", args.wandb_run_name)
     print("wandb run id:", wandb.run.id)
@@ -101,9 +104,9 @@ IGNORE_OVERRIDES = [
 REPLACE = {
     "deq_dot_product_attention_transformer_exp_l2_md17": "DEQE1",
     "dot_product_attention_transformer_exp_l2_md17": "E1",
-    "deq_equiformer_v2_oc20": "DEQE2 OC20",
+    "deq_equiformer_v2_oc20": "DEQE2",
     "equiformer_v2_oc20": "E2 OC20",
-    "deq_equiformer_v2_md17": "DEQE2 MD17",
+    "deq_equiformer_v2_md17": "DEQE2",
     "equiformer_v2_md17": "E2 MD17",
     # other stuff
     "dot_product": " dp",

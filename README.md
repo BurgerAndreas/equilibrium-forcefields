@@ -145,11 +145,6 @@ Not too important right now since it only increases speed in time but not nimber
 - - [x] `deq_kwargs.ift=True` or `deq_kwargs.grad='ift'` for exact implicit differentiation
 - - [x] `deq_kwargs.grad=10 deq_kwargs.f_max_iter=0` for exact Back Progapagation Through Time (BPTT) with PyTorch autograd (should give the same result as IFT, use as a sanity check)
 
-- [x] equiformer num_layers=2 fuer vergleichbarkeit
-
-- fixed point error (do we converge to a fixed point)?
-- - Broyden solver NaN: numerical instability?
-- - `f_stop_mode='rel'` or `'abs'`? set `deq_kwargs.f_max_iter=100 deq_kwargs.b_max_iter=100`
 
 - DEQ torch norm tricks (e.g. see https://github.com/locuslab/torchdeq/blob/main/deq-zoo/ignn/graphclassification/layers.py)
 

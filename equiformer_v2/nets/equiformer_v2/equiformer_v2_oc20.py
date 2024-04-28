@@ -344,7 +344,7 @@ class EquiformerV2_OC20(BaseModel):
                 edge_channels_list=self.edge_channels_list,
                 use_atom_edge_embedding=self.block_use_atom_edge_embedding,
                 use_m_share_rad=self.use_m_share_rad,
-                activation=self.attn_activation,
+                activation=self.attn_activation, 
                 use_s2_act_attn=self.use_s2_act_attn,
                 use_attn_renorm=self.use_attn_renorm,
                 use_gate_act=self.use_gate_act,
@@ -373,7 +373,7 @@ class EquiformerV2_OC20(BaseModel):
                 edge_channels_list=self.edge_channels_list,
                 use_atom_edge_embedding=self.block_use_atom_edge_embedding,
                 use_m_share_rad=self.use_m_share_rad,
-                activation=self.attn_activation,
+                activation=self.attn_activation, # unused
                 use_s2_act_attn=self.use_s2_act_attn,
                 use_attn_renorm=self.use_attn_renorm,
                 use_gate_act=self.use_gate_act,
@@ -407,7 +407,7 @@ class EquiformerV2_OC20(BaseModel):
                 edge_channels_list=self.edge_channels_list,
                 use_atom_edge_embedding=self.block_use_atom_edge_embedding,
                 use_m_share_rad=self.use_m_share_rad,
-                attn_activation=self.attn_activation,
+                attn_activation=self.attn_activation, # unused
                 use_s2_act_attn=self.use_s2_act_attn,
                 use_attn_renorm=self.use_attn_renorm,
                 ffn_activation=self.ffn_activation,

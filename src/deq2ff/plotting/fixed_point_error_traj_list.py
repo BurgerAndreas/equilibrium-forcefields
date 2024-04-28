@@ -31,6 +31,7 @@ def main(
 
     api = wandb.Api()
     run = api.run(project + "/" + run_id)
+    run_name = run.name
 
     # artifact = run.logged_artifacts()
     # print(f"len(artifact): {len(artifact)}")
@@ -47,18 +48,22 @@ def main(
 
     # metrics_dataframe = run.history()
 
+    print('Downloading run history...')
     history = run.scan_history()
+    print('Processing run history...')
     losses = [
         [row[artifact_name], row["_step"]]
         for row in history
         if artifact_name in row.keys()
     ]
-    print(f" Error shape: {len(losses[0][0]) if len(losses) > 0 else None}")
+    print(f" Losses found: {len(losses[0][0]) if len(losses) > 0 else None}")
 
+    print(f"Filtering out None values...")
     losses_nonone = [[r, s] for r, s in losses if r is not None]
     print(f" Rows that were None: {len(losses) - len(losses_nonone)} / {len(losses)}")
     losses = losses_nonone
 
+    print(f"Combining data into dataframe...")
     # losses = [[r, s, [*range(len(r))]] for r, s in losses]
     losses = [
         {
@@ -87,6 +92,9 @@ def main(
         # cant plot 0 on logscale
         # plt.ylim(1e-12, ymax)
         plt.ylim(top=ymax)
+    # legend title
+    plt.title(f"{run_name}")
+
     fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}_{error_type}.png"
     plt.savefig(fname)
     print(f"Saved plot to {fname}")
@@ -99,6 +107,39 @@ def main(
 
 if __name__ == "__main__":
 
+
+    # ----------------- E2 -----------------
+    # E2 aauf 8uuq632s
+    # not converged
+    run_id = "8uuq632s"
+    main(run_id, error_type="abs", datasplit="train", logscale=True)
+    
+    # E2 normlayer-norm aauf 8dqpu458
+    # not converged
+    # run_id = "8dqpu458"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # E2 fmaxiter-10 aauf c7jgk0p7
+    # not converged
+    run_id = "c7jgk0p7"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # E2 anderson add-inj-prev (aa) 1hwg7al5
+    # not converged
+    run_id = "1hwg7al5"
+    main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # E2 anderson by8radv7
+    # somewhat converged
+    run_id = "by8radv7"
+    main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # E2 nl7jlh8q
+    # somewhat converged
+    run_id = "nl7jlh8q"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
+    
+    # ----------------- E1 -----------------
     # broyden pathnorm: f9bg18sp
     # main("f9bg18sp", datasplit="train")
     # main("f9bg18sp", datasplit="train", ymax=0.01)
@@ -108,9 +149,9 @@ if __name__ == "__main__":
     # main("f9bg18sp", error_type='rel', datasplit="train", logscale=True, ymax=0.001)
 
     # broyden pathnorm 64precision
-    run_id = "6cfnokgr"
-    main(run_id, error_type="abs", datasplit="train", logscale=True)
-    main(run_id, error_type="rel", datasplit="train", logscale=True)
+    # run_id = "6cfnokgr"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
+    # main(run_id, error_type="rel", datasplit="train", logscale=True)
     # main(run_id, error_type='abs64', datasplit="train", logscale=True)
     # main(run_id, error_type='rel64', datasplit="train", logscale=True)
     # main(run_id, error_type='abs64', datasplit="train", logscale=True, ymax=0.001)

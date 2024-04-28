@@ -93,21 +93,62 @@ class ScaledSigmoid(torch.nn.Module):
         return torch.sigmoid(x) * self.scale_factor
 
 
-activations_fn = {
-    'relu': nn.ReLU(),
-    'sigmoid': nn.Sigmoid(),
-    'tanh': nn.Tanh(),
-    'silu': nn.SiLU(),
-    'swish': nn.SiLU(),
-    'scaled_silu': ScaledSiLU(),
-    'scaled_swish': ScaledSiLU(),
-    'swiglu': SwiGLU(),
-    'scaled_swiglu': ScaledSwiGLU(),
-    'smoothleakyrelu': SmoothLeakyReLU(),
-    'scaled_smoothleakyrelu': ScaledSmoothLeakyReLU(),
-    'scaled_sigmoid': ScaledSigmoid(),
-}
+# def activations_fn(act, **kwargs): 
+#     match act.lower():
+#         case 'relu':
+#             return nn.ReLU(**kwargs)
+#         case 'sigmoid':
+#             return nn.Sigmoid(**kwargs)
+#         case 'tanh':
+#             return nn.Tanh(**kwargs)
+#         case 'silu':
+#             return nn.SiLU(**kwargs)
+#         case 'swish':
+#             return nn.SiLU(**kwargs)
+#         case 'scaled_silu':
+#             return ScaledSiLU(**kwargs)
+#         case 'scaled_swish':
+#             return ScaledSiLU(**kwargs)
+#         case 'swiglu':
+#             return SwiGLU(**kwargs)
+#         case 'scaled_swiglu':
+#             return ScaledSwiGLU(**kwargs)
+#         case 'smoothleakyrelu':
+#             return SmoothLeakyReLU(**kwargs)
+#         case 'scaled_smoothleakyrelu':
+#             return ScaledSmoothLeakyReLU(**kwargs)
+#         case 'scaled_sigmoid':
+#             return ScaledSigmoid(**kwargs)
+#         case _:
+#             raise ValueError(f"Activation function {act} not supported")
 
+def activations_fn(act, **kwargs):
+    if act.lower() == 'relu':
+        return nn.ReLU(**kwargs)
+    elif act.lower() == 'sigmoid':
+        return nn.Sigmoid(**kwargs)
+    elif act.lower() == 'tanh':
+        return nn.Tanh(**kwargs)
+    elif act.lower() == 'silu':
+        return nn.SiLU(**kwargs)
+    elif act.lower() == 'swish':
+        return nn.SiLU(**kwargs)
+    elif act.lower() == 'scaled_silu':
+        return ScaledSiLU(**kwargs)
+    elif act.lower() == 'scaled_swish':
+        return ScaledSiLU(**kwargs)
+    elif act.lower() == 'swiglu':
+        return SwiGLU(**kwargs)
+    elif act.lower() == 'scaled_swiglu':
+        return ScaledSwiGLU(**kwargs)
+    elif act.lower() == 'smoothleakyrelu':
+        return SmoothLeakyReLU(**kwargs)
+    elif act.lower() == 'scaled_smoothleakyrelu':
+        return ScaledSmoothLeakyReLU(**kwargs)
+    elif act.lower() == 'scaled_sigmoid':
+        return ScaledSigmoid(**kwargs)
+    else:
+        raise ValueError(f"Activation function {act} not supported")
 
 class GateActivation(torch.nn.Module):
     def __init__(self, lmax, mmax, num_channels, scalar_activation='silu', gate_activation='sigmoid'):
@@ -132,10 +173,10 @@ class GateActivation(torch.nn.Module):
 
         self.scalar_act = (
             # torch.nn.SiLU()
-            activations_fn[scalar_activation.lower()]
+            activations_fn(scalar_activation)
         )  # SwiGLU(self.num_channels, self.num_channels)  # #
         # self.gate_act = torch.nn.Sigmoid()  # torch.nn.SiLU() # #
-        self.gate_act = activations_fn[gate_activation.lower()]
+        self.gate_act = activations_fn(gate_activation)
 
     def forward(self, gating_scalars, input_tensors):
         """
@@ -174,7 +215,7 @@ class S2Activation(torch.nn.Module):
         self.lmax = lmax
         self.mmax = mmax
         # self.act = torch.nn.SiLU()
-        self.act = activations_fn[activation.lower()]
+        self.act = activations_fn(activation)
 
     def forward(self, inputs, SO3_grid):
         to_grid_mat = SO3_grid[self.lmax][self.mmax].get_to_grid_mat(
@@ -195,8 +236,8 @@ class SeparableS2Activation(torch.nn.Module):
         self.mmax = mmax
 
         # self.scalar_act = torch.nn.SiLU()
-        self.scalar_act = activations_fn[activation.lower()]
-        self.s2_act = S2Activation(self.lmax, self.mmax)
+        self.scalar_act = activations_fn(activation)
+        self.s2_act = S2Activation(self.lmax, self.mmax, activation=activation)
 
     def forward(self, input_scalars, input_tensors, SO3_grid):
         output_scalars = self.scalar_act(input_scalars)

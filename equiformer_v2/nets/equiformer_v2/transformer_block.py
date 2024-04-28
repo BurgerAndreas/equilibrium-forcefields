@@ -419,7 +419,7 @@ class FeedForwardNetwork(torch.nn.Module):
                         self.sphere_channels_all, self.hidden_channels, bias=True
                     ),
                     # nn.SiLU(),
-                    activations_fn[activation.lower()],
+                    activations_fn(activation),
                 )
             else:
                 self.scalar_mlp = None
@@ -427,10 +427,10 @@ class FeedForwardNetwork(torch.nn.Module):
             self.grid_mlp = nn.Sequential(
                 nn.Linear(self.hidden_channels, self.hidden_channels, bias=False),
                 # nn.SiLU(), 
-                activations_fn[activation.lower()],
+                activations_fn(activation),
                 nn.Linear(self.hidden_channels, self.hidden_channels, bias=False),
                 # nn.SiLU(),
-                activations_fn[activation.lower()],
+                activations_fn(activation),
                 nn.Linear(self.hidden_channels, self.hidden_channels, bias=False),
             )
         else:

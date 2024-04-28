@@ -112,7 +112,7 @@ if __name__ == "__main__":
     # E2 aauf 8uuq632s
     # not converged
     run_id = "8uuq632s"
-    main(run_id, error_type="abs", datasplit="train", logscale=True)
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
     
     # E2 normlayer-norm aauf 8dqpu458
     # not converged
@@ -127,17 +127,25 @@ if __name__ == "__main__":
     # E2 anderson add-inj-prev (aa) 1hwg7al5
     # not converged
     run_id = "1hwg7al5"
-    main(run_id, error_type="abs", datasplit="train", logscale=True)
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
 
     # E2 anderson by8radv7
     # somewhat converged
     run_id = "by8radv7"
-    main(run_id, error_type="abs", datasplit="train", logscale=True)
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
 
     # E2 nl7jlh8q
     # somewhat converged
     run_id = "nl7jlh8q"
     # main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # E2 fsolver-broyden alphadrop-0 droppathrate-0 1hjry1oh
+    run_id = "1hjry1oh"
+    main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # E2 alphadrop-0 droppathrate-0 12uk3wdo
+    run_id = "12uk3wdo"
+    main(run_id, error_type="abs", datasplit="train", logscale=True)
     
     # ----------------- E1 -----------------
     # broyden pathnorm: f9bg18sp

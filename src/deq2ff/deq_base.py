@@ -14,7 +14,6 @@ def _init_deq(
     deq_mode=True,
     torchdeq_norm=omegaconf.OmegaConf.create({"norm_type": "weight_norm"}),
     deq_kwargs={},
-    fpreuse_f_max_iter=None,
     **kwargs,
 ):
     """Initializes TorchDEQ solver and normalization."""
@@ -24,11 +23,6 @@ def _init_deq(
     # self.deq = get_deq(f_solver='broyden', f_max_iter=20, f_tol=1e-6)
     self.deq = get_deq(**deq_kwargs)
     # self.register_buffer('z_aux', self._init_z())
-
-    if fpreuse_f_max_iter is None:
-        fpreuse_f_max_iter = deq_kwargs.get("f_max_iter", 40)
-    self.fpreuse_f_max_iter = fpreuse_f_max_iter
-    print(f"Using fpreuse_f_max_iter: {self.fpreuse_f_max_iter}")
 
     # to have weight/spectral normalization. (for better stability)
     # Using norm_type='none' in `kwargs` can also skip it.
@@ -51,3 +45,17 @@ def _init_deq(
         # register_norm_module(DEQDotProductAttentionTransformerMD17, 'spectral_norm', names=['blocks'], dims=[0])
 
     return kwargs
+
+def _process_solver_kwargs(solver_kwargs, reuse=False):
+    _solver_kwargs = {}
+    # kwargs during inference
+    for k, v in solver_kwargs.items():
+        # kwargs that are only used when reusing the fixed-point
+        if k.startswith('fpreuse_'):
+            k = k.replace('fpreuse_', '')
+            if reuse == False:
+                continue
+        # add kwargs to solver
+        if v != '_default':
+            _solver_kwargs[k] = v
+    return _solver_kwargs

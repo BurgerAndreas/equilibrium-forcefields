@@ -1030,6 +1030,12 @@ def evaluate(
     datasplit=None,
     normalizers={'energy': None, 'force': None},
 ):
+    """Val or test split."""
+
+    if datasplit == 'test':
+        solver_kwargs = args.deq_kwargs_test
+    else:
+        solver_kwargs = {}
 
     if args.eval_mode is True:
         model.eval()
@@ -1078,6 +1084,7 @@ def evaluate(
                 datasplit=datasplit,
                 return_fixedpoint=True,
                 fixedpoint=fixedpoint,
+                solver_kwargs=solver_kwargs,
             )
         else:
             # energy, force
@@ -1089,6 +1096,7 @@ def evaluate(
                 step=pass_step,
                 datasplit=datasplit,
                 fixedpoint=None,
+                solver_kwargs=solver_kwargs,
             )
 
         target_y = normalizers['energy'](data.y)

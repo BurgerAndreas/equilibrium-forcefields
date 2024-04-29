@@ -63,7 +63,7 @@ from torchdeq.loss import fp_correction
 # register model to be used with EquiformerV1 training loop (MD17)
 from equiformer.nets.registry import register_model
 
-from deq2ff.deq_base import _init_deq
+from deq2ff.deq_base import _init_deq, _process_solver_kwargs
 
 # Statistics of IS2RE 100K
 # from equiformer_v2.nets.equiformer_v2.equiformer_v2_oc20 import (
@@ -159,7 +159,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         return _init_deq(self, **kwargs)
 
     @conditional_grad(torch.enable_grad())
-    def forward(self, data, step=None, datasplit=None, fixedpoint=None, return_fixedpoint=False, **kwargs):
+    def forward(self, data, step=None, datasplit=None, fixedpoint=None, return_fixedpoint=False, solver_kwargs={}, **kwargs):
         """
         Args:
             data: Data object containing the following attributes:
@@ -171,6 +171,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             datasplit: Data split for logging (train/val/test)
             fixedpoint: Previous fixed-point to use as initial estimate
             return_fixedpoint: Return the final fixed-point estimate
+            solver_kwargs: Additional kwargs or overrides for the deq solver
         """
         # data.natoms: [batch_size]
         # data.pos: [batch_size*num_atoms, 3])
@@ -294,10 +295,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         )
 
         # find fixed-point
-        solver_kwargs = {"f_max_iter": self.fpreuse_f_max_iter} if reuse else {} 
         # returns the sampled fixed point trajectory (tracked gradients)
         # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
-        z_pred, info = self.deq(f, x, solver_kwargs=solver_kwargs)
+        z_pred, info = self.deq(f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse))
 
         x = SO3_Embedding(
             length=num_atoms,

@@ -40,12 +40,11 @@ model:
     clip: False # (bool, optional) – If true, clip the scale factor. Default False.
     clip_value: 1.0 # (float, optional) – The value to clip the scale factor to. Default 1.
   
-  fpreuse_f_max_iter: null
 
   input_injection: 'first_layer'
   # True: concat input injection onto node features. False: use addition instead.
   cat_injection: True
-  norm_injection: None # None=False, 'one', 'prev'
+  norm_injection: null # None=False, 'one', 'prev'
   # "FFResidualFCTPProjection", "FFProjection", "FCTPProjection"
   dec_proj: null
   # initialize fixed-point. zero, one, uniform, normal_mean_std e.g. normal_0.0_0.5
@@ -60,6 +59,14 @@ model:
   weight_init_blocks: null
   # DPA, DPANorm, FF, FFNorm, FFNormResidual
   deq_block: null
+
+deq_kwargs_test:
+  # on test set only when passed a fixed-point estimate
+  fpreuse_f_max_iter: _default
+  fpreuse_f_tol: _default
+  # on test set
+  f_max_iter: _default
+  f_tol: _default
 
 # passed to torchdeq
 deq_kwargs:

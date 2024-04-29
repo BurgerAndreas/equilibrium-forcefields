@@ -9,7 +9,7 @@ from torchdeq.loss import fp_correction
 
 from e3nn import o3
 
-from deq2ff.deq_base import _init_deq
+from deq2ff.deq_base import _init_deq, _process_solver_kwargs
 
 
 class EquiformerDEQBase:

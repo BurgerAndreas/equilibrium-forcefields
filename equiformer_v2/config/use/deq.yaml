@@ -28,17 +28,23 @@ model:
     target_norm: 1.0 # (float, optional) – The target norm value. Default 1.
     clip: False # (bool, optional) – If true, clip the scale factor. Default False.
     clip_value: 1.0 # (float, optional) – The value to clip the scale factor to. Default 1.
-  
-  fpreuse_f_max_iter: null
 
   # deq
   z0: "zero"
   # concat or add input injection to node_features (fixed-point estimate)
   cat_injection: False
   norm_injection: prev # None=False, 'one', 'prev'
+  # not used
   path_norm: "none"
-  irrep_norm: None 
+  irrep_norm: null
 
+deq_kwargs_test:
+  # on test set only when passed a fixed-point estimate
+  fpreuse_f_max_iter: _default
+  fpreuse_f_tol: _default
+  # on test set
+  f_max_iter: _default
+  f_tol: _default
 
 # passed to torchdeq
 deq_kwargs:

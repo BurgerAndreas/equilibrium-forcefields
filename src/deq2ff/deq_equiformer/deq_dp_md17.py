@@ -120,6 +120,7 @@ from deq2ff.deq_equiformer.deq_dp_minimal import (
     DPAFFNorm,
 )
 
+from deq2ff.deq_base import _init_deq, _process_solver_kwargs
 
 class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
     """Dot product attention (DPA) + linear message passing.
@@ -860,6 +861,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         datasplit=None,
         return_fixedpoint=False,
         fixedpoint=None,
+        solver_kwargs={},
         **kwargs,
     ):
         """Forward pass of the DEQ model."""
@@ -918,12 +920,9 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
             )
 
             # z: list[torch.tensor shape [42, 480]]
-            solver_kwargs = (
-                {"f_max_iter": self.fpreuse_f_max_iter} if reuse else {}
-            )
             # returns the sampled fixed point trajectory (tracked gradients)
             # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
-            z_pred, info = self.deq(f, node_features, solver_kwargs=solver_kwargs)
+            z_pred, info = self.deq(f, node_features, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse))
 
             if step is not None:
                 # log fixed-point trajectory

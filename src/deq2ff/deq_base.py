@@ -14,19 +14,25 @@ def _init_deq(
     deq_mode=True,
     torchdeq_norm=omegaconf.OmegaConf.create({"norm_type": "weight_norm"}),
     deq_kwargs={},
+    fpreuse_f_max_iter=None,
     **kwargs,
 ):
     """Initializes TorchDEQ solver and normalization."""
 
     self.deq_mode = deq_mode
-    # self.deq = get_deq(f_solver='broyden', f_max_iter=20, f_tol=1e-6)
     print(f"Passed deq_kwargs: {deq_kwargs}")
+    # self.deq = get_deq(f_solver='broyden', f_max_iter=20, f_tol=1e-6)
     self.deq = get_deq(**deq_kwargs)
     # self.register_buffer('z_aux', self._init_z())
 
+    if fpreuse_f_max_iter is None:
+        fpreuse_f_max_iter = deq_kwargs.get("f_max_iter", 40)
+    self.fpreuse_f_max_iter = fpreuse_f_max_iter
+
     # to have weight/spectral normalization. (for better stability)
     # Using norm_type='none' in `kwargs` can also skip it.
-    if torchdeq_norm.norm_type not in [None, "none", False]:
+    if torchdeq_norm.norm_type in [None, "none", False]:
+        print(f"Not applying torchdeq normalization.")
         pass
     elif "both" in torchdeq_norm.norm_type:
         norm_kwargs = copy.deepcopy(torchdeq_norm)

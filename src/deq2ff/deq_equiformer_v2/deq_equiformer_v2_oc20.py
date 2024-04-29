@@ -159,7 +159,19 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         return _init_deq(self, **kwargs)
 
     @conditional_grad(torch.enable_grad())
-    def forward(self, data, fixedpoint=None, step=None, datasplit=None, **kwargs):
+    def forward(self, data, step=None, datasplit=None, fixedpoint=None, return_fixedpoint=False, **kwargs):
+        """
+        Args:
+            data: Data object containing the following attributes:
+                - natoms: Number of atoms in each molecule in the batch
+                - pos: Atom positions in the batch
+                - z: Atomic numbers of the atoms in the batch
+                - cell: Unit cell of the batch
+            step: Current training step for logging
+            datasplit: Data split for logging (train/val/test)
+            fixedpoint: Previous fixed-point to use as initial estimate
+            return_fixedpoint: Return the final fixed-point estimate
+        """
         # data.natoms: [batch_size]
         # data.pos: [batch_size*num_atoms, 3])
         # data.atomic_numbers = data.z: [batch_size*num_atoms]
@@ -261,21 +273,11 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # emb_SO3 = x
         emb = x.embedding
 
-        x = self._init_z(shape=emb.shape)
-        # initialized to zeros per default
-        # x_SO3: SO3_Embedding = SO3_Embedding(
-        #     length=num_atoms,
-        #     lmax_list=self.lmax_list,
-        #     num_channels=self.sphere_channels_fixedpoint,
-        #     device=self.device,
-        #     dtype=self.dtype,
-        # )
-
-        reuse = True
         if fixedpoint is None:
-            # z = torch.zeros(x.shape[0], self.d_hidden).to(x)
+            x: torch.Tensor = self._init_z(shape=emb.shape)
             reuse = False
         else:
+            reuse = True
             x = fixedpoint
 
         reset_norm(self.blocks)
@@ -292,8 +294,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         )
 
         # find fixed-point
-        # solver_kwargs = {"f_max_iter": 0} if reuse else {} # TODO
-        solver_kwargs = {}
+        solver_kwargs = {"f_max_iter": self.fpreuse_f_max_iter} if reuse else {} 
         # returns the sampled fixed point trajectory (tracked gradients)
         # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
         z_pred, info = self.deq(f, x, solver_kwargs=solver_kwargs)
@@ -341,8 +342,14 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             forces = forces.view(-1, 3)
 
         if self.regress_forces:
+            if return_fixedpoint:
+                # z_pred = sampled fixed point trajectory (tracked gradients)
+                return energy, forces, z_pred[-1].detach().clone(), info
             return energy, forces, info
         else:
+            if return_fixedpoint:
+                # z_pred = sampled fixed point trajectory (tracked gradients)
+                return energy, z_pred[-1].detach().clone(), info
             return energy, info
 
     def inject_input(self, z, u):

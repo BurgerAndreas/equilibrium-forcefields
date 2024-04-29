@@ -22,7 +22,6 @@ class EquiformerDEQBase:
         cat_injection=False,
         norm_injection=None,
         irreps_node_embedding_injection="64x0e+32x1e+16x2e",
-        limit_f_max_iter_fpreuse=False,
         z0="zero",
         z0_requires_grad=False,
         log_fp_error_traj=False,
@@ -78,7 +77,6 @@ class EquiformerDEQBase:
         self.dec_proj = dec_proj
         self.deq_block = deq_block
         self.affine_ln = affine_ln
-        self.limit_f_max_iter_fpreuse = limit_f_max_iter_fpreuse
 
         self.force_head = force_head
         self.use_attn_head = use_attn_head

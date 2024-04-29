@@ -919,7 +919,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
 
             # z: list[torch.tensor shape [42, 480]]
             solver_kwargs = (
-                {"f_max_iter": 0} if (reuse and self.limit_f_max_iter_fpreuse) else {}
+                {"f_max_iter": self.fpreuse_f_max_iter} if reuse else {}
             )
             # returns the sampled fixed point trajectory (tracked gradients)
             # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)

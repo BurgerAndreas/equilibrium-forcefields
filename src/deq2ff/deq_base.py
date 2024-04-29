@@ -28,6 +28,7 @@ def _init_deq(
     if fpreuse_f_max_iter is None:
         fpreuse_f_max_iter = deq_kwargs.get("f_max_iter", 40)
     self.fpreuse_f_max_iter = fpreuse_f_max_iter
+    print(f"Using fpreuse_f_max_iter: {self.fpreuse_f_max_iter}")
 
     # to have weight/spectral normalization. (for better stability)
     # Using norm_type='none' in `kwargs` can also skip it.

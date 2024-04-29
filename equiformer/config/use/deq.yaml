@@ -20,7 +20,6 @@ model_is_deq: True
 # DEQ Optical Flow used FPR only during inference
 fpreuse_test: False
 fpreuse_datasplit: False
-limit_f_max_iter_fpreuse: False
 
 # debugging tools
 # meas_force: False

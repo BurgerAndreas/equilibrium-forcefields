@@ -36,18 +36,18 @@ def _init_deq(
         print(f"Not applying torchdeq normalization.")
         pass
     elif "both" in torchdeq_norm.norm_type:
+        print(
+            f"Applying both weight and spectral normalization with kwargs: {norm_kwargs}"
+        )
         norm_kwargs = copy.deepcopy(torchdeq_norm)
         norm_kwargs.pop("norm_type")
         apply_norm(self.blocks, norm_type="weight_norm", **norm_kwargs)
         apply_norm(self.blocks, norm_type="spectral_norm" ** norm_kwargs)
-        print(
-            f"Applying both weight and spectral normalization with kwargs: {norm_kwargs}"
-        )
     else:
-        apply_norm(self.blocks, **torchdeq_norm)
-        # register_norm_module(DEQDotProductAttentionTransformerMD17, 'spectral_norm', names=['blocks'], dims=[0])
         print(
             f"Applying {torchdeq_norm.norm_type} normalization with kwargs: {torchdeq_norm}"
         )
+        apply_norm(self.blocks, **torchdeq_norm)
+        # register_norm_module(DEQDotProductAttentionTransformerMD17, 'spectral_norm', names=['blocks'], dims=[0])
 
     return kwargs

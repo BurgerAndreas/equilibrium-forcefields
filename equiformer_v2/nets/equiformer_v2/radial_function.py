@@ -1,13 +1,24 @@
 import torch
 import torch.nn as nn
 
+from .activation import (
+    ScaledSiLU,
+    ScaledSwiGLU,
+    SwiGLU,
+    ScaledSmoothLeakyReLU,
+    SmoothLeakyReLU,
+    GateActivation,
+    SeparableS2Activation,
+    S2Activation,
+    activations_fn,
+)
 
 class RadialFunction(nn.Module):
     """
     Contruct a radial function (linear layers + layer normalization + SiLU) given a list of channels
     """
 
-    def __init__(self, channels_list):
+    def __init__(self, channels_list, activation='silu'):
         super().__init__()
         modules = []
         input_channels = channels_list[0]
@@ -22,7 +33,8 @@ class RadialFunction(nn.Module):
                 break
 
             modules.append(nn.LayerNorm(channels_list[i]))
-            modules.append(torch.nn.SiLU())
+            # modules.append(torch.nn.SiLU())
+            modules.append(activations_fn(activation))
 
         self.net = nn.Sequential(*modules)
 

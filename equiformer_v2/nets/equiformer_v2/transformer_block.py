@@ -81,7 +81,7 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
         edge_channels_list,
         use_atom_edge_embedding=True,
         use_m_share_rad=False,
-        activation="scaled_silu", # unused
+        activation="scaled_silu", 
         use_s2_act_attn=False,
         use_attn_renorm=True,
         use_gate_act=False,
@@ -153,7 +153,7 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
             self.edge_channels_list = self.edge_channels_list + [
                 2 * self.sphere_channels * (max(self.lmax_list) + 1)
             ]
-            self.rad_func = RadialFunction(self.edge_channels_list)
+            self.rad_func = RadialFunction(self.edge_channels_list, activation=activation)
             expand_index = torch.zeros([(max(self.lmax_list) + 1) ** 2]).long()
             for l in range(max(self.lmax_list) + 1):
                 start_idx = l**2
@@ -174,12 +174,12 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
             extra_m0_output_channels=extra_m0_output_channels,  # for attention weights and/or gate activation
         )
 
-        if self.use_s2_act_attn:
+        if self.use_s2_act_attn: # False by default
             self.alpha_norm = None
             self.alpha_act = None
             self.alpha_dot = None
         else:
-            if self.use_attn_renorm:
+            if self.use_attn_renorm: # True by default
                 self.alpha_norm = torch.nn.LayerNorm(self.attn_alpha_channels)
             else:
                 self.alpha_norm = torch.nn.Identity()
@@ -196,7 +196,7 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
         if alpha_drop != 0.0:
             self.alpha_dropout = torch.nn.Dropout(alpha_drop)
 
-        if self.use_gate_act:
+        if self.use_gate_act: # False by default
             self.gate_act = GateActivation(
                 lmax=max(self.lmax_list),
                 mmax=max(self.mmax_list),

@@ -607,6 +607,7 @@ class EquiformerV2_OC20(BaseModel):
 
     @torch.jit.ignore
     def no_weight_decay(self):
+        """ ? """
         no_wd_list = []
         named_parameters_list = [name for name, _ in self.named_parameters()]
         for module_name, module in self.named_modules():

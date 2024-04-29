@@ -377,8 +377,8 @@ def plot_norms_layer(args):
     ax2.title.set_text('l1 norm')
     plt.legend()
     plt.xlabel('forward passes through implicit layer')
-    plt.ylabel('norm')
-    fpath = 'figs/layernorm.png'
+    plt.ylabel('norm of node embedding')
+    fpath = 'figs/layernorm_fsolver.png'
     plt.savefig(fpath)
     print(f'{fpath} saved')
     return

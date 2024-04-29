@@ -1128,8 +1128,17 @@ def evaluate(
 
         if "nstep" in info:
             n_fsolver_steps += info["nstep"][0].mean().item()
+        
 
         # --- logging ---
+        if len(info) > 0:
+            # log fixed-point trajectory
+            logging_utils_deq.log_fixed_point_error(
+                info,
+                step=global_step,
+                datasplit=datasplit,
+            )
+
         if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
             w = time.perf_counter() - start_time
             e = (step + 1) / max_steps

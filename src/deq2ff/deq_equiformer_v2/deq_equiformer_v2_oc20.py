@@ -433,63 +433,6 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         else:
             raise ValueError(f"Invalid z0: {self.z0}")
 
-    # Initialize the edge rotation matrics
-    def _init_edge_rot_mat(self, data, edge_index, edge_distance_vec):
-        return init_edge_rot_mat(edge_distance_vec)
-
-    @property
-    def num_params(self):
-        return sum(p.numel() for p in self.parameters())
-
-    def _init_weights(self, m):
-        if isinstance(m, torch.nn.Linear) or isinstance(m, SO3_LinearV2):
-            if m.bias is not None:
-                torch.nn.init.constant_(m.bias, 0)
-            if self.weight_init == "normal":
-                std = 1 / math.sqrt(m.in_features)
-                torch.nn.init.normal_(m.weight, 0, std)
-
-        elif isinstance(m, torch.nn.LayerNorm):
-            torch.nn.init.constant_(m.bias, 0)
-            torch.nn.init.constant_(m.weight, 1.0)
-
-    def _uniform_init_rad_func_linear_weights(self, m):
-        if isinstance(m, RadialFunction):
-            m.apply(self._uniform_init_linear_weights)
-
-    def _uniform_init_linear_weights(self, m):
-        if isinstance(m, torch.nn.Linear):
-            if m.bias is not None:
-                torch.nn.init.constant_(m.bias, 0)
-            std = 1 / math.sqrt(m.in_features)
-            torch.nn.init.uniform_(m.weight, -std, std)
-
-    @torch.jit.ignore
-    def no_weight_decay(self):
-        no_wd_list = []
-        named_parameters_list = [name for name, _ in self.named_parameters()]
-        for module_name, module in self.named_modules():
-            if (
-                isinstance(module, torch.nn.Linear)
-                or isinstance(module, SO3_LinearV2)
-                or isinstance(module, torch.nn.LayerNorm)
-                or isinstance(module, EquivariantLayerNormArray)
-                or isinstance(module, EquivariantLayerNormArraySphericalHarmonics)
-                or isinstance(module, EquivariantRMSNormArraySphericalHarmonics)
-                or isinstance(module, EquivariantRMSNormArraySphericalHarmonicsV2)
-                or isinstance(module, GaussianRadialBasisLayer)
-            ):
-                for parameter_name, _ in module.named_parameters():
-                    if isinstance(module, torch.nn.Linear) or isinstance(
-                        module, SO3_LinearV2
-                    ):
-                        if "weight" in parameter_name:
-                            continue
-                    global_parameter_name = module_name + "." + parameter_name
-                    assert global_parameter_name in named_parameters_list
-                    no_wd_list.append(global_parameter_name)
-        return set(no_wd_list)
-
 
 @register_model
 def deq_equiformer_v2_oc20(**kwargs):

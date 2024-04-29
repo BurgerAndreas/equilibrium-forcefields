@@ -9,6 +9,7 @@ model:
   # norm_type (str):Type of normalization layer (['layer_norm', 'layer_norm_sh', 'rms_norm_sh'])
   norm_type: 'layer_norm_sh' # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
   normlayer_norm: norm # component, norm
+  normlayer_affine: True # [True, False] Whether to use affine (learned scaling params) in normalization layer
 
 
   alpha_drop: 0.0 # [0.0, 0.1] Dropout rate for attention weights

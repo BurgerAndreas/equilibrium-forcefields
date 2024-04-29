@@ -1131,7 +1131,7 @@ def evaluate(
         
 
         # --- logging ---
-        if len(info) > 0:
+        if len(info) > 0 and pass_step is not None:
             # log fixed-point trajectory
             logging_utils_deq.log_fixed_point_error(
                 info,

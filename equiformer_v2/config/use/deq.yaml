@@ -9,7 +9,7 @@ defaults:
   # if _self_ is the last entry, this config will overwrite compositions (default)
   # https://hydra.cc/docs/1.3/upgrades/1.0_to_1.1/default_composition_order/
   # - oc20
-  - ../../equiformer/config/use/deq
+  # - ../../../equiformer/config/use/deq
   - _self_
 
 override_test: 2
@@ -19,6 +19,17 @@ model_is_deq: True
 model:
   name: deq_equiformer_v2_oc20
   num_layers: 1
+  # weight, spectral, both, or none
+  # https://github.com/locuslab/torchdeq/blob/4f6bd5fa66dd991cad74fcc847c88061764cf8db/torchdeq/norm/base_norm.py#L90C23-L90C32
+  torchdeq_norm: 
+    norm_type: null # None weight_norm, spectral_norm
+    # dims (list or int, optional) – The dimensions along which to normalize.
+    learn_scale: True # (bool, optional) – If true, learn a scale factor during training. Default True.
+    target_norm: # 1.0 (float, optional) – The target norm value. Default 1.
+    clip: False # (bool, optional) – If true, clip the scale factor. Default False.
+    clip_value: 1.0 # (float, optional) – The value to clip the scale factor to. Default 1.
+  
+  fpreuse_f_max_iter: null
 
   # deq
   z0: "zero"
@@ -48,6 +59,7 @@ deq_kwargs:
   # ift (bool, optional) – If true, enable Implicit Differentiation. 
   # IFT=Implicit Function Theorem. Default False.
   ift: False
+  hook_ift: False
   # grad (Union[int, list[int], tuple[int]], optional) 
   # Specifies the steps of PhantomGrad. It allows for using multiple values 
   # to represent different gradient steps in the sampled trajectory states. 

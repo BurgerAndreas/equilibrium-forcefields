@@ -225,7 +225,7 @@ class EquiformerV2_OC20(BaseModel):
         self.proj_drop = proj_drop
 
         self.weight_init = weight_init
-        assert self.weight_init in ["normal", "uniform"]
+        assert self.weight_init in ["normal", "uniform"], f'Unknown weight_init: {self.weight_init}'
 
         self.device = "cpu"  # torch.cuda.current_device()
 

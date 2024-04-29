@@ -11,7 +11,7 @@ defaults:
   # - md17
   - _self_
 
-override_test: 2
+override_test: e1deq
 
 model_is_deq: True
 # batch_size: 16

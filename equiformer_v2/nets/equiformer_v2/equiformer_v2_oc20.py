@@ -591,8 +591,11 @@ class EquiformerV2_OC20(BaseModel):
                 torch.nn.init.normal_(m.weight, 0, std)
 
         elif isinstance(m, torch.nn.LayerNorm):
-            torch.nn.init.constant_(m.bias, 0)
-            torch.nn.init.constant_(m.weight, 1.0)
+            # if m.affine:
+            if m.bias is not None:
+                torch.nn.init.constant_(m.bias, 0)
+            if m.weight is not None:
+                torch.nn.init.constant_(m.weight, 1.0)
 
     def _uniform_init_rad_func_linear_weights(self, m):
         if isinstance(m, RadialFunction):

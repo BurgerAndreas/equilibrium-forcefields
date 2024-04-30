@@ -162,7 +162,9 @@ def broyden_solver(func, x0,
         >>> z_star, _, _ = broyden_solver(f, z0)            # Run the Broyden's method
         >>> print((z_star - f(z_star)).norm(p=1))           # Print the numerical error
     """
-    print(f"broyden_solver ignoring kwargs: {kwargs}")
+    # if kwargs:
+    #     print(f"broyden_solver ignoring kwargs: {kwargs}")
+
     # Flatten the initial tensor into (B, *)
     # estimate of the root
     x_est = batch_flatten(x0)

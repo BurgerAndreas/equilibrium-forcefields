@@ -49,7 +49,9 @@ def anderson_solver(func, x0,
         >>> z_star, _, _ = anderson_solver(f, z0)           # Run Anderson Acceleration
         >>> print((z_star - f(z_star)).norm(p=1))           # Print the numerical error
     """
-    print(f"anderson_solver ignoring kwargs: {kwargs}")
+    # if kwargs:
+    #     print(f"anderson_solver ignoring kwargs: {kwargs}")
+    
     # Wrap the input function to ensure the same shape
     f = lambda x: func(x.view_as(x0)).reshape_as(x) 
     

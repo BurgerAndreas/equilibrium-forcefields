@@ -38,7 +38,9 @@ def fixed_point_iter(func, x0,
         >>> z_star, _, _ = fixed_point_iter(f, z0)      # Run Fixed Point iterations.
         >>> print((z_star - f(z_star)).norm(p=1))       # Print the numerical error
     """
-    print(f"fixed_point_iter ignoring kwargs: {kwargs}")
+    # if kwargs:
+    #     print(f"fixed_point_iter ignoring kwargs: {kwargs}")
+
     # Check input batch size
     bsz = x0.shape[0] if x0.dim() >= 2 else x0.nelement()
 

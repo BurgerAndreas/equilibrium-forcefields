@@ -58,5 +58,4 @@ def _process_solver_kwargs(solver_kwargs, reuse=False):
         # add kwargs to solver
         if v != '_default':
             _solver_kwargs[k] = v
-    print(f"Processed solver kwargs: {_solver_kwargs} (reuse={reuse})")
     return _solver_kwargs

@@ -285,14 +285,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         # Transformer blocks
         # f = lambda z: self.mfn_forward(z, u)
-        f = lambda x: self.deq_implicit_layer(
-            x,
-            emb=emb,
-            edge_index=edge_index,
-            edge_distance=edge_distance,
-            atomic_numbers=atomic_numbers,
-            data=data,
-        )
+        def f(x):
+            return self.deq_implicit_layer(x, emb=emb, edge_index=edge_index, edge_distance=edge_distance, atomic_numbers=atomic_numbers, data=data)
 
         # find fixed-point
         # returns the sampled fixed point trajectory (tracked gradients)

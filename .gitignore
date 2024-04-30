@@ -16,7 +16,7 @@ slurm-*.out
 
 src/deq2ff/plotting/plots/*
 
-torchdeq
+# torchdeq
 
 checkpoints
 

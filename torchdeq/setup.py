@@ -25,8 +25,8 @@ if __name__ == '__main__':
             'Programming Language :: Python :: 3',
             'Operating System :: OS Independent',
             ],
-        install_requires=[
-            'torch>=1.11.0',
-            'numpy>=1.21.5'
-            ],
+        # install_requires=[
+        #     'torch>=1.11.0',
+        #     'numpy>=1.21.5'
+        #     ],
     )

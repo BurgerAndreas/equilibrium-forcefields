@@ -16,11 +16,6 @@ override_test: e1deq
 model_is_deq: True
 # batch_size: 16
 
-# reuse fixed-point of previous step
-# DEQ Optical Flow used FPR only during inference
-fpreuse_test: False
-fpreuse_datasplit: False
-
 # debugging tools
 # meas_force: False
 # should be the same as meas_force, but custom autograd might interfere with torchdeq grad

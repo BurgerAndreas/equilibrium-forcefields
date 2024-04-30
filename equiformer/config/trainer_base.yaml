@@ -127,7 +127,11 @@ wandb_run_name: null
 wandb_group: null
 slurm_job_id: null
 model_is_deq: False
+
+# reuse fixed-point of previous step
+# DEQ Optical Flow used FPR only during inference
 fpreuse_test: False
+fpreuse_datasplit: False
 
 unsqueeze_e_dim: False # if to reshape model output [B] (OC20) -> [B,1] (MD17)
 squeeze_e_dim: False # if to reshape data [B,1] (MD17) -> [B] (OC20)

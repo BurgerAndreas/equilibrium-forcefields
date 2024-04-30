@@ -33,7 +33,7 @@ model:
   # weight, spectral, both, or none
   # https://github.com/locuslab/torchdeq/blob/4f6bd5fa66dd991cad74fcc847c88061764cf8db/torchdeq/norm/base_norm.py#L90C23-L90C32
   torchdeq_norm: 
-    norm_type: null # None weight_norm, spectral_norm
+    norm_type: weight_norm # None weight_norm, spectral_norm
     # dims (list or int, optional) – The dimensions along which to normalize.
     learn_scale: True # (bool, optional) – If true, learn a scale factor during training. Default True.
     target_norm: 1.0 # (float, optional) – The target norm value. Default 1.

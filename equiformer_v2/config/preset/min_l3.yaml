@@ -30,8 +30,6 @@ model:
   attn_value_channels:      4 # 16
   # ffn_hidden_channels (int):  Number of hidden channels used during feedforward network
   ffn_hidden_channels:      128 # 128
-  # norm_type (str):            Type of normalization layer (['layer_norm', 'layer_norm_sh', 'rms_norm_sh'])
-  norm_type:                'layer_norm_sh'    # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
 
   # lmax_list (int):              List of maximum degree of the spherical harmonics (1 to 10)
   lmax_list:                [3]             # 4

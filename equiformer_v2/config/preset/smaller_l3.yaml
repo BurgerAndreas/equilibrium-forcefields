@@ -22,7 +22,6 @@ model:
   # attn_alpha_head (int):      Number of channels for alpha vector in each attention head
   # attn_value_head (int):      Number of channels for value vector in each attention head
   # ffn_hidden_channels (int):  Number of hidden channels used during feedforward network
-  # norm_type (str):            Type of normalization layer (['layer_norm', 'layer_norm_sh', 'rms_norm_sh'])
   num_layers:               4 # 8 12
   sphere_channels:          64 # 128
   attn_hidden_channels:     64              # [64, 96] This determines the hidden size of message passing. Do not necessarily use 96. 
@@ -30,7 +29,6 @@ model:
   attn_alpha_channels:      64              # Not used when `use_s2_act_attn` is True. 
   attn_value_channels:      16
   ffn_hidden_channels:      128
-  norm_type:                'layer_norm_sh'    # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
 
   # lmax_list (int):              List of maximum degree of the spherical harmonics (1 to 10)
   # mmax_list (int):              List of maximum order of the spherical harmonics (0 to lmax)

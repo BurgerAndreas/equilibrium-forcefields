@@ -1,11 +1,11 @@
-'''
+"""
 Credit to https://github.com/locuslab/deq/blob/master/lib/jacobian.py
-'''
+"""
 import torch
 import numpy as np
 
 
-__all__ = ['jac_reg', 'power_method']
+__all__ = ["jac_reg", "power_method"]
 
 
 def jac_reg(f0, z0, vecs=1, create_graph=True):
@@ -16,7 +16,7 @@ def jac_reg(f0, z0, vecs=1, create_graph=True):
         f0 (torch.Tensor): Output of the function f (whose J is to be analyzed)
         z0 (torch.Tensor): Input to the function f
         vecs (int, optional): Number of random Gaussian vectors to use. Defaults to 2.
-        create_graph (bool, optional): Whether to create backward graph (e.g., to train on this loss). 
+        create_graph (bool, optional): Whether to create backward graph (e.g., to train on this loss).
                                        Defaults to True.
 
     Returns:
@@ -26,8 +26,10 @@ def jac_reg(f0, z0, vecs=1, create_graph=True):
     result = 0
     for i in range(vecs):
         v = torch.randn(*z0.shape).to(z0)
-        vJ = torch.autograd.grad(f0, z0, v, retain_graph=True, create_graph=create_graph)[0]
-        result += vJ.norm()**2
+        vJ = torch.autograd.grad(
+            f0, z0, v, retain_graph=True, create_graph=create_graph
+        )[0]
+        result += vJ.norm() ** 2
     return result / vecs / np.prod(z0.shape)
 
 
@@ -46,7 +48,13 @@ def power_method(f0, z0, n_iters=100):
     evector = torch.randn_like(z0)
     bsz = evector.shape[0]
     for i in range(n_iters):
-        vTJ = torch.autograd.grad(f0, z0, evector, retain_graph=(i < n_iters-1), create_graph=False)[0]
-        evalue = (vTJ * evector).reshape(bsz, -1).sum(1) / (evector * evector).reshape(bsz, -1).sum(1)
-        evector = (vTJ.reshape(bsz, -1) / vTJ.reshape(bsz, -1).norm(dim=1, keepdim=True)).reshape_as(z0)
+        vTJ = torch.autograd.grad(
+            f0, z0, evector, retain_graph=(i < n_iters - 1), create_graph=False
+        )[0]
+        evalue = (vTJ * evector).reshape(bsz, -1).sum(1) / (evector * evector).reshape(
+            bsz, -1
+        ).sum(1)
+        evector = (
+            vTJ.reshape(bsz, -1) / vTJ.reshape(bsz, -1).norm(dim=1, keepdim=True)
+        ).reshape_as(z0)
     return (evector, torch.abs(evalue))

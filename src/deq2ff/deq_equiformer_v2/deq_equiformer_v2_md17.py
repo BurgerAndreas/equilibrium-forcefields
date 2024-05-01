@@ -66,9 +66,11 @@ from equiformer.nets.registry import register_model
 
 from deq2ff.deq_base import _init_deq
 
+
 @registry.register_model("deq_equiformer_v2_md17")
 class DEQ_EquiformerV2_MD17(DEQ_EquiformerV2_OC20):
     pass
+
 
 @register_model
 def deq_equiformer_v2_md17(**kwargs):

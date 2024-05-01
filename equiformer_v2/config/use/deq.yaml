@@ -49,6 +49,7 @@ deq_kwargs_test:
 # passed to torchdeq
 deq_kwargs:
   # https://torchdeq.readthedocs.io/en/latest/torchdeq/core.html#torchdeq.core.get_deq
+  core: sliced # sliced, indexed
   # 'broyden' anderson newton
   # (str, optional) – The forward solver function. Default 'fixed_point_iter'
   f_solver: 'anderson'

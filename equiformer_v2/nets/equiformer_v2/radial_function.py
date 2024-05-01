@@ -13,12 +13,13 @@ from .activation import (
     activations_fn,
 )
 
+
 class RadialFunction(nn.Module):
     """
     Contruct a radial function (linear layers + layer normalization + SiLU) given a list of channels
     """
 
-    def __init__(self, channels_list, activation='silu'):
+    def __init__(self, channels_list, activation="silu"):
         super().__init__()
         modules = []
         input_channels = channels_list[0]

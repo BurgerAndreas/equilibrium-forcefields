@@ -26,15 +26,15 @@ class DEQLatentSpaceOpt(nn.Module):
 
         self.model = model
         self.sddim = sddim
-    
+
     def get_ddim_injection(
-            self, all_xt, seq, betas, batch_size, 
-            eta=0, all_noiset=None):
+        self, all_xt, seq, betas, batch_size, eta=0, all_noiset=None
+    ):
         cur_seq = list(seq)
         seq_next = [-1] + list(seq[:-1])
 
-        gather_idx = [idx for idx in range(len(cur_seq), len(all_xt), len(cur_seq)+2)]
-        xT_idx = [idx for idx in range(0, len(all_xt), len(cur_seq)+1)]
+        gather_idx = [idx for idx in range(len(cur_seq), len(all_xt), len(cur_seq) + 2)]
+        xT_idx = [idx for idx in range(0, len(all_xt), len(cur_seq) + 1)]
         next_idx = [idx for idx in range(len(all_xt)) if idx not in gather_idx]
         prev_idx = [idx + 1 for idx in next_idx]
 
@@ -44,47 +44,57 @@ class DEQLatentSpaceOpt(nn.Module):
 
         at = compute_alpha(betas, t.long())
         at_next = compute_alpha(betas, next_t.long())
-        alpha_ratio = (at_next/at[0]).sqrt() 
-        
+        alpha_ratio = (at_next / at[0]).sqrt()
+
         if self.sddim:
             sigma_t = eta * ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt()
             noise_t = (1 / at_next.sqrt()) * sigma_t * all_noiset
-            et_coeff2 = (1 - at_next - sigma_t**2).sqrt() - (((1 - at)*at_next)/at).sqrt()
+            et_coeff2 = (1 - at_next - sigma_t**2).sqrt() - (
+                ((1 - at) * at_next) / at
+            ).sqrt()
         else:
             noise_t = None
-            et_coeff2 = (1 - at_next).sqrt() - (((1 - at)*at_next)/at).sqrt()
-        
+            et_coeff2 = (1 - at_next).sqrt() - (((1 - at) * at_next) / at).sqrt()
+
         et_coeff = (1 / at_next.sqrt()) * et_coeff2
         et_prevsum_coeff = at_next.sqrt()
 
         diffusion_args = {
-            "T" : T, 
-            "t" : t,
+            "T": T,
+            "t": t,
             "xT_idx": xT_idx,
             "prev_idx": prev_idx,
             "next_idx": next_idx,
-            'at': at,
-            'at_next': at_next,
+            "at": at,
+            "at_next": at_next,
             "alpha_ratio": alpha_ratio,
-            'et_coeff': et_coeff, 
-            'et_prevsum_coeff': et_prevsum_coeff,
-            'noise_t': noise_t
+            "et_coeff": et_coeff,
+            "et_prevsum_coeff": et_prevsum_coeff,
+            "noise_t": noise_t,
         }
 
         return diffusion_args
 
     # This method assumes that a single image is being inverted!
     def joint_diffusion(
-            self, xt, t, xT, all_xT, 
-            next_idx, xT_idx, prev_idx,
-            et_coeff, et_prevsum_coeff, 
-            noise_t=None,
-            **kwargs):
+        self,
+        xt,
+        t,
+        xT,
+        all_xT,
+        next_idx,
+        xT_idx,
+        prev_idx,
+        et_coeff,
+        et_prevsum_coeff,
+        noise_t=None,
+        **kwargs
+    ):
         xt_in = xt[next_idx]
         et = self.model(xt_in, t)
-        
+
         if self.sddim:
-            et_updated = et_coeff * et + noise_t # Additional noise
+            et_updated = et_coeff * et + noise_t  # Additional noise
         else:
             et_updated = et_coeff * et
 
@@ -98,17 +108,14 @@ class DEQLatentSpaceOpt(nn.Module):
 
         return xt_all
 
-    def forward(self, x, injection, anderson_params=None, logger=None):        
-        injection['xT'] = x[0].unsqueeze(0)
-        injection['all_xT'] = injection['alpha_ratio'] * \
-                torch.repeat_interleave(injection['xT'], injection['T'], dim=0).to(x.device)
+    def forward(self, x, injection, anderson_params=None, logger=None):
+        injection["xT"] = x[0].unsqueeze(0)
+        injection["all_xT"] = injection["alpha_ratio"] * torch.repeat_interleave(
+            injection["xT"], injection["T"], dim=0
+        ).to(x.device)
 
         if anderson_params is None:
-            anderson_params = {
-                "m": 5,
-                "lam": 1e-3,
-                "beta": 1.0
-            }
+            anderson_params = {"m": 5, "lam": 1e-3, "beta": 1.0}
 
         def func(x):
             return self.joint_diffusion(x, **injection)
@@ -117,8 +124,13 @@ class DEQLatentSpaceOpt(nn.Module):
         x_eq = x_pred[-1]
 
         if logger is not None:
-            logger({"generated images": [wandb.Image(x_eq[i].view((3, 32, 32))) for i in list(range(0, T, T//10)) + [-5, -4, -3, -2, -1]]})
-        
+            logger(
+                {
+                    "generated images": [
+                        wandb.Image(x_eq[i].view((3, 32, 32)))
+                        for i in list(range(0, T, T // 10)) + [-5, -4, -3, -2, -1]
+                    ]
+                }
+            )
+
         return x_eq
-
-

@@ -13,7 +13,8 @@ from runners.diffusion import Diffusion
 from runners.diffusion_inversion import DiffusionInversion
 
 import sys
-sys.path.append('../torchdeq')
+
+sys.path.append("../torchdeq")
 from torchdeq.utils import add_deq_args
 
 
@@ -95,7 +96,7 @@ def parse_args_and_config():
     parser.add_argument(
         "--model",
         type=str,
-        default="Diffusion", # Set this to DiffusionInversion if performing model inversion 
+        default="Diffusion",  # Set this to DiffusionInversion if performing model inversion
         help="model to use to train -- Diffusion or DiffusionInversion",
     )
     parser.add_argument(
@@ -144,7 +145,7 @@ def parse_args_and_config():
         action="store_true",
         help="If set to true, uses simple reconstruction to identity source noise i.e. no optimization is used",
     )
-   
+
     # Add args for utilizing DEQ
     add_deq_args(parser)
     args = parser.parse_args()
@@ -256,6 +257,7 @@ def parse_args_and_config():
     torch.backends.cudnn.benchmark = True
 
     return args, new_config
+
 
 def dict2namespace(config):
     namespace = argparse.Namespace()

@@ -16,10 +16,11 @@ from functions import get_optimizer
 from functions.losses import loss_registry
 from datasets import get_dataset, data_transform, inverse_data_transform
 from functions.ckpt_util import get_ckpt_path
-import time 
+import time
 
 import torchvision.utils as tvu
 import wandb
+
 
 def torch2hwcuint8(x, clip=False):
     if clip:
@@ -35,8 +36,8 @@ def get_beta_schedule(beta_schedule, *, beta_start, beta_end, num_diffusion_time
     if beta_schedule == "quad":
         betas = (
             np.linspace(
-                beta_start ** 0.5,
-                beta_end ** 0.5,
+                beta_start**0.5,
+                beta_end**0.5,
                 num_diffusion_timesteps,
                 dtype=np.float64,
             )
@@ -59,7 +60,10 @@ def get_beta_schedule(beta_schedule, *, beta_start, beta_end, num_diffusion_time
 
     elif beta_schedule == "geometric":
         ratio = 1 - beta_end
-        betas = np.array([(ratio**n) for n in range(1, num_diffusion_timesteps+1)], dtype=np.float64)
+        betas = np.array(
+            [(ratio**n) for n in range(1, num_diffusion_timesteps + 1)],
+            dtype=np.float64,
+        )
     else:
         raise NotImplementedError(beta_schedule)
     assert betas.shape == (num_diffusion_timesteps,)
@@ -157,9 +161,9 @@ class Diffusion(object):
                 ).to(self.device)
                 t = torch.cat([t, self.num_timesteps - t - 1], dim=0)[:n]
 
-                if config.model.type == 'simple':
+                if config.model.type == "simple":
                     loss = loss_registry[config.model.type](model, x, t, e, b)
-                elif 'modified' in config.model.type:
+                elif "modified" in config.model.type:
                     xT = xT.float().to(self.device)
                     loss = loss_registry[config.model.type](model, x, xT, t, e, b)
 
@@ -260,7 +264,7 @@ class Diffusion(object):
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(seed)
 
-    def sample_fid(self, model, method='anderson'):
+    def sample_fid(self, model, method="anderson"):
         config = self.config
         img_id = len(glob.glob(f"{self.args.image_folder}/*"))
         print(f"starting from image {img_id}")
@@ -273,55 +277,96 @@ class Diffusion(object):
             ):
                 n = config.sampling.batch_size
                 x = torch.randn(
-                        n,
-                        config.data.channels,
-                        config.data.image_size,
-                        config.data.image_size,
-                        device=self.device,
-                    )
+                    n,
+                    config.data.channels,
+                    config.data.image_size,
+                    config.data.image_size,
+                    device=self.device,
+                )
                 start = torch.cuda.Event(enable_timing=True)
                 end = torch.cuda.Event(enable_timing=True)
                 start.record()
 
-                if method == 'anderson':
-                    all_xt = torch.repeat_interleave(x, self.args.timesteps, dim=0).to(x.device)
+                if method == "anderson":
+                    all_xt = torch.repeat_interleave(x, self.args.timesteps, dim=0).to(
+                        x.device
+                    )
                     bsz, ch, h0, w0 = all_xt.shape
                     m = self.args.m
-                    X = torch.zeros(bsz, m, ch * h0 * w0, dtype=all_xt.dtype, device=all_xt.device)
-                    F = torch.zeros(bsz, m, ch * h0 * w0, dtype=all_xt.dtype, device=all_xt.device)
-                    H = torch.zeros(bsz, m+1, m+1, dtype=all_xt.dtype, device=all_xt.device)
-                    y = torch.zeros(bsz, m+1, 1, dtype=all_xt.dtype, device=all_xt.device)
+                    X = torch.zeros(
+                        bsz, m, ch * h0 * w0, dtype=all_xt.dtype, device=all_xt.device
+                    )
+                    F = torch.zeros(
+                        bsz, m, ch * h0 * w0, dtype=all_xt.dtype, device=all_xt.device
+                    )
+                    H = torch.zeros(
+                        bsz, m + 1, m + 1, dtype=all_xt.dtype, device=all_xt.device
+                    )
+                    y = torch.zeros(
+                        bsz, m + 1, 1, dtype=all_xt.dtype, device=all_xt.device
+                    )
 
                     args = {
-                        'all_xt': all_xt,
-                        'bsz': x.size(0),
+                        "all_xt": all_xt,
+                        "bsz": x.size(0),
                     }
-                    additional_args = self.get_additional_anderson_args(all_xt, xT=x, betas=self.betas, batch_size=x.size(0))
-                    x = self.sample_image(x, model, args=args, additional_args=additional_args, method=method)
+                    additional_args = self.get_additional_anderson_args(
+                        all_xt, xT=x, betas=self.betas, batch_size=x.size(0)
+                    )
+                    x = self.sample_image(
+                        x,
+                        model,
+                        args=args,
+                        additional_args=additional_args,
+                        method=method,
+                    )
 
-                elif method == 'ddpm':
-                    all_xt = torch.repeat_interleave(x, self.args.timesteps, dim=0).to(x.device)
+                elif method == "ddpm":
+                    all_xt = torch.repeat_interleave(x, self.args.timesteps, dim=0).to(
+                        x.device
+                    )
                     all_noiset = torch.randn_like(all_xt)
 
                     bsz, ch, h0, w0 = all_xt.shape
                     m = self.args.m
-                    X = torch.zeros(bsz, m, ch * h0 * w0, dtype=all_xt.dtype, device=all_xt.device)
-                    F = torch.zeros(bsz, m, ch * h0 * w0, dtype=all_xt.dtype, device=all_xt.device)
-                    H = torch.zeros(bsz, m+1, m+1, dtype=all_xt.dtype, device=all_xt.device)
-                    y = torch.zeros(bsz, m+1, 1, dtype=all_xt.dtype, device=all_xt.device)
+                    X = torch.zeros(
+                        bsz, m, ch * h0 * w0, dtype=all_xt.dtype, device=all_xt.device
+                    )
+                    F = torch.zeros(
+                        bsz, m, ch * h0 * w0, dtype=all_xt.dtype, device=all_xt.device
+                    )
+                    H = torch.zeros(
+                        bsz, m + 1, m + 1, dtype=all_xt.dtype, device=all_xt.device
+                    )
+                    y = torch.zeros(
+                        bsz, m + 1, 1, dtype=all_xt.dtype, device=all_xt.device
+                    )
 
                     args = {
-                        'all_xt': all_xt,
-                        'all_noiset': all_noiset,
-                        'X': X,
-                        'F': F,
-                        'H': H,
-                        'y': y,
-                        'bsz': x.size(0),
-                        'm': m,
+                        "all_xt": all_xt,
+                        "all_noiset": all_noiset,
+                        "X": X,
+                        "F": F,
+                        "H": H,
+                        "y": y,
+                        "bsz": x.size(0),
+                        "m": m,
                     }
-                    additional_args = self.get_additional_anderson_args_ddpm(all_xt, xT=x, all_noiset=all_noiset, betas=self.betas, batch_size=x.size(0), eta=self.args.eta)
-                    x = self.sample_image(x, model, args=args, additional_args=additional_args, method=method)
+                    additional_args = self.get_additional_anderson_args_ddpm(
+                        all_xt,
+                        xT=x,
+                        all_noiset=all_noiset,
+                        betas=self.betas,
+                        batch_size=x.size(0),
+                        eta=self.args.eta,
+                    )
+                    x = self.sample_image(
+                        x,
+                        model,
+                        args=args,
+                        additional_args=additional_args,
+                        method=method,
+                    )
                 else:
                     print("Method !!!!", method)
                     x = self.sample_image(x, model, method=method)
@@ -332,7 +377,9 @@ class Diffusion(object):
                 total_time += start.elapsed_time(end)
 
                 if round % 50 == 0 or round == n_rounds - 1:
-                    print(f"Round {round+1} Total Time {total_time} Avg time {total_time/(round+1)}")
+                    print(
+                        f"Round {round+1} Total Time {total_time} Avg time {total_time/(round+1)}"
+                    )
 
                 if type(x) == dict:
                     x_transformed = {}
@@ -341,7 +388,10 @@ class Diffusion(object):
                         x_transformed[t] = inverse_data_transform(config, x[t])
                         for i in range(n):
                             tvu.save_image(
-                                x_transformed[i], os.path.join(self.args.image_folder, str(t), "{cur_img_idx}.png")
+                                x_transformed[i],
+                                os.path.join(
+                                    self.args.image_folder, str(t), "{cur_img_idx}.png"
+                                ),
                             )
                             cur_img_idx += 1
                 else:
@@ -418,18 +468,16 @@ class Diffusion(object):
 
     def get_timestep_sequence(self):
         if self.args.skip_type == "uniform":
-                skip = self.num_timesteps // self.args.timesteps
-                seq = range(0, self.num_timesteps, skip)
+            skip = self.num_timesteps // self.args.timesteps
+            seq = range(0, self.num_timesteps, skip)
         elif self.args.skip_type == "quad":
             seq = (
-                np.linspace(
-                    0, np.sqrt(self.num_timesteps * 0.8), self.args.timesteps
-                )
+                np.linspace(0, np.sqrt(self.num_timesteps * 0.8), self.args.timesteps)
                 ** 2
             )
             seq = [int(s) for s in list(seq)]
-        elif self.args.skip_type == 'custom':
-            seq = [s for s in range(0, 500, 2)] + [s for s in range(499, 1000, 4)] 
+        elif self.args.skip_type == "custom":
+            seq = [s for s in range(0, 500, 2)] + [s for s in range(499, 1000, 4)]
         else:
             raise NotImplementedError
         return seq
@@ -438,7 +486,16 @@ class Diffusion(object):
         seq = range(0, self.num_timesteps)
         return seq
 
-    def sample_image(self, x, model, method, args=None, additional_args=None, last=True, sample_entire_seq=False):
+    def sample_image(
+        self,
+        x,
+        model,
+        method,
+        args=None,
+        additional_args=None,
+        last=True,
+        sample_entire_seq=False,
+    ):
         try:
             skip = self.args.skip
         except Exception:
@@ -449,43 +506,71 @@ class Diffusion(object):
             from functions.ddim_anderson import fp_implicit_iters_anderson
             from functions.ddpm_anderson import ddpm_implicit_iters_anderson
 
-            logger=None
-            if method == 'anderson':
+            logger = None
+            if method == "anderson":
                 use_wandb = False
                 if use_wandb:
-                    wandb.init( project="DEQ-Efficiency-exp-rebuttal",
-                                group=f"DDIM-xt-init-{self.config.data.dataset}-{self.config.data.category}-{self.args.method}-device{torch.cuda.device_count()}-{len(self.betas)}-{additional_args['T']}-m-{args['m']}-steps-15",
-                                reinit=True,
-                                config=self.config)
+                    wandb.init(
+                        project="DEQ-Efficiency-exp-rebuttal",
+                        group=f"DDIM-xt-init-{self.config.data.dataset}-{self.config.data.category}-{self.args.method}-device{torch.cuda.device_count()}-{len(self.betas)}-{additional_args['T']}-m-{args['m']}-steps-15",
+                        reinit=True,
+                        config=self.config,
+                    )
                     logger = wandb.log
 
-                xs = fp_implicit_iters_anderson(x, model, self.betas, args=args, 
-                               additional_args=additional_args, logger=logger, print_logs=True)
+                xs = fp_implicit_iters_anderson(
+                    x,
+                    model,
+                    self.betas,
+                    args=args,
+                    additional_args=additional_args,
+                    logger=logger,
+                    print_logs=True,
+                )
                 if True or type(xs[0]) == dict:
                     xs = xs[0]
                     last = False
 
-            elif method == 'simple-seq':
+            elif method == "simple-seq":
                 use_wandb = False
                 seq = self.get_timestep_sequence()
                 if use_wandb:
-                    wandb.init( project="DEQ-Efficiency-exps",
-                                name=f"DDIM-{self.args.method}-device{torch.cuda.device_count()}-{len(self.betas)}-{len(seq)}",
-                                reinit=True,
-                                config=self.config)
+                    wandb.init(
+                        project="DEQ-Efficiency-exps",
+                        name=f"DDIM-{self.args.method}-device{torch.cuda.device_count()}-{len(self.betas)}-{len(seq)}",
+                        reinit=True,
+                        config=self.config,
+                    )
                     logger = wandb.log
-                xs = generalized_steps(x, seq, model, self.betas, logger=logger, print_logs=False, eta=self.args.eta)
-            elif method == 'ddpm':
+                xs = generalized_steps(
+                    x,
+                    seq,
+                    model,
+                    self.betas,
+                    logger=logger,
+                    print_logs=False,
+                    eta=self.args.eta,
+                )
+            elif method == "ddpm":
                 use_wandb = False
                 if use_wandb:
-                    wandb.init( project="DDPM-exp-rebuttal",
-                                group=f"DDPM-eta-{self.args.eta}-{self.config.data.dataset}-{self.config.data.category}-{self.args.method}-device{torch.cuda.device_count()}-{len(self.betas)}-{additional_args['T']}-m-{args['m']}-steps-15",
-                                reinit=True,
-                                config=self.config)
+                    wandb.init(
+                        project="DDPM-exp-rebuttal",
+                        group=f"DDPM-eta-{self.args.eta}-{self.config.data.dataset}-{self.config.data.category}-{self.args.method}-device{torch.cuda.device_count()}-{len(self.betas)}-{additional_args['T']}-m-{args['m']}-steps-15",
+                        reinit=True,
+                        config=self.config,
+                    )
                     logger = wandb.log
 
-                xs = ddpm_implicit_iters_anderson(x, model, self.betas, args=args, 
-                              additional_args=additional_args, logger=logger, print_logs=True)
+                xs = ddpm_implicit_iters_anderson(
+                    x,
+                    model,
+                    self.betas,
+                    args=args,
+                    additional_args=additional_args,
+                    logger=logger,
+                    print_logs=True,
+                )
                 if True or type(xs[0]) == dict:
                     xs = xs[0]
                     last = False
@@ -495,9 +580,17 @@ class Diffusion(object):
                     seq = self.get_entire_timestep_sequence()
                 else:
                     seq = self.get_timestep_sequence()
-                xs = generalized_steps(x, seq, model, self.betas, logger=logger, print_logs=False, eta=self.args.eta)
+                xs = generalized_steps(
+                    x,
+                    seq,
+                    model,
+                    self.betas,
+                    logger=logger,
+                    print_logs=False,
+                    eta=self.args.eta,
+                )
             x = xs
-            
+
         elif self.args.sample_type == "ddpm_noisy":
             seq = self.get_timestep_sequence()
             from functions.denoising import ddpm_steps
@@ -511,19 +604,26 @@ class Diffusion(object):
 
     def get_additional_anderson_args(self, all_xt, xT, betas, batch_size):
         from functions.ddim_anderson import compute_alpha
+
         seq = self.get_timestep_sequence()
         cur_seq = list(seq)
         seq_next = [-1] + list(seq[:-1])
 
         gather_idx = [idx for idx in range(len(cur_seq) - 1, len(all_xt), len(cur_seq))]
         xT_idx = [idx for idx in range(0, len(all_xt), len(cur_seq))]
-        next_idx = [idx for idx in range(len(all_xt)) if idx not in range(len(cur_seq)-1, len(all_xt), len(cur_seq))]
+        next_idx = [
+            idx
+            for idx in range(len(all_xt))
+            if idx not in range(len(cur_seq) - 1, len(all_xt), len(cur_seq))
+        ]
         prev_idx = [idx + 1 for idx in next_idx]
 
         plot_timesteps = []
         for batch_idx in range(batch_size):
-            plot_timesteps += [n + batch_idx * len(cur_seq) for n in range(0, len(seq), len(seq)//10)] + [(batch_idx + 1) * len(cur_seq) - n for n in range(5, 0, -1)] 
-        
+            plot_timesteps += [
+                n + batch_idx * len(cur_seq) for n in range(0, len(seq), len(seq) // 10)
+            ] + [(batch_idx + 1) * len(cur_seq) - n for n in range(5, 0, -1)]
+
         T = len(cur_seq)
         t = torch.tensor(cur_seq[::-1]).repeat(batch_size).to(all_xt.device)
         next_t = torch.tensor(seq_next[::-1]).repeat(batch_size).to(all_xt.device)
@@ -531,75 +631,19 @@ class Diffusion(object):
         at = compute_alpha(betas, t.long())
         at_next = compute_alpha(betas, next_t.long())
 
-        alpha_ratio = (at_next/at[0]).sqrt() 
+        alpha_ratio = (at_next / at[0]).sqrt()
         all_xT = alpha_ratio * torch.repeat_interleave(xT, T, dim=0).to(all_xt.device)
 
-        et_coeff2 = (1 - at_next).sqrt() - (((1 - at)*at_next)/at).sqrt()
+        et_coeff2 = (1 - at_next).sqrt() - (((1 - at) * at_next) / at).sqrt()
         et_coeff = (1 / at_next.sqrt()) * et_coeff2
         et_prevsum_coeff = at_next.sqrt()
-        
+
         additional_args = {
-            "all_xT": all_xT, 
+            "all_xT": all_xT,
             "et_coeff": et_coeff,
-            "et_prevsum_coeff": et_prevsum_coeff, 
-            "T" : T, 
-            "t" : t,
-            "bz": batch_size,
-            "plot_timesteps": plot_timesteps,
-            "gather_idx": gather_idx,
-            "xT_idx": xT_idx,
-            "prev_idx": prev_idx,
-            "next_idx": next_idx,
-            "xT": xT
-        }
-        return additional_args
-
-    def get_additional_anderson_args_ddpm(self, all_xt, xT, all_noiset, betas, batch_size, **kwargs):
-        from functions.ddim_anderson import compute_alpha
-        seq = self.get_timestep_sequence()
-        cur_seq = list(seq)
-        seq_next = [-1] + list(seq[:-1])
-
-        gather_idx = [idx for idx in range(len(cur_seq) - 1, len(all_xt), len(cur_seq))]
-        xT_idx = [idx for idx in range(0, len(all_xt), len(cur_seq))]
-        next_idx = [idx for idx in range(len(all_xt)) if idx not in range(len(cur_seq)-1, len(all_xt), len(cur_seq))]
-        prev_idx = [idx + 1 for idx in next_idx]
-
-        plot_timesteps = []
-        for batch_idx in range(batch_size):
-            plot_timesteps += [n + batch_idx * len(cur_seq) for n in range(0, len(seq), len(seq)//10)] + [(batch_idx + 1) * len(cur_seq) - n for n in range(5, 0, -1)] 
-        
-        T = len(cur_seq)
-        t = torch.tensor(cur_seq[::-1]).repeat(batch_size).to(all_xt.device)
-        next_t = torch.tensor(seq_next[::-1]).repeat(batch_size).to(all_xt.device)
-
-        at = compute_alpha(betas, t.long())
-        at_next = compute_alpha(betas, next_t.long())
-
-        alpha_ratio = (at_next/at[0]).sqrt() 
-        all_xT = alpha_ratio * torch.repeat_interleave(xT, T, dim=0).to(all_xt.device)
-
-        if kwargs.get("eta", 1) == 0:
-            raise ValueError("Running in DDPM mode but eta is 0")
-
-        sigma_t = kwargs.get("eta", 1) * ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt()
-
-        ### This is c1(t) in the equations
-        et_coeff2 = (1 - at_next - sigma_t**2).sqrt() - (((1 - at)*at_next)/at).sqrt()
-
-        noise_t = (1 / at_next.sqrt()) * sigma_t * all_noiset
-
-
-        et_coeff = (1 / at_next.sqrt()) * et_coeff2
-
-        et_prevsum_coeff = at_next.sqrt()
-        
-        additional_args = {
-            "all_xT": all_xT, 
-            "et_coeff": et_coeff,
-            "et_prevsum_coeff": et_prevsum_coeff, 
-            "T" : T, 
-            "t" : t,
+            "et_prevsum_coeff": et_prevsum_coeff,
+            "T": T,
+            "t": t,
             "bz": batch_size,
             "plot_timesteps": plot_timesteps,
             "gather_idx": gather_idx,
@@ -607,6 +651,75 @@ class Diffusion(object):
             "prev_idx": prev_idx,
             "next_idx": next_idx,
             "xT": xT,
-            "noise_t": noise_t
+        }
+        return additional_args
+
+    def get_additional_anderson_args_ddpm(
+        self, all_xt, xT, all_noiset, betas, batch_size, **kwargs
+    ):
+        from functions.ddim_anderson import compute_alpha
+
+        seq = self.get_timestep_sequence()
+        cur_seq = list(seq)
+        seq_next = [-1] + list(seq[:-1])
+
+        gather_idx = [idx for idx in range(len(cur_seq) - 1, len(all_xt), len(cur_seq))]
+        xT_idx = [idx for idx in range(0, len(all_xt), len(cur_seq))]
+        next_idx = [
+            idx
+            for idx in range(len(all_xt))
+            if idx not in range(len(cur_seq) - 1, len(all_xt), len(cur_seq))
+        ]
+        prev_idx = [idx + 1 for idx in next_idx]
+
+        plot_timesteps = []
+        for batch_idx in range(batch_size):
+            plot_timesteps += [
+                n + batch_idx * len(cur_seq) for n in range(0, len(seq), len(seq) // 10)
+            ] + [(batch_idx + 1) * len(cur_seq) - n for n in range(5, 0, -1)]
+
+        T = len(cur_seq)
+        t = torch.tensor(cur_seq[::-1]).repeat(batch_size).to(all_xt.device)
+        next_t = torch.tensor(seq_next[::-1]).repeat(batch_size).to(all_xt.device)
+
+        at = compute_alpha(betas, t.long())
+        at_next = compute_alpha(betas, next_t.long())
+
+        alpha_ratio = (at_next / at[0]).sqrt()
+        all_xT = alpha_ratio * torch.repeat_interleave(xT, T, dim=0).to(all_xt.device)
+
+        if kwargs.get("eta", 1) == 0:
+            raise ValueError("Running in DDPM mode but eta is 0")
+
+        sigma_t = (
+            kwargs.get("eta", 1)
+            * ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt()
+        )
+
+        ### This is c1(t) in the equations
+        et_coeff2 = (1 - at_next - sigma_t**2).sqrt() - (
+            ((1 - at) * at_next) / at
+        ).sqrt()
+
+        noise_t = (1 / at_next.sqrt()) * sigma_t * all_noiset
+
+        et_coeff = (1 / at_next.sqrt()) * et_coeff2
+
+        et_prevsum_coeff = at_next.sqrt()
+
+        additional_args = {
+            "all_xT": all_xT,
+            "et_coeff": et_coeff,
+            "et_prevsum_coeff": et_prevsum_coeff,
+            "T": T,
+            "t": t,
+            "bz": batch_size,
+            "plot_timesteps": plot_timesteps,
+            "gather_idx": gather_idx,
+            "xT_idx": xT_idx,
+            "prev_idx": prev_idx,
+            "next_idx": next_idx,
+            "xT": xT,
+            "noise_t": noise_t,
         }
         return additional_args

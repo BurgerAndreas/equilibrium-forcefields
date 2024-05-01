@@ -192,10 +192,10 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Normalizers
-    if args.normalizer == 'md17':
+    if args.normalizer == "md17":
         normalizer_e = lambda x: (x - task_mean) / task_std
         normalizer_f = lambda x: x / task_std
-    elif args.normalizer == 'oc20':
+    elif args.normalizer == "oc20":
         normalizer_e = Normalizer(
             mean=task_mean,
             std=task_std,
@@ -208,8 +208,7 @@ def main(args):
         )
     else:
         raise NotImplementedError(f"Unknown normalizer: {args.normalizer}")
-    normalizers = {'energy': normalizer_e, 'force': normalizer_f}
-
+    normalizers = {"energy": normalizer_e, "force": normalizer_f}
 
     """ Network """
     create_model = model_entrypoint(args.model.name)
@@ -820,7 +819,7 @@ def train_one_epoch(
     print_freq: int = 100,
     logger=None,
     meas_force=True,
-    normalizers={'energy': None, 'force': None},
+    normalizers={"energy": None, "force": None},
 ):
     """Train for one epoch.
     Keys in dataloader: ['z', 'pos', 'batch', 'y', 'dy']
@@ -846,6 +845,16 @@ def train_one_epoch(
         for step, data in enumerate(data_loader):
             data = data.to(device)
 
+            # for sparse fixed-point correction loss
+            solver_kwargs = {}
+            if args.fpc_frq > 0:
+                if args.fpc_rand:
+                    # randomly uniform use some indices
+                    solver_kwargs['indexing'] = torch.randperm(len(losses_fpc))[: args.fpc_freq]
+                else:
+                    # uniformly spaced indices
+                    solver_kwargs['n_states'] = args.fpc_freq
+
             # energy, force
             pred_y, pred_dy, info = model(
                 data=data,  # for EquiformerV2
@@ -854,6 +863,7 @@ def train_one_epoch(
                 batch=data.batch,
                 step=global_step,
                 datasplit="train",
+                solver_kwargs=solver_kwargs,
             )
 
             # _AVG_NUM_NODES: 18.03065905448718
@@ -868,7 +878,7 @@ def train_one_epoch(
             # reshape model output [B] (OC20) -> [B,1] (MD17)
             if args.unsqueeze_e_dim and pred_y.dim() == 1:
                 pred_y = pred_y.unsqueeze(-1)
-            
+
             # reshape data [B,1] (MD17) -> [B] (OC20)
             if args.squeeze_e_dim and target_y.dim() == 2:
                 target_y = target_y.squeeze(1)
@@ -880,6 +890,26 @@ def train_one_epoch(
                 loss += args.force_weight * loss_f
             else:
                 pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
+
+            # Fixed-point correction loss
+            # for superior performance and training stability
+            # https://arxiv.org/abs/2204.08442
+            if (
+                len(info) > 0
+                and "ztraj" in info
+                and len(info["ztraj"]) > 1
+                and args.fpc_freq > 0
+                and args.fpc_gamma > 0
+            ):
+                # l2 loss
+                # crit = lambda x, y: (x - y).abs().mean()
+                crit = nn.MSELoss()
+                # last z is fixed point
+                ztraj = info["ztraj"]
+                losses_fpc = fp_correction(
+                    crit, (ztraj[:-1], ztraj[-1]), return_loss_values=True
+                )
+                loss += args.fpc_gamma * losses_fpc.mean()
 
             if wandb.run is not None:
                 wandb.log(
@@ -1028,11 +1058,11 @@ def evaluate(
     max_iter=-1,
     global_step=None,
     datasplit=None,
-    normalizers={'energy': None, 'force': None},
+    normalizers={"energy": None, "force": None},
 ):
     """Val or test split."""
 
-    if datasplit == 'test':
+    if datasplit == "test":
         solver_kwargs = args.deq_kwargs_test
     else:
         solver_kwargs = {}
@@ -1099,8 +1129,8 @@ def evaluate(
                 solver_kwargs=solver_kwargs,
             )
 
-        target_y = normalizers['energy'](data.y)
-        target_dy = normalizers['force'](data.dy)
+        target_y = normalizers["energy"](data.y)
+        target_dy = normalizers["force"](data.dy)
 
         target_y = normalizers["energy"](data.y)
         target_dy = normalizers["force"](data.dy)
@@ -1108,7 +1138,7 @@ def evaluate(
         # reshape model output [B] (OC20) -> [B,1] (MD17)
         if args.unsqueeze_e_dim and pred_y.dim() == 1:
             pred_y = pred_y.unsqueeze(-1)
-        
+
         # reshape data [B,1] (MD17) -> [B] (OC20)
         if args.squeeze_e_dim and target_y.dim() == 2:
             target_y = pred_y.squeeze(1)
@@ -1136,7 +1166,6 @@ def evaluate(
 
         if "nstep" in info:
             n_fsolver_steps += info["nstep"][0].mean().item()
-        
 
         # --- logging ---
         if len(info) > 0 and pass_step is not None:

@@ -17,6 +17,8 @@ slurm-*.out
 src/deq2ff/plotting/plots/*
 
 # torchdeq
+TorchDEQ_tutorial.ipynb
+*.ipynb
 
 checkpoints
 

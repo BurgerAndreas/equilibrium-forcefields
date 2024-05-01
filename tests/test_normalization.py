@@ -76,14 +76,15 @@ from equiformer_v2.nets.equiformer_v2.activation import (
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def test_normalization_layers(num_atoms, lmax_list, sphere_channels, device, dtype):
-    """ What does normalization layer do to a random tensor? """
 
-    sns.set_style('whitegrid')
-    colors = sns.color_palette(palette='muted', n_colors=20)
+def test_normalization_layers(num_atoms, lmax_list, sphere_channels, device, dtype):
+    """What does normalization layer do to a random tensor?"""
+
+    sns.set_style("whitegrid")
+    colors = sns.color_palette(palette="muted", n_colors=20)
 
     # create two figures
-    fig, (ax1, ax2) = plt.subplots(1,2, figsize=(20,8))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
     labels = []
 
     i = 0
@@ -98,21 +99,25 @@ def test_normalization_layers(num_atoms, lmax_list, sphere_channels, device, dty
     print(f"SO3_Embedding: {x.embedding.shape}")
 
     x.embedding = torch.rand_like(x.embedding)
-    print(f'before norm layer: fro={x.embedding.norm().item()}, l1={x.embedding.norm(1).item()}, l2={x.embedding.norm(2).item()}')
+    print(
+        f"before norm layer: fro={x.embedding.norm().item()}, l1={x.embedding.norm(1).item()}, l2={x.embedding.norm(2).item()}"
+    )
     # plot
-    label = f'before'
+    label = f"before"
     ax1.bar(label, x.embedding.norm(2).item(), label=label, color=colors[i])
-    ax2.bar(label, x.embedding.norm(1).item(), label=label, color=colors[i]) # , linestyle='--'
+    ax2.bar(
+        label, x.embedding.norm(1).item(), label=label, color=colors[i]
+    )  # , linestyle='--'
     labels.append(label)
     i += 1
 
     # layer_norm_sh, layer_norm, rms_norm_sh
     for norm_type in ["layer_norm_sh", "layer_norm", "rms_norm_sh"]:
-        for normlayer_norm in ['component', 'norm']:
+        for normlayer_norm in ["component", "norm"]:
             for normlayer_affine in [True, False]:
-                """layer_norm_sh: 
+                """layer_norm_sh:
                 Args:
-                    affine=True 
+                    affine=True
                     normalization="component" # component, norm
                 Params:
                     .affine_weight, .balance_degree_weight
@@ -133,78 +138,90 @@ def test_normalization_layers(num_atoms, lmax_list, sphere_channels, device, dty
                     .affine_weight, .affine_bias, .balance_degree_weight
                     norm_1: layer_norm = norm_l0.weight, .bias
                 """
-                print(f'\nNormalization layer: {norm_type}')
+                print(f"\nNormalization layer: {norm_type}")
 
                 # TransBlockV2 style
                 max_lmax = max(lmax_list)
                 norm_1 = get_normalization_layer(
-                    norm_type, lmax=max_lmax, num_channels=sphere_channels,
-                    normalization=normlayer_norm, affine=normlayer_affine
+                    norm_type,
+                    lmax=max_lmax,
+                    num_channels=sphere_channels,
+                    normalization=normlayer_norm,
+                    affine=normlayer_affine,
                 )
 
                 # forward
                 _x = copy.deepcopy(x)
                 _x.embedding = norm_1(_x.embedding)
-                print(f'after norm layer: fro={_x.embedding.norm().item()}, l1={_x.embedding.norm(1).item()}, l2={_x.embedding.norm(2).item()}')
+                print(
+                    f"after norm layer: fro={_x.embedding.norm().item()}, l1={_x.embedding.norm(1).item()}, l2={_x.embedding.norm(2).item()}"
+                )
 
                 # plot
                 label = f'{norm_type} {normlayer_norm} {"affine" if normlayer_affine else ""}'
-                ax1.bar(label, _x.embedding.norm(2).item(), label=label, color=colors[i])
-                ax2.bar(label, _x.embedding.norm(1).item(), label=label, color=colors[i])
+                ax1.bar(
+                    label, _x.embedding.norm(2).item(), label=label, color=colors[i]
+                )
+                ax2.bar(
+                    label, _x.embedding.norm(1).item(), label=label, color=colors[i]
+                )
                 labels.append(label)
         i += 1
-    
+
     # divide by norm
     for p in [1, 2]:
         # forward
         _x = copy.deepcopy(x)
         _x.embedding = _x.embedding / _x.embedding.norm(p)
         # plot
-        label = f'/ {p}'
+        label = f"/ {p}"
         ax1.bar(label, _x.embedding.norm(2).item(), label=label, color=colors[i])
         ax2.bar(label, _x.embedding.norm(1).item(), label=label, color=colors[i])
         labels.append(label)
         i += 1
 
     # non-linear activation
-    for act in ['silu', 'sigmoid', 'tanh', 'scaled_silu']:
+    for act in ["silu", "sigmoid", "tanh", "scaled_silu"]:
         # forward
         _x = copy.deepcopy(x)
         _x.embedding = activations_fn(act)(_x.embedding)
         # plot
-        label = f'{act}'
+        label = f"{act}"
         ax1.bar(label, _x.embedding.norm(2).item(), label=label, color=colors[i])
         ax2.bar(label, _x.embedding.norm(1).item(), label=label, color=colors[i])
         labels.append(label)
         i += 1
 
     # plot
-    ax1.title.set_text('l2 norm')
-    ax2.title.set_text('l1 norm')
+    ax1.title.set_text("l2 norm")
+    ax2.title.set_text("l1 norm")
     # plt.legend()
-    ax1.set_xticklabels(labels, rotation='vertical', fontsize=8)
-    ax2.set_xticklabels(labels, rotation='vertical', fontsize=8)
+    ax1.set_xticklabels(labels, rotation="vertical", fontsize=8)
+    ax2.set_xticklabels(labels, rotation="vertical", fontsize=8)
     # plt.xlabel('forward passes through implicit layer')
-    ax1.set_ylabel('norm of random tensor')
+    ax1.set_ylabel("norm of random tensor")
     plt.tight_layout()
 
-    fpath = 'figs/layernorm.png'
+    fpath = "figs/layernorm.png"
     plt.savefig(fpath)
-    print(f'{fpath} saved')
+    print(f"{fpath} saved")
 
     return
 
-def test_multiple_passes_normalization_layers(num_atoms, lmax_list, sphere_channels, device, dtype):
-    """ What do multiple applications of the same normalization layer do to a random tensor? """
-    norm_type = 'rms_norm_sh'
-    normlayer_norm = 'norm'
+
+def test_multiple_passes_normalization_layers(
+    num_atoms, lmax_list, sphere_channels, device, dtype
+):
+    """What do multiple applications of the same normalization layer do to a random tensor?"""
+    norm_type = "rms_norm_sh"
+    normlayer_norm = "norm"
     normlayer_affine = True
 
-    sns.set_style('whitegrid')
-    colors = sns.color_palette(palette='muted', n_colors=20)
+    sns.set_style("whitegrid")
+    colors = sns.color_palette(palette="muted", n_colors=20)
 
     # create two figures
-    fig, (ax1, ax2) = plt.subplots(1,2, figsize=(20,8))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
 
     i = 0
 
@@ -218,16 +235,23 @@ def test_multiple_passes_normalization_layers(num_atoms, lmax_list, sphere_chann
     print(f"SO3_Embedding: {x.embedding.shape}")
 
     x.embedding = torch.rand_like(x.embedding)
-    print(f'before norm layer: fro={x.embedding.norm().item()}, l1={x.embedding.norm(1).item()}, l2={x.embedding.norm(2).item()}')
+    print(
+        f"before norm layer: fro={x.embedding.norm().item()}, l1={x.embedding.norm(1).item()}, l2={x.embedding.norm(2).item()}"
+    )
     # plot
-    label = f'before'
+    label = f"before"
     ax1.scatter(i, x.embedding.norm(2).item(), label=label, color=colors[i])
-    ax2.scatter(i, x.embedding.norm(1).item(), label=label, color=colors[i]) # , linestyle='--'
+    ax2.scatter(
+        i, x.embedding.norm(1).item(), label=label, color=colors[i]
+    )  # , linestyle='--'
     i += 1
 
     norm_layer = get_normalization_layer(
-        norm_type, lmax=max(lmax_list), num_channels=sphere_channels,
-        normalization=normlayer_norm, affine=normlayer_affine
+        norm_type,
+        lmax=max(lmax_list),
+        num_channels=sphere_channels,
+        normalization=normlayer_norm,
+        affine=normlayer_affine,
     )
 
     f_passes = range(5)
@@ -235,23 +259,26 @@ def test_multiple_passes_normalization_layers(num_atoms, lmax_list, sphere_chann
         x.embedding = norm_layer(x.embedding)
         # plot
         ax1.scatter(i, x.embedding.norm(2).item(), label=label, color=colors[i])
-        ax2.scatter(i, x.embedding.norm(1).item(), label=label, color=colors[i]) # , linestyle='--'
+        ax2.scatter(
+            i, x.embedding.norm(1).item(), label=label, color=colors[i]
+        )  # , linestyle='--'
         i += 1
-    
+
     # plot
-    ax1.title.set_text('l2 norm')
-    ax2.title.set_text('l1 norm')
+    ax1.title.set_text("l2 norm")
+    ax2.title.set_text("l1 norm")
     # plt.legend()
     ax1.set_xticks(f_passes)
     ax2.set_xticks(f_passes)
-    plt.xlabel('forward passes through implicit layer')
-    ax1.set_ylabel('norm of random tensor')
+    plt.xlabel("forward passes through implicit layer")
+    ax1.set_ylabel("norm of random tensor")
     plt.tight_layout()
 
-    fpath = 'figs/layernorm.png'
+    fpath = "figs/layernorm.png"
     plt.savefig(fpath)
-    print(f'{fpath} saved')
+    print(f"{fpath} saved")
     return
+
 
 def equiformerv2(
     num_atoms=None,  # not used
@@ -322,10 +349,12 @@ def equiformerv2(
     # num_atoms = len(atomic_numbers)
     num_atoms = 10
 
-    
     # test_normalization_layers(num_atoms, lmax_list, sphere_channels, device, dtype)
-    
-    test_multiple_passes_normalization_layers(num_atoms, lmax_list, sphere_channels, device, dtype)
+
+    test_multiple_passes_normalization_layers(
+        num_atoms, lmax_list, sphere_channels, device, dtype
+    )
+
 
 if __name__ == "__main__":
     equiformerv2()

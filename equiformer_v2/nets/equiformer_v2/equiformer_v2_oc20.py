@@ -125,7 +125,7 @@ class EquiformerV2_OC20(BaseModel):
         attn_value_channels=16,
         ffn_hidden_channels=512,
         norm_type="rms_norm_sh",
-        normlayer_norm="component", # component, norm
+        normlayer_norm="component",  # component, norm
         normlayer_affine=True,
         # num_coefficients = sum_i int((lmax_list[i] + 1) ** 2)
         # lmax_list=[3] -> num_coefficients = 16
@@ -225,7 +225,10 @@ class EquiformerV2_OC20(BaseModel):
         self.proj_drop = proj_drop
 
         self.weight_init = weight_init
-        assert self.weight_init in ["normal", "uniform"], f'Unknown weight_init: {self.weight_init}'
+        assert self.weight_init in [
+            "normal",
+            "uniform",
+        ], f"Unknown weight_init: {self.weight_init}"
 
         self.device = "cpu"  # torch.cuda.current_device()
 
@@ -344,7 +347,7 @@ class EquiformerV2_OC20(BaseModel):
                 edge_channels_list=self.edge_channels_list,
                 use_atom_edge_embedding=self.block_use_atom_edge_embedding,
                 use_m_share_rad=self.use_m_share_rad,
-                activation=self.attn_activation, 
+                activation=self.attn_activation,
                 use_s2_act_attn=self.use_s2_act_attn,
                 use_attn_renorm=self.use_attn_renorm,
                 use_gate_act=self.use_gate_act,
@@ -373,7 +376,7 @@ class EquiformerV2_OC20(BaseModel):
                 edge_channels_list=self.edge_channels_list,
                 use_atom_edge_embedding=self.block_use_atom_edge_embedding,
                 use_m_share_rad=self.use_m_share_rad,
-                activation=self.attn_activation, # unused
+                activation=self.attn_activation,  # unused
                 use_s2_act_attn=self.use_s2_act_attn,
                 use_attn_renorm=self.use_attn_renorm,
                 use_gate_act=self.use_gate_act,
@@ -407,7 +410,7 @@ class EquiformerV2_OC20(BaseModel):
                 edge_channels_list=self.edge_channels_list,
                 use_atom_edge_embedding=self.block_use_atom_edge_embedding,
                 use_m_share_rad=self.use_m_share_rad,
-                attn_activation=self.attn_activation, # unused
+                attn_activation=self.attn_activation,  # unused
                 use_s2_act_attn=self.use_s2_act_attn,
                 use_attn_renorm=self.use_attn_renorm,
                 ffn_activation=self.ffn_activation,
@@ -513,7 +516,9 @@ class EquiformerV2_OC20(BaseModel):
         # logging
         if step is not None:
             # log the input injection (output of encoder)
-            logging_utils_deq.log_fixed_point_norm(x.embedding.clone().detach(), step, datasplit, name="emb")
+            logging_utils_deq.log_fixed_point_norm(
+                x.embedding.clone().detach(), step, datasplit, name="emb"
+            )
 
         ###############################################################
         # Update spherical node embeddings
@@ -610,7 +615,7 @@ class EquiformerV2_OC20(BaseModel):
 
     @torch.jit.ignore
     def no_weight_decay(self):
-        """ ? """
+        """?"""
         no_wd_list = []
         named_parameters_list = [name for name, _ in self.named_parameters()]
         for module_name, module in self.named_modules():

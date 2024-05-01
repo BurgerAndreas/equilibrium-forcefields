@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 # from .linear import Linear_gaussian_init
 
+
 class ScaledSiLU(nn.Module):
     def __init__(self, inplace=False):
         super(ScaledSiLU, self).__init__()
@@ -55,6 +56,7 @@ class SwiGLU(nn.Module):
         out = w_1 * w_2
         return out
 
+
 class SmoothLeakyReLU(torch.nn.Module):
     def __init__(self, negative_slope=0.2):
         super().__init__()
@@ -93,7 +95,7 @@ class ScaledSigmoid(torch.nn.Module):
         return torch.sigmoid(x) * self.scale_factor
 
 
-# def activations_fn(act, **kwargs): 
+# def activations_fn(act, **kwargs):
 #     match act.lower():
 #         case 'relu':
 #             return nn.ReLU(**kwargs)
@@ -122,36 +124,45 @@ class ScaledSigmoid(torch.nn.Module):
 #         case _:
 #             raise ValueError(f"Activation function {act} not supported")
 
+
 def activations_fn(act, **kwargs):
-    if act.lower() == 'relu':
+    if act.lower() == "relu":
         return nn.ReLU(**kwargs)
-    elif act.lower() == 'sigmoid':
+    elif act.lower() == "sigmoid":
         return nn.Sigmoid(**kwargs)
-    elif act.lower() == 'tanh':
+    elif act.lower() == "tanh":
         return nn.Tanh(**kwargs)
-    elif act.lower() == 'silu':
+    elif act.lower() == "silu":
         return nn.SiLU(**kwargs)
-    elif act.lower() == 'swish':
+    elif act.lower() == "swish":
         return nn.SiLU(**kwargs)
-    elif act.lower() == 'scaled_silu':
+    elif act.lower() == "scaled_silu":
         return ScaledSiLU(**kwargs)
-    elif act.lower() == 'scaled_swish':
+    elif act.lower() == "scaled_swish":
         return ScaledSiLU(**kwargs)
-    elif act.lower() == 'swiglu':
+    elif act.lower() == "swiglu":
         return SwiGLU(**kwargs)
-    elif act.lower() == 'scaled_swiglu':
+    elif act.lower() == "scaled_swiglu":
         return ScaledSwiGLU(**kwargs)
-    elif act.lower() == 'smoothleakyrelu':
+    elif act.lower() == "smoothleakyrelu":
         return SmoothLeakyReLU(**kwargs)
-    elif act.lower() == 'scaled_smoothleakyrelu':
+    elif act.lower() == "scaled_smoothleakyrelu":
         return ScaledSmoothLeakyReLU(**kwargs)
-    elif act.lower() == 'scaled_sigmoid':
+    elif act.lower() == "scaled_sigmoid":
         return ScaledSigmoid(**kwargs)
     else:
         raise ValueError(f"Activation function {act} not supported")
 
+
 class GateActivation(torch.nn.Module):
-    def __init__(self, lmax, mmax, num_channels, scalar_activation='silu', gate_activation='sigmoid'):
+    def __init__(
+        self,
+        lmax,
+        mmax,
+        num_channels,
+        scalar_activation="silu",
+        gate_activation="sigmoid",
+    ):
         super().__init__()
 
         self.lmax = lmax
@@ -210,7 +221,7 @@ class S2Activation(torch.nn.Module):
     Assume we only have one resolution
     """
 
-    def __init__(self, lmax, mmax, activation='silu'):
+    def __init__(self, lmax, mmax, activation="silu"):
         super().__init__()
         self.lmax = lmax
         self.mmax = mmax
@@ -229,7 +240,7 @@ class S2Activation(torch.nn.Module):
 
 
 class SeparableS2Activation(torch.nn.Module):
-    def __init__(self, lmax, mmax, activation='silu'):
+    def __init__(self, lmax, mmax, activation="silu"):
         super().__init__()
 
         self.lmax = lmax

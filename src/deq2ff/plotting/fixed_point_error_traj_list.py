@@ -48,9 +48,9 @@ def main(
 
     # metrics_dataframe = run.history()
 
-    print('Downloading run history...')
+    print("Downloading run history...")
     history = run.scan_history()
-    print('Processing run history...')
+    print("Processing run history...")
     losses = [
         [row[artifact_name], row["_step"]]
         for row in history
@@ -107,13 +107,12 @@ def main(
 
 if __name__ == "__main__":
 
-
     # ----------------- E2 -----------------
     # E2 aauf 8uuq632s
     # not converged
     run_id = "8uuq632s"
     # main(run_id, error_type="abs", datasplit="train", logscale=True)
-    
+
     # E2 normlayer-norm aauf 8dqpu458
     # not converged
     # run_id = "8dqpu458"
@@ -146,7 +145,7 @@ if __name__ == "__main__":
     # E2 alphadrop-0 droppathrate-0 12uk3wdo
     run_id = "12uk3wdo"
     main(run_id, error_type="abs", datasplit="train", logscale=True)
-    
+
     # ----------------- E1 -----------------
     # broyden pathnorm: f9bg18sp
     # main("f9bg18sp", datasplit="train")

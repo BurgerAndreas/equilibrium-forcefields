@@ -8,11 +8,11 @@ class SolverStat(dict):
     This class is a subclass of dict, which allows users to query the solver statistics as dictionary keys.
 
     Valid Keys:
-        - ``'abs_lowest'``: 
+        - ``'abs_lowest'``:
             The lowest absolute fixed point errors achieved, i.e. :math:`\|z - f(z)\|`.
             torch.Tensor of shape :math:`(B,)`.
-        - ``'rel_lowest'``: 
-            The lowest relative fixed point errors achieved, i.e., :math:`\|z - f(z)\| / \|f(z)\|`. 
+        - ``'rel_lowest'``:
+            The lowest relative fixed point errors achieved, i.e., :math:`\|z - f(z)\| / \|f(z)\|`.
             torch.Tensor of shape :math:`(B,)`.
         - ``'abs_trace'``:
             The absolute fixed point errors achieved along the solver steps.
@@ -23,23 +23,24 @@ class SolverStat(dict):
         - ``'nstep'``:
             The number of step when the fixed point errors were achieved.
             torch.Tensor of shape :math:`(B,)`.
-        - ``'sradius'``: 
+        - ``'sradius'``:
             Optional. The largest (abs.) eigenvalue estimated by power method.
             Available in the eval mode when ``sradius_mode`` set to ``True``.
             torch.Tensor of shape :math:`(B,)`.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self['abs_lowest'] = self.get('abs_lowest', torch.tensor([-1.]))
-        self['rel_lowest'] = self.get('rel_lowest', torch.tensor([-1.]))
-        self['abs_trace'] = self.get('abs_trace', torch.tensor([[-1.]]))
-        self['rel_trace'] = self.get('rel_trace', torch.tensor([[-1.]]))
-        self['nstep'] = self.get('nstep', torch.tensor([-1.]))
-        self['sradius'] = self.get('sradius', torch.tensor([-1.]))
+        self["abs_lowest"] = self.get("abs_lowest", torch.tensor([-1.0]))
+        self["rel_lowest"] = self.get("rel_lowest", torch.tensor([-1.0]))
+        self["abs_trace"] = self.get("abs_trace", torch.tensor([[-1.0]]))
+        self["rel_trace"] = self.get("rel_trace", torch.tensor([[-1.0]]))
+        self["nstep"] = self.get("nstep", torch.tensor([-1.0]))
+        self["sradius"] = self.get("sradius", torch.tensor([-1.0]))
         # added
-        self['abs_trace64'] = self.get('abs_trace64', torch.tensor([[-1.]]))
-        self['rel_trace64'] = self.get('rel_trace64', torch.tensor([[-1.]]))
+        self["abs_trace64"] = self.get("abs_trace64", torch.tensor([[-1.0]]))
+        self["rel_trace64"] = self.get("rel_trace64", torch.tensor([[-1.0]]))
 
     @classmethod
     def from_solver_info(cls, stop_mode, lowest_dict, trace_dict, lowest_step_dict):
@@ -56,17 +57,17 @@ class SolverStat(dict):
             SolverStat: A SolverStat object containing solver statistics.
         """
         info = {
-            'abs_lowest': lowest_dict['abs'],
-            'rel_lowest': lowest_dict['rel'],
-            'abs_trace': torch.stack(trace_dict['abs'], dim=1),
-            'rel_trace': torch.stack(trace_dict['rel'], dim=1),
-            'nstep': lowest_step_dict[stop_mode], 
+            "abs_lowest": lowest_dict["abs"],
+            "rel_lowest": lowest_dict["rel"],
+            "abs_trace": torch.stack(trace_dict["abs"], dim=1),
+            "rel_trace": torch.stack(trace_dict["rel"], dim=1),
+            "nstep": lowest_step_dict[stop_mode],
         }
         # added
         # add 64-bit precision if available
-        if 'abs64' in trace_dict:
-            info['abs_trace64'] = torch.stack(trace_dict['abs64'], dim=1)
-            info['rel_trace64'] = torch.stack(trace_dict['rel64'], dim=1)
+        if "abs64" in trace_dict:
+            info["abs_trace64"] = torch.stack(trace_dict["abs64"], dim=1)
+            info["rel_trace64"] = torch.stack(trace_dict["rel64"], dim=1)
         return cls(**info)
 
     @classmethod
@@ -91,11 +92,11 @@ class SolverStat(dict):
         rel_lowest = abs_lowest / (fz.flatten(start_dim=1).norm(dim=1) + 1e-8)
         nstep = nstep * torch.ones(z.shape[0], device=z.device)
         info = {
-            'abs_lowest': abs_lowest,
-            'rel_lowest': rel_lowest,
-            'abs_trace': abs_lowest.unsqueeze(dim=1),
-            'rel_trace': rel_lowest.unsqueeze(dim=1),
-            'nstep': nstep, 
+            "abs_lowest": abs_lowest,
+            "rel_lowest": rel_lowest,
+            "abs_trace": abs_lowest.unsqueeze(dim=1),
+            "rel_trace": rel_lowest.unsqueeze(dim=1),
+            "nstep": nstep,
         }
         # added
         # add 64-bit precision if available

@@ -1,26 +1,22 @@
 import torch
 
 
-__all__ = ['fp_correction', 'register_weight_func']
+__all__ = ["fp_correction", "register_weight_func"]
 
 
 def _linear(n, k, gamma=0.9, bias=0.0, **kwargs):
-    return 1 - (n-k-1) / n * gamma + bias
+    return 1 - (n - k - 1) / n * gamma + bias
 
 
 def _exp(n, k, gamma=0.8, **kwargs):
-    return gamma ** (n-k-1)
+    return gamma ** (n - k - 1)
 
 
 def _const(n, k, c=1.0):
     return c * torch.ones(n).cuda()
 
 
-_weight_func_dict = {
-        'exp': _exp,
-        'linear': _linear,
-        'const': _const
-        }
+_weight_func_dict = {"exp": _exp, "linear": _linear, "const": _const}
 
 
 def _get_weight_func(name):
@@ -32,8 +28,8 @@ def _get_weight_func(name):
 def register_weight_func(name, func):
     """
     Registers a new weight function for fixed point correction.
-    
-    The weight function should map a pair of integers (n, k) to a float, serving as the weight of loss, 
+
+    The weight function should map a pair of integers (n, k) to a float, serving as the weight of loss,
     where 'n' is the total length of the sequence that converges to the fixed point,
     and 'k' is the order of the current state in the sequence.
 
@@ -60,20 +56,15 @@ def _align_list(args):
 
 
 def _get_idx(args, idx):
-    return [each[idx%len(each)] for each in args]
+    return [each[idx % len(each)] for each in args]
 
 
-def fp_correction(
-        crit, args, 
-        weight_func='exp', 
-        return_loss_values=False,
-        **kwargs
-        ):
+def fp_correction(crit, args, weight_func="exp", return_loss_values=False, **kwargs):
     """
     Computes fixed-point correction for stabilizing Deep Equilibrium (DEQ) models.
-    
-    Fixed point correction applies the loss function to a sequence of tensors that converge to the fixed point. 
-    The loss value of each tensor tuple is weighted by the weight function. 
+
+    Fixed point correction applies the loss function to a sequence of tensors that converge to the fixed point.
+    The loss value of each tensor tuple is weighted by the weight function.
     This function automatically aligns the input arguments to be of the same length.
 
     The currently supported weight functions include ``'const'`` (constant), ``'linear'``, and ``'exp'`` (exponential).
@@ -88,7 +79,7 @@ def fp_correction(
     Returns:
         torch.Tensor: The computed loss.
         list[float]: List of individual loss values. Returned only if return_loss_values is set to True.
-    
+
     Examples:
         >>> x = [torch.randn(16, 32, 32) for _ in range(3)]
         >>> y = torch.randn(16, 32, 32)
@@ -108,9 +99,8 @@ def fp_correction(
 
         if return_loss_values:
             loss_list.append(i_loss.item())
-    
+
     if return_loss_values:
         return loss, loss_list
     else:
         return loss
-

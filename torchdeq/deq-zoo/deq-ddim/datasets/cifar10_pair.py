@@ -3,21 +3,27 @@ from typing import Any, Callable, Optional, Tuple
 from PIL import Image
 import numpy as np
 
+
 class CIFAR10Pair(CIFAR10):
     def __init__(
-            self,
-            root: str,
-            train: bool = True,
-            transform: Optional[Callable] = None,
-            target_transform: Optional[Callable] = None,
-            download: bool = False,
-            fixed_noise: bool =False
+        self,
+        root: str,
+        train: bool = True,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+        download: bool = False,
+        fixed_noise: bool = False,
     ) -> None:
 
-        super(CIFAR10Pair, self).__init__(root, train=train, transform=transform,
-                                      target_transform=target_transform, download=download)
+        super(CIFAR10Pair, self).__init__(
+            root,
+            train=train,
+            transform=transform,
+            target_transform=target_transform,
+            download=download,
+        )
         self.fixed_noise = fixed_noise
-    
+
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         """
         Args:
@@ -31,8 +37,8 @@ class CIFAR10Pair(CIFAR10):
         shape = img.shape
         if self.fixed_noise:
             np.random.seed(index)
-            
-        rimg = np.random.randn( shape[2], shape[0], shape[1])
+
+        rimg = np.random.randn(shape[2], shape[0], shape[1])
 
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image

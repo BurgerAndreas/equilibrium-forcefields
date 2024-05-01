@@ -133,6 +133,13 @@ model_is_deq: False
 fpreuse_test: False
 fpreuse_datasplit: False
 
+# (sparse) fixed-point correction
+fpc_loss: l2
+fpc_freq: 0 # how many fixed-point estimates to pick for the loss. -1 means all, 0 means none. 1-4 is reasonable
+fpc_rand: False # if to pick fixed-point estimates unform randomly or uniformly spaced
+fpc_gamma: 0.8 # weight for the fixed-point correction loss
+fpc_wfunc: const # weighting of loss in time. 'const' (constant), 'linear', and 'exp'
+
 unsqueeze_e_dim: False # if to reshape model output [B] (OC20) -> [B,1] (MD17)
 squeeze_e_dim: False # if to reshape data [B,1] (MD17) -> [B] (OC20)
 

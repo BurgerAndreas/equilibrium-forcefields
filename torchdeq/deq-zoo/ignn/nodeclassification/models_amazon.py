@@ -9,16 +9,18 @@ from utils import get_spectral_rad, SparseDropout
 
 
 class IGNN(nn.Module):
-    def __init__(self, args, nfeat, nhid, nclass, num_node, dropout, kappa=0.9, adj_orig=None):
+    def __init__(
+        self, args, nfeat, nhid, nclass, num_node, dropout, kappa=0.9, adj_orig=None
+    ):
         super(IGNN, self).__init__()
-        
+
         print(args)
 
         self.adj = None
         self.adj_rho = None
         self.adj_orig = adj_orig
 
-        #one layer with V
+        # one layer with V
         self.ig1 = ImplicitGraph(args, nfeat, nhid, num_node, kappa)
         self.dropout = dropout
         self.X_0 = nn.Parameter(torch.zeros(nhid, num_node), requires_grad=False)
@@ -34,4 +36,3 @@ class IGNN(nn.Module):
         x = F.dropout(x, self.dropout, training=self.training)
         x = self.V(x)
         return x
-

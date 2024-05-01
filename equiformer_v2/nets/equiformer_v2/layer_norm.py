@@ -22,7 +22,7 @@ def get_normalization_layer(
         norm_class = EquivariantRMSNormArraySphericalHarmonicsV2
     else:
         raise ValueError
-    
+
     return norm_class(lmax, num_channels, eps, affine, normalization)
 
 
@@ -37,7 +37,13 @@ def get_l_to_all_m_expand_index(lmax):
 
 class EquivariantLayerNormArray(nn.Module):
     def __init__(
-        self, lmax, num_channels, eps=1e-5, affine=True, normalization="component", std_balance_degrees=False
+        self,
+        lmax,
+        num_channels,
+        eps=1e-5,
+        affine=True,
+        normalization="component",
+        std_balance_degrees=False,
     ):
         super().__init__()
 
@@ -291,7 +297,7 @@ class EquivariantRMSNormArraySphericalHarmonicsV2(nn.Module):
         eps=1e-5,
         affine=True,
         normalization="component",
-        centering=True, # bias for L >= 0
+        centering=True,  # bias for L >= 0
         std_balance_degrees=True,
     ):
         super().__init__()
@@ -302,7 +308,9 @@ class EquivariantRMSNormArraySphericalHarmonicsV2(nn.Module):
         self.affine = affine
         self.centering = centering
         if normalization == "norm" and std_balance_degrees:
-            print(f"{self.__class__.__name__}: Setting std_balance_degrees=False because normalization='norm'.")
+            print(
+                f"{self.__class__.__name__}: Setting std_balance_degrees=False because normalization='norm'."
+            )
             std_balance_degrees = False
         self.std_balance_degrees = std_balance_degrees
 

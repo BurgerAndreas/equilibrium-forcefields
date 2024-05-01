@@ -76,9 +76,9 @@ from deq2ff.deq_base import _init_deq, _process_solver_kwargs
 equiformer_v2/nets/equiformer_v2/equiformer_v2_oc20.py
 """
 
+
 @registry.register_model("deq_equiformer_v2_oc20")
 class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
-
     def __init__(
         self,
         sphere_channels,
@@ -95,8 +95,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         self.z0 = z0
         self.cat_injection = cat_injection
         self.norm_injection = norm_injection
-        self.path_norm = path_norm # TODO: unused
-        self.irrep_norm = irrep_norm # TODO: unused
+        self.path_norm = path_norm  # TODO: unused
+        self.irrep_norm = irrep_norm  # TODO: unused
         if sphere_channels_fixedpoint is None:
             sphere_channels_fixedpoint = sphere_channels
         self.sphere_channels_fixedpoint = sphere_channels_fixedpoint
@@ -159,7 +159,16 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         return _init_deq(self, **kwargs)
 
     @conditional_grad(torch.enable_grad())
-    def forward(self, data, step=None, datasplit=None, fixedpoint=None, return_fixedpoint=False, solver_kwargs={}, **kwargs):
+    def forward(
+        self,
+        data,
+        step=None,
+        datasplit=None,
+        fixedpoint=None,
+        return_fixedpoint=False,
+        solver_kwargs={},
+        **kwargs,
+    ):
         """
         Args:
             data: Data object containing the following attributes:
@@ -286,12 +295,22 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # Transformer blocks
         # f = lambda z: self.mfn_forward(z, u)
         def f(x):
-            return self.deq_implicit_layer(x, emb=emb, edge_index=edge_index, edge_distance=edge_distance, atomic_numbers=atomic_numbers, data=data)
+            return self.deq_implicit_layer(
+                x,
+                emb=emb,
+                edge_index=edge_index,
+                edge_distance=edge_distance,
+                atomic_numbers=atomic_numbers,
+                data=data,
+            )
 
         # find fixed-point
-        # returns the sampled fixed point trajectory (tracked gradients)
+        # | During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
+        # | During inference, returns a list containing the fixed point solution only.
         # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
-        z_pred, info = self.deq(f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse))
+        z_pred, info = self.deq(
+            f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse)
+        )
 
         x = SO3_Embedding(
             length=num_atoms,
@@ -335,6 +354,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             forces = forces.embedding.narrow(1, 1, 3)
             forces = forces.view(-1, 3)
 
+        info["ztraj"] = z_pred
         if self.regress_forces:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)

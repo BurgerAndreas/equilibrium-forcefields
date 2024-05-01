@@ -12,17 +12,23 @@ import torch
 import torch.nn as nn
 
 
-__all__ = ['VariationalDropout', 
-           'VariationalDropout1d', 'VariationalDropout2d', 'VariationalDropout3d', 
-           'VariationalDropToken1d', 'VariationalDropToken2d', 'VariationalDropToken3d',
-           'reset_dropout']
+__all__ = [
+    "VariationalDropout",
+    "VariationalDropout1d",
+    "VariationalDropout2d",
+    "VariationalDropout3d",
+    "VariationalDropToken1d",
+    "VariationalDropToken2d",
+    "VariationalDropToken3d",
+    "reset_dropout",
+]
 
 
 class _VariationalDropoutNd(nn.Module):
     """
     Abstract base class for Variational Dropout layers.
 
-    The concrete subclasses should implement the `reset_mask` method to define the mask behavior 
+    The concrete subclasses should implement the `reset_mask` method to define the mask behavior
     specific to the dimensionality of the input tensor.
 
     Args:
@@ -35,18 +41,21 @@ class _VariationalDropoutNd(nn.Module):
     Note:
         Raises ValueError if dropout probability is not in [0,1].
     """
+
     def __init__(self, dropout=0.5):
         super().__init__()
         if dropout < 0 or dropout > 1:
-            raise ValueError("dropout probability has to be between 0 and 1, "
-                             "but got {}".format(dropout))
+            raise ValueError(
+                "dropout probability has to be between 0 and 1, "
+                "but got {}".format(dropout)
+            )
 
         self.dropout = dropout
         self.mask = None
 
     def reset_mask(self, x):
         """
-        Resets the dropout mask. 
+        Resets the dropout mask.
         Subclasses should implement this method according to the dimensionality of the input tensor.
         """
         raise NotImplementedError
@@ -55,16 +64,16 @@ class _VariationalDropoutNd(nn.Module):
         """
         Forward pass of the variational dropout layer.
 
-        If the layer is in training mode and the dropout probability is greater than 0, 
+        If the layer is in training mode and the dropout probability is greater than 0,
         applies the same dropout mask to all inputs in the batch. Otherwise, returns the input unchanged.
-        
+
         Args:
             x (Tensor): Input tensor.
 
         Returns:
             Tensor: Output tensor after applying variational dropout.
         """
-        if not self.training or self.dropout == 0.:
+        if not self.training or self.dropout == 0.0:
             return x
 
         if self.mask is None:
@@ -77,7 +86,7 @@ class VariationalDropout(_VariationalDropoutNd):
     """
     Applies Variational Dropout to the input tensor.
 
-    During training, randomly zeros some of the elements of the input tensor 
+    During training, randomly zeros some of the elements of the input tensor
     with probability 'dropout' using a mask tensor sampled from a Bernoulli distribution.
 
     The same mask is used for each input in a training iteration. (for fixed point convergence)
@@ -95,6 +104,7 @@ class VariationalDropout(_VariationalDropoutNd):
         >>> input = torch.randn(20, 16)
         >>> output = m(input)
     """
+
     def __init__(self, dropout=0.5):
         super().__init__(dropout)
 
@@ -108,10 +118,10 @@ class VariationalDropout1d(_VariationalDropoutNd):
     """
     Applies Variational Dropout to the input tensor.
 
-    During training, randomly zero out the entire channel/feature dimension of the input 1d tensor 
+    During training, randomly zero out the entire channel/feature dimension of the input 1d tensor
     with probability 'dropout' using a mask tensor sample from a Bernoulli distribution.
 
-    The channel/feature dimension of 1d tensor is the :math:`*` slice of :math:`(B, L, *)` 
+    The channel/feature dimension of 1d tensor is the :math:`*` slice of :math:`(B, L, *)`
     for token_first=True, or :math:`(B, *, L)` for token_first=False.
 
     The same mask is used for each input in a training iteration. (for fixed point convergence)
@@ -120,14 +130,15 @@ class VariationalDropout1d(_VariationalDropoutNd):
     Args:
         dropout (float, optional): The probability of an element to be zeroed. Default: 0.5
         token_first (bool, optional): If True, expects input tensor in shape :math:`(B, L, D)`,
-                                       otherwise expects :math:`(B, D, L)`. Here, `B` is batch size, 
+                                       otherwise expects :math:`(B, D, L)`. Here, `B` is batch size,
                                        `L` is sequence length, and `D` is feature dimension.
                                        Default: False.
-                                       
+
     Shape:
         - Input: :math:`(B, L, D)` or :math:`(B, D, L)`.
         - Output: :math:`(B, L, D)` or :math:`(B, D, L)` (same shape as input).
     """
+
     def __init__(self, dropout=0.5, token_first=True):
         super().__init__(dropout)
         self.token_first = token_first
@@ -149,10 +160,10 @@ class VariationalDropout2d(_VariationalDropoutNd):
     """
     Applies Variational Dropout to the input tensor.
 
-    During training, randomly zero out the entire channel/feature dimension of the input 2d tensor 
+    During training, randomly zero out the entire channel/feature dimension of the input 2d tensor
     with probability 'dropout' using a mask tensor sample from a Bernoulli distribution.
 
-    The channel/feature dimension of 2d tensor is the :math:`*` of :math:`(B, H, W, *)` 
+    The channel/feature dimension of 2d tensor is the :math:`*` of :math:`(B, H, W, *)`
     for token_first=True, or :math:`(B, *, H, W)` for token_first=False.
 
     During the fixed point solving, a fixed mask will be applied until convergence.
@@ -161,13 +172,14 @@ class VariationalDropout2d(_VariationalDropoutNd):
     Args:
         dropout (float, optional): The probability of an element to be zeroed. Default: 0.5
         token_first (bool, optional): If True, expect input tensor in shape :math:`(B, H, W, D)`,
-                                        otherwise expect :math:`(B, D, H, W)`. Here, `B` is batch size, 
-                                        and `D` is feature dimension. Default: False                                     
-    
+                                        otherwise expect :math:`(B, D, H, W)`. Here, `B` is batch size,
+                                        and `D` is feature dimension. Default: False
+
     Shape:
         - Input: :math:`(B, H, W, D)` or :math:`(B, D, H, W)`.
         - Output: :math:`(B, H, W, D)` or :math:`(B, D, H, W)` (same shape as input).
     """
+
     def __init__(self, dropout=0.5, token_first=True):
         super().__init__(dropout)
         self.token_first = token_first
@@ -189,10 +201,10 @@ class VariationalDropout3d(_VariationalDropoutNd):
     """
     Applies Variational Dropout to the input tensor.
 
-    During training, randomly zero out the entire channel/feature dimension of the input 3d tensor 
+    During training, randomly zero out the entire channel/feature dimension of the input 3d tensor
     with probability 'dropout' using a mask tensor sample from a Bernoulli distribution.
 
-    The channel/feature dimension of 3d tensor is the :math:`*` slice of :math:`(B, T, H, W, *)` 
+    The channel/feature dimension of 3d tensor is the :math:`*` slice of :math:`(B, T, H, W, *)`
     for token_first=True, or :math:`(B, *, T, H, W)` for token_first=False.
 
     During the fixed point solving, a fixed mask will be applied until convergence.
@@ -201,13 +213,14 @@ class VariationalDropout3d(_VariationalDropoutNd):
     Args:
         dropout (float, optional): The probability of an element to be zeroed. Default: 0.5
         token_first (bool, optional): If True, expect input tensor in shape :math:`(B, T, H, W, D)`,
-                                        otherwise expect :math:`(B, D, T, H, W)`. Here, `B` is batch size, 
+                                        otherwise expect :math:`(B, D, T, H, W)`. Here, `B` is batch size,
                                         and `D` is feature dimension. Default: False
-    
+
     Shape:
         - Input: :math:`(B, T, H, W, D)` or :math:`(B, D, T, H, W)`.
         - Output: :math:`(B, T, H, W, D)` or :math:`(B, D, T, H, W)` (same shape as input).
     """
+
     def __init__(self, dropout=0.5, token_first=True):
         super().__init__(dropout)
         self.token_first = token_first
@@ -229,10 +242,10 @@ class VariationalDropToken1d(_VariationalDropoutNd):
     """
     Applies Variational Dropout to the input tensor.
 
-    During training, randomly zero out the entire token/sequence dimension of the input 1d tensor 
+    During training, randomly zero out the entire token/sequence dimension of the input 1d tensor
     with probability 'dropout' using a mask tensor sample from a Bernoulli distribution.
 
-    The token/sequence dimension of 1d tensor is the :math:`*` slice of :math:`(B, *, L)` 
+    The token/sequence dimension of 1d tensor is the :math:`*` slice of :math:`(B, *, L)`
     for token_first=True, or :math:`(B, D, *)` for token_first=False.
 
     During the fixed point solving, a fixed mask will be applied until convergence.
@@ -241,13 +254,14 @@ class VariationalDropToken1d(_VariationalDropoutNd):
     Args:
         dropout (float, optional): The probability of an element to be zeroed. Default: 0.5
         token_first (bool, optional): If True, expect input tensor in shape :math:`(B, L, D)`,
-                                        otherwise expect :math:`(B, D, L)`. Here, `B` is batch size, 
+                                        otherwise expect :math:`(B, D, L)`. Here, `B` is batch size,
                                         and `D` is feature dimension. Default: False
-                                        
+
     Shape:
         - Input: :math:`(B, L, D)` or :math:`(B, D, L)`.
         - Output: :math:`(B, L, D)` or :math:`(B, D, L)` (same shape as input).
     """
+
     def __init__(self, dropout=0.5, token_first=True):
         super().__init__(dropout)
         self.token_first = token_first
@@ -269,10 +283,10 @@ class VariationalDropToken2d(_VariationalDropoutNd):
     """
     Applies Variational Dropout to the input tensor.
 
-    During training, randomly zero out the entire token/sequence dimension of the input 2d tensor 
+    During training, randomly zero out the entire token/sequence dimension of the input 2d tensor
     with probability 'dropout' using a mask tensor sample from a Bernoulli distribution.
 
-    The token/sequence dimension of 2d tensor is the :math:`*` slice of :math:`(B, H, W, *)` 
+    The token/sequence dimension of 2d tensor is the :math:`*` slice of :math:`(B, H, W, *)`
     for token_first=True, or :math:`(B, *, H, W)` for token_first=False.
 
     During the fixed point solving, a fixed mask will be applied until convergence.
@@ -281,13 +295,14 @@ class VariationalDropToken2d(_VariationalDropoutNd):
     Args:
         dropout (float, optional): The probability of an element to be zeroed. Default: 0.5
         token_first (bool, optional): If True, expect input tensor in shape :math:`(B, H, W, D)`,
-                                        otherwise expect :math:`(B, D, H, W)`. Here, `B` is batch size, 
+                                        otherwise expect :math:`(B, D, H, W)`. Here, `B` is batch size,
                                         and `D` is feature dimension. Default: False
-                                        
+
     Shape:
         - Input: :math:`(B, H, W, D)` or :math:`(B, D, H, W)`.
         - Output: :math:`(B, H, W, D)` or :math:`(B, D, H, W)` (same shape as input).
     """
+
     def __init__(self, dropout=0.5, token_first=True):
         super().__init__(dropout)
         self.token_first = token_first
@@ -308,11 +323,11 @@ class VariationalDropToken2d(_VariationalDropoutNd):
 class VariationalDropToken3d(_VariationalDropoutNd):
     """
     Applies Variational Dropout to the input tensor.
-    
-    During training, randomly zero out the entire token/sequence dimension of the input 3d tensor 
+
+    During training, randomly zero out the entire token/sequence dimension of the input 3d tensor
     with probability 'dropout' using a mask tensor sample from a Bernoulli distribution.
 
-    The token/sequence dimension of 3d tensor is the :math:`*` slice of :math:`(B, T, H, W, *)` 
+    The token/sequence dimension of 3d tensor is the :math:`*` slice of :math:`(B, T, H, W, *)`
     for token_first=True, or :math:`(B, *, T, H, W)` for token_first=False.
 
     During the fixed point solving, a fixed mask will be applied until convergence.
@@ -321,13 +336,14 @@ class VariationalDropToken3d(_VariationalDropoutNd):
     Args:
         dropout (float, optional): The probability of an element to be zeroed. Default: 0.5
         token_first (bool, optional): If True, expect input tensor in shape :math:`(B, T, H, W, D)`,
-                                        otherwise expect :math:`(B, D, T, H, W)`.  Here, `B` is batch size, 
+                                        otherwise expect :math:`(B, D, T, H, W)`.  Here, `B` is batch size,
                                         and `D` is feature dimension. Default: False
-    
+
     Shape:
         - Input: :math:`(B, T, H, W, D)` or :math:`(B, D, T, H, W)`.
         - Output: :math:`(B, T, H, W, D)` or :math:`(B, D, T, H, W)` (same shape as input).
     """
+
     def __init__(self, dropout=0.5, token_first=True):
         super().__init__(dropout)
         self.token_first = token_first
@@ -347,7 +363,7 @@ class VariationalDropToken3d(_VariationalDropoutNd):
 
 def reset_dropout(model):
     """
-    Resets the dropout mask for all variational dropout layers in the model 
+    Resets the dropout mask for all variational dropout layers in the model
     at the beginning of a training iteration.
 
     Args:

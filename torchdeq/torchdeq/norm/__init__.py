@@ -28,5 +28,10 @@ Example:
 """
 
 
-from .base_norm import (apply_norm, register_norm, register_norm_module,
-                        remove_norm, reset_norm)
+from .base_norm import (
+    apply_norm,
+    register_norm,
+    register_norm_module,
+    remove_norm,
+    reset_norm,
+)

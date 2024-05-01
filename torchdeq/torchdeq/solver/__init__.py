@@ -26,15 +26,15 @@ from .fp_iter import fixed_point_iter, simple_fixed_point_iter
 from .utils import solver_stat_from_final_step
 
 
-__all__ = ['register_solver', 'get_solver', 'solver_stat_from_final_step']
+__all__ = ["register_solver", "get_solver", "solver_stat_from_final_step"]
 
 
 _solvers = {
-        'anderson': anderson_solver,
-        'broyden': broyden_solver,
-        'fixed_point_iter': fixed_point_iter,
-        'simple_fixed_point_iter': simple_fixed_point_iter,
-        }
+    "anderson": anderson_solver,
+    "broyden": broyden_solver,
+    "fixed_point_iter": fixed_point_iter,
+    "simple_fixed_point_iter": simple_fixed_point_iter,
+}
 
 
 def get_solver(key):
@@ -62,7 +62,7 @@ def get_solver(key):
 
 def register_solver(solver_type, solver):
     """
-    Registers a user-defined fixed point solver. 
+    Registers a user-defined fixed point solver.
     This solver can be designated using args.f_solver and args.b_solver.
 
     This method adds a new entry to the solver dict with the key as

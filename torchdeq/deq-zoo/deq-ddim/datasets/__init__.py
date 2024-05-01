@@ -34,7 +34,7 @@ def get_dataset(args, config):
             [transforms.Resize(config.data.image_size), transforms.ToTensor()]
         )
     else:
-        if args.no_augmentation: 
+        if args.no_augmentation:
             tran_transform = transforms.Compose(
                 [
                     transforms.Resize(config.data.image_size),
@@ -80,7 +80,7 @@ def get_dataset(args, config):
             train=False,
             download=True,
             transform=test_transform,
-            fixed_noise=config.data.fixed_noise
+            fixed_noise=config.data.fixed_noise,
         )
 
     elif config.data.dataset == "CELEBA":

@@ -9,6 +9,7 @@ class DEQConfig:
     Args:
         config (Union[argparse.Namespace, dict, DEQConfig, Any]): The configuration values.
     """
+
     def __init__(self, config):
         if config is None:
             config = dict()
@@ -20,7 +21,9 @@ class DEQConfig:
         elif isinstance(config, DEQConfig):
             self.config = config.config
         else:
-            warnings.warn(f"Unrecognized config type: {type(config)}. Processed using get_attr.")
+            warnings.warn(
+                f"Unrecognized config type: {type(config)}. Processed using get_attr."
+            )
             self.config = vars(config)
 
     def get(self, key, default=None):
@@ -35,7 +38,7 @@ class DEQConfig:
             The configuration value, or the default value if the key is not found.
         """
         return self.config.get(key, default)
-    
+
     def update(self, **kwargs):
         """
         Updates the configuration with new values.

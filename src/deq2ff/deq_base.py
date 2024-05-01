@@ -46,16 +46,17 @@ def _init_deq(
 
     return kwargs
 
+
 def _process_solver_kwargs(solver_kwargs, reuse=False):
     _solver_kwargs = {}
     # kwargs during inference
     for k, v in solver_kwargs.items():
         # kwargs that are only used when reusing the fixed-point
-        if k.startswith('fpreuse_'):
-            k = k.replace('fpreuse_', '')
+        if k.startswith("fpreuse_"):
+            k = k.replace("fpreuse_", "")
             if reuse == False:
                 continue
         # add kwargs to solver
-        if v != '_default':
+        if v != "_default":
             _solver_kwargs[k] = v
     return _solver_kwargs

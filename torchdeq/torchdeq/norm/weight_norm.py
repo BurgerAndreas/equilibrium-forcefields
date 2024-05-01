@@ -10,7 +10,7 @@ from torch.nn import functional as F
 from torch.nn.parameter import Parameter
 
 
-__all__ = ['WeightNorm']
+__all__ = ["WeightNorm"]
 
 
 def _norm(p, dim):
@@ -35,28 +35,30 @@ def _norm(p, dim):
     else:
         return _norm(p.transpose(0, dim), 0).transpose(0, dim)
 
-    
+
 class WeightNorm:
     _target_modules = {
-        nn.Linear: ('weight', 0), 
-        nn.Conv1d: ('weight', 0), 
-        nn.Conv2d: ('weight', 0), 
-        nn.Conv3d: ('weight', 0),
-        nn.ConvTranspose1d: ('weight', 1),
-        nn.ConvTranspose2d: ('weight', 1),
-        nn.ConvTranspose3d: ('weight', 1),
-        }
+        nn.Linear: ("weight", 0),
+        nn.Conv1d: ("weight", 0),
+        nn.Conv2d: ("weight", 0),
+        nn.Conv3d: ("weight", 0),
+        nn.ConvTranspose1d: ("weight", 1),
+        nn.ConvTranspose2d: ("weight", 1),
+        nn.ConvTranspose3d: ("weight", 1),
+    }
 
-    def __init__(self, 
-            names, dims,
-            learn_scale: bool = True,
-            target_norm: float = 1., 
-            clip: bool = False,
-            clip_value: float = 1.
-            ) -> None:
+    def __init__(
+        self,
+        names,
+        dims,
+        learn_scale: bool = True,
+        target_norm: float = 1.0,
+        clip: bool = False,
+        clip_value: float = 1.0,
+    ) -> None:
         self.names = names
         self.dims = dims
-        
+
         self.learn_scale = learn_scale
         self.target_norm = target_norm
 
@@ -75,15 +77,15 @@ class WeightNorm:
         Returns:
             Tensor: The weight tensor after applying weight normalization.
         """
-        weight = getattr(module, name + '_v')
+        weight = getattr(module, name + "_v")
         norm = _norm(weight, dim)
 
         if self.learn_scale:
-            g = getattr(module, name + '_g')
+            g = getattr(module, name + "_g")
             factor = g / norm
         else:
             factor = self.target_norm / norm
-        
+
         if self.clip:
             factor = torch.minimum(self.clip_value * torch.ones_like(factor), factor)
 
@@ -104,28 +106,32 @@ class WeightNorm:
         Returns:
             tuple: Tuple containing the overwritten arguments.
         """
-        return not args.get('norm_no_scale', not learn_scale), \
-                args.get('norm_target_norm', target_norm), \
-                args.get('norm_clip', clip), \
-                args.get('norm_clip_value', clip_value)
-        
+        return (
+            not args.get("norm_no_scale", not learn_scale),
+            args.get("norm_target_norm", target_norm),
+            args.get("norm_clip", clip),
+            args.get("norm_clip_value", clip_value),
+        )
+
     @classmethod
     def apply(
-            cls, module, 
-            deq_args=None,
-            names=None, 
-            dims=None, 
-            learn_scale=True,
-            target_norm=1., 
-            clip=False,
-            clip_value=1.):
+        cls,
+        module,
+        deq_args=None,
+        names=None,
+        dims=None,
+        learn_scale=True,
+        target_norm=1.0,
+        clip=False,
+        clip_value=1.0,
+    ):
         """
         Apply weight normalization to a given module.
 
         Args:
             module (torch.nn.Module): The module to apply weight normalization to.
-            deq_args (Union[argparse.Namespace, dict, DEQConfig, Any]): 
-                Configuration for the DEQ model. 
+            deq_args (Union[argparse.Namespace, dict, DEQConfig, Any]):
+                Configuration for the DEQ model.
                 This can be an instance of argparse.Namespace, a dictionary, or an instance of DEQConfig.
                 Unknown config will be processed using `get_attr` function.
             names (list or str, optional): The names of the parameters to apply spectral normalization to.
@@ -141,18 +147,19 @@ class WeightNorm:
         if names is None or dims is None:
             module_type = type(module)
             names, dims = cls._target_modules[module_type]
-        
+
         # Pad args
         if type(names) is str:
             names = [names]
 
         if type(dims) is int:
             dims = [dims]
-    
+
         assert len(names) == len(dims)
-        
-        learn_scale, target_norm, clip, clip_value = \
-                cls.overwrite_kwargs(deq_args, learn_scale, target_norm, clip, clip_value)
+
+        learn_scale, target_norm, clip, clip_value = cls.overwrite_kwargs(
+            deq_args, learn_scale, target_norm, clip, clip_value
+        )
         fn = WeightNorm(names, dims, learn_scale, target_norm, clip, clip_value)
 
         for name, dim in zip(names, dims):
@@ -163,10 +170,12 @@ class WeightNorm:
 
             # add g and v as new parameters and express w as v * min(t, g/||v||)
             if fn.learn_scale:
-                module.register_parameter(name + '_g', Parameter(_norm(weight, dim).data))
-            module.register_parameter(name + '_v', Parameter(weight.data))
+                module.register_parameter(
+                    name + "_g", Parameter(_norm(weight, dim).data)
+                )
+            module.register_parameter(name + "_v", Parameter(weight.data))
             setattr(module, name, fn.compute_weight(module, name, dim))
-        
+
         return fn
 
     def __call__(self, module):
@@ -196,7 +205,6 @@ class WeightNorm:
 
             delattr(module, name)
             if self.learn_scale:
-                del module._parameters[name + '_g']
-            del module._parameters[name + '_v']
+                del module._parameters[name + "_g"]
+            del module._parameters[name + "_v"]
             module.register_parameter(name, Parameter(weight.data))
-

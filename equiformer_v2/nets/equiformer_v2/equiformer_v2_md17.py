@@ -63,7 +63,6 @@ from equiformer_v2.nets.equiformer_v2.equiformer_v2_oc20 import EquiformerV2_OC2
 
 @registry.register_model("equiformer_v2_md17")
 class EquiformerV2_MD17(EquiformerV2_OC20):
-
     @conditional_grad(torch.enable_grad())
     def forward(self, data, step=None, datasplit=None, **kwargs):
         """The same as EquiformerV2_OC20.

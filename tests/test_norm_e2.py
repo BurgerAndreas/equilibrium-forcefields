@@ -91,10 +91,14 @@ import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
+
 def myround(x):
     return round(x)
 
-def deq_implicit_layer_wrapper(model, x, emb, edge_index, edge_distance, atomic_numbers, data, norms):
+
+def deq_implicit_layer_wrapper(
+    model, x, emb, edge_index, edge_distance, atomic_numbers, data, norms
+):
     # ints are immutable but lists are mutable (so we can pass by reference and change inplace)
     x = model.deq_implicit_layer(
         x,
@@ -106,19 +110,28 @@ def deq_implicit_layer_wrapper(model, x, emb, edge_index, edge_distance, atomic_
     )
     norms.append([x.norm().item(), x.norm(1).item(), x.norm(2).item()])
     print(
-        f'x ({len(norms)}): fro={myround(x.norm().item())}, l1={myround(x.norm(1).item())}, l2={myround(x.norm(2).item())}'
+        f"x ({len(norms)}): fro={myround(x.norm().item())}, l1={myround(x.norm(1).item())}, l2={myround(x.norm(2).item())}"
     )
     return x
 
-def main(args, weight_init='uniform', num_layers=2, cat_injection=False, norm_injection='prev', normlayer_norm='component', norm_type='rms_norm_sh'):
+
+def main(
+    args,
+    weight_init="uniform",
+    num_layers=2,
+    cat_injection=False,
+    norm_injection="prev",
+    normlayer_norm="component",
+    norm_type="rms_norm_sh",
+):
 
     args.model.weight_init = weight_init
     args.model.num_layers = num_layers
     args.model.cat_injection = cat_injection
-    args.model.norm_injection = norm_injection # None, prev
-               
-    args.model.normlayer_norm = normlayer_norm # component, norm
-    args.model.norm_type = norm_type    # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
+    args.model.norm_injection = norm_injection  # None, prev
+
+    args.model.normlayer_norm = normlayer_norm  # component, norm
+    args.model.norm_type = norm_type  # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
 
     # pretty print args
     # print(OmegaConf.to_yaml(args))
@@ -156,10 +169,10 @@ def main(args, weight_init='uniform', num_layers=2, cat_injection=False, norm_in
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Normalizers
-    if args.normalizer == 'md17':
+    if args.normalizer == "md17":
         normalizer_e = lambda x: (x - task_mean) / task_std
         normalizer_f = lambda x: x / task_std
-    elif args.normalizer == 'oc20':
+    elif args.normalizer == "oc20":
         normalizer_e = Normalizer(
             mean=task_mean,
             std=task_std,
@@ -172,7 +185,7 @@ def main(args, weight_init='uniform', num_layers=2, cat_injection=False, norm_in
         )
     else:
         raise NotImplementedError(f"Unknown normalizer: {args.normalizer}")
-    normalizers = {'energy': normalizer_e, 'force': normalizer_f}
+    normalizers = {"energy": normalizer_e, "force": normalizer_f}
 
     """ Network """
     create_model = model_entrypoint(args.model.name)
@@ -296,9 +309,7 @@ def main(args, weight_init='uniform', num_layers=2, cat_injection=False, norm_in
         )
 
     # Edge-degree embedding
-    edge_degree = self.edge_degree_embedding(
-        atomic_numbers, edge_distance, edge_index
-    )
+    edge_degree = self.edge_degree_embedding(atomic_numbers, edge_distance, edge_index)
     # both: [num_atoms, num_coefficients, num_channels]
     # num_coefficients = sum([(2 * l + 1) for l in self.lmax_list])
     # addition, not concatenation
@@ -317,7 +328,7 @@ def main(args, weight_init='uniform', num_layers=2, cat_injection=False, norm_in
     reset_norm(self.blocks)
 
     print(
-        f'\n emb: fro={myround(emb.norm().item())}, l1={myround(emb.norm(1).item())}, l2={myround(emb.norm(2).item())}'
+        f"\n emb: fro={myround(emb.norm().item())}, l1={myround(emb.norm(1).item())}, l2={myround(emb.norm(2).item())}"
     )
 
     # Transformer blocks
@@ -355,67 +366,90 @@ def main(args, weight_init='uniform', num_layers=2, cat_injection=False, norm_in
 
     return norms
 
+
 def plot_norms_layer(args):
-    sns.set_style('whitegrid')
+    sns.set_style("whitegrid")
     colors = sns.color_palette()
 
     # create two figures
-    fig, (ax1, ax2) = plt.subplots(1,2, figsize=(20,8))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
 
     i = 0
-    for norm_type in ['layer_norm_sh', 'layer_norm', 'rms_norm_sh']:
-        for normlayer_norm in ['component', 'norm']:
-            norms = main(args, norm_injection='prev', norm_type=norm_type, normlayer_norm=normlayer_norm)
+    for norm_type in ["layer_norm_sh", "layer_norm", "rms_norm_sh"]:
+        for normlayer_norm in ["component", "norm"]:
+            norms = main(
+                args,
+                norm_injection="prev",
+                norm_type=norm_type,
+                normlayer_norm=normlayer_norm,
+            )
             norms = np.array(norms)
 
             # plot
-            ax1.plot(norms[:, 0], label=f'{norm_type} {normlayer_norm}', color=colors[i])
-            ax2.plot(norms[:, 1], label=f'{norm_type} {normlayer_norm}', color=colors[i], linestyle='--')
+            ax1.plot(
+                norms[:, 0], label=f"{norm_type} {normlayer_norm}", color=colors[i]
+            )
+            ax2.plot(
+                norms[:, 1],
+                label=f"{norm_type} {normlayer_norm}",
+                color=colors[i],
+                linestyle="--",
+            )
             i += 1
-    
-    ax1.title.set_text('l2 norm')
-    ax2.title.set_text('l1 norm')
+
+    ax1.title.set_text("l2 norm")
+    ax2.title.set_text("l1 norm")
     plt.legend()
-    plt.xlabel('forward passes through implicit layer')
-    plt.ylabel('norm of node embedding')
-    fpath = 'figs/layernorm_fsolver.png'
+    plt.xlabel("forward passes through implicit layer")
+    plt.ylabel("norm of node embedding")
+    fpath = "figs/layernorm_fsolver.png"
     plt.savefig(fpath)
-    print(f'{fpath} saved')
+    print(f"{fpath} saved")
     return
 
+
 def plot_input_inj(args):
-    sns.set_style('whitegrid')
+    sns.set_style("whitegrid")
     colors = sns.color_palette()
 
     # create two figures
-    fig, (ax1, ax2) = plt.subplots(1,2, figsize=(20,8))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
 
     i = 0
     for cat_injection in [True, False]:
         # for norm_injection in [None, 'one', 'prev']:
-        for norm_injection in ['one', 'prev']:
-            norms = main(args, cat_injection=cat_injection, norm_injection=norm_injection, norm_type='rms_norm_sh', normlayer_norm='norm')
+        for norm_injection in ["one", "prev"]:
+            norms = main(
+                args,
+                cat_injection=cat_injection,
+                norm_injection=norm_injection,
+                norm_type="rms_norm_sh",
+                normlayer_norm="norm",
+            )
             norms = np.array(norms)
 
             # plot
-            cat = 'cat' if cat_injection else 'add'
-            _norm = '' if cat_injection else norm_injection
-            ax1.plot(norms[:, 0], label=f'{cat} {_norm}', color=colors[i])
-            ax2.plot(norms[:, 1], label=f'{cat} {_norm}', color=colors[i], linestyle='--')
+            cat = "cat" if cat_injection else "add"
+            _norm = "" if cat_injection else norm_injection
+            ax1.plot(norms[:, 0], label=f"{cat} {_norm}", color=colors[i])
+            ax2.plot(
+                norms[:, 1], label=f"{cat} {_norm}", color=colors[i], linestyle="--"
+            )
             i += 1
 
             if cat_injection:
                 break
-    
-    ax1.title.set_text('l2 norm')
-    ax2.title.set_text('l1 norm')
+
+    ax1.title.set_text("l2 norm")
+    ax2.title.set_text("l1 norm")
     plt.legend()
-    plt.xlabel('forward passes through implicit layer')
-    plt.ylabel('norm')
-    fpath = 'figs/inputinjection_norm.png'
+    plt.xlabel("forward passes through implicit layer")
+    plt.ylabel("norm")
+    fpath = "figs/inputinjection_norm.png"
     plt.savefig(fpath)
-    print(f'{fpath} saved')
+    print(f"{fpath} saved")
     return
+
 
 @hydra.main(
     config_name="md17", config_path="../equiformer_v2/config", version_base="1.3"
@@ -424,7 +458,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     """Run training loop."""
     args.wandb = False
 
-    # load deq config 
+    # load deq config
     deq_config = OmegaConf.load("equiformer_v2/config/use/deq.yaml")
     # update args
     args = OmegaConf.to_container(args, resolve=True)

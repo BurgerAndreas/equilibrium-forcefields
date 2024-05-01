@@ -22,13 +22,17 @@ class Normalizer(object):
         if tensor is not None:
             self.mean = torch.mean(tensor, dim=0).to(device)
             self.std = torch.std(tensor, dim=0).to(device)
-            print(f'{self.__class__.__name__} computed mean: {self.mean}, std: {self.std}')
+            print(
+                f"{self.__class__.__name__} computed mean: {self.mean}, std: {self.std}"
+            )
             return
 
         if mean is not None and std is not None:
             self.mean = torch.tensor(mean).to(device)
             self.std = torch.tensor(std).to(device)
-            print(f'{self.__class__.__name__} loaded mean: {self.mean}, std: {self.std}')
+            print(
+                f"{self.__class__.__name__} loaded mean: {self.mean}, std: {self.std}"
+            )
 
     def to(self, device):
         self.mean = self.mean.to(device)

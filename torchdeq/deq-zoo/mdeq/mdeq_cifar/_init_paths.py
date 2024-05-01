@@ -15,5 +15,5 @@ def add_path(path):
 
 this_dir = osp.dirname(__file__)
 
-lib_path = osp.join(this_dir, 'mdeq')
+lib_path = osp.join(this_dir, "mdeq")
 add_path(lib_path)

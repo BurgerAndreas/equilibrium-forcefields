@@ -973,6 +973,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         )
 
         # return outputs, z_pred[-1]
+        info['z_pred'] = z_pred
         if return_fixedpoint:
             # z_pred = sampled fixed point trajectory (tracked gradients)
             return energy, force, z_pred[-1].detach().clone(), info

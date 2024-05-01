@@ -414,11 +414,13 @@ class DEQIndexing(DEQBase):
 
         if solver_kwargs is None:
             solver_kwargs = dict()
+        # print(f'{self.__class__.__name__}.forward solver_kwargs: {solver_kwargs}')
 
         if self.training:
-            if type(solver_kwargs.get("f_max_iter", None)) in [int, float]:
+            _recompute_f_iter = type(solver_kwargs.get("f_max_iter", None)) in [int, float] or type(solver_kwargs.get("n_states", None)) in [int, float] or type(solver_kwargs.get("indexing", None)) is list
+            if _recompute_f_iter:
                 indexing = self._compute_f_iter(
-                    solver_kwargs["f_max_iter"], solver_kwargs
+                    solver_kwargs.get("f_max_iter", self.f_max_iter), solver_kwargs=solver_kwargs
                 )
             else:
                 indexing = self.indexing
@@ -672,9 +674,10 @@ class DEQSliced(DEQBase):
             solver_kwargs = dict()
 
         if self.training:
-            if type(solver_kwargs.get("f_max_iter", None)) in [int, float]:
+            _recompute_f_iter = type(solver_kwargs.get("f_max_iter", None)) in [int, float] or type(solver_kwargs.get("n_states", None)) in [int, float] or type(solver_kwargs.get("indexing", None)) is list
+            if _recompute_f_iter:
                 indexing = self._compute_f_iter(
-                    solver_kwargs["f_max_iter"], solver_kwargs=solver_kwargs
+                    solver_kwargs.get("f_max_iter", self.f_max_iter), solver_kwargs=solver_kwargs
                 )
             else:
                 indexing = self.indexing

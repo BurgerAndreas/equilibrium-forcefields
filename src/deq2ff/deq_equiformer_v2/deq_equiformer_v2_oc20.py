@@ -354,7 +354,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             forces = forces.embedding.narrow(1, 1, 3)
             forces = forces.view(-1, 3)
 
-        info["ztraj"] = z_pred
+        info["z_pred"] = z_pred
         if self.regress_forces:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)

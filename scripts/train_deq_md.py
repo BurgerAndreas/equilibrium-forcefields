@@ -894,22 +894,24 @@ def train_one_epoch(
             # Fixed-point correction loss
             # for superior performance and training stability
             # https://arxiv.org/abs/2204.08442
-            if (
-                len(info) > 0
-                and "ztraj" in info
-                and len(info["ztraj"]) > 1
-                and args.fpc_freq > 0
-                and args.fpc_gamma > 0
-            ):
-                # l2 loss
-                # crit = lambda x, y: (x - y).abs().mean()
-                crit = nn.MSELoss()
-                # last z is fixed point
-                ztraj = info["ztraj"]
-                losses_fpc = fp_correction(
-                    crit, (ztraj[:-1], ztraj[-1]), return_loss_values=True
-                )
-                loss += args.fpc_gamma * losses_fpc.mean()
+            if args.fpc_freq > 0:
+                if (
+                    len(info) > 0
+                    and "z_pred" in info
+                    and len(info["z_pred"]) > 1
+                ):
+                    # crit = lambda x, y: (x - y).abs().mean()
+                    crit = nn.MSELoss()
+                    # last z is fixed point
+                    print('z_pred', len(info["z_pred"]))
+                    z_pred = info["z_pred"]
+                    losses_fpc = fp_correction(
+                        crit, (z_pred[:-1], z_pred[-1]), return_loss_values=True
+                    )
+                    loss += args.fpc_gamma * losses_fpc.mean()
+                # else:
+                # # For example if we would index step 5, but only four forward solver steps were performed
+                #     print('Warning: Couldnt perform fixed-point correction:', 'info', len(info), 'z_pred', len(info["z_pred"]))
 
             if wandb.run is not None:
                 wandb.log(

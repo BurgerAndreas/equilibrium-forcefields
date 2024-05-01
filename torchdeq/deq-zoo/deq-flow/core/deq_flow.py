@@ -177,6 +177,7 @@ class DEQFlow(nn.Module):
         flow_pred = [self._decode(z, coords0) for z in z_out]
 
         if self.training:
+            # fixed-point correction loss
             flow_loss, epe = fc_loss(flow_pred, flow_gt, valid)
             metrics = process_metrics(epe, info)
             

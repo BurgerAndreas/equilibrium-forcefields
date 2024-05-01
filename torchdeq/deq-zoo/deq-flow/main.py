@@ -41,6 +41,7 @@ def flow_loss(flow_preds, flow_gt, valid, gamma=0.8, max_flow=MAX_FLOW, cal_epe=
     valid = (valid >= 0.5) & (mag < max_flow)
     valid = valid[:, None]
 
+    # fixed-point correction
     loss_fn = lambda pred, gt, valid: ((pred - gt).abs() * valid).mean()
     loss = fp_correction(loss_fn, (flow_preds, flow_gt, valid), gamma=gamma)
 
@@ -198,7 +199,7 @@ def train_once(args):
                 writer_f = None
 
             start_time = time.time()
-
+            
             fc_loss = partial(flow_loss, gamma=args.gamma)
             loss, metrics = model(
                 image1, image2, flow, valid, fc_loss, writer=writer_f

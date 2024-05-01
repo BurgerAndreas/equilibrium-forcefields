@@ -273,7 +273,7 @@ class DEQIndexing(DEQBase):
 
         self.produce_grad = produce_grad
     
-    def _compute_f_iter(self, f_max_iter):
+    def _compute_f_iter(self, f_max_iter, solver_kwargs={}):
         """
         Computes the steps for sampling internal solver states.
         Priority: args.n_states > args.indexing.
@@ -288,6 +288,9 @@ class DEQIndexing(DEQBase):
             list[int]: List of solver steps to be sampled.
         """
         arg_n_states = self.args.get('n_states', self.arg_n_states)
+        if 'n_states' in solver_kwargs:
+            arg_n_states = solver_kwargs['n_states']
+
         if arg_n_states > 1:
             n_states = max(min(f_max_iter, arg_n_states), 1)
             delta = int(f_max_iter // n_states)
@@ -296,7 +299,10 @@ class DEQIndexing(DEQBase):
             else:
                 return [f_max_iter-(n_states-k-1)*delta for k in range(n_states)]
         else:
-            return [*self.args.get('indexing', self.arg_indexing), f_max_iter]
+            indexing = self.args.get('indexing', self.arg_indexing)
+            if 'indexing' in solver_kwargs:
+                indexing = solver_kwargs['indexing']
+            return [*indexing, f_max_iter]
 
     def _solve_fixed_point(
                self, deq_func, z_init, 
@@ -384,7 +390,7 @@ class DEQIndexing(DEQBase):
 
         if self.training:
             if type(solver_kwargs.get('f_max_iter', None)) in [int, float]:
-                indexing = self._compute_f_iter(solver_kwargs['f_max_iter'])
+                indexing = self._compute_f_iter(solver_kwargs['f_max_iter'], solver_kwargs)
             else:
                 indexing = self.indexing
 
@@ -515,7 +521,7 @@ class DEQSliced(DEQBase):
 
         self.produce_grad = produce_grad
     
-    def _compute_f_iter(self, f_max_iter):
+    def _compute_f_iter(self, f_max_iter, solver_kwargs={}):
         """
         Computes the steps for sampling internal solver states.
         Priority: args.n_states > args.indexing.
@@ -530,10 +536,16 @@ class DEQSliced(DEQBase):
             list[int]: List of solver steps to be sampled.
         """
         arg_n_states = self.args.get('n_states', self.arg_n_states)
+        if 'n_states' in solver_kwargs:
+            arg_n_states = solver_kwargs['n_states']
+
         if arg_n_states > 1:
             return [int(f_max_iter // arg_n_states) for _ in range(arg_n_states)]
         else:
-            return np.diff([0, *self.args.get('indexing', self.arg_indexing), f_max_iter]).tolist()
+            indexing = self.args.get('indexing', self.arg_indexing)
+            if 'indexing' in solver_kwargs:
+                indexing = solver_kwargs['indexing']
+            return np.diff([0, *indexing, f_max_iter]).tolist()
 
     def _solve_fixed_point(
             self, deq_func, z_init,
@@ -587,6 +599,7 @@ class DEQSliced(DEQBase):
             solver_kwargs (dict, optional): 
                 Additional arguments for the solver used in this forward pass. These arguments will overwrite the default solver arguments. 
                 Refer to the documentation of the specific solver for the list of accepted arguments. Default None.
+                Added: f_max_iter, f_tol, n_states, indexing (experimental).
             sradius_mode (bool, optional): 
                 If True, computes the spectral radius in validation and adds ``'sradius'`` to the ``info`` dictionary. Default False. 
             backward_writer (callable, optional): 
@@ -609,10 +622,10 @@ class DEQSliced(DEQBase):
 
         if self.training:
             if type(solver_kwargs.get('f_max_iter', None)) in [int, float]:
-                indexing = self._compute_f_iter(solver_kwargs['f_max_iter'])
+                indexing = self._compute_f_iter(solver_kwargs['f_max_iter'], solver_kwargs=solver_kwargs)
             else:
                 indexing = self.indexing
-
+            
             z_out = []
             for f_max_iter, produce_grad in zip(indexing, self.produce_grad):
                 z_star, info = self._solve_fixed_point(deq_func, z_star, f_max_iter=f_max_iter, solver_kwargs=solver_kwargs)

@@ -4,7 +4,9 @@
 # for fast test runs
 # use as python scripts/deq_equiformer.py +trial=test
 
-epochs: 2
+wandb: False
+# epochs: 2
+max_epochs: 2
 batch_size: 8
 # (int)
 eval_batch_size: 24

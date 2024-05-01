@@ -410,7 +410,7 @@ def main(args):
     """ Train! """
     _log.info("\nStart training!\n")
     start_time = time.perf_counter()
-    for epoch in range(args.epochs):
+    for epoch in range(args.max_epochs):
 
         epoch_start_time = time.perf_counter()
 
@@ -847,9 +847,9 @@ def train_one_epoch(
 
             # for sparse fixed-point correction loss
             solver_kwargs = {}
-            if args.fpc_frq > 0:
+            if args.fpc_freq > 0:
                 if args.fpc_rand:
-                    # randomly uniform use some indices
+                    # randomly uniform sample indices
                     solver_kwargs['indexing'] = torch.randperm(len(losses_fpc))[: args.fpc_freq]
                 else:
                     # uniformly spaced indices

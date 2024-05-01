@@ -22,6 +22,8 @@ output_dir: models/md17/equiformer/test
 
 # (int)
 epochs: 1000
+# if you want to reduce the number of training epochs without affecting how the learning rate is decayed (int)
+max_epochs: ${epochs}
 # If you want multiple runs over the dataset per epoch, e.g. for overfitting a single batch (int)
 epochs_per_epochs: 1
 # (int)

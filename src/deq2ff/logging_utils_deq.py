@@ -149,10 +149,10 @@ def log_fixed_point_error(info, step, datasplit=None):
                     },
                     step=step,
                 )
-                print(
-                    f"Logged fixed point error trajectory. (split: {datasplit} at step {step}). "
-                    f'Dimension: {len(_abs)}, {info["abs_trace"].mean(dim=0)[1:].shape}'
-                )
+                # print(
+                #     f"Logged fixed point error trajectory. (split: {datasplit} at step {step}). "
+                #     f'Dimension: {len(_abs)}, {info["abs_trace"].mean(dim=0)[1:].shape}'
+                # )
             # log again in float64 format
             if "abs_trace64" in info:
                 _abs64 = (
@@ -172,10 +172,10 @@ def log_fixed_point_error(info, step, datasplit=None):
                         },
                         step=step,
                     )
-                    print(
-                        f"Logged fixed point error trajectory in float64. (split: {datasplit} at step {step}). "
-                        f'Dimension: {len(_abs64)}, {info["abs_trace64"].mean(dim=0)[1:].shape}'
-                    )
+                    # print(
+                    #     f"Logged fixed point error trajectory in float64. (split: {datasplit} at step {step}). "
+                    #     f'Dimension: {len(_abs64)}, {info["abs_trace64"].mean(dim=0)[1:].shape}'
+                    # )
 
     return None
 

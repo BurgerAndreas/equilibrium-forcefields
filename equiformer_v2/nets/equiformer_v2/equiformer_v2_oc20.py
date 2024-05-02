@@ -557,7 +557,7 @@ class EquiformerV2_OC20(BaseModel):
         # basically predict an energy for each atom and sum them up
         # node_energy.view(-1): [num_atoms*batch_size]
         # data.batch: [num_atoms*batch_size]
-        # data.batch contains the batch index for each atom
+        # data.batch contains the batch index for each atom (node)
         # [0, ..., 0, 1, ..., 1, ..., B-1, ..., B-1]
         energy.index_add_(dim=0, index=data.batch, source=node_energy.view(-1))
         energy = energy / self._AVG_NUM_NODES

@@ -62,6 +62,7 @@ Adapted from equiformer/main_md17.py
 
 import deq2ff
 import deq2ff.logging_utils_deq as logging_utils_deq
+from deq2ff.losses import load_loss, L2MAELoss
 from deq2ff.deq_equiformer.deq_dp_md17 import (
     deq_dot_product_attention_transformer_exp_l2_md17,
 )
@@ -86,38 +87,6 @@ ModelEma = ModelEmaV2
 import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
-
-
-# from ocpmodels.modules.loss import DDPLoss, L2MAELoss
-# from https://github.com/Open-Catalyst-Project/ocp/blob/main/ocpmodels/modules/loss.py#L7
-class L2MAELoss(torch.nn.Module):
-    def __init__(self, reduction="mean"):
-        super().__init__()
-        self.reduction = reduction
-        assert reduction in ["mean", "sum"]
-
-    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        dists = torch.norm(input - target, p=2, dim=-1)
-        if self.reduction == "mean":
-            return torch.mean(dists)
-        elif self.reduction == "sum":
-            return torch.sum(dists)
-
-
-# from equiformer/oc20/trainer/base_trainer_oc20.py
-def load_loss(loss_fn={"energy": "mae", "force": "mae"}):
-    for loss, loss_name in loss_fn.items():
-        if loss_name in ["l1", "mae"]:
-            loss_fn[loss] = nn.L1Loss()
-        elif loss_name == "mse":
-            loss_fn[loss] = nn.MSELoss()
-        elif loss_name == "l2mae":
-            loss_fn[loss] = L2MAELoss()
-        else:
-            raise NotImplementedError(f"Unknown loss function name: {loss_name}")
-        # if distutils.initialized():
-        #     self.loss_fn[loss] = DDPLoss(self.loss_fn[loss])
-    return loss_fn
 
 
 def get_force_placeholder(dy, loss_e):
@@ -272,10 +241,16 @@ def main(args):
     criterion_force = loss_fn["force"]
 
     """ Data Loader """
+    # We don't need to shuffle because the indices are already randomized
+    # or we want to keep the order anyway
+    # we just keep the shuffle option for the sake of consistency with equiformer
+    shuffle = True
+    if args.datasplit in ["fpreuse_ordered"]:
+        shuffle = False
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
-        shuffle=True,
+        shuffle=shuffle,
         num_workers=args.workers,
         pin_memory=args.pin_mem,
         drop_last=True,
@@ -831,6 +806,8 @@ def train_one_epoch(
     task_mean = model.task_mean
     task_std = model.task_std
 
+    # broyden solver outpus NaNs if it diverges
+    # count the number of NaNs and stop training if it exceeds a threshold
     isnan_cnt = 0
 
     max_steps = len(data_loader)

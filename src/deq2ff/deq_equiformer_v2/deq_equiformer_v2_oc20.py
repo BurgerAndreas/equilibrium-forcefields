@@ -233,7 +233,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         ###############################################################
 
         # Init per node representations using an atomic number based embedding
-        offset = 0
+        # shape: [num_atoms*batch_size, num_coefficients, num_channels]
         x: SO3_Embedding = SO3_Embedding(
             num_atoms,
             self.lmax_list,
@@ -241,6 +241,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             self.device,
             self.dtype,
         )
+        print("x.embedding.shape", x.embedding.shape)
 
         offset_res = 0
         offset = 0
@@ -341,7 +342,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         energy = torch.zeros(
             len(data.natoms), device=node_energy.device, dtype=node_energy.dtype
         )
-        energy.index_add_(0, data.batch, node_energy.view(-1))
+        energy.index_add_(dim=0, index=data.batch, source=node_energy.view(-1))
         energy = energy / self._AVG_NUM_NODES
 
         ###############################################################

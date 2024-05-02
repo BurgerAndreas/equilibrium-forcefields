@@ -341,6 +341,9 @@ def fix_train_val_test_size(train_size, val_size, test_size, dset_len):
 # From https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L54
 def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=None):
 
+    if order in [None, "equiformer", "default"]:
+        order = None
+
     train_size, val_size, test_size = fix_train_val_test_size(
         train_size, val_size, test_size, dset_len
     )
@@ -367,7 +370,7 @@ def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=
         return np.array(idx_train), np.array(idx_val), np.array(idx_test)
 
     # ids are sampled consecutively -> important for fixed-point reuse
-    elif order == "consecutive":
+    elif order == "consecutive_all":
         print("Dataset: Using consecutive order")
         return idx_train, idx_val, idx_test
 
@@ -409,7 +412,7 @@ def make_splits(
 ):
     """
     splits: path to a .npz file containing the splits or a dict of paths to .npz files containing the splits. Ignored if order is not None.
-    order: order of the dataset, e.g. consecutive, consecutive_test, or a list of indices.
+    order: order of the dataset, e.g. consecutive_all, consecutive_test, or a list of indices.
     """
     if splits is None or order is not None:
         idx_train, idx_val, idx_test = train_val_test_split(
@@ -423,6 +426,7 @@ def make_splits(
                 )
 
     elif type(splits) == dict:
+        # load splits from different files. No need to save it.
         train_size, val_size, test_size = fix_train_val_test_size(
             train_size, val_size, test_size, dataset_len
         )
@@ -438,6 +442,7 @@ def make_splits(
         print(f"Loaded splits from {splits['train']} and {splits['test']}")
 
     else:
+        # load splits from file. No need to save it.
         splits = np.load(splits)
         idx_train = splits["idx_train"]
         idx_val = splits["idx_val"]
@@ -460,9 +465,8 @@ def get_md_datasets(
     # added
     dname="md17",
     max_samples: int = -1,
-    order=None,
     return_idx=False,
-    load_splits=None,
+    order=None,
 ):
     """
     Return training, validation and testing sets of MD17 with the same data partition as TorchMD-NET.
@@ -482,10 +486,10 @@ def get_md_datasets(
     # keys: ['z', 'pos', 'batch', 'y', 'dy']
     all_dataset = MDAll(root, dataset_arg, dname=dname)
 
-    if load_splits == False:
-        load_splits = None
-    if load_splits == True and (dname in ["md17", "rmd17"]):
-        order = None
+    assert order in [None, "rmd17", "equiformer", "consecutive_all", "consecutive_test"], f'Unknown order "{order}".'
+
+    load_splits = None
+    if order == 'rmd17' and (dname in ["md17", "rmd17"]):
         # datasets/rmd17/aspirin/raw/rmd17/splits/index_test_01.csv
         load_splits = {
             "train": osp.join(root, "raw", "rmd17", "splits", "index_train_01.csv"),
@@ -544,6 +548,24 @@ def get_md_datasets(
 
     return train_dataset, val_dataset, test_dataset
 
+
+def get_order(args):
+    # if ("fpreuse_test" in args and args.fpreuse_test) or (
+    #     "fpreuse_datasplit" in args and args.fpreuse_datasplit
+    # ):
+    #     order = "consecutive_test"
+    order = args.datasplit
+    # if we use fp reuse, we need to make sure that the test set is consecutive
+    if args.fpreuse_test:
+        if args.datasplit not in ["fpreuse_overlapping", "fpreuse_ordered"]:
+            print('Warning: fpreuse_test is set, but datasplit is not "fpreuse_overlapping" or "fpreuse_ordered". Setting datasplit to "fpreuse_overlapping"')
+            args.datasplit = "fpreuse_overlapping"
+    # rename datasplit to order
+    if args.datasplit == "fpreuse_ordered":
+        order = "consecutive_all"
+    elif args.datasplit == "fpreuse_overlapping":
+        order = "consecutive_test"
+    return order
 
 if __name__ == "__main__":
 

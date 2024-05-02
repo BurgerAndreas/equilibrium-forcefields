@@ -11,7 +11,6 @@ model:
 # rmd17: use revised version of MD17 with more accurate energies and forces 
 # rmd17og: use the non-revised (old) data but downloaded from the revised dataset (should be the same as md17)
 dname: "md17"
-use_revised_splits: False
 use_original_datasetcreation: False # will only work with dname=md17
 # (str)
 data_path: "datasets"
@@ -19,6 +18,13 @@ data_path: "datasets"
 target: "aspirin"
 # (str)
 output_dir: models/md17/equiformer/test
+
+# how to split the dataset into training, validation, and testing
+# equiformer # default. randomly shuffles dataset into train, val, test without any overlap
+# fpreuse_overlapping # consecutive across batches, test split overlaps with train split, train and val splits are the same as in Equiformer
+# fpreuse_ordered # dataset is split into train, val, test without any shuffling. Testset is reordered to be consecutive across batches
+# rmd17 # datasplit indices delivered with the revised MD17 dataset, only works with md17 or rmd17
+datasplit: "equiformer"
 
 # (int)
 epochs: 1000
@@ -133,7 +139,6 @@ model_is_deq: False
 # reuse fixed-point of previous step
 # DEQ Optical Flow used FPR only during inference
 fpreuse_test: False
-fpreuse_datasplit: False
 
 # (sparse) fixed-point correction
 fpc_loss: l2

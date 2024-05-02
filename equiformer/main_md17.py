@@ -104,16 +104,9 @@ def main(args):
             val_size=args.val_size,
             test_size=None,
             seed=args.seed,
-            # order="consecutive_test" if args.fpreuse_test else None,
         )
     else:
         import equiformer.datasets.pyg.md_all as md_all
-
-        order = None
-        if ("fpreuse_test" in args and args.fpreuse_test) or (
-            "fpreuse_datasplit" in args and args.fpreuse_datasplit
-        ):
-            order = "consecutive_test"
 
         train_dataset, val_dataset, test_dataset = md_all.get_md_datasets(
             root=args.data_path,
@@ -123,8 +116,7 @@ def main(args):
             val_size=args.val_size,
             test_size=None,
             seed=args.seed,
-            load_splits=args.use_revised_splits,
-            order=order,
+            order=md_all.get_order(args),
         )
 
     _log.info("")

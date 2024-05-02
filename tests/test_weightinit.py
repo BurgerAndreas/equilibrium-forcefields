@@ -10,7 +10,7 @@ from typing import Iterable, Optional
 import sys, os
 
 # import equiformer.datasets.pyg.md17 as md17_dataset
-import equiformer.datasets.pyg.md_all as md17_dataset
+import equiformer.datasets.pyg.md_all as md_all
 
 from equiformer.logger import FileLogger
 
@@ -190,7 +190,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     torch.manual_seed(args.seed)
 
     """ Dataset """
-    train_dataset, val_dataset, test_dataset = md17_dataset.get_md_datasets(
+    train_dataset, val_dataset, test_dataset = md_all.get_md_datasets(
         root=os.path.join(args.data_path, "md17", args.target),
         dataset_arg=args.target,
         train_size=args.train_size,
@@ -198,8 +198,7 @@ def hydra_wrapper(args: DictConfig) -> None:
         test_size=None,
         seed=args.seed,
         dname=args.dname,
-        load_splits=args.use_revised_splits,
-        order="consecutive_test" if args.fpreuse_test else None,
+        order=md_all.get_order(args),
     )
 
     # statistics

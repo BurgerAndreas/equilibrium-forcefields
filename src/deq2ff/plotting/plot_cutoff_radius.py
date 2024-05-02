@@ -75,8 +75,7 @@ def test(args, max_radius=np.arange(1.0, 10.0), batch_size=1):
             test_size=None,
             seed=args.seed,
             dname=args.dname,
-            load_splits=args.use_revised_splits,
-            order="consecutive_test" if args.fpreuse_test else None,
+            order=md_all.get_order,
         )
 
     # statistics

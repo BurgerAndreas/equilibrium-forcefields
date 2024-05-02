@@ -241,7 +241,6 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             self.device,
             self.dtype,
         )
-        print("x.embedding.shape", x.embedding.shape)
 
         offset_res = 0
         offset = 0

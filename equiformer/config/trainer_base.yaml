@@ -147,6 +147,10 @@ fpc_rand: False # if to pick fixed-point estimates unform randomly or uniformly 
 fpc_gamma: 0.8 # weight for the fixed-point correction loss
 fpc_wfunc: const # weighting of loss in time. 'const' (constant), 'linear', and 'exp'
 
+# contrastive fixed-point loss
+contrastive_loss: False # False, next
+contrastive_weight: 0.8 # weight for the contrastive fixed-point loss
+
 unsqueeze_e_dim: False # if to reshape model output [B] (OC20) -> [B,1] (MD17)
 squeeze_e_dim: False # if to reshape data [B,1] (MD17) -> [B] (OC20)
 

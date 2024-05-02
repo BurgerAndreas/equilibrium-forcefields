@@ -84,7 +84,7 @@ from typing import List
 
 from equiformer_v2.oc20.trainer.base_trainer_oc20 import Normalizer
 
-from deq2ff.losses import load_loss, L2MAELoss
+from deq2ff.losses import load_loss, L2MAELoss, _pairwise_distances
 
 # registers all models
 import deq2ff.register_all_models
@@ -224,7 +224,10 @@ def main(args):
 
         # V1 view / reshape
         # data.batch contains the batch index for each atom (node)
-        fp_reshaped = fixedpoints.view(batch_size, num_atoms, *dims_per_atom)
+        fixedpoints = fixedpoints.view(batch_size, num_atoms, *dims_per_atom)
+
+        # reshape to [batch_size, features]
+        fixedpoints = fixedpoints.reshape(batch_size, -1)
 
         # V2 add onto new tensor
         # fp_added = torch.zeros(batch_size, num_atoms, *dims_per_atom, device=fixedpoints.device, dtype=fixedpoints.dtype)
@@ -232,8 +235,15 @@ def main(args):
         # print('fps.shape', fp_added.shape)
 
         # test that reshape is correct
-        print('fixedpoints[0] == 1?', torch.allclose(fp_reshaped[0], torch.ones_like(fp_reshaped[0])))
-        print('fixedpoints[1] != 1?', not torch.allclose(fp_reshaped[1], torch.ones_like(fp_reshaped[1])))
+        print('fixedpoints[0] == 1?', torch.allclose(fixedpoints[0], torch.ones_like(fixedpoints[0])))
+        print('fixedpoints[1] != 1?', not torch.allclose(fixedpoints[1], torch.ones_like(fixedpoints[1])))
+
+        # compute pairwise distances between fixed points
+        # [batch_size, batch_size]
+        # similarity = torch.cdist(fp_reshaped, fp_reshaped, p=2) # BxPxM, BxRxM -> BxPxR
+        distances = _pairwise_distances(fixedpoints)
+        print('distances', distances.shape)
+        print('distances', distances)
 
         """ Similarity matrix """
         # for the contrastive loss we construct a matrix of positive and negative relations
@@ -243,7 +253,6 @@ def main(args):
         similarity = torch.diag(torch.ones(batch_size), diagonal=1)
         print(similarity)
 
-
         """ Indices are consecutive """
         # data.idx contains the timestep index
         # assert that indices are consecutive via torch.roll
@@ -251,7 +260,6 @@ def main(args):
         print('data.idx', data.idx)
 
         exit()
-
 
 
 @hydra.main(

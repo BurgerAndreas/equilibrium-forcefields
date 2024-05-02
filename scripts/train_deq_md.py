@@ -62,7 +62,7 @@ Adapted from equiformer/main_md17.py
 
 import deq2ff
 import deq2ff.logging_utils_deq as logging_utils_deq
-from deq2ff.losses import load_loss, L2MAELoss
+from deq2ff.losses import load_loss, L2MAELoss, contrastive_loss
 from deq2ff.deq_equiformer.deq_dp_md17 import (
     deq_dot_product_attention_transformer_exp_l2_md17,
 )
@@ -878,10 +878,21 @@ def train_one_epoch(
                     losses_fpc = fp_correction(
                         crit, (z_pred[:-1], z_pred[-1]), return_loss_values=True
                     )
-                    loss += args.fpc_gamma * losses_fpc.mean()
+                    loss_fpc += args.fpc_gamma * losses_fpc.mean()
+                    loss += loss_fpc
+                    if wandb.run is not None:
+                        wandb.log({"fpc_loss_scaled": loss_fpc.item()},step=global_step,)
                 # else:
                 # # For example if we would index step 5, but only four forward solver steps were performed
                 #     print('Warning: Couldnt perform fixed-point correction:', 'info', len(info), 'z_pred', len(info["z_pred"]))
+            
+            # Contrastive loss
+            if args.contrastive_loss not in [False, None]:
+                closs = contrastive_loss(info["z_pred"][-1], data, closs_type=args.contrastive_loss, squared=True)
+                closs = args.contrastive_weight * closs
+                loss += closs
+                if wandb.run is not None:
+                    wandb.log({"contrastive_loss_scaled": closs.item()}, step=global_step)
 
             if wandb.run is not None:
                 wandb.log(

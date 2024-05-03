@@ -126,13 +126,19 @@ class TripletLoss(torch.nn.Module):
         self.margin = margin
 
     def calc_euclidean(self, x1, x2):
+        # x: [num_pairs, ...]
+        # sum over feature dims
         dim = [i for i in range(1, len(x1.shape))]
         return (x1 - x2).pow(2).sum(dim=dim)
     
     def forward(self, anchor: torch.Tensor, positive: torch.Tensor, negative: torch.Tensor) -> torch.Tensor:
+        # anchor, positive, negative: [num_pairs, ...]
         distance_positive = self.calc_euclidean(anchor, positive)
         distance_negative = self.calc_euclidean(anchor, negative)
+        # distances: [num_pairs]
+        # if positive is closer than negative, loss is 0
         losses = torch.relu(distance_positive - distance_negative + self.margin)
+        # mean over pairs
         return losses.mean()
 
 def calc_triplet_loss(fixedpoints, data, triplet_lossfn):
@@ -153,6 +159,7 @@ def calc_triplet_loss(fixedpoints, data, triplet_lossfn):
     # reshape to [batch_size, num_atoms, ...]
     # data.batch contains the batch index for each atom (node)
     fixedpoints = fixedpoints.view(batch_size, num_atoms, *dims_per_atom)
+    print('fixedpoints calc_triplet_loss', fixedpoints.shape)
 
     # reshape to [batch_size, features]
     # fixedpoints = fixedpoints.reshape(batch_size, -1)
@@ -161,6 +168,9 @@ def calc_triplet_loss(fixedpoints, data, triplet_lossfn):
     anchors = fixedpoints[:triplets_per_batch]
     positives = fixedpoints[triplets_per_batch:2*triplets_per_batch]
     negatives = fixedpoints[batch_size-triplets_per_batch:]
+
+    print('anchors', anchors.shape)
+    print('positives', positives.shape)
 
     return triplet_lossfn(anchors, positives, negatives)
 

@@ -178,14 +178,17 @@ class EquiformerV2_MD17(EquiformerV2_OC20):
         # Update spherical node embeddings
         ###############################################################
 
-        for i in range(self.num_layers):
-            x = self.blocks[i](
-                x=x,  # SO3_Embedding
-                atomic_numbers=atomic_numbers,
-                edge_distance=edge_distance,
-                edge_index=edge_index,
-                batch=data.batch,  # for GraphDropPath
-            )
+        if self.skip_blocks:
+            pass
+        else:
+            for i in range(self.num_layers):
+                x = self.blocks[i](
+                    x=x,  # SO3_Embedding
+                    atomic_numbers=atomic_numbers,
+                    edge_distance=edge_distance,
+                    edge_index=edge_index,
+                    batch=data.batch,  # for GraphDropPath
+                )
 
         # Final layer norm
         x.embedding = self.norm(x.embedding)

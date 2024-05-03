@@ -5,4 +5,4 @@ defaults:
   # if _self_ is the first entry, compositions will overwrite this config
   # if _self_ is the last entry, this config will overwrite compositions (default)
   # https://hydra.cc/docs/1.3/upgrades/1.0_to_1.1/default_composition_order/
-  - ../../equiformer/config/constlr
+  - ../../../equiformer/config/cfg/constlr

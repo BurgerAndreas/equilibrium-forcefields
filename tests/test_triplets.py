@@ -120,6 +120,7 @@ def test_triplet_simple():
 
     dataloader = TripletDataloader(dataset, args.batch_size)
     for i, data in enumerate(dataloader):
+        print()
         print(f"Batch {i}: {data}")
         if i > 0:
             break
@@ -130,8 +131,11 @@ def test_triplet_simple():
         # fake data
         data = DummyClass(natoms=natoms, batch_size=args.batch_size)
 
+        print('fixedpoints', fixedpoints.shape)
+
         triplet_lossfn = TripletLoss(margin=args.tripletloss_margin)
-        calc_triplet_loss(fixedpoints, data, triplet_lossfn)
+        loss = calc_triplet_loss(fixedpoints, data, triplet_lossfn)
+        print("loss", loss)
 
 def main(args):
 

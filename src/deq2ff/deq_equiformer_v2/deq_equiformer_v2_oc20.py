@@ -281,58 +281,65 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # "Replaced" by DEQ
         ###############################################################
 
-        # emb_SO3 = x
-        emb = x.embedding
-
-        if fixedpoint is None:
-            x: torch.Tensor = self._init_z(shape=emb.shape)
-            reuse = False
+        if self.skip_blocks:
+            pass
+            z_pred = [torch.zeros_like(x.embedding)]
+            info = {}
         else:
-            reuse = True
-            x = fixedpoint
+            # emb_SO3 = x
+            emb = x.embedding
 
-        reset_norm(self.blocks)
+            if fixedpoint is None:
+                x: torch.Tensor = self._init_z(shape=emb.shape)
+                reuse = False
+            else:
+                reuse = True
+                x = fixedpoint
 
-        # Transformer blocks
-        # f = lambda z: self.mfn_forward(z, u)
-        def f(x):
-            return self.deq_implicit_layer(
-                x,
-                emb=emb,
-                edge_index=edge_index,
-                edge_distance=edge_distance,
-                atomic_numbers=atomic_numbers,
-                data=data,
+            reset_norm(self.blocks)
+
+            # Transformer blocks
+            # f = lambda z: self.mfn_forward(z, u)
+            def f(x):
+                return self.deq_implicit_layer(
+                    x,
+                    emb=emb,
+                    edge_index=edge_index,
+                    edge_distance=edge_distance,
+                    atomic_numbers=atomic_numbers,
+                    data=data,
+                )
+            
+
+            # find fixed-point
+            # | During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
+            # | During inference, returns a list containing the fixed point solution only.
+            # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
+            z_pred, info = self.deq(
+                f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse)
+            )
+            info["z_pred"] = z_pred
+
+            x = SO3_Embedding(
+                length=num_atoms,
+                lmax_list=self.lmax_list,
+                num_channels=self.sphere_channels_fixedpoint,
+                device=self.device,
+                dtype=self.dtype,
+                embedding=z_pred[-1],
             )
 
-        # find fixed-point
-        # | During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
-        # | During inference, returns a list containing the fixed point solution only.
-        # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
-        z_pred, info = self.deq(
-            f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse)
-        )
-
-        x = SO3_Embedding(
-            length=num_atoms,
-            lmax_list=self.lmax_list,
-            num_channels=self.sphere_channels_fixedpoint,
-            device=self.device,
-            dtype=self.dtype,
-            embedding=z_pred[-1],
-        )
+            ######################################################
+            # Logging
+            ######################################################
+            if step is not None:
+                # log the final fixed-point
+                logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
+                # log the input injection (output of encoder)
+                logging_utils_deq.log_fixed_point_norm(emb, step, datasplit, name="emb")
 
         # Final layer norm
         x.embedding = self.norm(x.embedding)
-
-        ######################################################
-        # Logging
-        ######################################################
-        if step is not None:
-            # log the final fixed-point
-            logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
-            # log the input injection (output of encoder)
-            logging_utils_deq.log_fixed_point_norm(emb, step, datasplit, name="emb")
 
         ###############################################################
         # Energy estimation
@@ -355,7 +362,6 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             forces = forces.embedding.narrow(1, 1, 3)
             forces = forces.view(-1, 3)
 
-        info["z_pred"] = z_pred
         if self.regress_forces:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)

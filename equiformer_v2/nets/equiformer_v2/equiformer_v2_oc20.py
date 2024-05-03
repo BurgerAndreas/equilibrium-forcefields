@@ -160,6 +160,7 @@ class EquiformerV2_OC20(BaseModel):
         name=None,
         force_head="SO2EquivariantGraphAttention",
         energy_head="FeedForwardNetwork",
+        skip_blocks=False,
         **kwargs,
     ):
         super().__init__()
@@ -175,6 +176,8 @@ class EquiformerV2_OC20(BaseModel):
 
         self.force_head = force_head
         self.energy_head = energy_head
+
+        self.skip_blocks = skip_blocks
 
         self.use_pbc = use_pbc
         self.regress_forces = regress_forces
@@ -525,14 +528,17 @@ class EquiformerV2_OC20(BaseModel):
         # Update spherical node embeddings
         ###############################################################
 
-        for i in range(self.num_layers):
-            x = self.blocks[i](
-                x,  # SO3_Embedding
-                atomic_numbers,
-                edge_distance,
-                edge_index,
-                batch=data.batch,  # for GraphDropPath
-            )
+        if self.skip_blocks:
+            pass
+        else:
+            for i in range(self.num_layers):
+                x = self.blocks[i](
+                    x,  # SO3_Embedding
+                    atomic_numbers,
+                    edge_distance,
+                    edge_index,
+                    batch=data.batch,  # for GraphDropPath
+                )
 
         # Final layer norm
         x.embedding = self.norm(x.embedding)

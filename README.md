@@ -98,6 +98,16 @@ python main_oc20.py \
     --submit
 ```
 
+### Test
+Test if it works:
+```bash
+python scripts/train_deq_md_v2.py +trial=test
+python scripts/train_deq_md_v2.py +use=deq +trial=test
+python scripts/train_deq_md_v2.py +use=deq fpreuse_test=True +trial=test
+python scripts/train_deq_md_v2.py +use=deq datasplit=fpreuse_overlapping +trial=test
+python scripts/train_deq_md_v2.py +use=deq datasplit=fpreuse_ordered +trial=test
+```
+
 ## TODO
 
 Energy as gradient of the force via @torch.enable_grad() of forward w.r.t pos (see dp_attention_transformer_md17.py)
@@ -118,48 +128,18 @@ forward():
     )
 ```
 
-
-- max out GPU memory via network parameters \
-Yes, sounds important
-
-- find optimal hyperparameters (at least learning_rate)
-
-- max out GPU memory via batch_size \
-Maybe, doesn't seem too important
-
-- [x] Try anderson and broyden solver (default: fixed_point_iter) \
-In theory, if all methods find a fixed point within `f_max_iter`, all should converge to the same fixed point. Then the method should not affect the error of the DEQ over number of steps.
-
-- [x] Only calculate the loss w.r.t energy \
-meas_force=False
-
 - Is the force gradient exact? 
 -> If grad=1 (default), forces use approximate 1-step phantom grad from TorchDEQ for autodiff
-
-
-- think about fix point reuse (not sure if the MD dataset is temporally ordered. At least need to change shuffeling and batching in the dataloader)
-Not too important right now since it only increases speed in time but not nimber of epochs and it will be difficult to implement
 
 - exact gradient with torch autograd
 - - [x] default: `deq_kwargs.grad=1` Phantom Gradient (running 1 function step at the fixed point and differentiating it as the backward pass)
 - - [x] `deq_kwargs.ift=True` or `deq_kwargs.grad='ift'` for exact implicit differentiation
 - - [x] `deq_kwargs.grad=10 deq_kwargs.f_max_iter=0` for exact Back Progapagation Through Time (BPTT) with PyTorch autograd (should give the same result as IFT, use as a sanity check)
 
-
-- DEQ torch norm tricks (e.g. see https://github.com/locuslab/torchdeq/blob/main/deq-zoo/ignn/graphclassification/layers.py)
-
-- [x] exploding weights, gradients, activations?
-- [ ] how should the weights, gradients, activations look like?
-
 - equiformer equivariance test (model(x) == model(rot(x)))
 
 
 ## Normalization
-
-- [ ] Jacobian regularization
-
-Equiformer
-
 
 TorchDEQ
 - Weight Normalization (WN) scales the L2 norm using a learnable scaling factor

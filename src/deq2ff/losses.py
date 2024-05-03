@@ -118,3 +118,137 @@ def contrastive_loss(fixedpoints, data, closs_type="next", squared=True):
         raise NotImplementedError(f"Unknown closs_type: {closs_type}")
     
     return (distances * similarity).mean()
+
+class TripletLoss(torch.nn.Module):
+    # https://medium.com/@Skpd/triplet-loss-on-imagenet-dataset-a2b29b8c2952
+    def __init__(self, margin=1.0):
+        super(TripletLoss, self).__init__()
+        self.margin = margin
+
+    def calc_euclidean(self, x1, x2):
+        dim = [i for i in range(1, len(x1.shape))]
+        return (x1 - x2).pow(2).sum(dim=dim)
+    
+    def forward(self, anchor: torch.Tensor, positive: torch.Tensor, negative: torch.Tensor) -> torch.Tensor:
+        distance_positive = self.calc_euclidean(anchor, positive)
+        distance_negative = self.calc_euclidean(anchor, negative)
+        losses = torch.relu(distance_positive - distance_negative + self.margin)
+        return losses.mean()
+
+def calc_triplet_loss(fixedpoints, data, triplet_lossfn):
+    """
+    Assumes:
+    - fixedpoints: [batch_size*num_atoms, ...]
+    - positive/negative pairs and buffers are ordered: 
+        [p1 p1 p2 p2 (b1) (b1) (b2) (b2) ... n1 n2]
+    """
+    # Fixed-point contrastive loss
+    # fixedpoints E1: [batch_size*num_atoms, irrep_dim]
+    # fixedpoints E2: [batch_size*num_atoms, num_coefficients, num_channels]
+    dims_per_atom = fixedpoints.shape[1:]
+    # natoms: number atoms per batch [batch_size]
+    batch_size = len(data.natoms)
+    num_atoms = data.natoms[0]
+
+    # reshape to [batch_size, num_atoms, ...]
+    # data.batch contains the batch index for each atom (node)
+    fixedpoints = fixedpoints.view(batch_size, num_atoms, *dims_per_atom)
+
+    # reshape to [batch_size, features]
+    # fixedpoints = fixedpoints.reshape(batch_size, -1)
+
+    triplets_per_batch = batch_size // 3
+    anchors = fixedpoints[:triplets_per_batch]
+    positives = fixedpoints[triplets_per_batch:2*triplets_per_batch]
+    negatives = fixedpoints[batch_size-triplets_per_batch:]
+
+    return triplet_lossfn(anchors, positives, negatives)
+
+
+class TripletDataloader:
+    def __init__(self, dataset, batch_size, drop_last=True, random_start=False):
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.num_batches = len(dataset) // batch_size
+
+        # Idea: split up dataset into two unequal parts
+        # first part: 2/3 + buffer of the dataset for the positive pairs 
+        # second part: 1/3 of the dataset for the negative pairs
+        # a batch will be formed by taking 
+        # n*2 + n*buffer_per_batch samples from the first part and n*1 samples from the second part
+        # where n = triplets_per_batch
+        # batch_size = 8: [p1 p1 p2 p2 b1 b2 ... n1 n2] (positive, buffer, negative)
+
+        self.triplets_per_batch = batch_size // 3
+        self.buffer_per_batch = batch_size % 3
+        # size of the first / second part of the batch
+        self.bs1 = 2 * self.triplets_per_batch + self.buffer_per_batch
+        self.bs2 = self.triplets_per_batch
+        # size of the first part of the dataset = size of jump from p1 to n1
+        self.ds1 = self.bs1 * self.num_batches
+
+        # start at random position in the dataset
+        self.random_start = random_start
+
+        self.start = 0
+        # current index in the dataset where the next batch starts
+        self.idx = 0 
+        # current batch index
+        self.ibatch = 0
+        self.reset()
+
+    def reset(self, random_start=None):
+        # start at random position in the dataset
+        if random_start is None:
+            random_start = self.random_start
+        else:
+            self.random_start = random_start
+        if random_start:
+            self.start = torch.randint(0, len(self.dataset), (1,)).item()
+        else:
+            self.start = 0
+        # reset idx to start
+        self.idx = self.start
+        self.ibatch = 0
+
+    def __len__(self):
+        return self.num_batches
+
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        if self.ibatch >= self.num_batches:
+            raise StopIteration
+        
+        # prefer not to use random_start with indices tensors here.
+        # indexing a tensor with slice or int returns a view of that without copying its underlying storage 
+        # but indexing with another tensor (a Bool or a Long one but not a 0-dim long tensor) or a list returns a copy of the tensor
+        # (You can use .storage().data_ptr() to see if the underlying data of a tensor has been copied or not.)
+        if self.random_start:
+            # indices for the current batch 
+            indices1 = torch.arange(self.idx, self.idx+self.bs1)
+            indices2 = torch.arange(self.idx+self.ds1, self.idx+self.ds1+self.bs2)
+            # if we start from a random position, we need to wrap around the dataset
+            indices1 = torch.where(indices1 >= len(self.dataset), indices1 - len(self.dataset), indices1).long()
+            indices2 = torch.where(indices2 >= len(self.dataset), indices2 - len(self.dataset), indices2).long()
+            # using indices tensor will copy the data
+            # print("dataset storage                             ", self.dataset.storage().data_ptr())
+            # print("dataset[self.idx, self.idx+self.bs1] storage", self.dataset[self.idx:self.idx+self.bs1].storage().data_ptr())
+            # print("dataset[indices1] storage                   ", self.dataset[indices1].storage().data_ptr())
+            # build the batch
+            batch = torch.concat([
+                self.dataset[indices1],
+                self.dataset[indices2]
+            ], dim=0)
+
+        else:
+            batch = torch.concat([
+                self.dataset[self.idx : self.idx+self.bs1],
+                self.dataset[self.idx+self.ds1 : self.idx+self.ds1+self.bs2]
+            ], dim=0)
+
+        # update counters
+        self.idx += self.bs1
+        self.ibatch += 1
+        return batch

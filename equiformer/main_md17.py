@@ -86,7 +86,7 @@ def main(args):
 
     _log = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
     _log.info(
-        f"args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}"
+        f"\nArgs passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}"
     )
 
     # since dataset needs random

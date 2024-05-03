@@ -51,8 +51,8 @@ from .input_block import EdgeDegreeEmbedding
 
 import deq2ff.logging_utils_deq as logging_utils_deq
 
-# # Statistics of IS2RE 100K
-# # IS2RE: 100k, max_radius = 5, max_neighbors = 100
+# Statistics of OC20 IS2RE 100K
+# IS2RE: 100k, max_radius = 5, max_neighbors = 100
 # _AVG_NUM_NODES = 77.81317
 # _AVG_DEGREE = 23.395238876342773
 
@@ -164,7 +164,8 @@ class EquiformerV2_OC20(BaseModel):
     ):
         super().__init__()
 
-        print(f"Ignoring kwargs in {self.__class__.__name__}:", kwargs)
+        if len(kwargs) > 0:
+            print(f"\nIgnoring kwargs in {self.__class__.__name__}:", kwargs)
 
         # added
         self._AVG_NUM_NODES = _AVG_NUM_NODES

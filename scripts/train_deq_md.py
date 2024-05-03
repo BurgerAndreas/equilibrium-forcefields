@@ -62,7 +62,7 @@ Adapted from equiformer/main_md17.py
 
 import deq2ff
 import deq2ff.logging_utils_deq as logging_utils_deq
-from deq2ff.losses import load_loss, L2MAELoss, contrastive_loss
+from deq2ff.losses import load_loss, L2MAELoss, contrastive_loss, TripletLoss, calc_triplet_loss
 from deq2ff.deq_equiformer.deq_dp_md17 import (
     deq_dot_product_attention_transformer_exp_l2_md17,
 )
@@ -806,6 +806,9 @@ def train_one_epoch(
     task_mean = model.task_mean
     task_std = model.task_std
 
+    # triplet loss
+    triplet_lossfn = TripletLoss(margin=args.tripletloss_margin)
+
     # broyden solver outpus NaNs if it diverges
     # count the number of NaNs and stop training if it exceeds a threshold
     isnan_cnt = 0
@@ -888,9 +891,13 @@ def train_one_epoch(
             
             # Contrastive loss
             if args.contrastive_loss not in [False, None]:
-                # next
                 assert (data.idx[0] - data.idx[1]).abs() == 1, f"Contrastive loss requires consecutive indices {data.idx}"
-                closs = contrastive_loss(info["z_pred"][-1], data, closs_type=args.contrastive_loss, squared=True)
+                if args.contrastive_loss == 'triplet':
+                    closs = calc_triplet_loss(info["z_pred"][-1], data, triplet_lossfn)
+                elif args.contrastive_loss in ['next']:
+                    closs = contrastive_loss(info["z_pred"][-1], data, closs_type=args.contrastive_loss, squared=True)
+                else:
+                    raise NotImplementedError(f"Contrastive loss {args.contrastive_loss} not implemented.")
                 closs = args.contrastive_weight * closs
                 loss += closs
                 if wandb.run is not None:

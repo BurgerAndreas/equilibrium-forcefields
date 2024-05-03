@@ -290,7 +290,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             emb = x.embedding
 
             if fixedpoint is None:
-                x: torch.Tensor = self._init_z(shape=emb.shape)
+                x: torch.Tensor = self._init_z(shape=emb.shape, emb=emb)
                 reuse = False
             else:
                 reuse = True
@@ -434,7 +434,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             )
         return x.embedding
 
-    def _init_z(self, shape):
+    def _init_z(self, shape, emb=None):
         """Initializes fixed-point for DEQ
         shape: [num_atoms * batch_size, irreps_dim]
         irreps_dim = a*1 + b*3 + c*5
@@ -451,6 +451,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 shape,
                 device=self.device,
             )
+        elif self.z0 == "emb":
+            return emb.embedding
         else:
             raise ValueError(f"Invalid z0: {self.z0}")
 

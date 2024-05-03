@@ -8,3 +8,4 @@ deq_kwargs:
   f_solver: 'broyden'
 
 fpc_freq: 2
+fpreuse_test: True

@@ -888,6 +888,8 @@ def train_one_epoch(
             
             # Contrastive loss
             if args.contrastive_loss not in [False, None]:
+                # next
+                assert (data.idx[0] - data.idx[1]).abs() == 1, f"Contrastive loss requires consecutive indices {data.idx}"
                 closs = contrastive_loss(info["z_pred"][-1], data, closs_type=args.contrastive_loss, squared=True)
                 closs = args.contrastive_weight * closs
                 loss += closs

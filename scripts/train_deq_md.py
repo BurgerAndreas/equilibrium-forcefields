@@ -282,7 +282,7 @@ def main(args):
         return {"avg_node": avg_node, "avg_edge": avg_edge, "avg_degree": avg_degree.item()}
 
     # Overwrite _AVG_NUM_NODES and _AVG_DEGREE with the dataset statistics
-    if args.load_computed_stats_molecule:
+    if args.load_computed_stats:
         import json
         if type(args.load_computed_stats) == str:
             stats = json.load(open(args.load_computed_stats))

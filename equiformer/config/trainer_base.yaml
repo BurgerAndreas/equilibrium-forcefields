@@ -20,7 +20,8 @@ target: "aspirin"
 output_dir: models/md17/equiformer/test
 # if to overwrite _AVG_NUM_NODES and _AVG_DEGREE with the dataset statistics (bool)
 load_computed_stats: False
-use_dataset_avg_stats: False # only has an effect if load_computed_stats is True
+# Use molecule of dataset average statistics. only has an effect if load_computed_stats is True
+use_dataset_avg_stats: False 
 
 # how to split the dataset into training, validation, and testing
 # equiformer # default. randomly shuffles dataset into train, val, test without any overlap

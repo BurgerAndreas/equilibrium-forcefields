@@ -274,11 +274,31 @@ def main(args):
     if args.compute_stats:
         avg_node, avg_edge, avg_degree = compute_stats(
             train_loader,
-            max_radius=args.max_radius,
+            max_radius=args.model.max_radius,
             logger=_log,
             print_freq=args.print_freq,
         )
-        return
+        print(f'\nComputed stats: \n\tavg_node={avg_node} \n\tavg_edge={avg_edge} \n\tavg_degree={avg_degree}\n')
+        return {"avg_node": avg_node, "avg_edge": avg_edge, "avg_degree": avg_degree.item()}
+
+    # Overwrite _AVG_NUM_NODES and _AVG_DEGREE with the dataset statistics
+    if args.load_computed_stats_molecule:
+        import json
+        if type(args.load_computed_stats) == str:
+            stats = json.load(open(args.load_computed_stats))
+        else:
+            # default: datasets/statistics.json
+            _fpath = os.path.join("datasets", "statistics.json")
+            stats = json.load(open(_fpath))
+        # load statistics of molecule or dataset
+        if args.use_dataset_avg_stats:
+            _stats = stats[args.dname]["_avg"][args.model.max_radius]
+        else:
+            _stats = stats[args.dname][args.target][args.model.max_radius]
+        _AVG_NUM_NODES, _AVG_DEGREE = _stats["avg_node"], _stats["avg_degree"]
+        # overwrite model parameters
+        model._AVG_NUM_NODES = _AVG_NUM_NODES
+        model._AVG_DEGREE = _AVG_DEGREE
 
     # record the best validation and testing errors and corresponding epochs
     best_metrics = {

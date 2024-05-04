@@ -83,12 +83,12 @@ class MDAll(InMemoryDataset):
             "benzene FHI-aims": "benzene2018_dft.npz",
         },
         "md22": {
-            "AT-AT-CG-CG": "md22_AT-AT-CG-CG.npz",
-            "AT-AT": "md22_AT-AT.npz",
-            "Ac-Ala3-NHMe": "md22_Ac-Ala3-NHMe.npz",
+            "AT_AT_CG_CG": "md22_AT-AT-CG-CG.npz",
+            "AT_AT": "md22_AT-AT.npz",
+            "Ac_Ala3_NHMe": "md22_Ac-Ala3-NHMe.npz",
             "DHA": "md22_DHA.npz",
-            "buckyball-catcher": "md22_buckyball-catcher.npz",
-            "dw-nanotube": "md22_dw_nanotube.npz",
+            "buckyball_catcher": "md22_buckyball-catcher.npz",
+            "dw_nanotube": "md22_dw_nanotube.npz",
             "stachyose": "md22_stachyose.npz",
         },
     }
@@ -115,11 +115,11 @@ class MDAll(InMemoryDataset):
         if dname == "rmd17":
             assert (
                 "revised " + dataset_arg in MDAll.molecule_files[dname]
-            ), f"Unknown data arguments {dataset_arg} with {dname}. Try: {MDAll.available_molecules[dname]}"
+            ), f"Unknown target={dataset_arg} with dname={dname}. Try: {MDAll.molecule_files[dname]}"
         else:
             assert (
                 dataset_arg in MDAll.molecule_files[dname]
-            ), f"Unknown data arguments {dataset_arg} with {dname}. Try: {MDAll.available_molecules[dname]}"
+            ), f"Unknown target={dataset_arg} with dname={dname}. Try: {MDAll.molecule_files[dname]}"
 
         self.name = dataset_arg
         self.dname = dname

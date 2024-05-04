@@ -1,0 +1,295 @@
+{
+  "md17": {
+    "aspirin": {
+      "5.0": {
+        "avg_node": 21.0,
+        "avg_edge": 302.3220338983051,
+        "avg_degree": 14.396286964416504
+      },
+      "12.0": {
+        "avg_node": 21.0,
+        "avg_edge": 420.0,
+        "avg_degree": 20.0
+      },
+      "20.0": {
+        "avg_node": 21.0,
+        "avg_edge": 420.0,
+        "avg_degree": 20.0
+      }
+    },
+    "benzene": {
+      "5.0": {
+        "avg_node": 12.0,
+        "avg_edge": 129.85381355932202,
+        "avg_degree": 10.821150779724121
+      },
+      "12.0": {
+        "avg_node": 12.0,
+        "avg_edge": 132.0,
+        "avg_degree": 11.0
+      },
+      "20.0": {
+        "avg_node": 12.0,
+        "avg_edge": 132.0,
+        "avg_degree": 11.0
+      }
+    },
+    "ethanol": {
+      "5.0": {
+        "avg_node": 9.0,
+        "avg_edge": 72.0,
+        "avg_degree": 8.0
+      },
+      "12.0": {
+        "avg_node": 9.0,
+        "avg_edge": 72.0,
+        "avg_degree": 8.0
+      },
+      "20.0": {
+        "avg_node": 9.0,
+        "avg_edge": 72.0,
+        "avg_degree": 8.0
+      }
+    },
+    "malonaldehyde": {
+      "5.0": {
+        "avg_node": 9.0,
+        "avg_edge": 72.0,
+        "avg_degree": 8.0
+      },
+      "12.0": {
+        "avg_node": 9.0,
+        "avg_edge": 72.0,
+        "avg_degree": 8.0
+      },
+      "20.0": {
+        "avg_node": 9.0,
+        "avg_edge": 72.0,
+        "avg_degree": 8.0
+      }
+    },
+    "naphthalene": {
+      "5.0": {
+        "avg_node": 18.0,
+        "avg_edge": 254.87076271186442,
+        "avg_degree": 14.159486770629883
+      },
+      "12.0": {
+        "avg_node": 18.0,
+        "avg_edge": 306.0,
+        "avg_degree": 17.0
+      },
+      "20.0": {
+        "avg_node": 18.0,
+        "avg_edge": 306.0,
+        "avg_degree": 17.0
+      }
+    },
+    "salicylic_acid": {
+      "5.0": {
+        "avg_node": 16.0,
+        "avg_edge": 208.30084745762713,
+        "avg_degree": 13.018802642822266
+      },
+      "12.0": {
+        "avg_node": 16.0,
+        "avg_edge": 240.0,
+        "avg_degree": 15.0
+      },
+      "20.0": {
+        "avg_node": 16.0,
+        "avg_edge": 240.0,
+        "avg_degree": 15.0
+      }
+    },
+    "toluene": {
+      "5.0": {
+        "avg_node": 15.0,
+        "avg_edge": 192.19703389830508,
+        "avg_degree": 12.813135147094727
+      },
+      "12.0": {
+        "avg_node": 15.0,
+        "avg_edge": 210.0,
+        "avg_degree": 14.0
+      },
+      "20.0": {
+        "avg_node": 15.0,
+        "avg_edge": 210.0,
+        "avg_degree": 14.0
+      }
+    },
+    "uracil": {
+      "5.0": {
+        "avg_node": 12.0,
+        "avg_edge": 128.84533898305085,
+        "avg_degree": 10.737112045288086
+      },
+      "12.0": {
+        "avg_node": 12.0,
+        "avg_edge": 132.0,
+        "avg_degree": 11.0
+      },
+      "20.0": {
+        "avg_node": 12.0,
+        "avg_edge": 132.0,
+        "avg_degree": 11.0
+      }
+    },
+    "_avg": {
+      "5.0": {
+        "avg_node": 14.0,
+        "avg_edge": 170.0487288135593,
+        "avg_degree": 11.493246793746948
+      },
+      "12.0": {
+        "avg_node": 14.0,
+        "avg_edge": 198.0,
+        "avg_degree": 13.0
+      },
+      "20.0": {
+        "avg_node": 14.0,
+        "avg_edge": 198.0,
+        "avg_degree": 13.0
+      }
+    }
+  },
+  "md22": {
+    "AT_AT_CG_CG": {
+      "5.0": {
+        "avg_node": 118.0,
+        "avg_edge": 2552.561440677966,
+        "avg_degree": 21.63187599182129
+      },
+      "12.0": {
+        "avg_node": 118.0,
+        "avg_edge": 10462.385593220339,
+        "avg_degree": 88.6642837524414
+      },
+      "20.0": {
+        "avg_node": 118.0,
+        "avg_edge": 13748.44279661017,
+        "avg_degree": 116.5122299194336
+      }
+    },
+    "AT_AT": {
+      "5.0": {
+        "avg_node": 60.0,
+        "avg_edge": 1114.5296610169491,
+        "avg_degree": 18.57549476623535
+      },
+      "12.0": {
+        "avg_node": 60.0,
+        "avg_edge": 3195.271186440678,
+        "avg_degree": 53.254520416259766
+      },
+      "20.0": {
+        "avg_node": 60.0,
+        "avg_edge": 3539.436440677966,
+        "avg_degree": 58.99060821533203
+      }
+    },
+    "Ac_Ala3_NHMe": {
+      "5.0": {
+        "avg_node": 42.0,
+        "avg_edge": 897.7605932203389,
+        "avg_degree": 21.37525177001953
+      },
+      "12.0": {
+        "avg_node": 42.0,
+        "avg_edge": 1718.9046610169491,
+        "avg_degree": 40.926300048828125
+      },
+      "20.0": {
+        "avg_node": 42.0,
+        "avg_edge": 1722.0,
+        "avg_degree": 41.0
+      }
+    },
+    "DHA": {
+      "5.0": {
+        "avg_node": 56.0,
+        "avg_edge": 1189.7669491525423,
+        "avg_degree": 21.245838165283203
+      },
+      "12.0": {
+        "avg_node": 56.0,
+        "avg_edge": 2913.25,
+        "avg_degree": 52.02231979370117
+      },
+      "20.0": {
+        "avg_node": 56.0,
+        "avg_edge": 3080.0,
+        "avg_degree": 55.0
+      }
+    },
+    "buckyball_catcher": {
+      "5.0": {
+        "avg_node": 148.0,
+        "avg_edge": 4499.466101694915,
+        "avg_degree": 30.401798248291016
+      },
+      "12.0": {
+        "avg_node": 148.0,
+        "avg_edge": 19790.16313559322,
+        "avg_degree": 133.71731567382812
+      },
+      "20.0": {
+        "avg_node": 148.0,
+        "avg_edge": 21756.0,
+        "avg_degree": 147.0
+      }
+    },
+    "dw_nanotube": {
+      "5.0": {
+        "avg_node": 370.0,
+        "avg_edge": 15584.411016949152,
+        "avg_degree": 42.12002944946289
+      },
+      "12.0": {
+        "avg_node": 370.0,
+        "avg_edge": 87386.36652542373,
+        "avg_degree": 236.17933654785156
+      },
+      "20.0": {
+        "avg_node": 370.0,
+        "avg_edge": 124885.01059322034,
+        "avg_degree": 337.5270690917969
+      }
+    },
+    "stachyose": {
+      "5.0": {
+        "avg_node": 87.0,
+        "avg_edge": 2620.540254237288,
+        "avg_degree": 30.121152877807617
+      },
+      "12.0": {
+        "avg_node": 87.0,
+        "avg_edge": 7354.514830508475,
+        "avg_degree": 84.53465270996094
+      },
+      "20.0": {
+        "avg_node": 87.0,
+        "avg_edge": 7482.0,
+        "avg_degree": 86.0
+      }
+    },
+    "_avg": {
+      "5.0": {
+        "avg_node": 125.85714285714286,
+        "avg_edge": 4065.5765738498785,
+        "avg_degree": 26.495920181274414
+      },
+      "12.0": {
+        "avg_node": 125.85714285714286,
+        "avg_edge": 18974.40799031477,
+        "avg_degree": 98.47124699183873
+      },
+      "20.0": {
+        "avg_node": 125.85714285714286,
+        "avg_edge": 25173.269975786923,
+        "avg_degree": 120.28998674665179
+      }
+    }
+  }
+}

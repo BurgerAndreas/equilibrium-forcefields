@@ -1,5 +1,7 @@
 
 datasets/*
+!datasets/statistics*
+
 equiformer/datasets/oc20
 # ocp
 

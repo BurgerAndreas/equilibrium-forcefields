@@ -134,6 +134,7 @@ REPLACE = {
     "_torchDEQ": " ",
     "-True": " ",
     "normtype-": "",
+    "cfg-": "",
     "fsolver-": "",
     "normlayernorm": "ln",
     "_": " ",
@@ -153,6 +154,7 @@ REPLACE = {
     "DEQ DEQ": "DEQ",
     "DEQ equiformer v2DEQE2": "DEQE2",
     "DEQ  dp use-DEQ": "DEQ E1",
+    "torchDEQnorm": "",
     "  ": " ",
 }
 

@@ -386,7 +386,7 @@ def main(args):
             (epoch + 1) % args.test_interval == 0
             and (not update_val_result)
             and (not update_test_result)
-            and args.save_periodic_checkpoint
+            and args.save_checkpoint_after_test
         ):
             _log.info(f"Saving checkpoint")
             torch.save(
@@ -529,7 +529,7 @@ def main(args):
                 (epoch + 1) % args.test_interval == 0
                 and (not update_val_result)
                 and (not update_test_result)
-                and args.save_periodic_checkpoint
+                and args.save_checkpoint_after_test
             ):
                 _log.info(f"Saving EMA checkpoint")
                 torch.save(

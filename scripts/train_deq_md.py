@@ -88,6 +88,40 @@ import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
+# def save_checkpoint():
+#     torch.save(
+#         {
+#             "state_dict": model.state_dict(),
+#             "optimizer": optimizer.state_dict(),
+#             "lr_scheduler": lr_scheduler.state_dict(),
+#             "epoch": epoch,
+#             "global_step": global_step,
+#             "best_metrics": best_metrics,
+#             "best_ema_metrics": best_ema_metrics,
+#         },
+#         os.path.join(
+#             args.output_dir,
+#             "final_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
+#                 epoch, test_err["energy"].avg, test_err["force"].avg
+#             ),
+#         ),
+#     )
+
+def remove_extra_checkpoints(output_dir, max_checkpoints, startswith="epochs@"):
+    # list all files starting with "epochs@" in the output directory
+    # and sort them by the epoch number
+    # then remove all but the last 5 checkpoints
+    checkpoints = sorted(
+        [
+            f
+            for f in os.listdir(output_dir)
+            if f.startswith(startswith) and f.endswith(".pth.tar")
+        ],
+        key=lambda x: int(x.split("@")[1].split("_")[0]),
+    )
+    for f in checkpoints[:-max_checkpoints]:
+        os.remove(os.path.join(output_dir, f))
+    
 
 def get_force_placeholder(dy, loss_e):
     """if meas_force is False, return a placeholder for force prediction and loss_f"""
@@ -101,6 +135,13 @@ def get_force_placeholder(dy, loss_e):
 def main(args):
 
     # create output directory
+    if args.output_dir == 'auto':
+        # args.output_dir = os.path.join('outputs', datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+        # models/md17/equiformer/test
+        mname = args.wandb.name
+        # remove special characters
+        mname = ''.join(e for e in mname if e.isalnum())
+        args.output_dir = f'models/{args.dname}/{args.model.name}/{args.target}/{mname}'
     if args.output_dir is not None:
         os.makedirs(args.output_dir, exist_ok=True)
 
@@ -172,7 +213,7 @@ def main(args):
         raise NotImplementedError(f"Unknown normalizer: {args.normalizer}")
     normalizers = {"energy": normalizer_e, "force": normalizer_f}
 
-    """ Network """
+    """ Model """
     create_model = model_entrypoint(args.model.name)
     if "deq_kwargs" in args:
         model = create_model(
@@ -193,9 +234,41 @@ def main(args):
     if args.watch_model:
         wandb.watch(model, log="all", log_freq=args.log_every_step_major)
 
+    """ Instantiate """
+    optimizer = create_optimizer(args, model)
+    lr_scheduler, _ = create_scheduler(args, optimizer)
+    # record the best validation and testing errors and corresponding epochs
+    best_metrics = {
+        "val_epoch": 0,
+        "test_epoch": 0,
+        "val_force_err": float("inf"),
+        "val_energy_err": float("inf"),
+        "test_force_err": float("inf"),
+        "test_energy_err": float("inf"),
+    }
+    best_ema_metrics = {
+        "val_epoch": 0,
+        "test_epoch": 0,
+        "val_force_err": float("inf"),
+        "val_energy_err": float("inf"),
+        "test_force_err": float("inf"),
+        "test_energy_err": float("inf"),
+    }
+    start_epoch = 0
+    global_step = 0
+
+    """ Load """
     if args.checkpoint_path is not None:
         state_dict = torch.load(args.checkpoint_path, map_location="cpu")
+        # write state_dict
         model.load_state_dict(state_dict["state_dict"])
+        optimizer.load_state_dict(state_dict["optimizer"])
+        lr_scheduler.load_state_dict(state_dict["lr_scheduler"])
+        start_epoch = state_dict["epoch"] + 1
+        global_step = state_dict["global_step"]
+        best_metrics = state_dict["best_metrics"]
+        best_ema_metrics = state_dict["best_ema_metrics"]
+        # log
         _log.info(f"Loaded model from {args.checkpoint_path}")
 
     model = model.to(device)
@@ -230,10 +303,6 @@ def main(args):
         print(
             f"AttributeError: '{model.__class__.__name__}' object has no attribute 'final_block'"
         )
-
-    """ Optimizer and LR Scheduler """
-    optimizer = create_optimizer(args, model)
-    lr_scheduler, _ = create_scheduler(args, optimizer)
 
     # criterion = L2MAELoss()
     loss_fn = load_loss({"energy": args.loss_energy, "force": args.loss_force})
@@ -299,26 +368,6 @@ def main(args):
         # overwrite model parameters
         model._AVG_NUM_NODES = _AVG_NUM_NODES
         model._AVG_DEGREE = _AVG_DEGREE
-
-    # record the best validation and testing errors and corresponding epochs
-    best_metrics = {
-        "val_epoch": 0,
-        "test_epoch": 0,
-        "val_force_err": float("inf"),
-        "val_energy_err": float("inf"),
-        "test_force_err": float("inf"),
-        "test_energy_err": float("inf"),
-    }
-    best_ema_metrics = {
-        "val_epoch": 0,
-        "test_epoch": 0,
-        "val_force_err": float("inf"),
-        "val_energy_err": float("inf"),
-        "test_force_err": float("inf"),
-        "test_energy_err": float("inf"),
-    }
-
-    global_step = 0
 
     """ Dryrun (tryrun?!) of forward pass for testing """
     first_batch = next(iter(train_loader))
@@ -398,7 +447,7 @@ def main(args):
     """ Train! """
     _log.info("\nStart training!\n")
     start_time = time.perf_counter()
-    for epoch in range(args.max_epochs):
+    for epoch in range(start_epoch, args.max_epochs):
 
         epoch_start_time = time.perf_counter()
 
@@ -471,7 +520,15 @@ def main(args):
         if update_val_result and args.save_best_checkpoint:
             _log.info(f"Saving best val checkpoint.")
             torch.save(
-                {"state_dict": model.state_dict()},
+                {
+                    "state_dict": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "lr_scheduler": lr_scheduler.state_dict(),
+                    "epoch": epoch,
+                    "global_step": global_step,
+                    "best_metrics": best_metrics,
+                    "best_ema_metrics": best_ema_metrics,
+                },
                 os.path.join(
                     args.output_dir,
                     "best_val_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
@@ -479,10 +536,20 @@ def main(args):
                     ),
                 ),
             )
+            remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="best_val_epochs@")
+
         if update_test_result and args.save_best_checkpoint:
             _log.info(f"Saving best test checkpoint.")
             torch.save(
-                {"state_dict": model.state_dict()},
+                {
+                    "state_dict": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "lr_scheduler": lr_scheduler.state_dict(),
+                    "epoch": epoch,
+                    "global_step": global_step,
+                    "best_metrics": best_metrics,
+                    "best_ema_metrics": best_ema_metrics,
+                },
                 os.path.join(
                     args.output_dir,
                     "best_test_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
@@ -490,15 +557,25 @@ def main(args):
                     ),
                 ),
             )
+            remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="best_test_epochs@")
+
         if (
             (epoch + 1) % args.test_interval == 0
             and (not update_val_result)
             and (not update_test_result)
-            and args.save_periodic_checkpoint
+            and args.save_checkpoint_after_test
         ):
             _log.info(f"Saving checkpoint.")
             torch.save(
-                {"state_dict": model.state_dict()},
+                {
+                    "state_dict": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "lr_scheduler": lr_scheduler.state_dict(),
+                    "epoch": epoch,
+                    "global_step": global_step,
+                    "best_metrics": best_metrics,
+                    "best_ema_metrics": best_ema_metrics,
+                },
                 os.path.join(
                     args.output_dir,
                     "epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
@@ -506,6 +583,7 @@ def main(args):
                     ),
                 ),
             )
+            remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="epochs@")
 
         # log once per epoch
         info_str = "Epoch: [{epoch}] Target: [{target}] train_e_MAE: {train_e_mae:.5f}, train_f_MAE: {train_f_mae:.5f}, ".format(
@@ -628,6 +706,8 @@ def main(args):
                         ),
                     ),
                 )
+                remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="best_ema_val_epochs@")
+
             if update_test_result and args.save_best_checkpoint:
                 _log.info(f"Saving best EMA test checkpoint")
                 torch.save(
@@ -639,11 +719,13 @@ def main(args):
                         ),
                     ),
                 )
+                remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="best_ema_test_epochs@")
+
             if (
                 (epoch + 1) % args.test_interval == 0
                 and (not update_val_result)
                 and (not update_test_result)
-                and args.save_periodic_checkpoint
+                and args.save_checkpoint_after_test
             ):
                 _log.info(f"Saving EMA checkpoint")
                 torch.save(
@@ -655,6 +737,7 @@ def main(args):
                         ),
                     ),
                 )
+                remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="ema_epochs@")
 
             info_str = "EMA "
             info_str += "val_e_MAE: {:.5f}, val_f_MAE: {:.5f}, ".format(
@@ -738,7 +821,15 @@ def main(args):
     if args.save_final_checkpoint:
         _log.info(f"Saving final checkpoint")
         torch.save(
-            {"state_dict": model.state_dict()},
+            {
+                "state_dict": model.state_dict(),
+                "optimizer": optimizer.state_dict(),
+                "lr_scheduler": lr_scheduler.state_dict(),
+                "epoch": epoch,
+                "global_step": global_step,
+                "best_metrics": best_metrics,
+                "best_ema_metrics": best_ema_metrics,
+            },
             os.path.join(
                 args.output_dir,
                 "final_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(

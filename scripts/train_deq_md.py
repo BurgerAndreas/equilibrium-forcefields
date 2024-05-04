@@ -363,7 +363,10 @@ def main(args):
         if args.use_dataset_avg_stats:
             _stats = stats[args.dname]["_avg"][args.model.max_radius]
         else:
-            _stats = stats[args.dname][args.target][args.model.max_radius]
+            keys = list(stats[args.dname][args.target].keys())
+            print(f"keys: {keys}", type(keys[0]))
+            print(f"max_radius: {args.model.max_radius}", type(args.model.max_radius))
+            _stats = stats[args.dname][args.target][str(args.model.max_radius)]
         _AVG_NUM_NODES, _AVG_DEGREE = _stats["avg_node"], _stats["avg_degree"]
         # overwrite model parameters
         model._AVG_NUM_NODES = _AVG_NUM_NODES

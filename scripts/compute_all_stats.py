@@ -47,7 +47,7 @@ def compute_all_stats(args: DictConfig) -> None:
                 _stats = train_deq_md.main(args)
                 if mol not in statistics[dname]:
                     statistics[dname][mol] = {}
-                statistics[dname][mol][max_radius] = _stats
+                statistics[dname][mol][str(max_radius)] = _stats
         
         # print(f'statistics:\n{yaml.dump(statistics)}')
         

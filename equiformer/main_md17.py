@@ -360,7 +360,7 @@ def main(args):
         update_val_result, update_test_result = update_best_results(
             args, best_metrics, val_err, test_err, epoch
         )
-        if update_val_result and args.save_best_checkpoint:
+        if update_val_result and args.save_best_val_checkpoint:
             _log.info(f"Saving best val checkpoint")
             torch.save(
                 {"state_dict": model.state_dict()},
@@ -371,7 +371,7 @@ def main(args):
                     ),
                 ),
             )
-        if update_test_result and args.save_best_checkpoint:
+        if update_test_result and args.save_best_test_checkpoint:
             _log.info(f"Saving best test checkpoint")
             torch.save(
                 {"state_dict": model.state_dict()},
@@ -503,7 +503,7 @@ def main(args):
                 args, best_ema_metrics, ema_val_err, ema_test_err, epoch
             )
 
-            if update_val_result and args.save_best_checkpoint:
+            if update_val_result and args.save_best_val_checkpoint:
                 _log.info(f"Saving best EMA val checkpoint")
                 torch.save(
                     {"state_dict": get_state_dict(model_ema)},
@@ -514,7 +514,7 @@ def main(args):
                         ),
                     ),
                 )
-            if update_test_result and args.save_best_checkpoint:
+            if update_test_result and args.save_best_test_checkpoint:
                 _log.info(f"Saving best EMA test checkpoint")
                 torch.save(
                     {"state_dict": get_state_dict(model_ema)},

@@ -109,7 +109,8 @@ pin_mem: False
 no_pin_mem: False
 # load checkpoint (str)
 checkpoint_path: null
-save_best_checkpoint: False
+save_best_test_checkpoint: False
+save_best_val_checkpoint: False
 save_checkpoint_after_test: False
 save_final_checkpoint: False
 max_checkpoints: 2

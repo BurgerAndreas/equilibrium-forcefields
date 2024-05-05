@@ -46,7 +46,6 @@ def init_wandb(args: OmegaConf, project="EquilibriumEquiFormer"):
     # to dict
     # omegaconf.errors.InterpolationResolutionError: Recursive interpolation detected
     args = OmegaConf.structured(OmegaConf.to_yaml(args))
-    # args = OmegaConf.create(args)
     args_wandb = OmegaConf.to_container(args, resolve=True)
     # print("args passed to wandb:\n", args_wandb)
 
@@ -88,6 +87,11 @@ def final_logging(args):
 
 IGNORE_OVERRIDES = [
     "resume_from_checkpoint",
+    "save_checkpoint_after_test",
+    "max_checkpoints",
+    "save_final_checkpoint",
+    "save_best_test_checkpoint",
+    "save_best_val_checkpoint",
     "output_dir",
     "logging_dir",
     "checkpointing_steps",

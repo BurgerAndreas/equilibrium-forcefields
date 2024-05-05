@@ -10,6 +10,7 @@ from torch_geometric.loader import DataLoader
 
 import os
 import sys
+import yaml
 
 # add the root of the project to the path so it can find equiformer
 # root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -138,12 +139,18 @@ def main(args):
     if args.output_dir == 'auto':
         # args.output_dir = os.path.join('outputs', datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         # models/md17/equiformer/test
-        mname = args.wandb.name
+        mname = wandb.run.name
         # remove special characters
         mname = ''.join(e for e in mname if e.isalnum())
         args.output_dir = f'models/{args.dname}/{args.model.name}/{args.target}/{mname}'
+        print(f"Set output directory: {args.output_dir}")
+    elif args.output_dir == 'checkpoint_path':
+        # args.output_dir = args.checkpoint_path
+        args.output_dir = os.path.dirname(args.checkpoint_path)
+        print(f"Set output directory: {args.output_dir}")
     if args.output_dir is not None:
         os.makedirs(args.output_dir, exist_ok=True)
+    wandb.run.config.update({"output_dir": args.output_dir}, allow_val_change=True)
 
     _log = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
     _log.info(
@@ -213,7 +220,7 @@ def main(args):
         raise NotImplementedError(f"Unknown normalizer: {args.normalizer}")
     normalizers = {"energy": normalizer_e, "force": normalizer_f}
 
-    """ Model """
+    """ Instantiate Model """
     create_model = model_entrypoint(args.model.name)
     if "deq_kwargs" in args:
         model = create_model(
@@ -229,12 +236,8 @@ def main(args):
     )
     _log.info(f"Model: \n{model}")
 
-    # watch gradients, weights, and activations
-    # https://docs.wandb.ai/ref/python/watch
-    if args.watch_model:
-        wandb.watch(model, log="all", log_freq=args.log_every_step_major)
 
-    """ Instantiate """
+    """ Instantiate everything else """
     optimizer = create_optimizer(args, model)
     lr_scheduler, _ = create_scheduler(args, optimizer)
     # record the best validation and testing errors and corresponding epochs
@@ -259,7 +262,22 @@ def main(args):
 
     """ Load """
     if args.checkpoint_path is not None:
+        # pass either a checkpoint or a directory containing checkpoints
+        # models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2/epochs@0_e@4.6855_f@20.8729.pth.tar
+        # models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2
+        if os.path.isdir(args.checkpoint_path):
+            # get the latest checkpoint
+            checkpoints = sorted(
+                [
+                    f
+                    for f in os.listdir(args.checkpoint_path)
+                    if f.endswith(".pth.tar")
+                ],
+                key=lambda x: int(x.split("@")[1].split("_")[0]),
+            )
+            args.checkpoint_path = os.path.join(args.checkpoint_path, checkpoints[-1])
         state_dict = torch.load(args.checkpoint_path, map_location="cpu")
+        
         # write state_dict
         model.load_state_dict(state_dict["state_dict"])
         optimizer.load_state_dict(state_dict["optimizer"])
@@ -272,6 +290,10 @@ def main(args):
         _log.info(f"Loaded model from {args.checkpoint_path}")
 
     model = model.to(device)
+    # watch gradients, weights, and activations
+    # https://docs.wandb.ai/ref/python/watch
+    if args.watch_model:
+        wandb.watch(model, log="all", log_freq=args.log_every_step_major)
 
     model_ema = None
     if args.model_ema:
@@ -363,14 +385,32 @@ def main(args):
         if args.use_dataset_avg_stats:
             _stats = stats[args.dname]["_avg"][args.model.max_radius]
         else:
-            keys = list(stats[args.dname][args.target].keys())
-            print(f"keys: {keys}", type(keys[0]))
-            print(f"max_radius: {args.model.max_radius}", type(args.model.max_radius))
-            _stats = stats[args.dname][args.target][str(args.model.max_radius)]
+            try:
+                _stats = stats[args.dname][args.target][str(args.model.max_radius)]
+            except:
+                print(f'Could not find statistics for {args.dname}, {args.target}, {args.model.max_radius}')
+                print(f'Only found: {yaml.dump(stats)}')
+                _stats = stats[args.dname]["_avg"][args.model.max_radius]
         _AVG_NUM_NODES, _AVG_DEGREE = _stats["avg_node"], _stats["avg_degree"]
         # overwrite model parameters
         model._AVG_NUM_NODES = _AVG_NUM_NODES
         model._AVG_DEGREE = _AVG_DEGREE
+        # write to wandb
+        # V1: add to summary
+        # wandb.run.summary["_AVG_NUM_NODES"] = _AVG_NUM_NODES
+        # wandb.run.summary["_AVG_DEGREE"] = _AVG_DEGREE
+        # V2: dont: this will overwrite the config
+        # wandb.run.config.update({"model": {"_AVG_NUM_NODES": _AVG_NUM_NODES, "_AVG_DEGREE": _AVG_DEGREE}})
+        # V3: this will add new entries to the config
+        wandb.run.config.update({"_AVG_NUM_NODES": _AVG_NUM_NODES, "_AVG_DEGREE": _AVG_DEGREE})
+        # V4: update all config args
+        args.model._AVG_NUM_NODES = _AVG_NUM_NODES
+        args.model._AVG_DEGREE = _AVG_DEGREE
+        # wandb.config.update(args)
+        _log.info(f"Loaded computed stats: _AVG_NUM_NODES={_AVG_NUM_NODES}, _AVG_DEGREE={_AVG_DEGREE}")
+    
+    # update all config args
+    # wandb.config.update(OmegaConf.to_container(args, resolve=True), allow_val_change=True)
 
     """ Dryrun (tryrun?!) of forward pass for testing """
     first_batch = next(iter(train_loader))
@@ -520,7 +560,8 @@ def main(args):
         update_val_result, update_test_result = update_best_results(
             args, best_metrics, val_err, test_err, epoch
         )
-        if update_val_result and args.save_best_checkpoint:
+        saved_best_checkpoint = False
+        if update_val_result and args.save_best_val_checkpoint:
             _log.info(f"Saving best val checkpoint.")
             torch.save(
                 {
@@ -540,8 +581,9 @@ def main(args):
                 ),
             )
             remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="best_val_epochs@")
+            saved_best_checkpoint = True
 
-        if update_test_result and args.save_best_checkpoint:
+        if update_test_result and args.save_best_test_checkpoint:
             _log.info(f"Saving best test checkpoint.")
             torch.save(
                 {
@@ -561,11 +603,13 @@ def main(args):
                 ),
             )
             remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="best_test_epochs@")
+            saved_best_checkpoint = True
 
         if (
             (epoch + 1) % args.test_interval == 0
-            and (not update_val_result)
-            and (not update_test_result)
+            # and (not update_val_result)
+            # and (not update_test_result)
+            and not saved_best_checkpoint
             and args.save_checkpoint_after_test
         ):
             _log.info(f"Saving checkpoint.")
@@ -698,7 +742,8 @@ def main(args):
                 args, best_ema_metrics, ema_val_err, ema_test_err, epoch
             )
 
-            if update_val_result and args.save_best_checkpoint:
+            saved_best_ema_checkpoint = False
+            if update_val_result and args.save_best_val_checkpoint:
                 _log.info(f"Saving best EMA val checkpoint")
                 torch.save(
                     {"state_dict": get_state_dict(model_ema)},
@@ -710,8 +755,9 @@ def main(args):
                     ),
                 )
                 remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="best_ema_val_epochs@")
+                saved_best_ema_checkpoint = True
 
-            if update_test_result and args.save_best_checkpoint:
+            if update_test_result and args.save_best_test_checkpoint:
                 _log.info(f"Saving best EMA test checkpoint")
                 torch.save(
                     {"state_dict": get_state_dict(model_ema)},
@@ -723,11 +769,13 @@ def main(args):
                     ),
                 )
                 remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="best_ema_test_epochs@")
+                saved_best_ema_checkpoint = True
 
             if (
                 (epoch + 1) % args.test_interval == 0
-                and (not update_val_result)
-                and (not update_test_result)
+                # and (not update_val_result)
+                # and (not update_test_result)
+                and not saved_best_ema_checkpoint
                 and args.save_checkpoint_after_test
             ):
                 _log.info(f"Saving EMA checkpoint")

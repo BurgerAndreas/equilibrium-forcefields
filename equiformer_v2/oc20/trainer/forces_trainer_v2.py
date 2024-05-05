@@ -93,7 +93,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         noddp=False,
         # added
         val_max_iter=-1,
-        eval_mode=True,
+        test_w_eval_mode=True,
     ):
         super().__init__(
             task=task,
@@ -117,7 +117,7 @@ class ForcesTrainerV2(BaseTrainerV2):
             noddp=noddp,
             # added
             val_max_iter=val_max_iter,
-            eval_mode=eval_mode,
+            test_w_eval_mode=test_w_eval_mode,
         )
 
     def load_task(self):
@@ -905,7 +905,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         if self.is_hpo:
             disable_tqdm = True
 
-        if self.eval_mode:
+        if self.test_w_eval_mode:
             self.model.eval()
         if self.ema and use_ema:
             self.ema.store()

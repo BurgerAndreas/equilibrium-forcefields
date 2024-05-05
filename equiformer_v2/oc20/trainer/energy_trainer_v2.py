@@ -92,7 +92,7 @@ class EnergyTrainerV2(BaseTrainerV2):
         noddp=False,
         # added
         val_max_iter=-1,
-        eval_mode=True,
+        eval_mode=test_w_eval_mode,
     ):
         super().__init__(
             task=task,
@@ -116,7 +116,7 @@ class EnergyTrainerV2(BaseTrainerV2):
             noddp=noddp,
             # added
             val_max_iter=val_max_iter,
-            eval_mode=eval_mode,
+            test_w_eval_mode=test_w_eval_mode,
         )
 
         # from Graphormer: https://github.com/Open-Catalyst-Project/ocp/pull/335/files

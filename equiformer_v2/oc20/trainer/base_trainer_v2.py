@@ -172,7 +172,7 @@ class BaseTrainerV2(BaseTrainer):
         noddp=False,
         # added
         val_max_iter=-1,
-        eval_mode=True,
+        test_w_eval_mode=True,
     ):
         self.name = name
         self.cpu = cpu
@@ -181,7 +181,7 @@ class BaseTrainerV2(BaseTrainer):
 
         # added
         self.val_max_iter = val_max_iter
-        self.eval_mode = eval_mode
+        self.test_w_eval_mode = test_w_eval_mode
 
         if torch.cuda.is_available() and not self.cpu:
             self.device = torch.device(f"cuda:{local_rank}")
@@ -519,7 +519,7 @@ class BaseTrainerV2(BaseTrainer):
         if self.is_hpo:
             disable_tqdm = True
 
-        if self.eval_mode:
+        if self.test_w_eval_mode:
             self.model.eval()
         if self.ema and use_ema:
             self.ema.store()

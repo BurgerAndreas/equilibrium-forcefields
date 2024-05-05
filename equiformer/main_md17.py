@@ -825,7 +825,7 @@ def evaluate(
     datasplit=None,
 ):
 
-    if args.eval_mode is True:
+    if args.test_w_eval_mode is True:
         model.eval()
         criterion.eval()
 

@@ -33,7 +33,7 @@ seed: 0 # Seed for torch, cuda, numpy
 amp: False # Use mixed-precision training
 checkpoint: null # Model checkpoint to load
 timestamp_id: null # Override time stamp ID. Useful for seamlessly continuing model training in logger.
-eval_mode: False # use model.eval() during evaluation (bool)
+test_w_eval_mode: False # use model.eval() during evaluation (bool)
 
 # Cluster args
 sweep_yml: null # Path to a config file with parameter sweeps

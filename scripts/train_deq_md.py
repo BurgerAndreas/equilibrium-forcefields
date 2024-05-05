@@ -1224,7 +1224,7 @@ def evaluate(
     else:
         solver_kwargs = {}
 
-    if args.eval_mode is True:
+    if args.test_w_eval_mode is True:
         model.eval()
         # criterion.eval()
         criterion_energy.eval()
@@ -1240,133 +1240,134 @@ def evaluate(
 
     # remove because of torchdeq and force prediction via dE/dx
     # with torch.no_grad(): 
+    with torch.set_grad_enabled(not args.test_w_grad):
 
-    # if we use fpreuse_test, also try without to get a comparison
-    if datasplit == "test" and args.fpreuse_test == True:
-        fpreuse_list = [True, False]
-    else:
-        fpreuse_list = [False]
-    for fpreuse_test in fpreuse_list:
-        # name for logging
-        _datasplit = f"{datasplit}_fpreuse" if fpreuse_test else datasplit
+        # if we use fpreuse_test, also try without to get a comparison
+        if datasplit == "test" and args.fpreuse_test == True:
+            fpreuse_list = [True, False]
+        else:
+            fpreuse_list = [False]
+        for fpreuse_test in fpreuse_list:
+            # name for logging
+            _datasplit = f"{datasplit}_fpreuse" if fpreuse_test else datasplit
 
-        n_fsolver_steps = 0
-        fixedpoint = None
-        prev_idx = None
-        max_steps = max_iter if max_iter != -1 else len(data_loader)
-        for step, data in enumerate(data_loader):
-            data = data.to(device)
+            n_fsolver_steps = 0
+            fixedpoint = None
+            prev_idx = None
+            max_steps = max_iter if max_iter != -1 else len(data_loader)
+            for step, data in enumerate(data_loader):
+                data = data.to(device)
 
-            # if we pass step, things will be logged to wandb
-            # note that global_step is only updated in train_one_epoch
-            # which is why we only want to log once per evaluation
-            if step == max_steps - 1:
-                pass_step = global_step
-            else:
-                pass_step = None
+                # if we pass step, things will be logged to wandb
+                # note that global_step is only updated in train_one_epoch
+                # which is why we only want to log once per evaluation
+                if step == max_steps - 1:
+                    pass_step = global_step
+                else:
+                    pass_step = None
 
-            # fixed-point reuse
-            if fpreuse_test == True:
-                # assert that idx is consecutive
-                if prev_idx is not None:
-                    assert torch.allclose(data.idx, prev_idx + 1)
-                prev_idx = data.idx
-                # call model and pass fixedpoint
-                pred_y, pred_dy, fixedpoint, info = model(
-                    data=data,  # for EquiformerV2
-                    node_atom=data.z,
-                    pos=data.pos,
-                    batch=data.batch,
-                    step=pass_step,
-                    datasplit=_datasplit,
-                    return_fixedpoint=True,
-                    fixedpoint=fixedpoint,
-                    solver_kwargs=solver_kwargs,
+                # fixed-point reuse
+                if fpreuse_test == True:
+                    # assert that idx is consecutive
+                    if prev_idx is not None:
+                        assert torch.allclose(data.idx, prev_idx + 1)
+                    prev_idx = data.idx
+                    # call model and pass fixedpoint
+                    pred_y, pred_dy, fixedpoint, info = model(
+                        data=data,  # for EquiformerV2
+                        node_atom=data.z,
+                        pos=data.pos,
+                        batch=data.batch,
+                        step=pass_step,
+                        datasplit=_datasplit,
+                        return_fixedpoint=True,
+                        fixedpoint=fixedpoint,
+                        solver_kwargs=solver_kwargs,
+                    )
+                else:
+                    # energy, force
+                    pred_y, pred_dy, info = model(
+                        data=data,  # for EquiformerV2
+                        node_atom=data.z,
+                        pos=data.pos,
+                        batch=data.batch,
+                        step=pass_step,
+                        datasplit=datasplit,
+                        fixedpoint=None,
+                        solver_kwargs=solver_kwargs,
+                    )
+
+                target_y = normalizers["energy"](data.y)
+                target_dy = normalizers["force"](data.dy)
+
+                target_y = normalizers["energy"](data.y)
+                target_dy = normalizers["force"](data.dy)
+
+                # reshape model output [B] (OC20) -> [B,1] (MD17)
+                if args.unsqueeze_e_dim and pred_y.dim() == 1:
+                    pred_y = pred_y.unsqueeze(-1)
+
+                # reshape data [B,1] (MD17) -> [B] (OC20)
+                if args.squeeze_e_dim and target_y.dim() == 2:
+                    target_y = pred_y.squeeze(1)
+
+                loss_e = criterion_energy(pred_y, target_y)
+                if args.meas_force == True:
+                    loss_f = criterion_force(pred_dy, target_dy)
+                else:
+                    pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
+
+                optimizer.zero_grad()
+
+                # --- metrics ---
+                loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
+                loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
+
+                energy_err = pred_y.detach() * task_std + task_mean - data.y
+                energy_err = torch.mean(torch.abs(energy_err)).item()
+                mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
+                force_err = pred_dy.detach() * task_std - data.dy
+                force_err = torch.mean(
+                    torch.abs(force_err)
+                ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
+                mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
+
+                if "nstep" in info:
+                    n_fsolver_steps += info["nstep"][0].mean().item()
+
+                # --- logging ---
+                if len(info) > 0 and pass_step is not None:
+                    # log fixed-point trajectory
+                    logging_utils_deq.log_fixed_point_error(
+                        info,
+                        step=global_step,
+                        datasplit=_datasplit,
+                    )
+
+                if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
+                    w = time.perf_counter() - start_time
+                    e = (step + 1) / max_steps
+                    info_str = f"[{step}/{max_steps}]{'(fpreuse)' if fpreuse_test else ''} \t"
+                    info_str += "e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
+                        e_mae=mae_metrics["energy"].avg,
+                        f_mae=mae_metrics["force"].avg,
+                    )
+                    info_str += "time/step={time_per_step:.0f}ms".format(
+                        time_per_step=(1e3 * w / e / max_steps)
+                    )
+                    logger.info(info_str)
+
+                if (step + 1) >= max_steps:
+                    break
+
+            eval_time = time.perf_counter() - start_time
+            wandb.log({f"time_{_datasplit}": eval_time}, step=global_step)
+
+            if n_fsolver_steps > 0:
+                n_fsolver_steps /= max_steps
+                wandb.log(
+                    {f"avg_n_fsolver_steps_{_datasplit}": n_fsolver_steps}, step=global_step
                 )
-            else:
-                # energy, force
-                pred_y, pred_dy, info = model(
-                    data=data,  # for EquiformerV2
-                    node_atom=data.z,
-                    pos=data.pos,
-                    batch=data.batch,
-                    step=pass_step,
-                    datasplit=datasplit,
-                    fixedpoint=None,
-                    solver_kwargs=solver_kwargs,
-                )
-
-            target_y = normalizers["energy"](data.y)
-            target_dy = normalizers["force"](data.dy)
-
-            target_y = normalizers["energy"](data.y)
-            target_dy = normalizers["force"](data.dy)
-
-            # reshape model output [B] (OC20) -> [B,1] (MD17)
-            if args.unsqueeze_e_dim and pred_y.dim() == 1:
-                pred_y = pred_y.unsqueeze(-1)
-
-            # reshape data [B,1] (MD17) -> [B] (OC20)
-            if args.squeeze_e_dim and target_y.dim() == 2:
-                target_y = pred_y.squeeze(1)
-
-            loss_e = criterion_energy(pred_y, target_y)
-            if args.meas_force == True:
-                loss_f = criterion_force(pred_dy, target_dy)
-            else:
-                pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
-
-            optimizer.zero_grad()
-
-            # --- metrics ---
-            loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
-            loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
-
-            energy_err = pred_y.detach() * task_std + task_mean - data.y
-            energy_err = torch.mean(torch.abs(energy_err)).item()
-            mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
-            force_err = pred_dy.detach() * task_std - data.dy
-            force_err = torch.mean(
-                torch.abs(force_err)
-            ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
-            mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
-
-            if "nstep" in info:
-                n_fsolver_steps += info["nstep"][0].mean().item()
-
-            # --- logging ---
-            if len(info) > 0 and pass_step is not None:
-                # log fixed-point trajectory
-                logging_utils_deq.log_fixed_point_error(
-                    info,
-                    step=global_step,
-                    datasplit=_datasplit,
-                )
-
-            if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
-                w = time.perf_counter() - start_time
-                e = (step + 1) / max_steps
-                info_str = f"[{step}/{max_steps}]{'(fpreuse)' if fpreuse_test else ''} \t"
-                info_str += "e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
-                    e_mae=mae_metrics["energy"].avg,
-                    f_mae=mae_metrics["force"].avg,
-                )
-                info_str += "time/step={time_per_step:.0f}ms".format(
-                    time_per_step=(1e3 * w / e / max_steps)
-                )
-                logger.info(info_str)
-
-            if (step + 1) >= max_steps:
-                break
-
-        eval_time = time.perf_counter() - start_time
-        wandb.log({f"time_{_datasplit}": eval_time}, step=global_step)
-
-        if n_fsolver_steps > 0:
-            n_fsolver_steps /= max_steps
-            wandb.log(
-                {f"avg_n_fsolver_steps_{_datasplit}": n_fsolver_steps}, step=global_step
-            )
 
     return mae_metrics, loss_metrics
 

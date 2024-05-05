@@ -121,7 +121,8 @@ meas_force: True
 clip_grad_norm: False # False, 5.0, 100
 
 # use model.eval() during evaluation (bool)
-eval_mode: False
+test_w_eval_mode: False
+test_w_grad: False
 
 normalizer: md17 # md17 or oc20
 

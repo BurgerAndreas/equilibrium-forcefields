@@ -452,7 +452,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 device=self.device,
             )
         elif self.z0 == "emb":
-            return emb.embedding
+            return emb
         else:
             raise ValueError(f"Invalid z0: {self.z0}")
 

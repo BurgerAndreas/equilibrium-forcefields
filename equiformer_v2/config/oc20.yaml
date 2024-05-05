@@ -15,6 +15,8 @@ model:
   # IS2RE: 100k, max_radius = 5, max_neighbors = 100
   _AVG_NUM_NODES: 77.81317
   _AVG_DEGREE: 23.395238876342773
+  max_neighbors: 20           # 20 for OC20
+  max_radius: 12.0               # 12.0 for OC20
 
 ####################################################
 # from ocp/ocpmodels/common/flags.py:

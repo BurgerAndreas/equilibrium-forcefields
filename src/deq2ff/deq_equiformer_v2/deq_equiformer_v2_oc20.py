@@ -276,6 +276,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # addition, not concatenation
         x.embedding = x.embedding + edge_degree.embedding
 
+        # if self.learn_scale_after_encoder:
+        x.embedding = x.embedding * self.learn_scale_after_encoder
+
         ###############################################################
         # Update spherical node embeddings
         # "Replaced" by DEQ
@@ -341,10 +344,15 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # Final layer norm
         x.embedding = self.norm(x.embedding)
 
+        # if self.learn_scale_after_encoder:
+        x.embedding = x.embedding * self.learn_scale_before_decoder
+
         ###############################################################
         # Energy estimation
         ###############################################################
         node_energy = self.energy_block(x)
+        # if self.learn_scale_after_energy_block:
+        node_energy.embedding = node_energy.embedding * self.learn_scale_after_energy_block
         node_energy = node_energy.embedding.narrow(1, 0, 1)
         energy = torch.zeros(
             len(data.natoms), device=node_energy.device, dtype=node_energy.dtype
@@ -359,6 +367,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             # atom-wise forces using a block of equivariant graph attention
             # and treating the output of degree 1 as the predictions
             forces = self.force_block(x, atomic_numbers, edge_distance, edge_index)
+            # if self.learn_scale_after_force_block:
+            x.embedding = x.embedding * self.learn_scale_after_force_block
             forces = forces.embedding.narrow(1, 1, 3)
             forces = forces.view(-1, 3)
 

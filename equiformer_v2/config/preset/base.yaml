@@ -26,3 +26,9 @@ model:
   drop_path_rate: 0.0 # [0.0, 0.05, 0.1] Drop path rate
   # proj_drop (float): Dropout rate for outputs of attention and FFN in Transformer blocks
   proj_drop: 0.0
+
+  # learnable scalars to multiple the node embeddings / x / fixed-point with
+  # Enc - impl - decoder - output
+  learn_scale_after_encoder: False
+  learn_scale_before_decoder: False
+  learn_scale_after_decoder: False

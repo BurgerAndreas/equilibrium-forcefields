@@ -161,6 +161,9 @@ class EquiformerV2_OC20(BaseModel):
         force_head="SO2EquivariantGraphAttention",
         energy_head="FeedForwardNetwork",
         skip_blocks=False,
+        learn_scale_after_encoder=False,
+        learn_scale_before_decoder=False,
+        learn_scale_after_decoder=False,
         **kwargs,
     ):
         super().__init__()
@@ -178,6 +181,23 @@ class EquiformerV2_OC20(BaseModel):
         self.energy_head = energy_head
 
         self.skip_blocks = skip_blocks
+
+        if learn_scale_after_encoder:
+            self.learn_scale_after_encoder = nn.Parameter(torch.tensor(1.0))
+        else:
+            self.learn_scale_after_encoder = 1.0
+        
+        if learn_scale_before_decoder:
+            self.learn_scale_before_decoder = nn.Parameter(torch.tensor(1.0))
+        else:
+            self.learn_scale_before_decoder = 1.0
+        
+        if learn_scale_after_decoder:
+            self.learn_scale_after_energy_block = nn.Parameter(torch.tensor(1.0))
+            self.learn_scale_after_force_block = nn.Parameter(torch.tensor(1.0))
+        else:
+            self.learn_scale_after_energy_block = 1.0
+            self.learn_scale_after_force_block = 1.0
 
         self.use_pbc = use_pbc
         self.regress_forces = regress_forces
@@ -517,6 +537,9 @@ class EquiformerV2_OC20(BaseModel):
         )
         x.embedding = x.embedding + edge_degree.embedding
 
+        # if self.learn_scale_after_encoder:
+        x.embedding = x.embedding * self.learn_scale_after_encoder
+
         # logging
         if step is not None:
             # log the input injection (output of encoder)
@@ -543,6 +566,9 @@ class EquiformerV2_OC20(BaseModel):
         # Final layer norm
         x.embedding = self.norm(x.embedding)
 
+        # if self.learn_scale_before_decoder:
+        x.embedding = x.embedding * self.learn_scale_before_decoder
+
         ######################################################
         # Logging
         ######################################################
@@ -556,6 +582,8 @@ class EquiformerV2_OC20(BaseModel):
         ###############################################################
         # (B, num_coefficients, 1)
         node_energy = self.energy_block(x)
+        # if self.learn_scale_after_energy_block:
+        node_energy.embedding = node_energy.embedding * self.learn_scale_after_energy_block
         # (B, 1, 1)
         node_energy = node_energy.embedding.narrow(dim=1, start=0, length=1)
         energy = torch.zeros(
@@ -576,6 +604,8 @@ class EquiformerV2_OC20(BaseModel):
             # x: [num_atoms*batch_size, num_coefficients, sphere_channels/num_sphere_samples/edge_channels]
             # forces: [num_atoms*batch_size, num_coefficients, 1]
             forces = self.force_block(x, atomic_numbers, edge_distance, edge_index)
+            # if self.learn_scale_after_force_block:
+            forces.embedding = forces.embedding * self.learn_scale_after_force_block
             # [num_atoms*batch_size, 3, 1]
             forces = forces.embedding.narrow(dim=1, start=1, length=3)
             # [num_atoms*batch_size, 3]

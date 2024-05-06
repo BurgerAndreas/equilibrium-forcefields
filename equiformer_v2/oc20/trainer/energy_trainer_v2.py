@@ -92,7 +92,7 @@ class EnergyTrainerV2(BaseTrainerV2):
         noddp=False,
         # added
         val_max_iter=-1,
-        eval_mode=test_w_eval_mode,
+        test_w_eval_mode=True,
     ):
         super().__init__(
             task=task,

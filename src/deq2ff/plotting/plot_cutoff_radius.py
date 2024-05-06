@@ -176,7 +176,7 @@ def test(args, max_radius=np.arange(1.0, 10.0), batch_size=1):
     return num_edges
 
 
-def plot_num_edges_over_max_radius(max_radius, num_edges):
+def plot_num_edges_over_max_radius(max_radius, num_edges, molecule="Aspirin"):
     import matplotlib.pyplot as plt
     import seaborn as sns
 
@@ -184,10 +184,10 @@ def plot_num_edges_over_max_radius(max_radius, num_edges):
     sns.set_theme(style="whitegrid")
     plt.plot(max_radius, num_edges, marker="o")
     plt.xlabel("Max radius for edges [Angstrom]")
-    plt.ylabel("Number of edges per atom")
+    plt.ylabel("Number of edges (per molecule)")
     # vertical line at 5.0 Angstrom
     plt.axvline(x=5.0, color="gray", linestyle="--")
-    plt.title("Number of directed edges as a function of max_radius")
+    plt.title(f"Number of directed edges vs max_radius {molecule}")
     plt.savefig(f"{plotfolder}/num_edges_over_max_radius.png")
     print(f"Saved plot to {plotfolder}/num_edges_over_max_radius.png")
 

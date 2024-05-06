@@ -14,6 +14,12 @@ defaults:
 
 override_test: md17
 
+# DEQ E1 needs that: because torchdeq and E=dF/dx
+# use model.eval() during evaluation (bool)
+test_w_eval_mode: False
+# use torch.no_grad() during evaluation (bool)
+test_w_grad: True
+
 # passed into model
 model:
   # dot_product_attention_transformer_exp_l2_md17

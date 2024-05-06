@@ -95,8 +95,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         self.z0 = z0
         self.cat_injection = cat_injection
         self.norm_injection = norm_injection
-        self.path_norm = path_norm  # TODO: unused
-        self.irrep_norm = irrep_norm  # TODO: unused
+        # self.path_norm = path_norm  # TODO: unused
+        # self.irrep_norm = irrep_norm  # TODO: unused
         if sphere_channels_fixedpoint is None:
             sphere_channels_fixedpoint = sphere_channels
         self.sphere_channels_fixedpoint = sphere_channels_fixedpoint
@@ -346,6 +346,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         # if self.learn_scale_after_encoder:
         x.embedding = x.embedding * self.learn_scale_before_decoder
+        # print(f'x.is_leaf()', x.embedding.is_leaf) # TODO: False?
 
         ###############################################################
         # Energy estimation

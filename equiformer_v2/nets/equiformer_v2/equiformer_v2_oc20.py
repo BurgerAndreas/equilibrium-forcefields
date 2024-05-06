@@ -182,22 +182,40 @@ class EquiformerV2_OC20(BaseModel):
 
         self.skip_blocks = skip_blocks
 
+        print('Number of trainable params:', sum(p.numel() for p in self.parameters() if p.requires_grad))
+        # shape: B x irrep_dim x channels -> 1 x 1 x sphere_channels
+        _shape = (1, 1, sphere_channels)
         if learn_scale_after_encoder:
-            self.learn_scale_after_encoder = nn.Parameter(torch.tensor(1.0))
+            # nn.Parameter(torch.tensor(1.0, requires_grad=True).clone(), requires_grad=True)
+            self.learn_scale_after_encoder = torch.nn.Parameter(torch.ones(_shape, requires_grad=True), requires_grad=True)
+            # self.learn_scale_after_encoder = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True), requires_grad=True)
+            # torch.nn.init.constant_(self.learn_scale_after_encoder, 1)
+            self.register_parameter('learn_scale_after_encoder', self.learn_scale_after_encoder)
         else:
             self.learn_scale_after_encoder = 1.0
         
         if learn_scale_before_decoder:
-            self.learn_scale_before_decoder = nn.Parameter(torch.tensor(1.0))
+            self.learn_scale_before_decoder = torch.nn.Parameter(torch.ones(_shape, requires_grad=True), requires_grad=True)
+            # self.learn_scale_before_decoder = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True), requires_grad=True)
+            # torch.nn.init.constant_(self.learn_scale_before_decoder, 1)
+            self.register_parameter('learn_scale_before_decoder', self.learn_scale_before_decoder)
         else:
             self.learn_scale_before_decoder = 1.0
         
+        _shape = (1, 1, 1)
         if learn_scale_after_decoder:
-            self.learn_scale_after_energy_block = nn.Parameter(torch.tensor(1.0))
-            self.learn_scale_after_force_block = nn.Parameter(torch.tensor(1.0))
+            self.learn_scale_after_energy_block = torch.nn.Parameter(torch.ones(_shape, requires_grad=True), requires_grad=True)
+            self.learn_scale_after_force_block = torch.nn.Parameter(torch.ones(_shape, requires_grad=True), requires_grad=True)
+            # self.learn_scale_after_energy_block = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True), requires_grad=True)
+            # self.learn_scale_after_force_block = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True), requires_grad=True)
+            # torch.nn.init.constant_(self.learn_scale_after_energy_block, 1)
+            # torch.nn.init.constant_(self.learn_scale_after_force_block, 1)
+            self.register_parameter('learn_scale_after_energy_block', self.learn_scale_after_energy_block)
+            self.register_parameter('learn_scale_after_force_block', self.learn_scale_after_force_block)
         else:
             self.learn_scale_after_energy_block = 1.0
             self.learn_scale_after_force_block = 1.0
+        print('Number of trainable params:', sum(p.numel() for p in self.parameters() if p.requires_grad))
 
         self.use_pbc = use_pbc
         self.regress_forces = regress_forces

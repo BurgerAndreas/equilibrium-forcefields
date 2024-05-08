@@ -220,6 +220,47 @@ def main(args):
         raise NotImplementedError(f"Unknown normalizer: {args.normalizer}")
     normalizers = {"energy": normalizer_e, "force": normalizer_f}
 
+    """ Data Loader """
+    # We don't need to shuffle because the indices are already randomized
+    # or we want to keep the order anyway
+    # we just keep the shuffle option for the sake of consistency with equiformer
+    shuffle = True
+    if args.datasplit in ["fpreuse_ordered"]:
+        shuffle = False
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=shuffle,
+        num_workers=args.workers,
+        pin_memory=args.pin_mem,
+        drop_last=True,
+    )
+    # added drop_last=True to avoid error with fixed-point reuse
+    val_loader = DataLoader(
+        val_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
+    )
+    if args.datasplit.startswith("fpreuse"):
+        # reorder test dataset to be consecutive
+        from deq2ff.data_utils import reorder_dataset
+
+        test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
+        _log.info(f"Reordered test dataset to be consecutive for fixed-point reuse.")
+    test_loader = DataLoader(
+        test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
+    )
+
+    """ Compute stats """
+    # Compute _AVG_NUM_NODES, _AVG_DEGREE
+    if args.compute_stats:
+        avg_node, avg_edge, avg_degree = compute_stats(
+            train_loader,
+            max_radius=args.model.max_radius,
+            logger=_log,
+            print_freq=args.print_freq,
+        )
+        print(f'\nComputed stats: \n\tavg_node={avg_node} \n\tavg_edge={avg_edge} \n\tavg_degree={avg_degree}\n')
+        return {"avg_node": avg_node, "avg_edge": avg_edge, "avg_degree": avg_degree.item()}
+
     """ Instantiate Model """
     create_model = model_entrypoint(args.model.name)
     if "deq_kwargs" in args:
@@ -260,7 +301,12 @@ def main(args):
     start_epoch = 0
     global_step = 0
 
-    """ Load """
+    # criterion = L2MAELoss()
+    loss_fn = load_loss({"energy": args.loss_energy, "force": args.loss_force})
+    criterion_energy = loss_fn["energy"]
+    criterion_force = loss_fn["force"]
+
+    """ Load checkpoint """
     if args.checkpoint_path is not None:
         # pass either a checkpoint or a directory containing checkpoints
         # models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2/epochs@0_e@4.6855_f@20.8729.pth.tar
@@ -303,6 +349,8 @@ def main(args):
             decay=args.model_ema_decay,
             device="cpu" if args.model_ema_force_cpu else None,
         )
+    
+    """ Log number of parameters """
 
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     _log.info("Number of Model params: {}".format(n_parameters))
@@ -326,52 +374,7 @@ def main(args):
             f"AttributeError: '{model.__class__.__name__}' object has no attribute 'final_block'"
         )
 
-    # criterion = L2MAELoss()
-    loss_fn = load_loss({"energy": args.loss_energy, "force": args.loss_force})
-    criterion_energy = loss_fn["energy"]
-    criterion_force = loss_fn["force"]
-
-    """ Data Loader """
-    # We don't need to shuffle because the indices are already randomized
-    # or we want to keep the order anyway
-    # we just keep the shuffle option for the sake of consistency with equiformer
-    shuffle = True
-    if args.datasplit in ["fpreuse_ordered"]:
-        shuffle = False
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=args.batch_size,
-        shuffle=shuffle,
-        num_workers=args.workers,
-        pin_memory=args.pin_mem,
-        drop_last=True,
-    )
-    # added drop_last=True to avoid error with fixed-point reuse
-    val_loader = DataLoader(
-        val_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
-    )
-    if args.datasplit.startswith("fpreuse"):
-        # reorder test dataset to be consecutive
-        from deq2ff.data_utils import reorder_dataset
-
-        test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
-        _log.info(f"Reordered test dataset to be consecutive for fixed-point reuse.")
-    test_loader = DataLoader(
-        test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
-    )
-
-    """ Compute stats """
-    # Compute _AVG_NUM_NODES, _AVG_DEGREE
-    if args.compute_stats:
-        avg_node, avg_edge, avg_degree = compute_stats(
-            train_loader,
-            max_radius=args.model.max_radius,
-            logger=_log,
-            print_freq=args.print_freq,
-        )
-        print(f'\nComputed stats: \n\tavg_node={avg_node} \n\tavg_edge={avg_edge} \n\tavg_degree={avg_degree}\n')
-        return {"avg_node": avg_node, "avg_edge": avg_edge, "avg_degree": avg_degree.item()}
-
+    """ Load dataset stats """
     # Overwrite _AVG_NUM_NODES and _AVG_DEGREE with the dataset statistics
     if args.load_stats:
         import json
@@ -412,7 +415,7 @@ def main(args):
     # update all config args
     # wandb.config.update(OmegaConf.to_container(args, resolve=True), allow_val_change=True)
 
-    """ Dryrun (tryrun?!) of forward pass for testing """
+    """ Dryrun of forward pass for testing """
     first_batch = next(iter(train_loader))
 
     data = first_batch.to(device)
@@ -435,7 +438,7 @@ def main(args):
     if args.test_forward:
         return True
 
-    """ Dryrun (tryrun?!) for logging shapes """
+    """ Dryrun for logging shapes """
     try:
         model.train()
         # criterion.train()

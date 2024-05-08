@@ -38,7 +38,7 @@ def compute_all_stats(args: DictConfig) -> None:
             statistics[dname] = {}
 
         # compute statistics
-        radii = [5.0, 12.0, 20.0]
+        radii = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 12.0, 20.0]
         for max_radius in radii:
             args.model.max_radius = max_radius
 

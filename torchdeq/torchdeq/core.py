@@ -311,6 +311,7 @@ class DEQIndexing(DEQBase):
             arg_n_states = solver_kwargs["n_states"]
 
         if arg_n_states > 1:
+            # n_states was passed, override indexing
             n_states = max(min(f_max_iter, arg_n_states), 1)
             delta = int(f_max_iter // n_states)
             if f_max_iter % n_states == 0:

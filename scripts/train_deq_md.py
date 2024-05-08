@@ -1064,6 +1064,52 @@ def train_one_epoch(
                 loss += closs
                 if wandb.run is not None:
                     wandb.log({"contrastive_loss_scaled": closs.item()}, step=global_step)
+            
+            if args.fpr_loss == True:
+                # get the next timesteps
+                idx = data.idx + 1
+                next_data = data_loader.dataset[idx]
+                next_data = next_data.to(device)
+
+                print('idx', idx, 'data.idx', data.idx, 'next_data.idx', next_data.idx)
+
+                # do one more forward pass imitating fixed-point reuse
+                # xs: extra step
+                # TODO: make sure torchdeq does no compute gradients
+                # by zeroing out the forward solver f_max_iter=0, all the gradient steps are taken by the PyTorch auto differentiation engine to compute gradients
+                if args.fpr_w_eval: model.eval()
+                solver_kwargs = {'f_max_iter': 1, 'grad': 0}
+                _, _, info_xs = model(
+                    data=data,  # for EquiformerV2
+                    node_atom=data.z,
+                    pos=data.pos,
+                    batch=data.batch,
+                    step=None,
+                    datasplit=None,
+                    solver_kwargs=solver_kwargs,
+                    fixed_point=info["z_pred"][-1],
+                )
+                if args.fpr_w_eval: model.train()
+                fp_xs = info_xs["z_pred"][-1]
+
+                # get correct fixed-point of next timestep
+                with torch.set_grad_enabled(args.fpr_w_grad):
+                    next_pred_y, next_pred_dy, next_info = model(
+                        data=next_data,  # for EquiformerV2
+                        node_atom=next_data.z,
+                        pos=next_data.pos,
+                        batch=next_data.batch,
+                        step=None,
+                        datasplit=None,
+                    )
+                    next_fp = next_info["z_pred"][-1]
+                
+                # loss
+                fpr_loss = nn.MSELoss(fp_xs, next_fp)
+                loss += args.fpr_weight * fpr_loss
+                wandb.log({"scaled_fpr_loss": (args.fpr_weight * fpr_loss).item()}, step=global_step)
+
+
 
             if wandb.run is not None:
                 wandb.log(
@@ -1240,7 +1286,7 @@ def evaluate(
 
     # remove because of torchdeq and force prediction via dE/dx
     # with torch.no_grad(): 
-    with torch.set_grad_enabled(not args.test_w_grad):
+    with torch.set_grad_enabled(args.test_w_grad):
 
         # if we use fpreuse_test, also try without to get a comparison
         if datasplit == "test" and args.fpreuse_test == True:

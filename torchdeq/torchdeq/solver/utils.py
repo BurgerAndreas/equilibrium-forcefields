@@ -103,6 +103,7 @@ def update_state(
     lowest_dict,
     lowest_step_dict,
     return_final=False,
+    with_grad=False,
 ):
     """
     Updates the state of the solver during each iteration.
@@ -127,10 +128,16 @@ def update_state(
     trace_dict["rel"].append(rel_diff)
 
     for mode in ["rel", "abs"]:
+        # 0, 1, or 2
         is_lowest = (diff_dict[mode] < lowest_dict[mode]) + return_final
+        print(f'(diff_dict[mode] < lowest_dict[mode])', (diff_dict[mode] < lowest_dict[mode]))
         if mode == stop_mode:
+            print(f"mode: {mode}, is_lowest: {is_lowest}") # REMOVE
+            print(f' x_est', x_est) # REMOVE
             lowest_xest = batch_masked_mixing(is_lowest, x_est, lowest_xest)
-            lowest_xest = lowest_xest.clone().detach()
+            print(f' lowest_xest', lowest_xest) # REMOVE
+            if with_grad == False:
+                lowest_xest = lowest_xest.clone().detach()
         lowest_dict[mode] = batch_masked_mixing(
             is_lowest, diff_dict[mode], lowest_dict[mode]
         )

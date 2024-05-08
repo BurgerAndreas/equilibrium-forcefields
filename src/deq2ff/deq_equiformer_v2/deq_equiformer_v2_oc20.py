@@ -59,6 +59,7 @@ import copy
 from torchdeq import get_deq
 from torchdeq.norm import apply_norm, reset_norm, register_norm, register_norm_module
 from torchdeq.loss import fp_correction
+from torchdeq.solver.broyden import broyden_solver_grad
 
 # register model to be used with EquiformerV1 training loop (MD17)
 from equiformer.nets.registry import register_model
@@ -168,6 +169,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         fixedpoint=None,
         return_fixedpoint=False,
         solver_kwargs={},
+        fpr_loss=False,
         **kwargs,
     ):
         """
@@ -331,6 +333,17 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 dtype=self.dtype,
                 embedding=z_pred[-1],
             )
+
+            ######################################################
+            # Fixed-point reuse loss
+            z_next, _, _info = broyden_solver_grad(
+                func=f, x=z_pred[-1].copy(), 
+                max_iter=1,
+                tol=solver_kwargs.get("f_tol", self.deq.f_tol),
+                stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
+                # return_final=True,
+            )
+            info["z_next"] = z_next
 
             ######################################################
             # Logging

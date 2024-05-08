@@ -561,7 +561,7 @@ def get_order(args):
             print('Warning: fpreuse_test is set, but datasplit is not "fpreuse_overlapping" or "fpreuse_ordered". Setting datasplit to "fpreuse_overlapping"')
             args.datasplit = "fpreuse_overlapping"
     # if we use contrastive loss, the train set needs to be consecutive within a batch
-    if args.contrastive_loss not in [None, False]:
+    if args.contrastive_loss.endswith("ordered"):
         if args.datasplit not in ["fpreuse_ordered"]:
             print('Warning: contrastive_loss is set, but datasplit is not "fpreuse_ordered". Setting datasplit to "fpreuse_ordered"')
             args.datasplit = "fpreuse_ordered"

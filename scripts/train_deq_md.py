@@ -389,7 +389,7 @@ def main(args):
             _stats = stats[args.dname]["_avg"][args.model.max_radius]
         else:
             try:
-                _stats = stats[args.dname][args.target][str(args.model.max_radius)]
+                _stats = stats[args.dname][args.target][str(float(args.model.max_radius))]
             except:
                 print(f'Could not find statistics for {args.dname}, {args.target}, {args.model.max_radius}')
                 print(f'Only found: {yaml.dump(stats)}')
@@ -1002,6 +1002,7 @@ def train_one_epoch(
                 step=global_step,
                 datasplit="train",
                 solver_kwargs=solver_kwargs,
+                fpr_loss=args.fpr_loss,
             )
 
             # _AVG_NUM_NODES: 18.03065905448718
@@ -1041,12 +1042,11 @@ def train_one_epoch(
                     # crit = lambda x, y: (x - y).abs().mean()
                     crit = nn.MSELoss()
                     # last z is fixed point
-                    print('z_pred', len(info["z_pred"]))
                     z_pred = info["z_pred"]
                     losses_fpc = fp_correction(
                         crit, (z_pred[:-1], z_pred[-1]), return_loss_values=True
                     )
-                    loss_fpc += args.fpc_gamma * losses_fpc.mean()
+                    loss_fpc += args.fpc_weight * losses_fpc.mean()
                     loss += loss_fpc
                     if wandb.run is not None:
                         wandb.log({"fpc_loss_scaled": loss_fpc.item()},step=global_step,)
@@ -1056,11 +1056,37 @@ def train_one_epoch(
             
             # Contrastive loss
             if args.contrastive_loss not in [False, None]:
-                assert (data.idx[0] - data.idx[1]).abs() == 1, f"Contrastive loss requires consecutive indices {data.idx}"
-                if args.contrastive_loss == 'triplet':
-                    closs = calc_triplet_loss(info["z_pred"][-1], data, triplet_lossfn)
-                elif args.contrastive_loss in ['next']:
-                    closs = contrastive_loss(info["z_pred"][-1], data, closs_type=args.contrastive_loss, squared=True)
+                # DEPRECATED: consecutive dataset won't diverge, irrespective of loss
+                if args.contrastive_loss.endswith("ordered"):
+                    assert (data.idx[0] - data.idx[1]).abs() == 1, f"Contrastive loss requires consecutive indices {data.idx}"
+                    if args.contrastive_loss.startswith("triplet"):
+                        closs = calc_triplet_loss(info["z_pred"][-1], data, triplet_lossfn)
+                    elif args.contrastive_loss.startswith("next"):
+                        assert (data.idx[0] - data.idx[1]).abs() == 1, f"Contrastive loss requires consecutive indices {data.idx}"
+                        closs = contrastive_loss(info["z_pred"][-1], data, closs_type=args.contrastive_loss, squared=True)
+                
+                elif args.contrastive_loss == "next":
+                    # get the next timesteps
+                    idx = data.idx + 1
+                    # make sure we don't go out of bounds
+                    idx[idx >= len(data_loader.dataset)] = idx - 2
+                    # idx.clamp_(0, len(data_loader.dataset) - 1) 
+                    next_data = data_loader.dataset[idx]
+                    next_data = next_data.to(device)
+
+                    # get correct fixed-point of next timestep
+                    with torch.set_grad_enabled(args.contrastive_w_grad):
+                        next_pred_y, next_pred_dy, next_info = model(
+                            data=next_data,  # for EquiformerV2
+                            node_atom=next_data.z,
+                            pos=next_data.pos,
+                            batch=next_data.batch,
+                            step=None,
+                            datasplit=None,
+                        )
+                        z_next_true = next_info["z_pred"][-1]
+                    closs = nn.MSELoss(z_next_true, info["z_next"])
+
                 else:
                     raise NotImplementedError(f"Contrastive loss {args.contrastive_loss} not implemented.")
                 closs = args.contrastive_weight * closs
@@ -1071,29 +1097,19 @@ def train_one_epoch(
             if args.fpr_loss == True:
                 # get the next timesteps
                 idx = data.idx + 1
+                # make sure we don't go out of bounds
+                idx[idx >= len(data_loader.dataset)] = idx - 2
+                # idx.clamp_(0, len(data_loader.dataset) - 1) 
                 next_data = data_loader.dataset[idx]
                 next_data = next_data.to(device)
 
+                # REMOVE
                 print('idx', idx, 'data.idx', data.idx, 'next_data.idx', next_data.idx)
 
                 # do one more forward pass imitating fixed-point reuse
-                # xs: extra step
-                # TODO: make sure torchdeq does no compute gradients
-                # by zeroing out the forward solver f_max_iter=0, all the gradient steps are taken by the PyTorch auto differentiation engine to compute gradients
-                if args.fpr_w_eval: model.eval()
-                solver_kwargs = {'f_max_iter': 1, 'grad': 0}
-                _, _, info_xs = model(
-                    data=data,  # for EquiformerV2
-                    node_atom=data.z,
-                    pos=data.pos,
-                    batch=data.batch,
-                    step=None,
-                    datasplit=None,
-                    solver_kwargs=solver_kwargs,
-                    fixed_point=info["z_pred"][-1],
-                )
-                if args.fpr_w_eval: model.train()
-                fp_xs = info_xs["z_pred"][-1]
+                # by zeroing out the forward solver f_max_iter=0, all the gradient steps 
+                # are taken by the PyTorch auto differentiation engine to compute gradients
+                z_next = info["z_next"]
 
                 # get correct fixed-point of next timestep
                 with torch.set_grad_enabled(args.fpr_w_grad):
@@ -1105,14 +1121,12 @@ def train_one_epoch(
                         step=None,
                         datasplit=None,
                     )
-                    next_fp = next_info["z_pred"][-1]
+                    z_next_true = next_info["z_pred"][-1]
                 
                 # loss
-                fpr_loss = nn.MSELoss(fp_xs, next_fp)
+                fpr_loss = nn.MSELoss(z_next_true, z_next)
                 loss += args.fpr_weight * fpr_loss
                 wandb.log({"scaled_fpr_loss": (args.fpr_weight * fpr_loss).item()}, step=global_step)
-
-
 
             if wandb.run is not None:
                 wandb.log(
@@ -1268,7 +1282,7 @@ def evaluate(
     # Techniques for faster inference
     # e.g. fixed-point reuse, relaxed FP-error threshold, etc.
     # for simplicity we only apply it to test (val is too small)
-    if datasplit == "test":
+    if datasplit == "test" and "solver_kwargs_test" in args:
         solver_kwargs = args.deq_kwargs_test
     else:
         solver_kwargs = {}

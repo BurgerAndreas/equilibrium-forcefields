@@ -244,8 +244,7 @@ class DEQIndexing(DEQBase):
         **kwargs
     ):
         super(DEQIndexing, self).__init__(args=args, **kwargs)
-        print(f'{self.__class__.__name__} args: \n{yaml.dump(args.config)}')
-        print(f' ift: {ift}, hook_ift: {hook_ift}, grad: {grad}, tau: {tau}, sup_gap: {sup_gap}, sup_loc: {sup_loc}, n_states: {n_states}, indexing: {indexing}')
+        print(f'{self.__class__.__name__} args: \n{yaml.dump(args.config)} ift: {ift}, hook_ift: {hook_ift}, grad: {grad}, tau: {tau}, sup_gap: {sup_gap}, sup_loc: {sup_loc}, n_states: {n_states}, indexing: {indexing}')
 
         # Preprocess arguments.
         grad = self.args.get("grad", grad)
@@ -525,8 +524,7 @@ class DEQSliced(DEQBase):
         **kwargs
     ):
         super(DEQSliced, self).__init__(args, **kwargs)
-        print(f'{self.__class__.__name__} args: {yaml.dump(args.config)}')
-        print(f' ift: {ift}, hook_ift: {hook_ift}, grad: {grad}, tau: {tau}, sup_gap: {sup_gap}, sup_loc: {sup_loc}, n_states: {n_states}, indexing: {indexing}')
+        print(f'{self.__class__.__name__} args: {yaml.dump(args.config)} ift: {ift}, hook_ift: {hook_ift}, grad: {grad}, tau: {tau}, sup_gap: {sup_gap}, sup_loc: {sup_loc}, n_states: {n_states}, indexing: {indexing}')
 
         # Preprocess arguments.
         grad = self.args.get("grad", grad)
@@ -688,22 +686,30 @@ class DEQSliced(DEQBase):
                 z_star, info = self._solve_fixed_point(
                     deq_func, z_star, f_max_iter=f_max_iter, solver_kwargs=solver_kwargs
                 )
+                
+                # remove all gradients that were tracked during the forward solver
                 z_star = deq_func.detach(z_star)
+
+                # Calc gradients. See torchdeq.grad for implementations
                 z_out += produce_grad(
                     self, deq_func, z_star, writer=backward_writer
-                )  # See torchdeq.grad for implementations
+                )  
+                
+                # z_out is of len=1 unless indexing or n_states is specified
                 z_star = z_out[-1]  # Add the gradient chain to the solver.
 
             z_out = [deq_func.vec2list(each) for each in z_out]
+
         else:
             # During inference, we directly solve for the fixed point
+            # i.e. do not calc gradients
             z_star, info = self._solve_fixed_point(
                 deq_func,
                 z_star,
                 f_max_iter=solver_kwargs.get("f_max_iter", self.eval_f_max_iter),
                 solver_kwargs=solver_kwargs,
             )
-
+            # optionally add spectral radius to info
             sradius = (
                 self._sradius(deq_func, z_star) if sradius_mode else torch.zeros(1)
             )

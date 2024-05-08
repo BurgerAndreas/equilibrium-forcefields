@@ -81,22 +81,23 @@ def line_search(update, x0, g0, g, nstep=0, on=True):
     tmp_phi = [torch.norm(g0) ** 2]
     s_norm = torch.norm(x0) / torch.norm(update)
 
-    def phi(s, store=True):
-        if s == tmp_s[0]:
-            return tmp_phi[0]  # If the step size is so small... just return something
-        x_est = x0 + s * update
-        g0_new = g(x_est)
-        phi_new = _safe_norm(g0_new) ** 2
-        if store:
-            tmp_s[0] = s
-            tmp_g0[0] = g0_new
-            tmp_phi[0] = phi_new
-        return phi_new
-
     if on:
         # Do a line search
+        def phi(s, store=True):
+            if s == tmp_s[0]:
+                return tmp_phi[0]  # If the step size is so small... just return something
+            x_est = x0 + s * update
+            g0_new = g(x_est)
+            phi_new = _safe_norm(g0_new) ** 2
+            if store:
+                tmp_s[0] = s
+                tmp_g0[0] = g0_new
+                tmp_phi[0] = phi_new
+            return phi_new
+
         # ite is the number of iterations in the line search
         s, phi1, ite = scalar_search_armijo(phi, tmp_phi[0], -tmp_phi[0], amin=1e-2)
+
     if (not on) or s is None:
         s = 1.0
         ite = 0
@@ -117,7 +118,9 @@ def rmatvec(part_Us, part_VTs, x):
     if part_Us.nelement() == 0:
         return -x
     xTU = torch.einsum("bd, bdl -> bl", x, part_Us)  # (B, L_thres)
-    return -x + torch.einsum("bl, bld -> bd", xTU, part_VTs)  # (B, D)
+    _a = torch.einsum("bl, bld -> bd", xTU, part_VTs)  # (B, D)
+    _b = -x + _a
+    return _b
 
 
 def matvec(part_Us, part_VTs, x):
@@ -128,7 +131,9 @@ def matvec(part_Us, part_VTs, x):
     if part_Us.nelement() == 0:
         return -x
     VTx = torch.einsum("bld, bd -> bl", part_VTs, x)  # (B, L_thres)
-    return -x + torch.einsum("bdl, bl -> bd", part_Us, VTx)  # (B, D)
+    _a = torch.einsum("bdl, bl -> bd", part_Us, VTx)  # (B, D)
+    _b = -x + _a
+    return _b
 
 
 def broyden_solver(
@@ -141,10 +146,13 @@ def broyden_solver(
     LBFGS_thres=None,
     ls=False,
     return_final=False,
+    with_grad=False,
+    # return_xest=False,
     **kwargs
 ):
     """
     Implements the Broyden's method for solving a system of nonlinear equations.
+    Limited-memory BFGS (L-BFGS or LM-BFGS) is used to approximate the inverse Jacobian.
 
     Args:
         func (callable): The function for which we seek a fixed point.
@@ -209,6 +217,7 @@ def broyden_solver(
 
     while nstep < max_iter:
         # Perform a line search and update the state if requested
+        # func / g is called here
         x_est, gx, delta_x, delta_gx, ite = line_search(
             update, x_est, gx, g, nstep=nstep, on=ls
         )
@@ -236,6 +245,7 @@ def broyden_solver(
 
         # Update the state based on the new estimate
         # trace_dict['abs'].append(abs_diff)
+        # lowest_xest = x_est.view_as(x0)
         lowest_xest = update_state(
             lowest_xest,
             x_est.view_as(x0),
@@ -247,6 +257,7 @@ def broyden_solver(
             lowest_dict,
             lowest_step_dict,
             return_final,
+            with_grad,
         )
 
         # Store the solution at the specified index
@@ -254,7 +265,7 @@ def broyden_solver(
             indexing_list.append(lowest_xest)
 
         new_objective = trace_dict[stop_mode][-1].max()
-        if not return_final and new_objective < tol:
+        if return_final == False and new_objective < tol:
             break
 
         # Check for lack of progress
@@ -289,4 +300,190 @@ def broyden_solver(
         indexing_list.append(lowest_xest)
 
     info = solver_stat_from_info(stop_mode, lowest_dict, trace_dict, lowest_step_dict)
+    # if return_xest:
+    #     return x_est.view_as(x0), indexing_list, info
+    return lowest_xest, indexing_list, info
+
+def broyden_solver_grad(
+    func,
+    x0,
+    max_iter=50,
+    tol=1e-3,
+    stop_mode="abs",
+    indexing=None,
+    LBFGS_thres=None,
+    ls=False,
+    return_final=False,
+    with_grad=True,
+    # return_xest=False,
+    **kwargs
+):
+    """Differentiable Broyden solver.
+
+    Implements the Broyden's method for solving a system of nonlinear equations.
+    Limited-memory BFGS (L-BFGS or LM-BFGS) is used to approximate the inverse Jacobian.
+
+    Args:
+        func (callable): The function for which we seek a fixed point.
+        x0 (torch.Tensor): The initial guess for the root.
+        max_iter (int, optional): The maximum number of iterations. Default: 50.
+        tol (float, optional): The convergence criterion. Default: 1e-3.
+        stop_mode (str, optional): The stopping criterion. Can be either 'abs' or 'rel'. Default: 'abs'.
+        indexing (list, optional): List of iteration indices at which to store the solution. Default: None.
+        LBFGS_thres (int, optional): The max_iter for the limited memory BFGS method. None for storing all. Default: None.
+        ls (bool, optional): If True, perform a line search at each step. Default: False.
+        return_final (bool, optional): If True, returns the final solution instead of the one with smallest residual. Default: False.
+        kwargs (dict, optional): Extra arguments are ignored.
+
+    Returns:
+        tuple[torch.Tensor, list[torch.Tensor], dict[str, torch.Tensor]]: a tuple containing the following.
+            - torch.Tensor: Fixed point solution.
+            - list[torch.Tensor]: List of the solutions at the specified iteration indices.
+            - dict[str, torch.Tensor]:
+                A dict containing solver statistics in a batch.
+                Please see :class:`torchdeq.solver.stat.SolverStat` for more details.
+
+    Examples:
+        >>> f = lambda z: 0.5 * (z + 2 / z)                 # Function for which we seek a fixed point
+        >>> z0 = torch.tensor(1.0)                          # Initial estimate
+        >>> z_star, _, _ = broyden_solver(f, z0)            # Run the Broyden's method
+        >>> print((z_star - f(z_star)).norm(p=1))           # Print the numerical error
+    """
+    # if kwargs:
+    #     print(f"broyden_solver ignoring kwargs: {kwargs}")
+
+    # Flatten the initial tensor into (B, *)
+    # estimate of the root
+    x_est = batch_flatten(x0)
+    bsz, dim = x_est.shape
+
+    # Define the function g of (B, D) -> (B, D) for root solving
+    # g(x) = f(x) - x
+    # Defines the fixed-point error
+    g = lambda y: func(y.view_as(x0)).reshape_as(y) - y
+
+    alternative_mode = "rel" if stop_mode == "abs" else "abs"
+    LBFGS_thres = max_iter if LBFGS_thres is None else LBFGS_thres
+
+    gx = g(x_est)
+    nstep = 0
+    tnstep = 0
+
+    # For fast approximate calculation of inv_jacobian
+    # One can also use an L-BFGS scheme to further reduce memory
+    Us = torch.zeros(bsz, dim, LBFGS_thres, dtype=x0.dtype, device=x0.device)
+    VTs = torch.zeros(bsz, LBFGS_thres, dim, dtype=x0.dtype, device=x0.device)
+    # Formally should be -torch.matmul(inv_jacobian (-I), gx)
+    update = -matvec(Us[:, :, :nstep], VTs[:, :nstep], gx)
+
+    new_objective = 1e8
+
+    # Initialize tracking dictionaries for solver statistics
+    trace_dict, lowest_dict, lowest_step_dict = init_solver_info(bsz, x0.device)
+    nstep, lowest_xest = 0, x0
+
+    indexing_list = []
+
+    while nstep < max_iter:
+        # Perform a line search and update the state if requested
+        # func / g is called here
+        x_est, gx, delta_x, delta_gx, ite = line_search(
+            update, x_est, gx, g, nstep=nstep, on=ls
+        )
+        nstep += 1
+        tnstep += ite + 1
+
+        # Calculate the absolute and relative differences
+        # assumes x.shape()=(B, D) since we use flatten
+        abs_diff = gx.norm(dim=1)
+        rel_diff = abs_diff / ((gx + x_est).norm(dim=1) + 1e-9)
+        # Since torch.norm is deprecated, we use torch.linalg.norm or matrix_norm
+        # Frobenius norm produces the same result as p=2
+        # torch.linalg.matrix_norm(A, ord='fro', dim=(-2, -1))
+        # abs_diff = torch.linalg.matrix_norm(gx, ord=2, dim=1)
+
+        # added
+        # compute error at float64
+        # torch.set_default_dtype(d) # torch.float32, torch.float64
+        dtype = torch.float64
+        gx64 = gx.to(dtype)
+        abs_diff64 = gx64.norm(dim=1)
+        rel_diff64 = abs_diff64 / ((gx64 + x_est.to(dtype)).norm(dim=1) + 1e-17)
+        trace_dict["abs64"].append(abs_diff64)
+        trace_dict["rel64"].append(rel_diff64)
+
+        # Update the state based on the new estimate
+        # trace_dict['abs'].append(abs_diff)
+        # lowest_xest = x_est.view_as(x0)
+        lowest_xest = update_state(
+            lowest_xest,
+            x_est.view_as(x0),
+            nstep,
+            stop_mode,
+            abs_diff,
+            rel_diff,
+            trace_dict,
+            lowest_dict,
+            lowest_step_dict,
+            return_final,
+            with_grad,
+        )
+
+        # Store the solution at the specified index
+        if indexing and (nstep + 1) in indexing:
+            indexing_list.append(lowest_xest)
+
+        new_objective = trace_dict[stop_mode][-1].max()
+        if return_final == False and new_objective < tol:
+            break
+
+        # Check for lack of progress
+        if nstep > 30:
+            progress = (
+                torch.stack(trace_dict[stop_mode][-30:]).max(dim=1)[0]
+                / torch.stack(trace_dict[stop_mode][-30:]).min(dim=1)[0]
+            )
+            if new_objective < 3 * tol and progress.max() < 1.3:
+                # If there's hardly been any progress in the last 30 steps
+                break
+        
+        # Update the inverses Jacobian approximation using the Broyden's update formula
+        # part_Us, part_VTs = Us[:, :, : nstep - 1], VTs[:, : nstep - 1]
+        part_Us = Us[:, :, : nstep - 1].clone()
+        part_VTs = VTs[:, : nstep - 1].clone()
+        vT = rmatvec(part_Us, part_VTs, delta_x)
+        _c = matvec(part_Us, part_VTs, delta_gx)
+        _d = torch.einsum("bd,bd->b", vT, delta_gx)[:, None]
+        u = (delta_x - _c) / _d
+
+        # replace nan with 0
+        # vT[vT != vT] = 0
+        # u[u != u] = 0
+        vT = torch.nan_to_num(vT)
+        u = torch.nan_to_num(u)
+
+        # VTs[:, (nstep - 1) % LBFGS_thres] = vT
+        _vts = torch.zeros_like(VTs)  # doesn't require grad
+        _vts[:, (nstep - 1) % LBFGS_thres] = vT # because _vts didn't require grad, this works with autograd
+        VTs = VTs + _vts
+
+        # Us[:, :, (nstep - 1) % LBFGS_thres] = u
+        _us = torch.zeros_like(Us)
+        _us[:, :, (nstep - 1) % LBFGS_thres] = u
+        Us = Us + _us
+
+        update = -matvec(Us[:, :, :nstep], VTs[:, :nstep], gx)
+
+    # Fill everything up to the max_iter length
+    for _ in range(max_iter + 1 - len(trace_dict[stop_mode])):
+        trace_dict[stop_mode].append(lowest_dict[stop_mode])
+        trace_dict[alternative_mode].append(lowest_dict[alternative_mode])
+
+    # at least return the lowest value when enabling  ``indexing''
+    if indexing and not indexing_list:
+        indexing_list.append(lowest_xest)
+
+    info = solver_stat_from_info(stop_mode, lowest_dict, trace_dict, lowest_step_dict)
+    # if return_xest:
+    #     return x_est.view_as(x0), indexing_list, info
     return lowest_xest, indexing_list, info

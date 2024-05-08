@@ -151,17 +151,19 @@ fpreuse_test: False
 fpc_loss: l2
 fpc_freq: 0 # how many fixed-point estimates to pick for the loss. -1 means all, 0 means none. 1-4 is reasonable
 fpc_rand: False # if to pick fixed-point estimates unform randomly or uniformly spaced
-fpc_gamma: 0.8 # weight for the fixed-point correction loss
+fpc_weight: 0.8 # weight for the fixed-point correction loss
 fpc_wfunc: const # weighting of loss in time. 'const' (constant), 'linear', and 'exp'
 
 # contrastive fixed-point loss
-contrastive_loss: False # False, next, triplet, tripletrelu
+contrastive_loss: False # False, next, triplet
 contrastive_weight: 0.8 # weight for the contrastive fixed-point loss
+contrastive_w_grad: False # if to use gradients in the contrastive fixed-point loss
 tripletloss_margin: 0.0 # margin for triplet loss
 
 # fixed-point reuse loss
 fpr_loss: False
 fpr_w_eval: False
+fpr_w_grad: False
 fpr_weight: 1.0
 
 unsqueeze_e_dim: False # if to reshape model output [B] (OC20) -> [B,1] (MD17)

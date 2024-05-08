@@ -335,6 +335,9 @@ def main(args):
         # log
         _log.info(f"Loaded model from {args.checkpoint_path}")
 
+    # log available memory
+    if torch.cuda.is_available():
+        _log.info(f"Available memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
     model = model.to(device)
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch
@@ -407,8 +410,8 @@ def main(args):
         # V3: this will add new entries to the config
         wandb.run.config.update({"_AVG_NUM_NODES": _AVG_NUM_NODES, "_AVG_DEGREE": _AVG_DEGREE})
         # V4: update all config args
-        args.model._AVG_NUM_NODES = _AVG_NUM_NODES
-        args.model._AVG_DEGREE = _AVG_DEGREE
+        args.model._AVG_NUM_NODES = float(_AVG_NUM_NODES)
+        args.model._AVG_DEGREE = float(_AVG_DEGREE)
         # wandb.config.update(args)
         _log.info(f"Loaded computed stats: _AVG_NUM_NODES={_AVG_NUM_NODES}, _AVG_DEGREE={_AVG_DEGREE}")
     

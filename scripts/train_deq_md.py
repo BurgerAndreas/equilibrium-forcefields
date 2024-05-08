@@ -396,8 +396,8 @@ def main(args):
                 _stats = stats[args.dname]["_avg"][args.model.max_radius]
         _AVG_NUM_NODES, _AVG_DEGREE = _stats["avg_node"], _stats["avg_degree"]
         # overwrite model parameters
-        model._AVG_NUM_NODES = _AVG_NUM_NODES
-        model._AVG_DEGREE = _AVG_DEGREE
+        model._AVG_NUM_NODES = float(_AVG_NUM_NODES)
+        model._AVG_DEGREE = float(_AVG_DEGREE)
         # write to wandb
         # V1: add to summary
         # wandb.run.summary["_AVG_NUM_NODES"] = _AVG_NUM_NODES
@@ -1089,6 +1089,7 @@ def train_one_epoch(
 
                 else:
                     raise NotImplementedError(f"Contrastive loss {args.contrastive_loss} not implemented.")
+                
                 closs = args.contrastive_weight * closs
                 loss += closs
                 if wandb.run is not None:

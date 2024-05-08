@@ -463,16 +463,16 @@ def broyden_solver_grad(
         u = torch.nan_to_num(u)
 
         # VTs[:, (nstep - 1) % LBFGS_thres] = vT
-        _vts = torch.zeros_like(VTs)  # doesn't require grad
-        _vts[:, (nstep - 1) % LBFGS_thres] = vT # because _vts didn't require grad, this works with autograd
-        VTs = VTs + _vts
+        mask = torch.zeros_like(VTs) # doesn't require grad
+        mask[:, (nstep - 1) % LBFGS_thres] = 1 # because _vts didn't require grad, this works with autograd
+        VTs = VTs * (1 - mask) + vT * mask
 
         # Us[:, :, (nstep - 1) % LBFGS_thres] = u
-        _us = torch.zeros_like(Us)
-        _us[:, :, (nstep - 1) % LBFGS_thres] = u
-        Us = Us + _us
+        mask = torch.zeros_like(Us) # doesn't require grad
+        mask[:, :, (nstep - 1) % LBFGS_thres] = 1
+        Us = Us * (1 - mask) + u * mask
 
-        update = -matvec(Us[:, :, :nstep], VTs[:, :nstep], gx)
+        update = -matvec(Us[:, :, :nstep].clone(), VTs[:, :nstep].clone(), gx)
 
     # Fill everything up to the max_iter length
     for _ in range(max_iter + 1 - len(trace_dict[stop_mode])):

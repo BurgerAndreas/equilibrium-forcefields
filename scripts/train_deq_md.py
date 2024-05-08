@@ -373,10 +373,10 @@ def main(args):
         return {"avg_node": avg_node, "avg_edge": avg_edge, "avg_degree": avg_degree.item()}
 
     # Overwrite _AVG_NUM_NODES and _AVG_DEGREE with the dataset statistics
-    if args.load_computed_stats:
+    if args.load_stats:
         import json
-        if type(args.load_computed_stats) == str:
-            stats = json.load(open(args.load_computed_stats))
+        if type(args.load_stats) == str:
+            stats = json.load(open(args.load_stats))
         else:
             # default: datasets/statistics.json
             _fpath = os.path.join("datasets", "statistics.json")

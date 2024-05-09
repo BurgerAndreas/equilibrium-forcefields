@@ -1318,7 +1318,7 @@ def evaluate(
     # Techniques for faster inference
     # e.g. fixed-point reuse, relaxed FP-error threshold, etc.
     # for simplicity we only apply it to test (val is too small)
-    if datasplit == "test" and "solver_kwargs_test" in args:
+    if datasplit == "test" and "deq_kwargs_test" in args:
         solver_kwargs = args.deq_kwargs_test
     else:
         solver_kwargs = {}

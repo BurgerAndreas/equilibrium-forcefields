@@ -99,9 +99,9 @@ seed: 0
 # (int)
 workers: 4
 # Pin CPU memory in DataLoader for more efficient (sometimes (int)
-pin_mem: False
+pin_mem: True
 # (int)
-no_pin_mem: False
+no_pin_mem: True
 # Disable FP16 training.     (int)
 no_amp: False
 # number of distributed processes     (int)

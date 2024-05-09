@@ -567,7 +567,7 @@ def main(args):
             normalizers=normalizers,
         )
 
-        optimizer.zero_grad()
+        optimizer.zero_grad(set_to_none=True)
         val_err, val_loss = evaluate(
             args=args,
             model=model,
@@ -585,7 +585,7 @@ def main(args):
             datasplit="val",
             normalizers=normalizers,
         )
-        optimizer.zero_grad()
+        optimizer.zero_grad(set_to_none=True)
 
         if (epoch + 1) % args.test_interval == 0:
             _log.info(f"Testing model after epoch {epoch+1}.")
@@ -606,7 +606,7 @@ def main(args):
                 datasplit="test",
                 normalizers=normalizers,
             )
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
         else:
             test_err, test_loss = None, None
 
@@ -766,7 +766,7 @@ def main(args):
                 datasplit="ema_val",
                 normalizers=normalizers,
             )
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
 
             if (epoch + 1) % args.test_interval == 0:
                 _log.info(f"Testing EMA model at epoch {epoch}")
@@ -787,7 +787,7 @@ def main(args):
                     datasplit="ema_test",
                     normalizers=normalizers,
                 )
-                optimizer.zero_grad()
+                optimizer.zero_grad(set_to_none=True)
             else:
                 ema_test_err, ema_test_loss = None, None
 
@@ -901,7 +901,7 @@ def main(args):
 
     # all epochs done
     # evaluate on the whole testing set
-    optimizer.zero_grad()
+    optimizer.zero_grad(set_to_none=True)
     test_err, test_loss = evaluate(
         args=args,
         model=model,
@@ -919,7 +919,7 @@ def main(args):
         datasplit="test_final",
         normalizers=normalizers,
     )
-    optimizer.zero_grad()
+    optimizer.zero_grad(set_to_none=True)
 
     # save the final model
     if args.save_final_checkpoint:
@@ -1199,7 +1199,7 @@ def train_one_epoch(
             if torch.isnan(pred_y).any():
                 isnan_cnt += 1
 
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
             loss.backward()
             # optionally clip and log grad norm
             if args.clip_grad_norm:
@@ -1416,7 +1416,7 @@ def evaluate(
                 else:
                     pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
 
-                optimizer.zero_grad()
+                optimizer.zero_grad(set_to_none=True)
 
                 # --- metrics ---
                 loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])

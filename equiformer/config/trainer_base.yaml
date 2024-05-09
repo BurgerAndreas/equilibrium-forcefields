@@ -104,9 +104,10 @@ seed: 1
 # (int)
 workers: 4
 # Pin CPU memory in DataLoader for more efficient (sometimes (int)
-pin_mem: False
+pin_mem: True
 # (int)
-no_pin_mem: False
+no_pin_mem: True
+num_workers: 4
 # load checkpoint (str)
 checkpoint_path: null
 save_best_test_checkpoint: False

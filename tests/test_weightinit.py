@@ -190,7 +190,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     torch.manual_seed(args.seed)
 
     """ Dataset """
-    train_dataset, val_dataset, test_dataset = md_all.get_md_datasets(
+    train_dataset, val_dataset, test_dataset, all_dataset = md_all.get_md_datasets(
         root=os.path.join(args.data_path, "md17", args.target),
         dataset_arg=args.target,
         train_size=args.train_size,

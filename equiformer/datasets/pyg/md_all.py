@@ -30,7 +30,7 @@ class MDAll(InMemoryDataset):
     https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.datasets.MD17.html
 
     Usage:
-        train_dataset, val_dataset, test_dataset = md17_dataset.get_md_datasets(
+        train_dataset, val_dataset, test_dataset, all_dataset = md17_dataset.get_md_datasets(
             root=os.path.join(args.data_path, 'md17', args.target),
             dataset_arg=args.target,
             train_size=args.train_size,
@@ -489,12 +489,16 @@ def get_md_datasets(
     assert order in [None, "rmd17", "equiformer", "consecutive_all", "consecutive_test"], f'Unknown order "{order}".'
 
     load_splits = None
-    if order == 'rmd17' and (dname in ["md17", "rmd17"]):
-        # datasets/rmd17/aspirin/raw/rmd17/splits/index_test_01.csv
-        load_splits = {
-            "train": osp.join(root, "raw", "rmd17", "splits", "index_train_01.csv"),
-            "test": osp.join(root, "raw", "rmd17", "splits", "index_test_01.csv"),
-        }
+    if order == 'rmd17': 
+        if dname in ["md17", "rmd17"]:
+            # datasets/rmd17/aspirin/raw/rmd17/splits/index_test_01.csv
+            load_splits = {
+                "train": osp.join(root, "raw", "rmd17", "splits", "index_train_01.csv"),
+                "test": osp.join(root, "raw", "rmd17", "splits", "index_test_01.csv"),
+            }
+        else:
+            print(f"Warning: order={order} is set, but dname={dname} is not 'md17' or 'rmd17'. Ignoring order.")
+            order = None
 
     # different dataset lengths will lead to different permutations
     # hard setting the max_samples to ensure reproducibility
@@ -546,7 +550,7 @@ def get_md_datasets(
     val_dataset = Subset(all_dataset, idx_val)
     test_dataset = Subset(all_dataset, idx_test)
 
-    return train_dataset, val_dataset, test_dataset
+    return train_dataset, val_dataset, test_dataset, all_dataset
 
 
 def get_order(args):
@@ -577,7 +581,7 @@ if __name__ == "__main__":
     from torch_geometric.loader import DataLoader
 
     _root_path = "./datasets/test"
-    train_dataset, val_dataset, test_dataset = get_md_datasets(
+    train_dataset, val_dataset, test_dataset, all_dataset = get_md_datasets(
         root=_root_path,
         dataset_arg="aspirin",
         train_size=950,

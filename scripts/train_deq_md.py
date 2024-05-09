@@ -7,6 +7,8 @@ import time
 import torch
 import numpy as np
 from torch_geometric.loader import DataLoader
+from torch_geometric.loader.dataloader import Collater
+# from torch_geometric.data import collate
 
 import os
 import sys
@@ -88,6 +90,32 @@ ModelEma = ModelEmaV2
 import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
+
+def get_next_batch(dataset, batch, collate):
+    """Get batch where indices are consecutive to previous batch."""
+    # get the next timesteps
+    idx = batch.idx + 1
+    idx = idx.to('cpu')
+
+    # only works when dataset is consecutive
+    # make sure we don't go out of bounds
+    len_train = len(dataset) 
+    idx = torch.where(idx >= len_train, idx - 2, idx) 
+    # idx.clamp_(0, len_train - 1) 
+    idx = idx.tolist()
+
+    # If you want to access specific elements we need to use torch.utils.data.Dataset
+    # DataLoader has no __getitem__ method (see in the source code for yourself).
+    # DataLoader is used for iterating, not random access, over data (or batches of data). 
+    # index the dataset:                      <class 'equiformer.datasets.pyg.md_all.MDAll'>
+    # with collate / next(iter(data_loader)): <class 'torch_geometric.data.batch.DataBatch'>
+    next_data = collate([dataset[_idx] for _idx in idx])
+    next_data = next_data.to(batch.idx.device)
+
+    # assert idx and next_data.idx are (at max, if we use clamp) one apart
+    assert (next_data.idx - batch.idx).abs().float().mean() <= 1., f'idx: {idx}, next_data.idx: {next_data.idx}'
+
+    return next_data
 
 # def save_checkpoint():
 #     torch.save(
@@ -177,7 +205,7 @@ def main(args):
     else:
         import equiformer.datasets.pyg.md_all as md_all
 
-        train_dataset, val_dataset, test_dataset = md_all.get_md_datasets(
+        train_dataset, val_dataset, test_dataset, all_dataset = md_all.get_md_datasets(
             root=args.data_path,
             dataset_arg=args.target,
             dname=args.dname,
@@ -187,7 +215,10 @@ def main(args):
             seed=args.seed,
             order=md_all.get_order(args),
         )
-
+        # assert that dataset is consecutive
+        samples = Collater(follow_batch=None, exclude_keys=None)([all_dataset[i] for i in range(10)])
+        assert torch.allclose(samples.idx, torch.arange(10)), f"idx are not consecutive: {samples.idx}"
+    
     _log.info("")
     _log.info("Training set size:   {}".format(len(train_dataset)))
     _log.info("Validation set size: {}".format(len(val_dataset)))
@@ -249,17 +280,15 @@ def main(args):
         test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
     )
 
-    # Combine train, val, test loaders
-    # only useful when dataset order is consecutive
-    all_dataset = torch.utils.data.ConcatDataset([train_dataset, val_dataset, test_dataset])
-    all_loader = DataLoader(
-        all_dataset,
-        batch_size=args.eval_batch_size,
-        shuffle=False,
-        num_workers=args.workers,
-        pin_memory=args.pin_mem,
-        drop_last=True,
-    )
+    # DEPRECATED: not used
+    # all_loader = DataLoader(
+    #     all_dataset,
+    #     batch_size=args.eval_batch_size,
+    #     shuffle=False,
+    #     num_workers=args.workers,
+    #     pin_memory=args.pin_mem,
+    #     drop_last=True,
+    # )
 
     """ Compute stats """
     # Compute _AVG_NUM_NODES, _AVG_DEGREE
@@ -371,7 +400,6 @@ def main(args):
         )
     
     """ Log number of parameters """
-
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     _log.info("Number of Model params: {}".format(n_parameters))
     wandb.run.summary["Model Parameters"] = n_parameters
@@ -526,7 +554,8 @@ def main(args):
             criterion_energy=criterion_energy,
             criterion_force=criterion_force,
             data_loader=train_loader,
-            all_loader=all_loader,
+            # all_loader=all_loader,
+            all_dataset=all_dataset,
             optimizer=optimizer,
             device=device,
             epoch=epoch,
@@ -965,7 +994,8 @@ def train_one_epoch(
     criterion_energy: torch.nn.Module,
     criterion_force: torch.nn.Module,
     data_loader: Iterable,
-    all_loader: Iterable,
+    # all_loader: Iterable,
+    all_dataset,
     optimizer: torch.optim.Optimizer,
     device: torch.device,
     epoch: int,
@@ -979,11 +1009,15 @@ def train_one_epoch(
     """Train for one epoch.
     Keys in dataloader: ['z', 'pos', 'batch', 'y', 'dy']
     """
+    collate = Collater(None, None)
 
     model.train()
-    # criterion.train()
     criterion_energy.train()
     criterion_force.train()
+    # crit_fpc = lambda x, y: (x - y).abs().mean()
+    criterion_fpc = nn.MSELoss()
+    criterion_contrastive = nn.MSELoss()
+    criterion_fpr = nn.MSELoss()
 
     loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
     mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
@@ -1061,12 +1095,10 @@ def train_one_epoch(
                     and "z_pred" in info
                     and len(info["z_pred"]) > 1
                 ):
-                    # crit = lambda x, y: (x - y).abs().mean()
-                    crit = nn.MSELoss()
                     # last z is fixed point
                     z_pred = info["z_pred"]
                     losses_fpc = fp_correction(
-                        crit, (z_pred[:-1], z_pred[-1]), return_loss_values=True
+                        criterion_fpc, (z_pred[:-1], z_pred[-1]), return_loss_values=True
                     )
                     loss_fpc += args.fpc_weight * losses_fpc.mean()
                     loss += loss_fpc
@@ -1078,7 +1110,7 @@ def train_one_epoch(
             
             # Contrastive loss
             if args.contrastive_loss not in [False, None]:
-                # DEPRECATED: consecutive dataset won't diverge, irrespective of loss
+                # DEPRECATED: consecutive dataset won't converge, irrespective of loss
                 if args.contrastive_loss.endswith("ordered"):
                     assert (data.idx[0] - data.idx[1]).abs() == 1, f"Contrastive loss requires consecutive indices {data.idx}"
                     if args.contrastive_loss.startswith("triplet"):
@@ -1088,45 +1120,8 @@ def train_one_epoch(
                         closs = contrastive_loss(info["z_pred"][-1], data, closs_type=args.contrastive_loss, squared=True)
                 
                 elif args.contrastive_loss == "next":
-                    # get the next timesteps
-                    idx = data.idx + 1
-                    idx = idx.to('cpu')
-
-                    # TODO: two possibilities: 
-                    # a) index the dataset itself
-                    # probably only works when everything is consecutive (broken by fpreuse test set order?)
-                    # make sure we don't go out of bounds
-                    len_train = len(data_loader.dataset) 
-                    idx = torch.where(idx >= len_train, idx - 2, idx) 
-                    # idx.clamp_(0, len_train - 1) 
-                    # /home/andreasburger/miniforge3/envs/deq/lib/python3.9/site-packages/torch/utils/data/dataset.py
-                    # next_data = data_loader.dataset.dataset[idx]  
-                    # next_data = data_loader.dataset.dataset.__getitems__([_idx for _idx in idx])  
-                    # next_data = [data_loader.dataset.dataset[_idx] for _idx in idx] 
-                    # next_data = torch.stack(next_data) 
-                    next_data = all_loader[idx] # whole dataset must be consecutive
-
-                    # b) have the trainset be a shuffled but consecutive dataset
-                    # make sure we don't go out of bounds
-                    len_train = args.train_size 
-                    idx = torch.where(idx >= len_train, idx - 2, idx) 
-                    idx = idx.tolist()
-                    # idx.clamp_(0, len_train - 1) 
-                    next_data = all_loader[idx] # trainset must be consecutive
-                    print(f'type(next_data): {type(next_data)}')
-
-                    # index the dataset:   <class 'equiformer.datasets.pyg.md_all.MDAll'>
-                    # index the dataloder: <class 'torch_geometric.data.batch.DataBatch'>
-
-
-                    first_batch = next(iter(data_loader))
-                    print(f'type(first_batch): {type(first_batch)}')
-
+                    next_data = get_next_batch(dataset=all_dataset, batch=data, collate=collate)
                     next_data = next_data.to(device)
-                    print('idx', idx, 'data.idx', data.idx, 'next_data.idx', next_data.idx)
-
-                    # REMOVE
-                    exit()
 
                     # get correct fixed-point of next timestep
                     with torch.set_grad_enabled(args.contrastive_w_grad):
@@ -1139,7 +1134,8 @@ def train_one_epoch(
                             datasplit=None,
                         )
                         z_next_true = next_info["z_pred"][-1]
-                    closs = nn.MSELoss(z_next_true, info["z_next"])
+                    # loss
+                    closs = criterion_contrastive(z_next_true, info["z_pred"][-1])
 
                 else:
                     raise NotImplementedError(f"Contrastive loss {args.contrastive_loss} not implemented.")
@@ -1150,23 +1146,8 @@ def train_one_epoch(
                     wandb.log({"contrastive_loss_scaled": closs.item()}, step=global_step)
             
             if args.fpr_loss == True:
-                # get the next timesteps
-                idx = data.idx + 1
-                idx.to('cpu')
-                # make sure we don't go out of bounds
-                idx[idx >= len_train] = idx - 2
-                # idx.clamp_(0, len_train - 1) 
-                next_data = data_loader.dataset[idx]
+                next_data = get_next_batch(dataset=all_dataset, batch=data, collate=collate)
                 next_data = next_data.to(device)
-
-                # REMOVE
-                print('idx', idx, 'data.idx', data.idx, 'next_data.idx', next_data.idx)
-
-                # do one more forward pass imitating fixed-point reuse
-                # by zeroing out the forward solver f_max_iter=0, all the gradient steps 
-                # are taken by the PyTorch auto differentiation engine to compute gradients
-                z_next = info["z_next"]
-
                 # get correct fixed-point of next timestep
                 with torch.set_grad_enabled(args.fpr_w_grad):
                     next_pred_y, next_pred_dy, next_info = model(
@@ -1178,9 +1159,8 @@ def train_one_epoch(
                         datasplit=None,
                     )
                     z_next_true = next_info["z_pred"][-1]
-                
                 # loss
-                fpr_loss = nn.MSELoss(z_next_true, z_next)
+                fpr_loss = criterion_fpr(z_next_true, info["z_next"])
                 loss += args.fpr_weight * fpr_loss
                 wandb.log({"scaled_fpr_loss": (args.fpr_weight * fpr_loss).item()}, step=global_step)
 

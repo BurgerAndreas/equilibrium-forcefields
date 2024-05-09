@@ -149,7 +149,7 @@ def main(args):
     """ Dataset """
     import equiformer.datasets.pyg.md_all as md_all
 
-    train_dataset, val_dataset, test_dataset = md_all.get_md_datasets(
+    train_dataset, val_dataset, test_dataset, all_dataset = md_all.get_md_datasets(
         root=args.data_path,
         dataset_arg=args.target,
         dname=args.dname,

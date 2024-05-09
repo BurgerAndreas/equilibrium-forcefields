@@ -10,8 +10,10 @@
 # rtx6000, 24GB
 #SBATCH --partition=rtx6000
 #SBATCH --gres=gpu:1
-#SBATCH --qos=normal
+# account=deadline --qos=deadline --qos=normal
+#SBATCH --qos=deadline
 #SBATCH --time=12:00:00
+
 
 # Append is important because otherwise preemption resets the file
 #SBATCH --open-mode=append

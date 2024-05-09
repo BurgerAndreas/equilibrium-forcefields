@@ -1133,8 +1133,8 @@ def train_one_epoch(
                             step=None,
                             datasplit=None,
                         )
-                        z_next_true = next_info["z_pred"][-1]
                     # loss
+                    z_next_true = next_info["z_pred"][-1]
                     closs = criterion_contrastive(z_next_true, info["z_pred"][-1])
 
                 else:
@@ -1158,8 +1158,8 @@ def train_one_epoch(
                         step=None,
                         datasplit=None,
                     )
-                    z_next_true = next_info["z_pred"][-1]
                 # loss
+                z_next_true = next_info["z_pred"][-1]
                 fpr_loss = criterion_fpr(z_next_true, info["z_next"])
                 loss += args.fpr_weight * fpr_loss
                 wandb.log({"scaled_fpr_loss": (args.fpr_weight * fpr_loss).item()}, step=global_step)

@@ -449,7 +449,7 @@ def broyden_solver_grad(
         
         # Update the inverses Jacobian approximation using the Broyden's update formula
         # part_Us, part_VTs = Us[:, :, : nstep - 1], VTs[:, : nstep - 1]
-        part_Us = Us[:, :, : nstep - 1].clone()
+        part_Us = Us[:, :, : nstep - 1].clone() # TODO: is clone necessary?
         part_VTs = VTs[:, : nstep - 1].clone()
         vT = rmatvec(part_Us, part_VTs, delta_x)
         _c = matvec(part_Us, part_VTs, delta_gx)
@@ -460,17 +460,24 @@ def broyden_solver_grad(
         # vT[vT != vT] = 0
         # u[u != u] = 0
         vT = torch.nan_to_num(vT)
-        u = torch.nan_to_num(u)
+        u = torch.nan_to_num(u).unsqueeze(-1)
+
+        # without unsqueeze, it will raise error at u * mask2
+        # The size of tensor a (84) must match the size of tensor b (1024) at non-singleton dimension 1
+        # mask2.shape=[84, 1024, 1], u.shape=[84, 1024]
+        # Us.shape=[84, 1024, 1]
+        # Us * (1 - mask2) [84, 1024, 1]
 
         # VTs[:, (nstep - 1) % LBFGS_thres] = vT
         mask = torch.zeros_like(VTs) # doesn't require grad
-        mask[:, (nstep - 1) % LBFGS_thres] = 1 # because _vts didn't require grad, this works with autograd
+        # because mask didn't require grad, this works with autograd
+        mask[:, (nstep - 1) % LBFGS_thres] = 1 
         VTs = VTs * (1 - mask) + vT * mask
 
         # Us[:, :, (nstep - 1) % LBFGS_thres] = u
-        mask = torch.zeros_like(Us) # doesn't require grad
-        mask[:, :, (nstep - 1) % LBFGS_thres] = 1
-        Us = Us * (1 - mask) + u * mask
+        mask2 = torch.zeros_like(Us) # doesn't require grad
+        mask2[:, :, (nstep - 1) % LBFGS_thres] = 1
+        Us = Us * (1 - mask2) + u * mask2
 
         update = -matvec(Us[:, :, :nstep].clone(), VTs[:, :nstep].clone(), gx)
 

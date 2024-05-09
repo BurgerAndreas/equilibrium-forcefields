@@ -336,14 +336,15 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
             ######################################################
             # Fixed-point reuse loss
-            z_next, _, _info = broyden_solver_grad(
-                func=f, x=z_pred[-1].copy(), 
-                max_iter=1,
-                tol=solver_kwargs.get("f_tol", self.deq.f_tol),
-                stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
-                # return_final=True,
-            )
-            info["z_next"] = z_next
+            if fpr_loss == True:
+                z_next, _, _info = broyden_solver_grad(
+                    func=f, x=z_pred[-1].clone(), 
+                    max_iter=1,
+                    tol=solver_kwargs.get("f_tol", self.deq.f_tol),
+                    stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
+                    # return_final=True,
+                )
+                info["z_next"] = z_next
 
             ######################################################
             # Logging

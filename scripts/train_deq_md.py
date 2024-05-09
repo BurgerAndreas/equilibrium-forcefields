@@ -221,12 +221,12 @@ def main(args):
     normalizers = {"energy": normalizer_e, "force": normalizer_f}
 
     """ Data Loader """
-    # We don't need to shuffle because the indices are already randomized
-    # or we want to keep the order anyway
+    # We don't need to shuffle because either the indices are already randomized
+    # or we want to keep the order 
     # we just keep the shuffle option for the sake of consistency with equiformer
     shuffle = True
-    if args.datasplit in ["fpreuse_ordered"]:
-        shuffle = False
+    # if args.datasplit in ["fpreuse_ordered"]:
+    #     shuffle = False
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
@@ -247,6 +247,18 @@ def main(args):
         _log.info(f"Reordered test dataset to be consecutive for fixed-point reuse.")
     test_loader = DataLoader(
         test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
+    )
+
+    # Combine train, val, test loaders
+    # only useful when dataset order is consecutive
+    all_dataset = torch.utils.data.ConcatDataset([train_dataset, val_dataset, test_dataset])
+    all_loader = DataLoader(
+        all_dataset,
+        batch_size=args.eval_batch_size,
+        shuffle=False,
+        num_workers=args.workers,
+        pin_memory=args.pin_mem,
+        drop_last=True,
     )
 
     """ Compute stats """
@@ -308,36 +320,41 @@ def main(args):
 
     """ Load checkpoint """
     if args.checkpoint_path is not None:
-        # pass either a checkpoint or a directory containing checkpoints
-        # models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2/epochs@0_e@4.6855_f@20.8729.pth.tar
-        # models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2
-        if os.path.isdir(args.checkpoint_path):
-            # get the latest checkpoint
-            checkpoints = sorted(
-                [
-                    f
-                    for f in os.listdir(args.checkpoint_path)
-                    if f.endswith(".pth.tar")
-                ],
-                key=lambda x: int(x.split("@")[1].split("_")[0]),
-            )
-            args.checkpoint_path = os.path.join(args.checkpoint_path, checkpoints[-1])
-        state_dict = torch.load(args.checkpoint_path, map_location="cpu")
-        
-        # write state_dict
-        model.load_state_dict(state_dict["state_dict"])
-        optimizer.load_state_dict(state_dict["optimizer"])
-        lr_scheduler.load_state_dict(state_dict["lr_scheduler"])
-        start_epoch = state_dict["epoch"] + 1
-        global_step = state_dict["global_step"]
-        best_metrics = state_dict["best_metrics"]
-        best_ema_metrics = state_dict["best_ema_metrics"]
-        # log
-        _log.info(f"Loaded model from {args.checkpoint_path}")
+        try:
+            # pass either a checkpoint or a directory containing checkpoints
+            # models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2/epochs@0_e@4.6855_f@20.8729.pth.tar
+            # models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2
+            if os.path.isdir(args.checkpoint_path):
+                # get the latest checkpoint
+                checkpoints = sorted(
+                    [
+                        f
+                        for f in os.listdir(args.checkpoint_path)
+                        if f.endswith(".pth.tar")
+                    ],
+                    key=lambda x: int(x.split("@")[1].split("_")[0]),
+                )
+                args.checkpoint_path = os.path.join(args.checkpoint_path, checkpoints[-1])
+            state_dict = torch.load(args.checkpoint_path, map_location="cpu")
+            
+            # write state_dict
+            model.load_state_dict(state_dict["state_dict"])
+            optimizer.load_state_dict(state_dict["optimizer"])
+            lr_scheduler.load_state_dict(state_dict["lr_scheduler"])
+            start_epoch = state_dict["epoch"] + 1
+            global_step = state_dict["global_step"]
+            best_metrics = state_dict["best_metrics"]
+            best_ema_metrics = state_dict["best_ema_metrics"]
+            # log
+            _log.info(f"Loaded model from {args.checkpoint_path}")
+        except Exception as e:
+            _log.info(f"Error loading checkpoint: {e}")
 
     # log available memory
     if torch.cuda.is_available():
         _log.info(f"Available memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+    else:
+        _log.info(f"torch.cuda not available")
     model = model.to(device)
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch
@@ -389,14 +406,14 @@ def main(args):
             stats = json.load(open(_fpath))
         # load statistics of molecule or dataset
         if args.use_dataset_avg_stats:
-            _stats = stats[args.dname]["_avg"][args.model.max_radius]
+            _stats = stats[args.dname]["_avg"][str(float(args.model.max_radius))]
         else:
             try:
                 _stats = stats[args.dname][args.target][str(float(args.model.max_radius))]
             except:
                 print(f'Could not find statistics for {args.dname}, {args.target}, {args.model.max_radius}')
                 print(f'Only found: {yaml.dump(stats)}')
-                _stats = stats[args.dname]["_avg"][args.model.max_radius]
+                _stats = stats[args.dname]["_avg"][str(float(args.model.max_radius))]
         _AVG_NUM_NODES, _AVG_DEGREE = _stats["avg_node"], _stats["avg_degree"]
         # overwrite model parameters
         model._AVG_NUM_NODES = float(_AVG_NUM_NODES)
@@ -509,6 +526,7 @@ def main(args):
             criterion_energy=criterion_energy,
             criterion_force=criterion_force,
             data_loader=train_loader,
+            all_loader=all_loader,
             optimizer=optimizer,
             device=device,
             epoch=epoch,
@@ -947,6 +965,7 @@ def train_one_epoch(
     criterion_energy: torch.nn.Module,
     criterion_force: torch.nn.Module,
     data_loader: Iterable,
+    all_loader: Iterable,
     optimizer: torch.optim.Optimizer,
     device: torch.device,
     epoch: int,
@@ -1071,11 +1090,43 @@ def train_one_epoch(
                 elif args.contrastive_loss == "next":
                     # get the next timesteps
                     idx = data.idx + 1
+                    idx = idx.to('cpu')
+
+                    # TODO: two possibilities: 
+                    # a) index the dataset itself
+                    # probably only works when everything is consecutive (broken by fpreuse test set order?)
                     # make sure we don't go out of bounds
-                    idx[idx >= len(data_loader.dataset)] = idx - 2
-                    # idx.clamp_(0, len(data_loader.dataset) - 1) 
-                    next_data = data_loader.dataset[idx]
+                    len_train = len(data_loader.dataset) 
+                    idx = torch.where(idx >= len_train, idx - 2, idx) 
+                    # idx.clamp_(0, len_train - 1) 
+                    # /home/andreasburger/miniforge3/envs/deq/lib/python3.9/site-packages/torch/utils/data/dataset.py
+                    # next_data = data_loader.dataset.dataset[idx]  
+                    # next_data = data_loader.dataset.dataset.__getitems__([_idx for _idx in idx])  
+                    # next_data = [data_loader.dataset.dataset[_idx] for _idx in idx] 
+                    # next_data = torch.stack(next_data) 
+                    next_data = all_loader[idx] # whole dataset must be consecutive
+
+                    # b) have the trainset be a shuffled but consecutive dataset
+                    # make sure we don't go out of bounds
+                    len_train = args.train_size 
+                    idx = torch.where(idx >= len_train, idx - 2, idx) 
+                    idx = idx.tolist()
+                    # idx.clamp_(0, len_train - 1) 
+                    next_data = all_loader[idx] # trainset must be consecutive
+                    print(f'type(next_data): {type(next_data)}')
+
+                    # index the dataset:   <class 'equiformer.datasets.pyg.md_all.MDAll'>
+                    # index the dataloder: <class 'torch_geometric.data.batch.DataBatch'>
+
+
+                    first_batch = next(iter(data_loader))
+                    print(f'type(first_batch): {type(first_batch)}')
+
                     next_data = next_data.to(device)
+                    print('idx', idx, 'data.idx', data.idx, 'next_data.idx', next_data.idx)
+
+                    # REMOVE
+                    exit()
 
                     # get correct fixed-point of next timestep
                     with torch.set_grad_enabled(args.contrastive_w_grad):
@@ -1101,9 +1152,10 @@ def train_one_epoch(
             if args.fpr_loss == True:
                 # get the next timesteps
                 idx = data.idx + 1
+                idx.to('cpu')
                 # make sure we don't go out of bounds
-                idx[idx >= len(data_loader.dataset)] = idx - 2
-                # idx.clamp_(0, len(data_loader.dataset) - 1) 
+                idx[idx >= len_train] = idx - 2
+                # idx.clamp_(0, len_train - 1) 
                 next_data = data_loader.dataset[idx]
                 next_data = next_data.to(device)
 

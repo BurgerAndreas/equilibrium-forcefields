@@ -25,9 +25,6 @@ sbatch scripts/slurm_launcher.slrm train_deq_md.py num_layers=2
 
 ### EquiformerV2
 
-If there is an import error, it is possible that [`ocp/ocpmodels/common/utils.py`](https://github.com/Open-Catalyst-Project/ocp/blob/5a7738f9aa80b1a9a7e0ca15e33938b4d2557edd/ocpmodels/common/utils.py#L329) is not modified. 
-Please follow [here](equiformer_v2/docs/env_setup.md) for details.
-
 #### New (Hydra)
 
 Baseline Equiformer V2

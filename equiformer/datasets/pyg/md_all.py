@@ -62,7 +62,7 @@ class MDAll(InMemoryDataset):
             "paracetamol": "paracetamol_dft.npz",
             "azobenzene": "azobenzene_dft.npz",
         },
-        "revised": {
+        "rmd17": { # revised
             "revised benzene": "rmd17_benzene.npz",
             "revised uracil": "rmd17_uracil.npz",
             "revised naphthalene": "rmd17_naphthalene.npz",

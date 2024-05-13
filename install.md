@@ -1,17 +1,23 @@
+# Installation
 
-
-## Installation
+Get miniforge (mamba)
 ```bash
+curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+bash Miniforge3-$(uname)-$(uname -m).sh
+```
+
+```bash
+git clone git@github.com:BurgerAndreas/equilibrium-forcefields.git
+cd equilibrium-forcefields
 mamba create -n deq python=3.10
 mamba activate deq
 
-
-# get the data from the Open Catalyst Project (required for Equiformerv2)
+# get the Open Catalyst Project (required for Equiformerv2)
 git clone git@github.com:Open-Catalyst-Project/ocp.git
 cd ocp
-# equiformer_v2 requires v0.1.0
-git checkout v0.1.0
-mamba env update --name deq --file env.common.yml --prune
+# no longer necessary
+# git checkout v0.1.0
+# mamba env update --name deq --file env.common.yml --prune
 pip install -e .
 pre-commit install
 # extra packages
@@ -20,6 +26,10 @@ pip install demjson
 # pip install demjson3
 pip install lmdb==1.1.1
 pip install "ray[tune]"
+cd ..
+
+# Get the OCP data (optional)
+cd ocp
 # Structure to Energy and Forces (S2EF) task
 # "2M": 3.4GB (17GB uncompressed)
 # https://github.com/Open-Catalyst-Project/ocp/blob/main/DATASET.md
@@ -32,26 +42,28 @@ python scripts/download_data.py --task s2ef --split "val_id" --num-workers 8 --r
 cd ..
 
 # install equiformer_v2
-git clone git@github.com:atomicarchitects/equiformer_v2.git
+# git clone git@github.com:atomicarchitects/equiformer_v2.git
 cd equiformer_v2
 pip install -e .
 cd ..
 
 # install equiformer
-git clone git@github.com:atomicarchitects/equiformer.git
+# git clone git@github.com:atomicarchitects/equiformer.git
 cd equiformer
 pip install -e .
-mamba env update --name deq --file env/env_equiformer.yml --prune
+# mamba env update --name deq --file env/env_equiformer.yml --prune
 cd ..
 
-# link dataset for equiformer
+# link OCP dataset for equiformer (optional)
 cd equiformer/datasets
 mkdir oc20
 cd oc20
 ln -s ../../../ocp/data/is2re is2re
 cd ../../..
 
-# check your cuda version with nvidia-smi
+# Nvidia CUDA
+# check your cuda version 
+nvidia-smi
 # https://github.com/pyg-team/pytorch_geometric/issues/999#issuecomment-606565132
 pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse -y
 pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
@@ -62,7 +74,8 @@ pip install torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-2.2.0+cu118
 # pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu118
 # pip install torch_geometric pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
 
-# pip install scikit-image matplotlib seaborn
+# AMD ROCm
+rocm-smi
 
 # pip install torchdeq
 cd torchdeq
@@ -71,6 +84,7 @@ cd ..
 
 pip install e3nn==0.4.4 timm==0.4.12
 
+pip install matplotlib seaborn scikit-image
 pip install hydra-core wandb omegaconf black
 
 pip install -e .

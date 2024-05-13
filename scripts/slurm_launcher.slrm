@@ -18,20 +18,22 @@
 # Append is important because otherwise preemption resets the file
 #SBATCH --open-mode=append
 
-echo `date`: Job $SLURM_JOB_ID is allocated resource
+echo `date`: Job $SLURM_JOB_ID is allocated resources.
 
 # the recommendation is to keep erything that defines the workload itself in a separate script
 # bash scripts/slurm_lora.sh
 echo "Inside slurm_launcher.slrm ($0). received arguments: $@"
 
-# export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/equilibrium-forcefields/train
-export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/equiformer
+HOME_DIR=/h/burgeran
+
+# export SCRIPTDIR=${HOME_DIR}/equilibrium-forcefields/equilibrium-forcefields/train
+export SCRIPTDIR=${HOME_DIR}/equilibrium-forcefields/equiformer
 if [[ $1 == *"test"* ]]; then
     echo "Found test in the filename. Changing the scriptdir to equilibrium-forcefields/tests"
-    export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/tests
+    export SCRIPTDIR=${HOME_DIR}/equilibrium-forcefields/tests
 elif [[ $1 == *"deq"* ]]; then
     echo "Found deq in the filename. Changing the scriptdir to equilibrium-forcefields/scripts"
-    export SCRIPTDIR=/h/burgeran/equilibrium-forcefields/scripts
+    export SCRIPTDIR=${HOME_DIR}/equilibrium-forcefields/scripts
 fi
 
 # hand over all arguments to the script
@@ -39,22 +41,22 @@ echo "Submitting ${SCRIPTDIR}/$@"
 
 
 # V1
-# /h/burgeran/venv10/bin/python ${SCRIPTDIR}/"$@"
+# ${HOME_DIR}/venv10/bin/python ${SCRIPTDIR}/"$@"
 
 # V2 - works!
-# source /h/burgeran/venv10/bin/activate
-# /h/burgeran/venv10/bin/python ${SCRIPTDIR}/"$@"
+# source ${HOME_DIR}/venv10/bin/activate
+# ${HOME_DIR}/venv10/bin/python ${SCRIPTDIR}/"$@"
 
 # conda
 # eval "$(mamba shell.bash hook)"
-# source /h/burgeran/.bashrc
+# source ${HOME_DIR}/.bashrc
 CONDA_BASE=$(conda info --base) # /fs01/home/burgeran/miniforge3
 source $CONDA_BASE/etc/profile.d/conda.sh
 mamba activate deq
-/h/burgeran/miniforge3/envs/deq/bin/python ${SCRIPTDIR}/"$@"
+${HOME_DIR}/miniforge3/envs/deq/bin/python ${SCRIPTDIR}/"$@"
 
 # V3
-# /h/burgeran/venv10/bin/accelerate-launch ${SCRIPTDIR}/"$@"
+# ${HOME_DIR}/venv10/bin/accelerate-launch ${SCRIPTDIR}/"$@"
 
 # V4
 # source ~/venv10/bin/activate

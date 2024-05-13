@@ -16,6 +16,7 @@ artifacts
 
 **/slurm-*.out
 archive_slurm
+slurm*.txt
 
 src/deq2ff/plotting/plots/*
 
@@ -24,6 +25,9 @@ TorchDEQ_tutorial.ipynb
 *.ipynb
 
 checkpoints
+
+*.zip
+pyg-*
 
 ###########################################
 

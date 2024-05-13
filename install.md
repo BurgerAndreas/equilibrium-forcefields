@@ -76,6 +76,32 @@ pip install torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-2.2.0+cu118
 
 # AMD ROCm
 rocm-smi
+apt show rocm-libs -a
+# Package: rocm-libs Version: 5.3.0.50300-63~22.04
+pip3 install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/rocm5.3
+
+pip install --verbose torch-scatter torch-sparse
+# https://github.com/Looong01/pyg-rocm-build, ROCm 5.7 or newer versions
+wget https://github.com/Looong01/pyg-rocm-build/archive/refs/tags/2.zip
+unzip 2.zip
+cd pyg-rocm-build-2/pytorch_geometric-2.3.0
+pip install ./*
+
+# module avail
+# pytorch-geometric/2.3.0-pytorch-1.13.0-rocm-5.3
+
+# after changing torch-geometric all datasets need to be reprocessed
+rm -r -f datasets/*
+
+# double check cuda version
+# ls ~/miniforge3/envs/deq/lib/python3.9/site-packages/
+pip freeze | grep nvidia
+mamba list -n deq | grep cu
+
+# try
+python -c "import torch; import torch; print('torch.__version__', torch.__version__); import torch_geometric; print('torch_geometric.__version__', torch_geometric.__version__)" 
+python -c "print('torch.version.cuda', torch.version.cuda);"
+
 
 # pip install torchdeq
 cd torchdeq
@@ -88,6 +114,8 @@ pip install matplotlib seaborn scikit-image
 pip install hydra-core wandb omegaconf black
 
 pip install -e .
+
+# mamba env export > environment_slurm.yml
 ```
 
 ### Slurm Cluster
@@ -149,66 +177,6 @@ export CUDNN_PATH=/h/burgeran/miniforge3/envs/deq/lib/python3.9/site-packages/nv
 export LD_LIBRARY_PATH=${CUDNN_PATH}/lib:$LD_LIBRARY_PATH
 ```
 
-#### Install Packages
-```bash
-
-cd ocp
-# equiformer_v2 requires v0.0.3 v0.1.0
-git checkout v0.1.0
-# mamba env update --name deq --file env.common.yml --prune
-mamba activate deq
-pip install -e .
-pre-commit install
-# extra packages
-pip install setuptools==57.4.0
-pip install demjson 
-# pip install demjson3
-pip install lmdb==1.1.1
-pip install "ray[tune]"
-cd ..
-
-cd equiformer_v2
-pip install -e .
-cd ..
-
-cd equiformer
-pip install -e .
-# mamba env update --name deq --file env/env_equiformer.yml --prune
-cd ..
-
-mamba install scikit-image matplotlib seaborn scikit-image -y
-
-pip install torchdeq
-pip install e3nn==0.4.4 timm==0.4.12
-
-mamba install hydra-core wandb omegaconf black -y
-
-pip install -e .
-
-mamba uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse -y
-pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse -y
-
-# works: torch==1.9 and torch_geometric from conda (torch_geometric=2.0.2)
-# https://github.com/pyg-team/pytorch_geometric/issues/3593#issuecomment-1040183293
-# mamba install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 cudatoolkit=11.1 -c pytorch -c conda-forge  -y # doesn't work
-pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
-pip install --no-index torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-1.9.0+cu111.html
-# mamba install pyg -c pyg -c conda-forge -y
-pip install torch-geometric==2.0.2
-
-# after changing torch-geometric all datasets need to be reprocessed
-rm -r -f datasets/*
-
-# double check cuda version
-# ls ~/miniforge3/envs/deq/lib/python3.9/site-packages/
-pip freeze | grep nvidia
-mamba list -n deq | grep cu
-
-# try
-python -c "import torch; print('torch.version.cuda', torch.version.cuda); import torch; print('torch.__version__', torch.__version__); import torch_geometric; print('torch_geometric.__version__', torch_geometric.__version__)" nvcc --version
-
-# mamba env export > environment_slurm.yml
-```
 
 
 ## Training

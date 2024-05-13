@@ -12,3 +12,9 @@
 module load miniforge3
 
 rocm-smi
+
+apt show rocm-libs -a
+
+rocminfo
+
+# launch via: sbatch scripts/test_amd.slrm

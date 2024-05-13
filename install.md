@@ -61,7 +61,7 @@ cd oc20
 ln -s ../../../ocp/data/is2re is2re
 cd ../../..
 
-# Nvidia CUDA
+# 1) Nvidia CUDA
 # check your cuda version 
 nvidia-smi
 # https://github.com/pyg-team/pytorch_geometric/issues/999#issuecomment-606565132
@@ -74,7 +74,12 @@ pip install torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-2.2.0+cu118
 # pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu118
 # pip install torch_geometric pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
 
-# AMD ROCm
+# double check cuda version
+# ls ~/miniforge3/envs/deq/lib/python3.9/site-packages/
+pip freeze | grep nvidia
+mamba list -n deq | grep cu
+
+# 2) AMD ROCm
 rocm-smi
 apt show rocm-libs -a
 # Package: rocm-libs Version: 5.3.0.50300-63~22.04
@@ -90,13 +95,9 @@ pip install ./*
 # module avail
 # pytorch-geometric/2.3.0-pytorch-1.13.0-rocm-5.3
 
+# All
 # after changing torch-geometric all datasets need to be reprocessed
 rm -r -f datasets/*
-
-# double check cuda version
-# ls ~/miniforge3/envs/deq/lib/python3.9/site-packages/
-pip freeze | grep nvidia
-mamba list -n deq | grep cu
 
 # try
 python -c "import torch; import torch; print('torch.__version__', torch.__version__); import torch_geometric; print('torch_geometric.__version__', torch_geometric.__version__)" 

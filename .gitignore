@@ -14,9 +14,12 @@ outputs
 artifacts
 **/.vscode
 
+# Vector cluster
 **/slurm-*.out
 archive_slurm
+# ACC cluster
 slurm*.txt
+errslurm-*
 
 src/deq2ff/plotting/plots/*
 

@@ -1,10 +1,12 @@
 #!/bin/bash
-#SBATCH --time=72:00:00
+#SBATCH --time=30:00:00
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --ntasks=1
 #SBATCH --mem-per-cpu=2000
-#SBATCH --job-name=drugdiscovery #SBATCH --output=drugdiscovery_%j.txt #SBATCH --error=drugdiscovery_%j.err
+#SBATCH --job-name=equiformer 
+#SBATCH --output=slurm-%j.txt 
+#SBATCH --error=errslurm-%j.err
 
 # module load python pytorch
 # module load miniforge3 # miniconda3 miniforge3

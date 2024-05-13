@@ -10,3 +10,8 @@ layers=(1 2 3 4 5 6 7 8)
 for l in ${layers[@]}; do
   launchrun model.num_layers=$l 
 done
+
+launchrun model.num_layers=1
+launchrun model.num_layers=2
+launchrun model.num_layers=3
+launchrun model.num_layers=4

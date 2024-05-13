@@ -13,7 +13,7 @@
 # sacctmgr list qos format=Name%15,Priority,MaxWall,MaxTRESPerUser normal,m,m2,m3,m4,m5,long
 # --account=deadline --qos=deadline --qos=normal
 #SBATCH --qos=normal
-#SBATCH --time=24:00:00
+#SBATCH --time=23:59:00
 
 # Append is important because otherwise preemption resets the file
 #SBATCH --open-mode=append

@@ -12,10 +12,10 @@ for mol in ${md17[@]}; do
 done
 
 # Baseline Equiformer2 with one layer
-run model.num_layers=1 target=aspirin
-run model.num_layers=1 target=benzene
-run model.num_layers=1 target=ethanol
-run model.num_layers=1 target=malonaldehyde
+# run model.num_layers=1 target=aspirin
+# run model.num_layers=1 target=benzene
+# run model.num_layers=1 target=ethanol
+# run model.num_layers=1 target=malonaldehyde
 
 # run model.num_layers=1 target=naphtalene
 # run model.num_layers=1 target=salicyclic_acid

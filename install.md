@@ -85,7 +85,7 @@ apt show rocm-libs -a
 # Package: rocm-libs Version: 5.3.0.50300-63~22.04
 pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse torch-spline-conv -y
 pip3 install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/rocm5.3
-# https://github.com/Looong01/pyg-rocm-build
+# https://github.com/Looong01/pyg-rocm-build/releases
 # V2
 wget https://github.com/Looong01/pyg-rocm-build/releases/download/3/torch-2.0-rocm-5.4.3-py310-linux_x86_64.zip
 unzip torch-2.0-rocm-5.4.3-py310-linux_x86_64.zip

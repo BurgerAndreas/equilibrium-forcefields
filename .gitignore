@@ -14,7 +14,8 @@ outputs
 artifacts
 **/.vscode
 
-slurm-*.out
+**/slurm-*.out
+archive_slurm
 
 src/deq2ff/plotting/plots/*
 

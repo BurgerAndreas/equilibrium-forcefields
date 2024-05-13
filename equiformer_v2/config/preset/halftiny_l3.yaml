@@ -4,82 +4,81 @@
 defaults:
   - base
 
-# 3,457,442 parameters
-
 model:
 
-  # num_layers (int):             Number of layers in the GNN
-  num_layers:               4 # 8 12
-  # sphere_channels (int):        Number of spherical channels (one set per resolution)
-  sphere_channels:          64 # 128
+  # num_layers (int): Number of layers in the GNN
+  num_layers: 4 # 8 12
+  # sphere_channels (int): Number of spherical channels (one set per resolution)
+  sphere_channels: 64 # 128 # half of tiny
   # attn_hidden_channels (int): Number of hidden channels used during SO(2) graph attention
-  attn_hidden_channels:     16              # [64, 96] This determines the hidden size of message passing. Do not necessarily use 96. 
-  # num_heads (int):            Number of attention heads
-  num_heads:                4 # 8
-  # attn_alpha_head (int):      Number of channels for alpha vector in each attention head
-  attn_alpha_channels:      16  # 64            # Not used when `use_s2_act_attn` is True. 
-  # attn_value_head (int):      Number of channels for value vector in each attention head
-  attn_value_channels:      4 # 16
-  # ffn_hidden_channels (int):  Number of hidden channels used during feedforward network
-  ffn_hidden_channels:      128 # 128
+  attn_hidden_channels: 16 # [64, 96] This determines the hidden size of message passing. Do not necessarily use 96. 
+  # num_heads (int): Number of attention heads
+  num_heads: 4 # 8 # half of tiny 
+  # attn_alpha_head (int): Number of channels for alpha vector in each attention head
+  # Not used when `use_s2_act_attn` is True.
+  attn_alpha_channels: 16 # 64 # half of tiny 
+  # attn_value_head (int): Number of channels for value vector in each attention head
+  attn_value_channels: 4 # 16 # half of tiny
+  # ffn_hidden_channels (int): Number of hidden channels used during feedforward network
+  ffn_hidden_channels: 128 # 128 unchanged
 
-  # lmax_list (int):              List of maximum degree of the spherical harmonics (1 to 10)
-  lmax_list:                [3]             # 4
-  # mmax_list (int):              List of maximum order of the spherical harmonics (0 to lmax)
-  mmax_list:                [2]             
-  # grid_resolution (int):        Resolution of SO3_Grid
-  grid_resolution:          14              # [18, 16, 14, None] For `None`, simply comment this line. 
+  # lmax_list (int): List of maximum degree of the spherical harmonics (1 to 10)
+  lmax_list: [3] # 4
+  # mmax_list (int): List of maximum order of the spherical harmonics (0 to lmax)
+  mmax_list: [2] 
+  # grid_resolution (int): Resolution of SO3_Grid
+  grid_resolution: 14 # [18, 16, 14, None] For `None`, simply comment this line. 
 
-  # num_sphere_samples (int):     Number of samples used to approximate the integration of the sphere in the output blocks
-  num_sphere_samples:       32 # 128
+  # num_sphere_samples (int): Number of samples used to approximate the integration of the sphere in the output blocks
+  num_sphere_samples: 32 # 128 # half of tiny
 
-  # edge_channels (int):                Number of channels for the edge invariant features
-  edge_channels:              32 # 128
-  # use_atom_edge_embedding (bool):     Whether to use atomic embedding along with relative distance for edge scalar features
-  use_atom_edge_embedding:    True
-  # share_atom_edge_embedding (bool):   Whether to share `atom_edge_embedding` across all blocks
-  share_atom_edge_embedding:  False         # If `True`, `use_atom_edge_embedding` must be `True` and the atom edge embedding will be shared across all blocks. 
-  # distance_function ("gaussian", "sigmoid", "linearsigmoid", "silu"):  Basis function used for distances
-  distance_function:          'gaussian'
-  num_distance_basis:         256           # not used
-  # use_m_share_rad (bool):             Whether all m components within a type-L vector of one channel share radial function weights
+  # edge_channels (int): Number of channels for the edge invariant features
+  edge_channels: 32 # 128 # half of tiny
+  # use_atom_edge_embedding (bool): Whether to use atomic embedding along with relative distance for edge scalar features
+  use_atom_edge_embedding: True
+  # share_atom_edge_embedding (bool): Whether to share `atom_edge_embedding` across all blocks
+  share_atom_edge_embedding: False # If `True`, `use_atom_edge_embedding` must be `True` and the atom edge embedding will be shared across all blocks. 
+  # distance_function ("gaussian", "sigmoid", "linearsigmoid", "silu"): Basis function used for distances
+  distance_function: 'gaussian'
+  num_distance_basis: 256 # not used # half of tiny
+  # use_m_share_rad (bool): Whether all m components within a type-L vector of one channel share radial function weights
 
-  # attn_activation (str):      Type of activation function for SO(2) graph attention
-  attn_activation:          'silu'
-  # use_s2_act_attn (bool):     Whether to use attention after S2 activation. Otherwise, use the same attention as Equiformer
-  use_s2_act_attn:          False       # [False, True] Switch between attention after S2 activation or the original EquiformerV1 attention. 
-  # use_attn_renorm (bool):     Whether to re-normalize attention weights
-  use_attn_renorm:          True        # Attention re-normalization. Used for ablation study.
-  # ffn_activation (str):       Type of activation function for feedforward network
-  ffn_activation:           'silu'      # ['silu', 'swiglu']
-  # use_gate_act (bool):        If `True`, use gate activation. Otherwise, use S2 activation
-  use_gate_act:             False       # [True, False] Switch between gate activation and S2 activation
-  # use_grid_mlp (bool):        If `True`, use projecting to grids and performing MLPs for FFNs.
-  use_grid_mlp:             True        # [False, True] If `True`, use projecting to grids and performing MLPs for FFNs.
-  # use_sep_s2_act (bool):      If `True`, use separable S2 activation when `use_gate_act` is False.
-  use_sep_s2_act:           True        # Separable S2 activation. Used for ablation study.
+  # attn_activation (str): Type of activation function for SO(2) graph attention
+  attn_activation: 'silu'
+  # use_s2_act_attn (bool): Whether to use attention after S2 activation. Otherwise, use the same attention as Equiformer
+  use_s2_act_attn: False # [False, True] Switch between attention after S2 activation or the original EquiformerV1 attention. 
+  # use_attn_renorm (bool): Whether to re-normalize attention weights
+  use_attn_renorm: True # Attention re-normalization. Used for ablation study.
+  # ffn_activation (str): Type of activation function for feedforward network
+  ffn_activation: 'silu' # ['silu', 'swiglu']
+  # use_gate_act (bool): If `True`, use gate activation. Otherwise, use S2 activation
+  use_gate_act: False # [True, False] Switch between gate activation and S2 activation
+  # use_grid_mlp (bool): If `True`, use projecting to grids and performing MLPs for FFNs.
+  use_grid_mlp: True # [False, True] If `True`, use projecting to grids and performing MLPs for FFNs.
+  # use_sep_s2_act (bool): If `True`, use separable S2 activation when `use_gate_act` is False.
+  use_sep_s2_act: True # Separable S2 activation. Used for ablation study.
 
-  # weight_init (str):          ['normal', 'uniform'] initialization of weights of linear layers except those in radial functions
-  weight_init:              'uniform'    # ['uniform', 'normal']
+  # weight_init (str): ['normal', 'uniform'] initialization of weights of linear layers except those in radial functions
+  weight_init: 'uniform' # ['uniform', 'normal']
 
 
 optim:
-  batch_size:                   4         # 4 6 8
-  eval_batch_size:              4         # 6 # 12
-  grad_accumulation_steps:      1         # gradient accumulation: effective batch size = `grad_accumulation_steps` * `batch_size` * (num of GPUs)
+  batch_size: 4 # 4 6 8
+  eval_batch_size: 4 # 6 # 12
+  grad_accumulation_steps: 1 # gradient accumulation: effective batch size = `grad_accumulation_steps` * `batch_size` * (num of GPUs)
   load_balancing: atoms
   num_workers: 4 # 8
-  lr_initial:                   0.0004    # [0.0002, 0.0004], eSCN uses 0.0008 for batch size 96
-  
+  lr_initial: 0.0004 # [0.0002, 0.0004], eSCN uses 0.0008 for batch size 96
+
   optimizer: AdamW
   optimizer_params:
-    weight_decay: 0.001
+  weight_decay: 0.001
   scheduler: LambdaLR
   scheduler_params:
-    lambda_type: cosine
-    warmup_factor: 0.2
-    warmup_epochs: 0.1
-    lr_min_factor: 0.01         
+  lambda_type: cosine
+  warmup_factor: 0.2
+  warmup_epochs: 0.1
+  lr_min_factor: 0.01 
 
   # max_epochs: 30
   force_coefficient: 100

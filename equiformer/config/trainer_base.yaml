@@ -17,7 +17,8 @@ data_path: "datasets"
 # http://www.sgdml.org/#datasets
 target: "aspirin"
 # (str)
-output_dir: models/md17/equiformer/test
+# output_dir: models/md17/equiformer/test
+output_dir: auto
 # if to overwrite _AVG_NUM_NODES and _AVG_DEGREE with the dataset statistics (bool)
 load_stats: False
 # Use molecule of dataset average statistics. only has an effect if load_stats is True
@@ -108,11 +109,12 @@ pin_mem: True
 # (int)
 no_pin_mem: True
 num_workers: 4
+
 # load checkpoint (str)
-checkpoint_path: null
+checkpoint_path: auto
 save_best_test_checkpoint: False
 save_best_val_checkpoint: False
-save_checkpoint_after_test: False
+save_checkpoint_after_test: True
 save_final_checkpoint: False
 max_checkpoints: 2
 # (str)

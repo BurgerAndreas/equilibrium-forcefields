@@ -316,7 +316,7 @@ def main(args):
     _log.info(
         f"model {args.model.name} created with kwargs \n{omegaconf.OmegaConf.to_yaml(args.model)}"
     )
-    _log.info(f"Model: \n{model}")
+    # _log.info(f"Model: \n{model}")
 
 
     """ Instantiate everything else """
@@ -349,6 +349,10 @@ def main(args):
 
     """ Load checkpoint """
     if args.checkpoint_path is not None:
+        if args.checkpoint_path == "auto":
+            # args.checkpoint_path = os.path.join(args.output_dir, "checkpoint.pth.tar")
+            args.checkpoint_path = args.output_dir
+            _log.info(f"Auto checkpoint path: {args.checkpoint_path}")
         try:
             # pass either a checkpoint or a directory containing checkpoints
             # models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2/epochs@0_e@4.6855_f@20.8729.pth.tar
@@ -377,6 +381,7 @@ def main(args):
             # log
             _log.info(f"Loaded model from {args.checkpoint_path}")
         except Exception as e:
+            # probably checkpoint not found
             _log.info(f"Error loading checkpoint: {e}")
 
     # log available memory

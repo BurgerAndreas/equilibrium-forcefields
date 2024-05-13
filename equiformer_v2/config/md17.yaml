@@ -24,5 +24,3 @@ model:
   # regress_forces:           True
   max_neighbors: 1000           # 20 for OC20
   max_radius: 5.0               # 12.0 for OC20
-
-output_dir: models/md17/equiformerv2/test

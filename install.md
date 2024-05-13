@@ -115,6 +115,10 @@ pip install e3nn==0.4.4 timm==0.4.12
 pip install matplotlib seaborn scikit-image
 pip install hydra-core wandb omegaconf black
 
+pip install numba sphinx nbsphinx sphinx-rtd-theme pandoc ase==3.21.* pre-commit==2.10.* tensorboard
+
+wandb login
+
 pip install -e .
 
 # mamba env export > environment_slurm.yml

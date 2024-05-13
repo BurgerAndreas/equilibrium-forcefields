@@ -65,7 +65,7 @@ cd ../../..
 # check your cuda version 
 nvidia-smi
 # https://github.com/pyg-team/pytorch_geometric/issues/999#issuecomment-606565132
-pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse -y
+pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse torch-spline-conv -y
 pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
 pip install --no-index pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu121.html
 # OCP requires torch-geometric<=2.0.4
@@ -83,14 +83,14 @@ mamba list -n deq | grep cu
 rocm-smi
 apt show rocm-libs -a
 # Package: rocm-libs Version: 5.3.0.50300-63~22.04
+pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse torch-spline-conv -y
 pip3 install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/rocm5.3
-pip install --verbose torch-scatter torch-sparse torch-cluster torch-spline-conv
-# https://github.com/Looong01/pyg-rocm-build, ROCm 5.7 or newer versions
-wget https://github.com/Looong01/pyg-rocm-build/archive/refs/tags/2.zip
-unzip 2.zip
-cd pyg-rocm-build-2/pytorch_geometric-2.3.0; pip install .; cd ..
-# cd pyg-rocm-build-2/pytorch_cluster-1.6.1; pip install .; cd ..
-# cd pyg-rocm-build-2/pytorch_spline_conv-1.2.2; pip install .; cd ..
+# https://github.com/Looong01/pyg-rocm-build
+# V2
+wget https://github.com/Looong01/pyg-rocm-build/releases/download/3/torch-2.0-rocm-5.4.3-py310-linux_x86_64.zip
+unzip torch-2.0-rocm-5.4.3-py310-linux_x86_64.zip
+cd torch-2.0-rocm-5.4.3-py310-linux_x86_64
+pip install ./*
 cd ..
 
 # module avail
@@ -144,7 +144,12 @@ mamba create -n deq python=3.9
 mamba activate deq
 ```
 
-#### Set environment variables
+```bash
+sbatch scripts/amd_launcher.slrm train_deq_md_v2.py +use=deq +cfg=fpc_of +trial=test
+```
+
+
+#### Set environment variables (Vector cluster)
 
 ```bash
 mamba env config vars list

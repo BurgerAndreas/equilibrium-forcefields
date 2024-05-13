@@ -35,7 +35,13 @@ THE SOFTWARE.
 import torch
 from torch import nn
 from torch_geometric.nn import radius_graph
-from torch_geometric.nn.acts import swish
+try:
+    # 2.0.4
+    from torch_geometric.nn.acts import swish
+except:
+    # 2.3.0
+    # from torch.nn.functional import swish
+    from torch_geometric.nn.resolver import swish
 from torch_geometric.nn.inits import glorot_orthogonal
 from torch_geometric.nn.models.dimenet import (
     BesselBasisLayer,

@@ -84,13 +84,14 @@ rocm-smi
 apt show rocm-libs -a
 # Package: rocm-libs Version: 5.3.0.50300-63~22.04
 pip3 install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/rocm5.3
-
-pip install --verbose torch-scatter torch-sparse
+pip install --verbose torch-scatter torch-sparse torch-cluster torch-spline-conv
 # https://github.com/Looong01/pyg-rocm-build, ROCm 5.7 or newer versions
 wget https://github.com/Looong01/pyg-rocm-build/archive/refs/tags/2.zip
 unzip 2.zip
-cd pyg-rocm-build-2/pytorch_geometric-2.3.0
-pip install ./*
+cd pyg-rocm-build-2/pytorch_geometric-2.3.0; pip install .; cd ..
+# cd pyg-rocm-build-2/pytorch_cluster-1.6.1; pip install .; cd ..
+# cd pyg-rocm-build-2/pytorch_spline_conv-1.2.2; pip install .; cd ..
+cd ..
 
 # module avail
 # pytorch-geometric/2.3.0-pytorch-1.13.0-rocm-5.3

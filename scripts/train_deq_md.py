@@ -318,6 +318,16 @@ def main(args):
     )
     # _log.info(f"Model: \n{model}")
 
+    # log available memory
+    if torch.cuda.is_available():
+        _log.info(f"Available memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+    else:
+        _log.info(f"torch.cuda not available")
+
+    # If you need to move a model to GPU via .cuda() , please do so before constructing optimizers for it. 
+    # Parameters of a model after .cuda() will be different objects with those before the call.
+    model = model.to(device)
+
 
     """ Instantiate everything else """
     optimizer = create_optimizer(args, model)
@@ -347,6 +357,10 @@ def main(args):
     criterion_energy = loss_fn["energy"]
     criterion_force = loss_fn["force"]
 
+    device_init = optimizer.param_groups[0]["params"][0].device
+    # print optimizer device
+    _log.info(f"\n\nOptimizer device: {device_init}\n\n")
+
     """ Load checkpoint """
     if args.checkpoint_path is not None:
         if args.checkpoint_path == "auto":
@@ -368,8 +382,7 @@ def main(args):
                     key=lambda x: int(x.split("@")[1].split("_")[0]),
                 )
                 args.checkpoint_path = os.path.join(args.checkpoint_path, checkpoints[-1])
-            state_dict = torch.load(args.checkpoint_path, map_location="cpu")
-            
+            state_dict = torch.load(args.checkpoint_path)
             # write state_dict
             model.load_state_dict(state_dict["state_dict"])
             optimizer.load_state_dict(state_dict["optimizer"])
@@ -384,12 +397,7 @@ def main(args):
             # probably checkpoint not found
             _log.info(f"Error loading checkpoint: {e}")
 
-    # log available memory
-    if torch.cuda.is_available():
-        _log.info(f"Available memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
-    else:
-        _log.info(f"torch.cuda not available")
-    model = model.to(device)
+
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch
     if args.watch_model:
@@ -572,7 +580,6 @@ def main(args):
             normalizers=normalizers,
         )
 
-        optimizer.zero_grad(set_to_none=True)
         val_err, val_loss = evaluate(
             args=args,
             model=model,
@@ -590,7 +597,6 @@ def main(args):
             datasplit="val",
             normalizers=normalizers,
         )
-        optimizer.zero_grad(set_to_none=True)
 
         if (epoch + 1) % args.test_interval == 0:
             _log.info(f"Testing model after epoch {epoch+1}.")
@@ -611,7 +617,6 @@ def main(args):
                 datasplit="test",
                 normalizers=normalizers,
             )
-            optimizer.zero_grad(set_to_none=True)
         else:
             test_err, test_loss = None, None
 
@@ -1034,6 +1039,8 @@ def train_one_epoch(
 
     # triplet loss
     triplet_lossfn = TripletLoss(margin=args.tripletloss_margin)
+
+    optimizer.zero_grad(set_to_none=True)
 
     # broyden solver outpus NaNs if it diverges
     # count the number of NaNs and stop training if it exceeds a threshold

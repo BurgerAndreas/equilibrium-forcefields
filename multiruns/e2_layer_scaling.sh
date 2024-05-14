@@ -11,7 +11,7 @@ for l in ${layers[@]}; do
   launchrun model.num_layers=$l 
 done
 
-launchrun model.num_layers=1
-launchrun model.num_layers=2
-launchrun model.num_layers=3
-launchrun model.num_layers=4
+# launchrun model.num_layers=1
+# launchrun model.num_layers=2
+# launchrun model.num_layers=3
+# launchrun model.num_layers=4

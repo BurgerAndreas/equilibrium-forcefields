@@ -28,7 +28,7 @@ from equiformer.nets import model_entrypoint
 
 from timm.utils import ModelEmaV2, get_state_dict
 from timm.scheduler import create_scheduler
-from equiformer.optim_factory import create_optimizer
+from equiformer.optim_factory import create_optimizer, scale_batchsize_lr
 
 from equiformer.engine import AverageMeter, compute_stats
 

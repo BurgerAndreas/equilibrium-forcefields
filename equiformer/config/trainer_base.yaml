@@ -47,6 +47,7 @@ model_ema: False
 model_ema_decay: 0.9999
 # (float)
 model_ema_force_cpu: False
+
 # 'Optimizer (default: adamw' (str)
 opt: "adamw"
 # Optimizer Epsilon (default: 1e-8 (float)
@@ -59,6 +60,9 @@ clip_grad: null
 momentum: 0.9
 # weight decay (default: 5e-3 (float) # 1e-6 for paper
 weight_decay: 5e-3 
+# when multiplying the batch size by k, one should multiply the learning rate by sqrt(k)
+bsscale: null
+
 # 'LR scheduler (default: cosine' (str)
 sched: "cosine"
 # learning rate (default: 5e-4 or 1.5e-4) (float)

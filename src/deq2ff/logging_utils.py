@@ -10,11 +10,14 @@ import sys
 import torch
 
 from equiformer.config.paths import ROOT_DIR
+from equiformer.optim_factory import scale_batchsize_lr
 
 
 def fix_args(args: OmegaConf):
     args.slurm_job_id = os.environ.get("SLURM_JOB_ID", None)
     args = set_gpu_name(args)
+
+    args = scale_batchsize_lr(args, k=args.get("bsscale", None))
 
     if "model_is_deq" in args:
         if args.model_is_deq is True:

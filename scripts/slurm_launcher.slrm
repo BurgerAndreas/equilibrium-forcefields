@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# bash or sh
 # Node resource configurations
 # https://support.vectorinstitute.ai/Vaughan_slurm_changes
 #SBATCH --job-name=equilibrium-forcefields
@@ -21,7 +20,6 @@
 echo `date`: Job $SLURM_JOB_ID is allocated resources.
 
 # the recommendation is to keep erything that defines the workload itself in a separate script
-# bash scripts/slurm_lora.sh
 echo "Inside slurm_launcher.slrm ($0). received arguments: $@"
 
 HOME_DIR=/h/burgeran

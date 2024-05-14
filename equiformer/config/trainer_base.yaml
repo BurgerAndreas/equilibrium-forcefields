@@ -121,7 +121,7 @@ save_best_val_checkpoint: False
 save_checkpoint_after_test: True
 save_final_checkpoint: False
 max_checkpoints: 2
-# (str)
+# Only run inference on the test set, then stop (str)
 evaluate: False
 # Include force in loss calculation. (str2bool)
 meas_force: True

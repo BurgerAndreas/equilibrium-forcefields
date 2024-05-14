@@ -36,7 +36,7 @@ def scale_batchsize_lr(args, k=None):
         args.lr  = args.lr * sqrt(k)
         betas = args.get('opt_betas', None)
         if betas is None:
-            betas = [0.9, 0.99]
+            betas = [0.9, 0.999]
         args.opt_betas = [1 - k*(1 - betas[0]), 1 - k* (1 - betas[1])]
         opt_eps = args.get('opt_eps', 1e-8)
         args.opt_eps = opt_eps / sqrt(k)

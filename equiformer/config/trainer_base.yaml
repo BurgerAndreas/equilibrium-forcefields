@@ -116,7 +116,7 @@ num_workers: 4
 
 # load checkpoint (str)
 checkpoint_path: auto
-save_best_test_checkpoint: False
+save_best_test_checkpoint: True
 save_best_val_checkpoint: False
 save_checkpoint_after_test: True
 save_final_checkpoint: False

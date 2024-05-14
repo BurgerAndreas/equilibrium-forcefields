@@ -279,16 +279,7 @@ def main(args):
     test_loader = DataLoader(
         test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
     )
-
-    # DEPRECATED: not used
-    # all_loader = DataLoader(
-    #     all_dataset,
-    #     batch_size=args.eval_batch_size,
-    #     shuffle=False,
-    #     num_workers=args.workers,
-    #     pin_memory=args.pin_mem,
-    #     drop_last=True,
-    # )
+    
 
     """ Compute stats """
     # Compute _AVG_NUM_NODES, _AVG_DEGREE
@@ -356,10 +347,7 @@ def main(args):
     loss_fn = load_loss({"energy": args.loss_energy, "force": args.loss_force})
     criterion_energy = loss_fn["energy"]
     criterion_force = loss_fn["force"]
-
-    device_init = optimizer.param_groups[0]["params"][0].device
-    # print optimizer device
-    _log.info(f"\n\nOptimizer device: {device_init}\n\n")
+    
 
     """ Load checkpoint """
     if args.checkpoint_path is not None:

@@ -56,6 +56,7 @@ from omegaconf import DictConfig, OmegaConf
 import wandb
 
 from typing import List
+import tracemalloc
 
 from equiformer_v2.oc20.trainer.base_trainer_oc20 import Normalizer
 
@@ -520,7 +521,19 @@ def main(args):
     except Exception as e:
         success = False
         _log.info(f"Error: {e}")
+    
+    """ Log memory usage """
+    # Start recording memory snapshot history, initialized with a buffer
+    # capacity of 100,000 memory events, via the `max_entries` field.
+    if args.torch_record_memory:
+        try:
+            torch.cuda.memory._record_memory_history(
+                max_entries=args.MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT
+            )
+        except Exception as e:
+            _log.info(f"Failed to record memory history {e}")
 
+    """ Inference! """
     if args.evaluate:
         test_err, test_loss = evaluate(
             args=args,
@@ -537,6 +550,17 @@ def main(args):
             datasplit="test",
             normalizers=normalizers,
         )
+        if args.torch_record_memory:
+            # Snapshots will save last `max_entries` number of memory events
+            try:
+                torch.cuda.memory._dump_snapshot(f"{args.output_dir}/cuda_memory_snapshot_inference_s{global_step}.pickle")
+            except Exception as e:
+                _log.info(f"Failed to capture memory snapshot {e}")
+            # Stop recording memory snapshot history.
+            try:
+                torch.cuda.memory._record_memory_history(enabled=None)
+            except Exception as e:
+                _log.info(f"Failed to stop recording memory history {e}")
         return
 
     """ Train! """
@@ -567,6 +591,13 @@ def main(args):
             meas_force=args.meas_force,
             normalizers=normalizers,
         )
+
+        if args.torch_record_memory:
+            # Snapshots will save last `max_entries` number of memory events
+            try:
+                torch.cuda.memory._dump_snapshot(f"{args.output_dir}/cuda_memory_snapshot_e{epoch}_s{global_step}.pickle")
+            except Exception as e:
+                _log.info(f"Failed to capture memory snapshot {e}")
 
         val_err, val_loss = evaluate(
             args=args,
@@ -896,6 +927,13 @@ def main(args):
         # epoch done
 
     _log.info("\nAll epochs done!\nFinal test:")
+
+    if args.torch_record_memory:
+        # Stop recording memory snapshot history.
+        try:
+            torch.cuda.memory._record_memory_history(enabled=None)
+        except Exception as e:
+            _log.info(f"Failed to stop recording memory history {e}")
 
     # all epochs done
     # evaluate on the whole testing set

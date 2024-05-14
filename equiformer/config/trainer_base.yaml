@@ -179,6 +179,10 @@ squeeze_e_dim: False # if to reshape data [B,1] (MD17) -> [B] (OC20)
 # wandb.watch gradients, activations, model parameters (bool)
 watch_model: False
 
+# log memory usage
+torch_record_memory: False
+MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT: 100000
+
 # variables we can access in our code
 job_name: 'results'
 # job_name: ${hydra:job.name}

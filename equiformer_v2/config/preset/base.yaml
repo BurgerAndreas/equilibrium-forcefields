@@ -1,6 +1,8 @@
 # @package _global_
 # ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
 
+model_is_deq: False
+
 model:
   use_pbc:                  True # use periodic boundary conditions
   regress_forces:           True

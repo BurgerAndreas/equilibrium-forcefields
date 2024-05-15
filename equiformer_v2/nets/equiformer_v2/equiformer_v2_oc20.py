@@ -146,9 +146,11 @@ class EquiformerV2_OC20(BaseModel):
         use_gate_act=False,
         use_grid_mlp=False,
         use_sep_s2_act=True,
+        # dropout rates
         alpha_drop=0.1,
         drop_path_rate=0.05,
         proj_drop=0.0,
+        head_alpha_drop=0.0,
         weight_init="normal",
         # added
         # Statistics of IS2RE 100K
@@ -265,6 +267,7 @@ class EquiformerV2_OC20(BaseModel):
         self.alpha_drop = alpha_drop
         self.drop_path_rate = drop_path_rate
         self.proj_drop = proj_drop
+        self.head_alpha_drop = head_alpha_drop
 
         self.weight_init = weight_init
         assert self.weight_init in [
@@ -394,7 +397,8 @@ class EquiformerV2_OC20(BaseModel):
                 use_attn_renorm=self.use_attn_renorm,
                 use_gate_act=self.use_gate_act,
                 use_sep_s2_act=self.use_sep_s2_act,
-                alpha_drop=0.0,
+                # dropout
+                alpha_drop=self.head_alpha_drop,
             )
         else:
             raise ValueError(
@@ -423,7 +427,8 @@ class EquiformerV2_OC20(BaseModel):
                 use_attn_renorm=self.use_attn_renorm,
                 use_gate_act=self.use_gate_act,
                 use_sep_s2_act=self.use_sep_s2_act,
-                alpha_drop=0.0,
+                # dropout
+                alpha_drop=self.head_alpha_drop,
             )
 
         self.apply(self._init_weights)

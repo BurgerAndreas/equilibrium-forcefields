@@ -148,6 +148,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 use_grid_mlp=self.use_grid_mlp,
                 use_sep_s2_act=self.use_sep_s2_act,
                 norm_type=self.norm_type,
+                # dropout
                 alpha_drop=self.alpha_drop,
                 drop_path_rate=self.drop_path_rate,
                 proj_drop=self.proj_drop,

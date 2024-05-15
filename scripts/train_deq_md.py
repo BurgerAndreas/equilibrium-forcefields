@@ -551,6 +551,13 @@ def main(args):
             datasplit="test",
             normalizers=normalizers,
         )
+        wandb.log(
+            {
+                "test_e_mae": test_err["energy"].avg,
+                "test_f_mae": test_err["force"].avg,
+            },
+            step=global_step,
+        )
         if args.torch_record_memory:
             # Snapshots will save last `max_entries` number of memory events
             try:
@@ -749,11 +756,7 @@ def main(args):
             logs["test_e_mae"] = test_err["energy"].avg
             logs["test_f_mae"] = test_err["force"].avg
         # if global_step % args.log_every_step_minor == 0:
-        wandb.log(
-            logs,
-            # step=epoch,
-            step=global_step,
-        )
+        wandb.log(logs, step=global_step)
 
         info_str = "Best -- val_epoch={}, test_epoch={}, ".format(
             best_metrics["val_epoch"], best_metrics["test_epoch"]

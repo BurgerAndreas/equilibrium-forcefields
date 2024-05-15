@@ -59,6 +59,7 @@ def init_wandb(args: OmegaConf, project="EquilibriumEquiFormer"):
         # entity="andreas-burger",
         name=args.wandb_run_name,
         config=args_wandb,
+        tags=args.wandb_tags,
         # reinit=True,
         # settings=wandb.Settings(start_method="fork")
     )

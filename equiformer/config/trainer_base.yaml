@@ -147,6 +147,7 @@ test_forward: False
 wandb: True
 wandb_run_name: null
 wandb_group: null
+wandb_tags: null
 slurm_job_id: null
 model_is_deq: False
 

@@ -5,13 +5,7 @@ import wandb
 import copy
 import os, sys, pathlib
 
-# andreas-burger/EquilibriumEquiFormer
-entity = "andreas-burger"
-project = "EquilibriumEquiFormer"
-
-# parent folder of the plot
-plotfolder = pathlib.Path(__file__).parent.absolute()
-plotfolder = os.path.join(plotfolder, "plots")
+from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder
 
 def get_run_ids(entity, project, filters):
     # api = wandb.Api()
@@ -34,10 +28,10 @@ def get_run_ids(entity, project, filters):
         print(run.id, run.name, run.config["model.num_layers"])
 
 
-
 def from_run_ids():
 
     run_ids = [
+        # seed=1, target=aspirin
         "en7keqeo",
         "89gcuv3e",
         "jp5n1t1n",
@@ -47,6 +41,9 @@ def from_run_ids():
         "cfrmpql5",
         "3dg5u6gb",
         "h66aekmn",
+        # TODO: two layer DEQ
+        # TODO: average over seeds
+        # TODO: average over molecules
     ]
 
     infos = []
@@ -55,8 +52,6 @@ def from_run_ids():
         # run = api.run(project + "/" + run_id)
         api = wandb.Api()
         run = api.run(project + "/" + run_id)
-
-
         infos.append({
             "run_id": run_id,
             "run_name": run.name,
@@ -73,6 +68,13 @@ def from_run_ids():
 
     # to pandas dataframe
     df = pd.DataFrame(infos)
+
+    # rename 'model_is_deq' to 'Model'
+    # true -> DEQ, false -> Equiformer
+    df["model_is_deq"] = df["model_is_deq"].apply(lambda x: "DEQ" if x else "Equiformer")
+    # rename 'model_is_deq' to 'Model'
+    df = df.rename(columns={"model_is_deq": "Model"})
+
     print(df)
 
     # compute mean and std over 'seed'
@@ -84,28 +86,37 @@ def from_run_ids():
     # y = "best_test_f_mae"
     y = "test_f_mae"
     x = "num_layers"
-    color = "model_is_deq"
-    marks = ["o", "x"]
+    color = "Model"
+    # https://stackoverflow.com/a/64403147/18361030
+    marks = ["o", "s"]
 
     # plot
-    sns.set_style(style="whitegrid")
+    set_seaborn_style()
+
     fig, ax = plt.subplots()
-    sns.scatterplot(data=df, x=x, y=y, hue=color, ax=ax, markers=marks)
+    sns.scatterplot(data=df, x=x, y=y, hue=color, style=color, ax=ax, markers=marks)
     
     # sns.lineplot(data=df_mean, x=x, y=y, hue=color, ax=ax, markers=marks, legend=False)
     # ax.errorbar(df_mean[x], df_mean[y], yerr=df_std[y], fmt='o', color='black', capsize=5)
 
+    # remove legend
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles=handles[0:], labels=labels[0:])
+
     # labels
     ax.set_xlabel("Number of Layers")
     ax.set_ylabel("Force MAE")
-    ax.set_title("Number of Layers vs Test F MAE")
-    # labels = ["DEQ", "FF"]
-    ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")
+    ax.set_title("Accuracy scaling with depth")
+
+    # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")
+
+    plt.tight_layout(pad=0.1)
 
 
     # save
-    plt.savefig(f"{plotfolder}/depth_plot.png")
-    print(f"saved plot to {plotfolder}/depth_plot.png")
+    name = "acc_over_depth"
+    plt.savefig(f"{plotfolder}/{name}.png")
+    print(f"\nSaved plot to {plotfolder}/{name}.png")
 
 
 if __name__ == "__main__":

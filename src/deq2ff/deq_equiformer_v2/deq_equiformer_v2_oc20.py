@@ -286,75 +286,75 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # "Replaced" by DEQ
         ###############################################################
 
-        if self.skip_blocks:
-            pass
-            z_pred = [torch.zeros_like(x.embedding)]
-            info = {}
+        # if self.skip_blocks:
+        #     pass
+        #     z_pred = [torch.zeros_like(x.embedding)]
+        #     info = {}
+        # else:
+        # emb_SO3 = x
+        emb = x.embedding
+
+        if fixedpoint is None:
+            x: torch.Tensor = self._init_z(shape=emb.shape, emb=emb)
+            reuse = False
         else:
-            # emb_SO3 = x
-            emb = x.embedding
+            reuse = True
+            x = fixedpoint
 
-            if fixedpoint is None:
-                x: torch.Tensor = self._init_z(shape=emb.shape, emb=emb)
-                reuse = False
-            else:
-                reuse = True
-                x = fixedpoint
+        reset_norm(self.blocks)
 
-            reset_norm(self.blocks)
-
-            # Transformer blocks
-            # f = lambda z: self.mfn_forward(z, u)
-            def f(x):
-                return self.deq_implicit_layer(
-                    x,
-                    emb=emb,
-                    edge_index=edge_index,
-                    edge_distance=edge_distance,
-                    atomic_numbers=atomic_numbers,
-                    data=data,
-                )
-            
-
-            # find fixed-point
-            # | During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
-            # | During inference, returns a list containing the fixed point solution only.
-            # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
-            z_pred, info = self.deq(
-                f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse)
+        # Transformer blocks
+        # f = lambda z: self.mfn_forward(z, u)
+        def f(x):
+            return self.deq_implicit_layer(
+                x,
+                emb=emb,
+                edge_index=edge_index,
+                edge_distance=edge_distance,
+                atomic_numbers=atomic_numbers,
+                data=data,
             )
-            info["z_pred"] = z_pred
+        
 
-            x = SO3_Embedding(
-                length=num_atoms,
-                lmax_list=self.lmax_list,
-                num_channels=self.sphere_channels_fixedpoint,
-                device=self.device,
-                dtype=self.dtype,
-                embedding=z_pred[-1],
+        # find fixed-point
+        # | During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
+        # | During inference, returns a list containing the fixed point solution only.
+        # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
+        z_pred, info = self.deq(
+            f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse)
+        )
+        info["z_pred"] = z_pred
+
+        x = SO3_Embedding(
+            length=num_atoms,
+            lmax_list=self.lmax_list,
+            num_channels=self.sphere_channels_fixedpoint,
+            device=self.device,
+            dtype=self.dtype,
+            embedding=z_pred[-1],
+        )
+
+        ######################################################
+        # Fixed-point reuse loss
+        if fpr_loss == True:
+            z_next, _, _info = broyden_solver_grad(
+                func=f, 
+                x0=z_pred[-1].clone(), 
+                max_iter=1,
+                tol=solver_kwargs.get("f_tol", self.deq.f_tol),
+                stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
+                # return_final=True,
             )
+            info["z_next"] = z_next
 
-            ######################################################
-            # Fixed-point reuse loss
-            if fpr_loss == True:
-                z_next, _, _info = broyden_solver_grad(
-                    func=f, 
-                    x0=z_pred[-1].clone(), 
-                    max_iter=1,
-                    tol=solver_kwargs.get("f_tol", self.deq.f_tol),
-                    stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
-                    # return_final=True,
-                )
-                info["z_next"] = z_next
-
-            ######################################################
-            # Logging
-            ######################################################
-            if step is not None:
-                # log the final fixed-point
-                logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
-                # log the input injection (output of encoder)
-                logging_utils_deq.log_fixed_point_norm(emb, step, datasplit, name="emb")
+        ######################################################
+        # Logging
+        ######################################################
+        # if step is not None:
+        #     # log the final fixed-point
+        #     logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
+        #     # log the input injection (output of encoder)
+        #     logging_utils_deq.log_fixed_point_norm(emb, step, datasplit, name="emb")
 
         # Final layer norm
         x.embedding = self.norm(x.embedding)

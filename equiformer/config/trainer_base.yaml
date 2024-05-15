@@ -119,7 +119,8 @@ checkpoint_path: auto
 save_best_test_checkpoint: True
 save_best_val_checkpoint: False
 save_checkpoint_after_test: True
-save_final_checkpoint: False
+save_final_checkpoint: True
+assert_checkpoint: False
 max_checkpoints: 2
 # Only run inference on the test set, then stop (str)
 evaluate: False

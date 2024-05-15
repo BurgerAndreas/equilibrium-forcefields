@@ -351,6 +351,7 @@ def main(args):
     
 
     """ Load checkpoint """
+    loaded_checkpoint = False
     if args.checkpoint_path is not None:
         if args.checkpoint_path == "auto":
             # args.checkpoint_path = os.path.join(args.output_dir, "checkpoint.pth.tar")
@@ -382,10 +383,14 @@ def main(args):
             best_ema_metrics = state_dict["best_ema_metrics"]
             # log
             _log.info(f"Loaded model from {args.checkpoint_path}")
+            loaded_checkpoint = True
         except Exception as e:
             # probably checkpoint not found
             _log.info(f"Error loading checkpoint: {e}")
 
+    # if we want to run inference only we want to make sure that the model is loaded
+    if args.assert_checkpoint:
+        assert loaded_checkpoint, "Failed to load checkpoint."
 
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch

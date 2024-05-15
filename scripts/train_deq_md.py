@@ -1374,8 +1374,6 @@ def evaluate(
     loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
     mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
 
-    start_time = time.perf_counter()
-
     task_mean = model.task_mean
     task_std = model.task_std
 
@@ -1392,6 +1390,10 @@ def evaluate(
             # name for logging
             _datasplit = f"{datasplit}_fpreuse" if fpreuse_test else datasplit
 
+            # timing
+            start_time = time.perf_counter()
+            model_forward_time = []
+
             n_fsolver_steps = 0
             fixedpoint = None
             prev_idx = None
@@ -1407,6 +1409,7 @@ def evaluate(
                 else:
                     pass_step = None
 
+                forward_start_time = time.perf_counter()
                 # fixed-point reuse
                 if fpreuse_test == True:
                     # assert that idx is consecutive
@@ -1437,6 +1440,7 @@ def evaluate(
                         fixedpoint=None,
                         solver_kwargs=solver_kwargs,
                     )
+                model_forward_time += [time.perf_counter() - forward_start_time]
 
                 target_y = normalizers["energy"](data.y)
                 target_dy = normalizers["force"](data.dy)
@@ -1501,8 +1505,14 @@ def evaluate(
                 if (step + 1) >= max_steps:
                     break
 
-            eval_time = time.perf_counter() - start_time
-            wandb.log({f"time_{_datasplit}": eval_time}, step=global_step)
+            eval_time = time.perf_counter() - start_time # time for whole test set
+            wandb.log(
+                {
+                    f"time_{_datasplit}": eval_time,
+                    f"time_forward_per_batch_{_datasplit}": np.mean(model_forward_time),
+                    # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_time),
+                    f"time_forward_total_{_datasplit}": np.sum(model_forward_time),
+                }, step=global_step)
 
             if n_fsolver_steps > 0:
                 n_fsolver_steps /= max_steps

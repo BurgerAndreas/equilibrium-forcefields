@@ -19,6 +19,12 @@ def fix_args(args: OmegaConf):
 
     args = scale_batchsize_lr(args, k=args.get("bsscale", None))
 
+    # allows to load checkpoint with the same name
+    if args.evaluate:
+        if args.wandb_tags is None:
+            args.wandb_tags = []
+        args.wandb_tags.append("eval")
+
     if "model_is_deq" in args:
         if args.model_is_deq is True:
             if args.model.name[:3] != "deq":
@@ -88,7 +94,7 @@ def final_logging(args):
         else:
             print(f"Could not find {slurm_file}.")
 
-
+# allows to load checkpoint with the same name
 IGNORE_OVERRIDES = [
     "resume_from_checkpoint",
     "save_checkpoint_after_test",
@@ -103,6 +109,8 @@ IGNORE_OVERRIDES = [
     "wandb_project",
     "wandb_entity",
     "wandb_run_name",
+    "wandb_tags",
+    "evaluate",
     "num_train_epochs",
     "machine",
     "basemodel",

@@ -39,9 +39,11 @@ def fix_args(args: OmegaConf):
     if args.wandb_run_name is None:
         args.wandb_run_name = args.model.name
     # for human readable names
-    args.wandb_run_name = name_from_config(args)
+    wandb_run_name = name_from_config(args)
     # for checkpoint names
     args.checkpoint_wandb_name = name_from_config(args, is_checkpoint_name=True)
+    # we can only set the name after the checkpoint name is set
+    args.wandb_run_name = wandb_run_name
 
     return args
 
@@ -204,6 +206,7 @@ def name_from_config(args: omegaconf.DictConfig, is_checkpoint_name=False) -> st
         mname = args.wandb_run_name
         # override format: 'pretrain_dataset=bridge,steps=10,use_wandb=False'
         override_names = ""
+        # print(f'Overrides: {args.override_dirname}')
         if args.override_dirname:
             for arg in args.override_dirname.split(","):
                 # make sure we ignore some overrides
@@ -212,11 +215,11 @@ def name_from_config(args: omegaconf.DictConfig, is_checkpoint_name=False) -> st
                 if is_checkpoint_name:
                     if np.any([ignore in arg for ignore in IGNORE_OVERRIDES_CHECKPOINT]):
                         continue
-                else:
-                    override = arg.replace("+", "").replace("_", "")
-                    override = override.replace("=", "-").replace(".", "")
-                    override = override.replace("deqkwargs", "").replace("model", "")
-                    override_names += " " + override
+                override = arg.replace("+", "").replace("_", "")
+                override = override.replace("=", "-").replace(".", "")
+                override = override.replace("deqkwargstest", "")
+                override = override.replace("deqkwargs", "").replace("model", "")
+                override_names += " " + override
     except Exception as error:
         print("\nname_from_config() failed:", error)
         print("args:", args)
@@ -225,6 +228,7 @@ def name_from_config(args: omegaconf.DictConfig, is_checkpoint_name=False) -> st
     _name = mname + override_names
     for key, value in REPLACE.items():
         _name = _name.replace(key, value)
+    print(f"Name{' checkpoint' if is_checkpoint_name else ''}: {_name}")
     return _name
 
 
@@ -241,17 +245,17 @@ def set_gpu_name(args):
     return args
 
 
-def set_wandb_name(args, initial_global_step, global_step=None):
-    """Set wandb.run.name."""
-    try:
-        gpu_name = torch.cuda.get_device_name(0)
-        gpu_name = (
-            gpu_name.replace("NVIDIA", "").replace("GeForce", "").replace(" ", "")
-        )
-        run_name = name_from_config(args)
-        run_name += f"-{gpu_name}-{initial_global_step}"
-        if (global_step is not None) and (global_step != initial_global_step):
-            run_name += f"-{global_step}"
-        wandb.run.name = run_name
-    except:
-        pass
+# def set_wandb_name(args, initial_global_step, global_step=None):
+#     """Set wandb.run.name."""
+#     try:
+#         gpu_name = torch.cuda.get_device_name(0)
+#         gpu_name = (
+#             gpu_name.replace("NVIDIA", "").replace("GeForce", "").replace(" ", "")
+#         )
+#         run_name = name_from_config(args)
+#         run_name += f"-{gpu_name}-{initial_global_step}"
+#         if (global_step is not None) and (global_step != initial_global_step):
+#             run_name += f"-{global_step}"
+#         wandb.run.name = run_name
+#     except:
+#         pass

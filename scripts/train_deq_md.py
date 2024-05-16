@@ -172,7 +172,7 @@ def main(args):
         # remove special characters
         mname = ''.join(e for e in mname if e.isalnum())
         args.output_dir = f'models/{args.dname}/{args.model.name}/{args.target}/{mname}'
-        print(f"Set output directory: {args.output_dir}")
+        print(f"Set output directory automatically: {args.output_dir}")
     elif args.output_dir == 'checkpoint_path':
         # args.output_dir = args.checkpoint_path
         args.output_dir = os.path.dirname(args.checkpoint_path)
@@ -183,7 +183,7 @@ def main(args):
 
     _log = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
     _log.info(
-        f"args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}"
+        f"Args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}"
     )
 
     # since dataset needs random

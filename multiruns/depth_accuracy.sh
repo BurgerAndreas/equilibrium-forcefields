@@ -11,31 +11,33 @@ for l in ${layers[@]}; do
   launchrun model.num_layers=$l 
 done
 
-# # launchrun model.num_layers=1
-# launchrun model.num_layers=2
-# launchrun model.num_layers=3
-# # launchrun model.num_layers=4
-# launchrun model.num_layers=5
-# launchrun model.num_layers=6
-# launchrun model.num_layers=7
-# launchrun model.num_layers=8
+# # launchrun model.num_layers=1 wandb_tags=["depth"]
+# launchrun model.num_layers=2 wandb_tags=["depth"]
+# launchrun model.num_layers=3 wandb_tags=["depth"]
+# # launchrun model.num_layers=4 wandb_tags=["depth"]
+# launchrun model.num_layers=5 wandb_tags=["depth"]
+# launchrun model.num_layers=6 wandb_tags=["depth"]
+# launchrun model.num_layers=7 wandb_tags=["depth"]
+# launchrun model.num_layers=8 wandb_tags=["depth"]
 
 # seed=2
-# # launchrun model.num_layers=1 seed=2
-# launchrun model.num_layers=2 seed=2
-# launchrun model.num_layers=3 seed=2
-# # launchrun model.num_layers=4 seed=2
-# launchrun model.num_layers=5 seed=2
-# launchrun model.num_layers=6 seed=2
-# launchrun model.num_layers=7 seed=2
-# launchrun model.num_layers=8 seed=2
+# # launchrun model.num_layers=1 seed=2 wandb_tags=["depth"]
+# launchrun model.num_layers=2 seed=2 wandb_tags=["depth"]
+# launchrun model.num_layers=3 seed=2 wandb_tags=["depth"]
+# # launchrun model.num_layers=4 seed=2 wandb_tags=["depth"]
+# launchrun model.num_layers=5 seed=2 wandb_tags=["depth"]
+# launchrun model.num_layers=6 seed=2 wandb_tags=["depth"]
+# launchrun model.num_layers=7 seed=2 wandb_tags=["depth"]
+# launchrun model.num_layers=8 seed=2 wandb_tags=["depth"]
 
 # ethanol
-# launchrun model.num_layers=1 target=ethanol
-launchrun model.num_layers=2 target=ethanol
-launchrun model.num_layers=3 target=ethanol
-# launchrun model.num_layers=4 target=ethanol
-launchrun model.num_layers=5 target=ethanol
-launchrun model.num_layers=6 target=ethanol
-launchrun model.num_layers=7 target=ethanol
-launchrun model.num_layers=8 target=ethanol
+# REMARK: submitted to taco
+# launchrun model.num_layers=1 target=ethanol wandb_tags=["depth"]
+launchrun model.num_layers=2 target=ethanol wandb_tags=["depth"]
+launchrun model.num_layers=3 target=ethanol wandb_tags=["depth"]
+# launchrun model.num_layers=4 target=ethanol wandb_tags=["depth"]
+launchrun model.num_layers=5 target=ethanol wandb_tags=["depth"]
+launchrun model.num_layers=6 target=ethanol wandb_tags=["depth"]
+launchrun model.num_layers=7 target=ethanol wandb_tags=["depth"]
+launchrun model.num_layers=8 target=ethanol wandb_tags=["depth"]
+

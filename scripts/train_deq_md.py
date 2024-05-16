@@ -168,7 +168,7 @@ def main(args):
     if args.output_dir == 'auto':
         # args.output_dir = os.path.join('outputs', datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         # models/md17/equiformer/test
-        mname = wandb.run.name
+        mname = args.checkpoint_wandb_name # wandb.run.name
         # remove special characters
         mname = ''.join(e for e in mname if e.isalnum())
         args.output_dir = f'models/{args.dname}/{args.model.name}/{args.target}/{mname}'
@@ -390,7 +390,7 @@ def main(args):
 
     # if we want to run inference only we want to make sure that the model is loaded
     if args.assert_checkpoint:
-        assert loaded_checkpoint, "Failed to load checkpoint."
+        assert loaded_checkpoint, f"Failed to load checkpoint at path={args.checkpoint_path}."
 
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch

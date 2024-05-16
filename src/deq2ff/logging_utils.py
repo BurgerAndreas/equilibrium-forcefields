@@ -38,7 +38,10 @@ def fix_args(args: OmegaConf):
 
     if args.wandb_run_name is None:
         args.wandb_run_name = args.model.name
+    # for human readable names
     args.wandb_run_name = name_from_config(args)
+    # for checkpoint names
+    args.checkpoint_wandb_name = name_from_config(args, is_checkpoint_name=True)
 
     return args
 
@@ -117,6 +120,17 @@ IGNORE_OVERRIDES = [
     "machine",
     "basemodel",
     "wandb_group",
+    "wandb",
+]
+
+# some stuff is not relevant for the checkpoint
+# e.g. inference kwargs
+IGNORE_OVERRIDES_CHECKPOINT = [
+    "deq_kwargs_test",
+    "fpreuse_f_tol",
+    "eval_batch_size",
+    "wandb_tags",
+    "evaluate",
 ]
 
 REPLACE = {
@@ -174,10 +188,12 @@ REPLACE = {
     "DEQ  dp use-DEQ": "DEQ E1",
     "torchDEQnorm": "",
     "  ": " ",
+    # ignore defaults
+    "targetaspirin": "",
 }
 
 
-def name_from_config(args: omegaconf.DictConfig) -> str:
+def name_from_config(args: omegaconf.DictConfig, is_checkpoint_name=False) -> str:
     """Generate a name for the model based on the config.
     Name is intended to be used as a file name for saving checkpoints and outputs.
     """
@@ -193,6 +209,9 @@ def name_from_config(args: omegaconf.DictConfig) -> str:
                 # make sure we ignore some overrides
                 if np.any([ignore in arg for ignore in IGNORE_OVERRIDES]):
                     continue
+                if is_checkpoint_name:
+                    if np.any([ignore in arg for ignore in IGNORE_OVERRIDES_CHECKPOINT]):
+                        continue
                 else:
                     override = arg.replace("+", "").replace("_", "")
                     override = override.replace("=", "-").replace(".", "")
@@ -204,7 +223,6 @@ def name_from_config(args: omegaconf.DictConfig) -> str:
         raise error
     # logger.info("name_from_config() mname: %s, override_names: %s", mname, override_names)
     _name = mname + override_names
-    print(f'mname + overrides: "{_name}"')
     for key, value in REPLACE.items():
         _name = _name.replace(key, value)
     return _name

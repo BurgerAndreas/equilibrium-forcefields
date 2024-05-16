@@ -116,6 +116,7 @@ num_workers: 4
 
 # load checkpoint (str)
 checkpoint_path: auto
+checkpoint_wandb_name: null # only used if checkpoint_path is auto. will be filled by wandb
 save_best_test_checkpoint: True
 save_best_val_checkpoint: False
 save_checkpoint_after_test: True

@@ -157,6 +157,9 @@ model_is_deq: False
 # DEQ Optical Flow used FPR only during inference
 fpreuse_test: False
 
+# reuse fixed-points across epochs
+fpreuse_across_epochs: False
+
 # (sparse) fixed-point correction
 fpc_loss: l2
 fpc_freq: 0 # how many fixed-point estimates to pick for the loss. -1 means all, 0 means none. 1-4 is reasonable

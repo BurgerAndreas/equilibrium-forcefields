@@ -107,6 +107,8 @@ def line_search(update, x0, g0, g, nstep=0, on=True):
         g0_new = tmp_g0[0]
     else:
         g0_new = g(x_est)
+
+    # x_est, gx, delta_x, delta_gx, ite = line_search
     return x_est, g0_new, x_est - x0, g0_new - g0, ite
 
 
@@ -183,8 +185,8 @@ def broyden_solver(
     # if kwargs:
     #     print(f"broyden_solver ignoring kwargs: {kwargs}")
 
-    # Flatten the initial tensor into (B, *)
     # estimate of the root
+    # Flatten the initial tensor into (B, *)
     x_est = batch_flatten(x0)
     bsz, dim = x_est.shape
 

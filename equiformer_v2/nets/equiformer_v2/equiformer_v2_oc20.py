@@ -561,7 +561,7 @@ class EquiformerV2_OC20(BaseModel):
         x.embedding = x.embedding + edge_degree.embedding
 
         # if self.learn_scale_after_encoder:
-        x.embedding = x.embedding * self.learn_scale_after_encoder
+        # x.embedding = x.embedding * self.learn_scale_after_encoder
 
         # logging
         if step is not None:

@@ -35,3 +35,14 @@ done
 # launchrun model.num_layers=4 target=salicylic_acid
 # launchrun model.num_layers=4 target=toluene
 # launchrun model.num_layers=4 target=uracil
+
+# TODO: replace this with a loop for all molecules
+# seed=2
+# launchrun +use=deq +cfg=fpc_of seed=2
+# launchrun model.num_layers=1 seed=2
+# launchrun model.num_layers=4 seed=2
+
+# seed=3
+# launchrun +use=deq +cfg=fpc_of seed=3
+# launchrun model.num_layers=1 seed=3
+# launchrun model.num_layers=4 seed=3

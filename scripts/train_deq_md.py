@@ -267,6 +267,10 @@ def main(args):
         pin_memory=args.pin_mem,
         drop_last=True,
     )
+    # idx are from the dataset
+    # indices are from the DataLoader
+    idx_to_indices = {idx.item(): i for i, idx in enumerate(train_loader.dataset.indices)}
+    indices_to_idx = {i: idx.item() for i, idx in enumerate(train_loader.dataset.indices)}
     # added drop_last=True to avoid error with fixed-point reuse
     val_loader = DataLoader(
         val_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
@@ -505,6 +509,7 @@ def main(args):
 
             # energy, force
             shapes_to_log = model.dummy_forward_for_logging(
+                data=data,
                 node_atom=data.z,
                 pos=data.pos,
                 batch=data.batch,
@@ -519,6 +524,7 @@ def main(args):
         import pprint
 
         ppr = pprint.PrettyPrinter(indent=4)
+        print(f"Shapes (target={args.target}):")
         ppr.pprint(shapes_to_log)
         wandb.run.summary.update(shapes_to_log)
 
@@ -574,9 +580,14 @@ def main(args):
                 torch.cuda.memory._record_memory_history(enabled=None)
             except Exception as e:
                 _log.info(f"Failed to stop recording memory history {e}")
-        return
+        return True
 
     """ Train! """
+    # empty list to store fixed-points across epochs
+    fixed_points = [None] * args.train_size
+    # fixed_points = [None] * (args.train_size // args.batch_size)
+    # empty tensor to store fixed-points across epochs
+    # fixed_points = torch.zeros(args.train_size, 3, device=device)
     _log.info("\nStart training!\n")
     start_time = time.perf_counter()
     for epoch in range(start_epoch, args.max_epochs):
@@ -603,6 +614,9 @@ def main(args):
             logger=_log,
             meas_force=args.meas_force,
             normalizers=normalizers,
+            fixed_points=fixed_points,
+            indices_to_idx=indices_to_idx,
+            idx_to_indices=idx_to_indices,
         )
 
         if args.torch_record_memory:
@@ -1050,6 +1064,10 @@ def train_one_epoch(
     logger=None,
     meas_force=True,
     normalizers={"energy": None, "force": None},
+    # fixed-point reuse
+    fixed_points=None,
+    indices_to_idx=None,
+    idx_to_indices=None,
 ):
     """Train for one epoch.
     Keys in dataloader: ['z', 'pos', 'batch', 'y', 'dy']
@@ -1096,17 +1114,49 @@ def train_one_epoch(
                     # uniformly spaced indices
                     solver_kwargs['n_states'] = args.fpc_freq
 
-            # energy, force
-            pred_y, pred_dy, info = model(
-                data=data,  # for EquiformerV2
-                node_atom=data.z,
-                pos=data.pos,
-                batch=data.batch,
-                step=global_step,
-                datasplit="train",
-                solver_kwargs=solver_kwargs,
-                fpr_loss=args.fpr_loss,
-            )
+            if args.fpreuse_across_epochs:
+                indices = [idx_to_indices[_idx.item()] for _idx in data.idx]
+                # get previous fixed points via index
+                if epoch > 0: # TODO: won't work with loading checkpoints
+                    # _fp_prev = fixed_points[step].to(device)
+                    # _fp_prev = fixed_points[indices].to(device)
+                    _fp_prev = torch.cat([fixed_points[_idx] for _idx in indices], dim=0)
+                    # _fp_prev = collate([fixed_points[_idx] for _idx in indices])
+                else:
+                    _fp_prev = None
+                # energy, force
+                pred_y, pred_dy, fp, info = model(
+                    data=data,  # for EquiformerV2
+                    node_atom=data.z,
+                    pos=data.pos,
+                    batch=data.batch,
+                    step=global_step,
+                    datasplit="train",
+                    solver_kwargs=solver_kwargs,
+                    fpr_loss=args.fpr_loss,
+                    # fixed-point reuse
+                    return_fixedpoint=True,
+                    fixedpoint=_fp_prev,
+                )
+                # split up fixed points [B*N, D, C] -> [B, N, D, C]
+                # [84, 16, 64] -> [4, 21, 16, 64]
+                fp = fp.view(args.batch_size, -1, *fp.shape[1:])
+                # store fixed points
+                # fixed_points[indices] = fp.detach()
+                for _idx, _fp in zip(indices, fp):
+                    fixed_points[_idx] = _fp.detach()
+            else:
+                # energy, force
+                pred_y, pred_dy, info = model(
+                    data=data,  # for EquiformerV2
+                    node_atom=data.z,
+                    pos=data.pos,
+                    batch=data.batch,
+                    step=global_step,
+                    datasplit="train",
+                    solver_kwargs=solver_kwargs,
+                    fpr_loss=args.fpr_loss,
+                )
 
             # _AVG_NUM_NODES: 18.03065905448718
             # _AVG_DEGREE: 15.57930850982666

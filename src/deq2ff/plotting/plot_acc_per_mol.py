@@ -11,25 +11,31 @@ from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder
 
 # get all runs with tag 'inference_speed'
 api = wandb.Api()
-runs = api.runs(project, {"tags": "md17"})
+# runs = api.runs(project, {"$or": [{"config.experiment_name": "foo"}, {"config.experiment_name": "bar"}]})
+# runs = api.runs(project, {"tags": "md17"})
+runs = api.runs(project, {"$or": [{"tags": "md17"}, {"tags": "md22"}]})
 run_ids = [run.id for run in runs]
 print(f"Found {len(run_ids)} runs with tag 'inference_speed'")
 
 infos = []
 for run in runs:
-    info = {
-        "run_id": run.id,
-        "run_name": run.name,
-        "seed": run.config["seed"],
-        "num_layers": run.config["model"]["num_layers"],
-        "model_is_deq": run.config["model_is_deq"],
-        "target": run.config["target"],
-        # accuracy metrics
-        "test_e_mae": run.summary["test_e_mae"],
-        "test_f_mae": run.summary["test_f_mae"],
-        "best_test_e_mae": run.summary["best_test_e_mae"],
-        "best_test_f_mae": run.summary["best_test_f_mae"],
-    }
+    try:
+        info = {
+            "run_id": run.id,
+            "run_name": run.name,
+            "seed": run.config["seed"],
+            "num_layers": run.config["model"]["num_layers"],
+            "model_is_deq": run.config["model_is_deq"],
+            "target": run.config["target"],
+            # accuracy metrics
+            "test_e_mae": run.summary["test_e_mae"],
+            "test_f_mae": run.summary["test_f_mae"],
+            "best_test_e_mae": run.summary["best_test_e_mae"],
+            "best_test_f_mae": run.summary["best_test_f_mae"],
+        }
+    except KeyError as e:
+        print(f"Skipping run {run.id} {run.name} because of KeyError: {e}")
+        continue
     infos.append(info)
 
 # to pandas dataframe
@@ -42,6 +48,13 @@ df["model_is_deq"] = df["model_is_deq"].apply(lambda x: "DEQ" if x else "Equifor
 df = df.rename(columns={"model_is_deq": "Model"})
 
 print(df)
+
+# ValueError: Unable to parse string "NaN"
+# convert string 'NaN' to np.nan
+df = df.replace("NaN", float("nan"))
+# delete rows with NaN
+df = df.dropna()
+# df = df.fillna(0)
 
 # compute mean and std over 'seed'
 cols = list(df.columns)
@@ -140,5 +153,72 @@ for mol in targets:
 
     # save
     name = f"acc-{mol}"
+    plt.savefig(f"{plotfolder}/{name}.png")
+    print(f"\nSaved plot to {plotfolder}/{name}.png")
+
+
+""" Plot accuracy over molecule size """
+
+molecule_sizes = {
+    'aspirin': 21,
+    'benzene': 12,
+    'ethanol': 9,
+    'malonaldehyde': 9,
+    'naphthalene': 18,
+    'salicylic_acid': 16,
+    'toluene': 15,
+    'uracil': 12,
+    'AT_AT_CG_CG': 118,
+    'AT_AT': 60,
+    'Ac_Ala3_NHMe': 42,
+    'DHA': 56,
+    'buckyball_catcher': 148,
+    'dw_nanotube': 370,
+    'stachyose': 87
+}
+
+df["molecule_size"] = df["target"].apply(lambda x: molecule_sizes[x])
+
+# filter out dw_nanotube and buckyball_catcher
+# dw_nanotube: only DEQ not oom
+# buckyball_catcher: DEQ NaN?
+df = df[~df["target"].isin(["dw_nanotube", "buckyball_catcher"])]
+
+styletype = "target" # "num_layers" target
+
+ynames = {
+    "test_f_mae": "Force MAE (final)",
+    "best_test_f_mae": "Force MAE (best)",
+    "test_e_mae": "Energy MAE (final)",
+    "best_test_e_mae": "Energy MAE (best)"
+
+}
+for y in ["test_f_mae", "best_test_f_mae", "test_e_mae", "best_test_e_mae"]:
+    # plot
+    set_seaborn_style(figsize=(20, 5))
+    fig, ax = plt.subplots(figsize=(10,5))
+    sns.scatterplot(data=df, x="molecule_size", y=y, hue="Model", style=styletype, ax=ax)
+
+    # put in molecule names
+    _texts = []
+    for i, txt in enumerate(df["target"]):
+        # only if not already in plot
+        if txt not in _texts:
+            # move text a bit to the right: +1
+            ax.annotate(txt, (df["molecule_size"].iloc[i]+1, df[y].iloc[i]), fontsize=8)
+            _texts.append(txt)
+
+    # labels
+    ax.set_xlabel("Molecule size")
+    ax.set_ylabel(ynames[y])
+    ax.set_title(f"Accuracy scaling with molecule size")
+
+    # move legend outside
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+    plt.tight_layout()
+
+    # save
+    name = f"acc_over_molecule_size-{y}"
     plt.savefig(f"{plotfolder}/{name}.png")
     print(f"\nSaved plot to {plotfolder}/{name}.png")

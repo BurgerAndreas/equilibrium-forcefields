@@ -1120,7 +1120,7 @@ def train_one_epoch(
                     # uniformly spaced indices
                     solver_kwargs['n_states'] = args.fpc_freq
 
-            if args.fpreuse_across_epochs:
+            if args.fpreuse_across_epochs and args.fpreuse_start_epoch <= epoch:
                 indices = [idx_to_indices[_idx.item()] for _idx in data.idx]
                 # get previous fixed points via index
                 # _fp_prev = fixed_points[step].to(device)

@@ -160,6 +160,7 @@ fpreuse_test: False
 # reuse fixed-points across epochs
 fpreuse_across_epochs: False
 fp_on_gpu: False # if to save on GPU memory
+fpreuse_start_epoch: 0 # epoch to start reusing fixed-points
 
 # (sparse) fixed-point correction
 fpc_loss: l2

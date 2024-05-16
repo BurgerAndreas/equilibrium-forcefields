@@ -19,3 +19,23 @@ done
 # launchrun model.num_layers=6
 # launchrun model.num_layers=7
 # launchrun model.num_layers=8
+
+# seed=2
+# # launchrun model.num_layers=1 seed=2
+# launchrun model.num_layers=2 seed=2
+# launchrun model.num_layers=3 seed=2
+# # launchrun model.num_layers=4 seed=2
+# launchrun model.num_layers=5 seed=2
+# launchrun model.num_layers=6 seed=2
+# launchrun model.num_layers=7 seed=2
+# launchrun model.num_layers=8 seed=2
+
+# ethanol
+# launchrun model.num_layers=1 target=ethanol
+launchrun model.num_layers=2 target=ethanol
+launchrun model.num_layers=3 target=ethanol
+# launchrun model.num_layers=4 target=ethanol
+launchrun model.num_layers=5 target=ethanol
+launchrun model.num_layers=6 target=ethanol
+launchrun model.num_layers=7 target=ethanol
+launchrun model.num_layers=8 target=ethanol

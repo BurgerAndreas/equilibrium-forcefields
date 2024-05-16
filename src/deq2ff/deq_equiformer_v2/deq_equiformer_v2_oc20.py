@@ -161,7 +161,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
     def _init_deq(self, **kwargs):
         return _init_deq(self, **kwargs)
     
-    def dummy_forward_for_logging(self, data, **kwargs):
+    def get_shapes(self, data, **kwargs):
         """Return dictionary of shapes."""
 
         self.batch_size = len(data.natoms)
@@ -262,6 +262,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             "NumEdges": edge_src.shape[0],
             "DimInputInjection": x.embedding.shape[1],
             "DimFixedPoint": x.embedding.shape[1],
+            "NodeEmbeddingShape": x.embedding.shape,
         }
         return logs
 
@@ -405,7 +406,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             reuse = False
         else:
             reuse = True
-            x = fixedpoint
+            x = fixedpoint.to(emb.device)
 
         reset_norm(self.blocks)
 

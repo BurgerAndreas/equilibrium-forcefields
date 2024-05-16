@@ -255,7 +255,7 @@ def main(args):
             data = data.to(device)
 
             # energy, force
-            shapes_to_log = model.dummy_forward_for_logging(
+            shapes_to_log = model.get_shapes(
                 node_atom=data.z,
                 pos=data.pos,
                 batch=data.batch,

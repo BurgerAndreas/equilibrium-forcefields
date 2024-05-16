@@ -811,7 +811,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
 
         return energy, forces
 
-    def dummy_forward_for_logging(self, node_atom, pos, batch, **kwargs):
+    def get_shapes(self, node_atom, pos, batch, **kwargs):
         """Return dictionary of shapes."""
 
         (
@@ -850,6 +850,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
             "NumEdges": edge_src.shape[0],
             "DimInputInjection": node_features_injection.shape[1],
             "DimFixedPoint": node_features.shape[1],
+            "NodeEmbeddingShape": node_features.shape,
         }
         return logs
 

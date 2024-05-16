@@ -498,40 +498,41 @@ def main(args):
         return True
 
     """ Dryrun for logging shapes """
-    try:
-        model.train()
-        # criterion.train()
-        criterion_energy.train()
-        criterion_force.train()
+    model.train()
+    # criterion.train()
+    criterion_energy.train()
+    criterion_force.train()
 
-        for step, data in enumerate(train_loader):
-            data = data.to(device)
+    for step, data in enumerate(train_loader):
+        data = data.to(device)
 
-            # energy, force
-            shapes_to_log = model.dummy_forward_for_logging(
-                data=data,
-                node_atom=data.z,
-                pos=data.pos,
-                batch=data.batch,
-            )
-            break
+        # energy, force
+        shapes_to_log = model.get_shapes(
+            data=data,
+            node_atom=data.z,
+            pos=data.pos,
+            batch=data.batch,
+        )
+        break
 
-        # nums include batch size
-        shapes_to_log["batch_size"] = args.batch_size
-        shapes_to_log["NumNodes"] = shapes_to_log["NumNodes"] // args.batch_size
-        shapes_to_log["NumEdges"] = shapes_to_log["NumEdges"] // args.batch_size
+    # nums include batch size
+    shapes_to_log["batch_size"] = args.batch_size
+    shapes_to_log["NumNodes"] = shapes_to_log["NumNodes"] // args.batch_size
+    shapes_to_log["NumEdges"] = shapes_to_log["NumEdges"] // args.batch_size
 
-        import pprint
+    import pprint
 
-        ppr = pprint.PrettyPrinter(indent=4)
-        print(f"Shapes (target={args.target}):")
-        ppr.pprint(shapes_to_log)
-        wandb.run.summary.update(shapes_to_log)
+    ppr = pprint.PrettyPrinter(indent=4)
+    print(f"Shapes (target={args.target}):")
+    ppr.pprint(shapes_to_log)
+    wandb.run.summary.update(shapes_to_log)
 
-        success = True
-    except Exception as e:
-        success = False
-        _log.info(f"Error: {e}")
+    # TODO: might not work with input injection as concat
+    NODE_EMBEDDING_BATCH_SHAPE = shapes_to_log["NodeEmbeddingShape"]
+    NODE_EMBEDDING_SHAPE = list(NODE_EMBEDDING_BATCH_SHAPE)
+    NODE_EMBEDDING_SHAPE[0] = NODE_EMBEDDING_SHAPE[0] // args.batch_size
+    print(f"NODE_EMBEDDING_SHAPE: {NODE_EMBEDDING_SHAPE}")
+    print(f"NODE_EMBEDDING_BATCH_SHAPE: {NODE_EMBEDDING_BATCH_SHAPE}")
     
     """ Log memory usage """
     # Start recording memory snapshot history, initialized with a buffer
@@ -584,7 +585,10 @@ def main(args):
 
     """ Train! """
     # empty list to store fixed-points across epochs
-    fixed_points = [None] * args.train_size
+    # fixed_points = [None] * args.train_size
+    fpdevice = device if args.fp_on_gpu else torch.device("cpu")
+    # TODO: replace by tensor?
+    fixed_points = [torch.zeros(NODE_EMBEDDING_SHAPE, device=fpdevice)] * args.train_size 
     # fixed_points = [None] * (args.train_size // args.batch_size)
     # empty tensor to store fixed-points across epochs
     # fixed_points = torch.zeros(args.train_size, 3, device=device)
@@ -617,6 +621,7 @@ def main(args):
             fixed_points=fixed_points,
             indices_to_idx=indices_to_idx,
             idx_to_indices=idx_to_indices,
+            fpdevice=fpdevice,
         )
 
         if args.torch_record_memory:
@@ -1068,6 +1073,7 @@ def train_one_epoch(
     fixed_points=None,
     indices_to_idx=None,
     idx_to_indices=None,
+    fpdevice=None,
 ):
     """Train for one epoch.
     Keys in dataloader: ['z', 'pos', 'batch', 'y', 'dy']
@@ -1117,13 +1123,10 @@ def train_one_epoch(
             if args.fpreuse_across_epochs:
                 indices = [idx_to_indices[_idx.item()] for _idx in data.idx]
                 # get previous fixed points via index
-                if epoch > 0: # TODO: won't work with loading checkpoints
-                    # _fp_prev = fixed_points[step].to(device)
-                    # _fp_prev = fixed_points[indices].to(device)
-                    _fp_prev = torch.cat([fixed_points[_idx] for _idx in indices], dim=0)
-                    # _fp_prev = collate([fixed_points[_idx] for _idx in indices])
-                else:
-                    _fp_prev = None
+                # _fp_prev = fixed_points[step].to(device)
+                # _fp_prev = fixed_points[indices].to(device)
+                _fp_prev = torch.cat([fixed_points[_idx] for _idx in indices], dim=0)
+                # _fp_prev = collate([fixed_points[_idx] for _idx in indices])
                 # energy, force
                 pred_y, pred_dy, fp, info = model(
                     data=data,  # for EquiformerV2
@@ -1144,7 +1147,7 @@ def train_one_epoch(
                 # store fixed points
                 # fixed_points[indices] = fp.detach()
                 for _idx, _fp in zip(indices, fp):
-                    fixed_points[_idx] = _fp.detach()
+                    fixed_points[_idx] = _fp.detach().to(fpdevice)
             else:
                 # energy, force
                 pred_y, pred_dy, info = model(

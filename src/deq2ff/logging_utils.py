@@ -110,6 +110,8 @@ IGNORE_OVERRIDES = [
     "wandb_entity",
     "wandb_run_name",
     "wandb_tags",
+    "watch_model",
+    "assert_checkpoint",
     "evaluate",
     "num_train_epochs",
     "machine",

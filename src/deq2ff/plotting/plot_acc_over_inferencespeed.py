@@ -23,7 +23,11 @@ print(f"Found {len(run_ids)} runs with tag 'inference_speed'")
 # get runs with accuracy
 runs_acc = api.runs(project, {"tags": "md17"})
 run_ids_acc = [run.id for run in runs_acc]
+#
 runs_acc = api.runs(project, {"tags": "depth"})
+run_ids_acc += [run.id for run in runs_acc]
+#
+runs_acc = api.runs(project, {"tags": "inference_acc"})
 run_ids_acc += [run.id for run in runs_acc]
 print(f"Found {len(run_ids_acc)} runs with tags 'md17' or 'depth'")
 
@@ -152,6 +156,31 @@ plt.tight_layout()
 
 # save
 name = f"inferencetime-bs{filter_eval_batch_size}-{time_metric}"
+plt.savefig(f"{plotfolder}/{name}.png")
+print(f"\nSaved plot to {plotfolder}/{name}.png")
+
+
+""" Plot accuracy over fpreuse_f_tol """
+df_fpreuse = df[df["Model"] == "DEQ"]
+
+y = "best_test_f_mae"
+x = "fpreuse_f_tol"
+color = "Model"
+
+# plot
+set_seaborn_style()
+fig, ax = plt.subplots()
+sns.scatterplot(data=df_fpreuse, x=x, y=y, hue=color, ax=ax)
+
+# labels
+ax.set_xlabel("fpreuse_f_tol")
+ax.set_ylabel("Force MAE")
+ax.set_title("Accuracy scaling with fpreuse_f_tol")
+
+plt.tight_layout()
+
+# save
+name = f"acc_over_fpreuse_f_tol" + f"-bs{filter_eval_batch_size}-{time_metric}"
 plt.savefig(f"{plotfolder}/{name}.png")
 print(f"\nSaved plot to {plotfolder}/{name}.png")
 

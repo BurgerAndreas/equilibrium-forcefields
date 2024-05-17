@@ -1013,10 +1013,18 @@ def main(args):
             ),
         )
 
-    _log.info(f"Done!")
     _log.info(
         f"Final test error: MAE_e={test_err['energy'].avg}, MAE_f={test_err['force'].avg}"
     )
+    # log to wandb
+    wandb.log(
+        {
+            "final_test_e_mae": test_err["energy"].avg,
+            "final_test_f_mae": test_err["force"].avg,
+        },
+        step=global_step,
+    )
+    _log.info(f"Done!")
     return True
 
 

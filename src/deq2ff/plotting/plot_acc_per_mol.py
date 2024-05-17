@@ -59,8 +59,8 @@ df = df.dropna()
 # compute mean and std over 'seed'
 cols = list(df.columns)
 cols.remove("seed")
-# df_mean = df.groupby(cols).mean().reset_index()
-# df_std = df.groupby(cols).std().reset_index()
+# df_mean = df.groupby(cols).mean(numeric_only=True).reset_index()
+# df_std = df.groupby(cols).std(numeric_only=True).reset_index()
 
 # filter for num_layers=[1,4]
 df = df[df["num_layers"].isin([1, 4])]

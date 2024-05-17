@@ -567,6 +567,9 @@ def main(args):
             {
                 "test_e_mae": test_err["energy"].avg,
                 "test_f_mae": test_err["force"].avg,
+                # also save as best metrics?
+                # "best_test_e_mae": test_err["energy"].avg,
+                # "best_test_f_mae": test_err["force"].avg,
             },
             step=global_step,
         )
@@ -1482,12 +1485,6 @@ def evaluate(
         criterion_energy.eval()
         criterion_force.eval()
 
-    loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
-    mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
-    abs_fixed_point_error = []
-    rel_fixed_point_error = []
-    f_steps_to_fixed_point = []
-
     task_mean = model.task_mean
     task_std = model.task_std
 
@@ -1497,6 +1494,7 @@ def evaluate(
 
         # if we use fpreuse_test, also try without to get a comparison
         if datasplit == "test" and args.fpreuse_test == True:
+            # important that fpreuse comes first
             fpreuse_list = [True, False]
         else:
             fpreuse_list = [False]
@@ -1504,14 +1502,20 @@ def evaluate(
             # name for logging
             _datasplit = f"{datasplit}_fpreuse" if fpreuse_test else datasplit
 
-            # timing
-            start_time = time.perf_counter()
+            # initialize metrics
+            loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
+            mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
+            abs_fixed_point_error = []
+            rel_fixed_point_error = []
+            f_steps_to_fixed_point = []
             model_forward_time = []
 
             n_fsolver_steps = 0
             fixedpoint = None
             prev_idx = None
             max_steps = max_iter if max_iter != -1 else len(data_loader)
+            
+            start_time = time.perf_counter()
             for step, data in enumerate(data_loader):
                 data = data.to(device)
 
@@ -1623,7 +1627,8 @@ def evaluate(
 
                 if (step + 1) >= max_steps:
                     break
-
+            
+            # test set finished
             eval_time = time.perf_counter() - start_time # time for whole test set
             wandb.log(
                 {
@@ -1643,15 +1648,24 @@ def evaluate(
                     },
                     step=global_step,
                 )
-                abs_fixed_point_error = []
-                rel_fixed_point_error = []
-                f_steps_to_fixed_point = []
 
             if n_fsolver_steps > 0:
                 n_fsolver_steps /= max_steps
                 wandb.log(
                     {f"avg_n_fsolver_steps_{_datasplit}": n_fsolver_steps}, step=global_step
                 )
+            
+            # log test error for fpreuse
+            if fpreuse_test == True:
+                wandb.log(
+                    {
+                        f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
+                        f"{_datasplit}_f_mae": mae_metrics["force"].avg,
+                    },
+                    step=global_step,
+                )
+
+        # fp_reuse True/False finished
 
     return mae_metrics, loss_metrics
 

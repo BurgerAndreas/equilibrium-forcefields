@@ -184,6 +184,10 @@ fpr_weight: 1.0
 unsqueeze_e_dim: False # if to reshape model output [B] (OC20) -> [B,1] (MD17)
 squeeze_e_dim: False # if to reshape data [B,1] (MD17) -> [B] (OC20)
 
+# if false, torchdeq treats each node as a separate batch
+# if true, torchdeq treats each graph (molecule) as a separate batch. # [B*N, D, C] -> [B, N, D, C]
+batchify_for_torchdeq: False 
+
 # wandb.watch gradients, activations, model parameters (bool)
 watch_model: False
 

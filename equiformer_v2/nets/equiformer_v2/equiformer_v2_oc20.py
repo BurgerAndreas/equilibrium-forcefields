@@ -166,6 +166,7 @@ class EquiformerV2_OC20(BaseModel):
         learn_scale_after_encoder=False,
         learn_scale_before_decoder=False,
         learn_scale_after_decoder=False,
+        batchify_for_torchdeq=False,
         **kwargs,
     ):
         super().__init__()
@@ -183,6 +184,8 @@ class EquiformerV2_OC20(BaseModel):
         self.energy_head = energy_head
 
         self.skip_blocks = skip_blocks
+
+        self.batchify_for_torchdeq = batchify_for_torchdeq
 
         print('Number of trainable params:', sum(p.numel() for p in self.parameters() if p.requires_grad))
         # shape: B x irrep_dim x channels -> 1 x 1 x sphere_channels

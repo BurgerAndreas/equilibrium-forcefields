@@ -245,6 +245,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             self.device,
             self.dtype,
         )
+        self.shape_batched = x.embedding.shape
+        self.shape_unbatched = (self.batch_size, num_atoms, *x.embedding.shape[1:])
 
         offset_res = 0
         offset = 0
@@ -306,9 +308,10 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         # Transformer blocks
         # f = lambda z: self.mfn_forward(z, u)
-        def f(x):
+        def f(_x):
+            # x is a tensor, not SO3_Embedding
             return self.deq_implicit_layer(
-                x,
+                _x,
                 emb=emb,
                 edge_index=edge_index,
                 edge_distance=edge_distance,
@@ -316,6 +319,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 data=data,
             )
         
+        # [B*N, D, C] -> [B, N, D, C] # TODO: torchdeq batchify
+        # if self.batchify_for_torchdeq:
+        #     x = x.view(self.shape_unbatched)
 
         # find fixed-point
         # | During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
@@ -421,6 +427,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         """Implicit layer for DEQ that defines the fixed-point.
         Make sure to input and output only torch.tensor, not SO3_Embedding, to not break TorchDEQ.
         """
+        # [B, N, D, C] -> [B*N, D, C] # TODO: torchdeq batchify
+        # if self.batchify_for_torchdeq:
+            # x = x.view(self.shape_batched)
         # input injection
         if self.cat_injection:
             # x = torch.cat([x, emb], dim=-1)
@@ -459,7 +468,11 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 edge_index,
                 batch=data.batch,  # for GraphDropPath
             )
-        return x.embedding
+        x = x.embedding
+        # [B*N, D, C] -> [B, N, D, C] # TODO: torchdeq batchify
+        # if self.batchify_for_torchdeq:
+        #     x = x.view(self.shape_unbatched)
+        return x
 
     def _init_z(self, shape, emb=None):
         """Initializes fixed-point for DEQ

@@ -15,6 +15,7 @@ from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder
 target = "aspirin" # ethanol
 # layers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 # layers = [1, 2, 4, 8]
+remove_single_seed_runs = True
 
 """ Get runs """
 
@@ -35,10 +36,12 @@ target = "aspirin" # ethanol
 # ]
 
 api = wandb.Api()
+# runs = api.runs("username/project", filters={"tags": {"$in": ["best"]}})
 # runs = api.runs(project, {"$or": [{"config.experiment_name": "foo"}, {"config.experiment_name": "bar"}]})
 # runs = api.runs(project, {"tags": "md17"})
 # runs = api.runs(project, {"$or": [{"tags": "md17"}, {"tags": "md22"}]})
-runs = api.runs(project, {"tags": "depth"})
+# runs = api.runs(project, {"tags": "depth"})
+runs = api.runs(project, {"$and": [{"tags": "depth"}, {"state": "finished"}]})
 
 infos = []
 
@@ -86,11 +89,13 @@ df = df[df["target"] == target]
 print('')
 print(df)
 
+
 # compute mean and std over 'seed'
 cols = list(df.columns)
-metrics_to_avg = ["best_test_e_mae", "best_test_f_mae", "test_e_mae", "test_f_mae"]
-avg_over = ["seed"]
-cols_to_keep = [c for c in cols if c not in avg_over + metrics_to_avg]
+# metrics_to_avg = ["best_test_e_mae", "best_test_f_mae", "test_e_mae", "test_f_mae"]
+# avg_over = ["seed"]
+# cols_to_keep = [c for c in cols if c not in avg_over + metrics_to_avg]
+cols_to_keep = ["Model", "num_layers", "target"]
 df_mean = df.groupby(cols_to_keep).mean(numeric_only=True).reset_index()
 df_std = df.groupby(cols_to_keep).std(numeric_only=True).reset_index()
 
@@ -98,6 +103,16 @@ df_std = df.groupby(cols_to_keep).std(numeric_only=True).reset_index()
 df = df.sort_values("Model", ascending=False)
 df_mean = df_mean.sort_values("Model", ascending=False)
 df_std = df_std.sort_values("Model", ascending=False)
+
+# remove all runs that only have one seed
+if remove_single_seed_runs:
+    # if they have only one seed, the std is NaN
+    indices_to_remove = df_std[df_std["test_f_mae"].isna()].index
+    df_mean = df_mean.drop(indices_to_remove)
+    df_std = df_std.drop(indices_to_remove)
+
+print('')
+print(df_mean)
 
 
 """ Plot """
@@ -118,9 +133,23 @@ for plotstyle in ['avg', 'all']:
         sns.scatterplot(data=df, x=x, y=y, hue=color, style=color, ax=ax, markers=marks)
 
     else:
-        sns.scatterplot(data=df_mean, x=x, y=y, hue=color, style=color, ax=ax, markers=marks)
-        # sns.lineplot(data=df_mean, x=x, y=y, hue=color, ax=ax, markers=marks, legend=False)
+        # sns.scatterplot(data=df_mean, x=x, y=y, hue=color, style=color, ax=ax, markers=marks)
+        
         # ax.errorbar(df_mean[x], df_mean[y], yerr=df_std[y], fmt='o', color='black', capsize=5)
+        # sns.lineplot(data=df_mean, x=x, y=y, hue=color, ax=ax, markers=marks, legend=False)
+
+        sns.pointplot(
+            data=df, x=x, y=y, hue=color, ax=ax, markers=marks, 
+            estimator="mean", 
+            # errorbar method (either “ci”, “pi”, “se”, or “sd”)
+            errorbar="sd", # errorbar=('ci', 95), # errorbar="sd"
+            capsize=0.1,
+            native_scale=True,
+            linestyles=["-", "--"],
+            # https://matplotlib.org/stable/api/_as_gen/matplotlib.lines.Line2D.html#matplotlib.lines.Line2D
+            linewidth=3,
+            # markeredgewidth=1, markersize=5,
+        )
 
     # remove legend
     handles, labels = ax.get_legend_handles_labels()

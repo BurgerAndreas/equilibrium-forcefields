@@ -333,6 +333,8 @@ class QM9(InMemoryDataset):
                 edge_d_index=edge_d_index,
                 edge_d_attr=edge_d_attr,
                 # rm -r datasets/qm9
+                idx=i,
+                natoms=len(z),
             )
             data_list.append(data)
 

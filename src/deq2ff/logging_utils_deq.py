@@ -122,15 +122,15 @@ def log_fixed_point_error(info, step, datasplit=None):
     if len(f_abs_trace) > 0:
         # during test and val the step is not updated, i.e. we will never log
         # test and val unless step happens to be a multiple of log_every_step
-        if (step % log_every_step_minor == 0) or (datasplit in ["test", "val"]):
-            # log the final fixed point error
-            wandb.log({f"abs_fixed_point_error{n}": f_abs_trace[-1].item()}, step=step)
-            wandb.log({f"rel_fixed_point_error{n}": f_rel_trace[-1].item()}, step=step)
-            # log how many steps it took to reach the fixed point
-            wandb.log(
-                {f"f_steps_to_fixed_point{n}": info["nstep"][0].mean().item()},
-                step=step,
-            )
+        # if (step % log_every_step_minor == 0) or (datasplit in ["test", "val"]):
+        #     # log the final fixed point error
+        #     wandb.log({f"abs_fixed_point_error{n}": f_abs_trace[-1].item()}, step=step)
+        #     wandb.log({f"rel_fixed_point_error{n}": f_rel_trace[-1].item()}, step=step)
+        #     # log how many steps it took to reach the fixed point
+        #     wandb.log(
+        #         {f"f_steps_to_fixed_point{n}": info["nstep"][0].mean().item()},
+        #         step=step,
+        #     )
 
         # log, but not as table
         if (step % log_every_step_major == 0) or datasplit in ["test", "val"]:

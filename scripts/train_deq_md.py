@@ -267,10 +267,10 @@ def main(args):
         pin_memory=args.pin_mem,
         drop_last=True,
     )
-    # idx are from the dataset
-    # indices are from the DataLoader
+    # idx are from the dataset e.g. (1, ..., 100k)
+    # indices are from the DataLoader e.g. (0, ..., 1k)
     idx_to_indices = {idx.item(): i for i, idx in enumerate(train_loader.dataset.indices)}
-    indices_to_idx = {i: idx.item() for i, idx in enumerate(train_loader.dataset.indices)}
+    indices_to_idx = {v: k for k, v in idx_to_indices.items()}
     # added drop_last=True to avoid error with fixed-point reuse
     val_loader = DataLoader(
         val_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
@@ -588,19 +588,22 @@ def main(args):
     # fixed_points = [None] * args.train_size
     fpdevice = device if args.fp_on_gpu else torch.device("cpu")
     # TODO: replace by tensor?
-    fixed_points = [torch.zeros(NODE_EMBEDDING_SHAPE, device=fpdevice)] * args.train_size 
-    # fixed_points = [None] * (args.train_size // args.batch_size)
+    # fixed_points = [torch.zeros(NODE_EMBEDDING_SHAPE, device=fpdevice)] * args.train_size 
+    fixed_points = torch.zeros(args.train_size, *NODE_EMBEDDING_SHAPE, device=fpdevice, requires_grad=False)
     # empty tensor to store fixed-points across epochs
     # fixed_points = torch.zeros(args.train_size, 3, device=device)
     _log.info("\nStart training!\n")
     start_time = time.perf_counter()
+    final_epoch = 0
     for epoch in range(start_epoch, args.max_epochs):
 
         epoch_start_time = time.perf_counter()
 
         lr_scheduler.step(epoch)
+        # print('lr:', optimizer.param_groups[0]["lr"])
+        # print('lr:', lr_scheduler.get_last_lr())
 
-        train_err, train_loss, global_step = train_one_epoch(
+        train_err, train_loss, global_step, fixed_points = train_one_epoch(
             args=args,
             model=model,
             # criterion=criterion,
@@ -767,6 +770,9 @@ def main(args):
         logs = {
             "train_e_mae": train_err["energy"].avg,
             "train_f_mae": train_err["force"].avg,
+            "train_loss_e": train_err["energy"].avg,
+            "train_loss_f": train_err["force"].avg,
+            # TODO: other losses
             "val_e_mae": val_err["energy"].avg,
             "val_f_mae": val_err["force"].avg,
             "lr": optimizer.param_groups[0]["lr"],
@@ -952,6 +958,7 @@ def main(args):
                 step=global_step,
             )
 
+        final_epoch = epoch
         # epoch done
 
     _log.info("\nAll epochs done!\nFinal test:")
@@ -993,7 +1000,7 @@ def main(args):
                 "state_dict": model.state_dict(),
                 "optimizer": optimizer.state_dict(),
                 "lr_scheduler": lr_scheduler.state_dict(),
-                "epoch": epoch,
+                "epoch": final_epoch,
                 "global_step": global_step,
                 "best_metrics": best_metrics,
                 "best_ema_metrics": best_ema_metrics,
@@ -1001,7 +1008,7 @@ def main(args):
             os.path.join(
                 args.output_dir,
                 "final_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-                    epoch, test_err["energy"].avg, test_err["force"].avg
+                    final_epoch, test_err["energy"].avg, test_err["force"].avg
                 ),
             ),
         )
@@ -1101,9 +1108,19 @@ def train_one_epoch(
 
     optimizer.zero_grad(set_to_none=True)
 
+    # statistics over epoch
+    abs_fixed_point_error = []
+    rel_fixed_point_error = []
+    f_steps_to_fixed_point = []
+
     # broyden solver outpus NaNs if it diverges
     # count the number of NaNs and stop training if it exceeds a threshold
     isnan_cnt = 0
+
+    # for debugging
+    # if we don't set model.eval()
+    # params like the batchnorm layers in the model will be updated.
+    # Even without optimizing parameters, validation outputs will change after a forward pass.
 
     max_steps = len(data_loader)
     for rep in range(args.epochs_per_epochs):
@@ -1120,8 +1137,9 @@ def train_one_epoch(
                     # uniformly spaced indices
                     solver_kwargs['n_states'] = args.fpc_freq
 
-            if args.fpreuse_across_epochs and args.fpreuse_start_epoch <= epoch:
+            if args.fpreuse_across_epochs and epoch >= args.fpreuse_start_epoch:
                 indices = [idx_to_indices[_idx.item()] for _idx in data.idx]
+                # print(f'idx: {[_idx.item() for _idx in data.idx]}, indices: {indices}')
                 # get previous fixed points via index
                 # _fp_prev = fixed_points[step].to(device)
                 # _fp_prev = fixed_points[indices].to(device)
@@ -1141,13 +1159,17 @@ def train_one_epoch(
                     return_fixedpoint=True,
                     fixedpoint=_fp_prev,
                 )
+                assert _fp_prev.shape == fp.shape, f"Fixed-point shape mismatch: {_fp_prev.shape} != {fp.shape}"
                 # split up fixed points [B*N, D, C] -> [B, N, D, C]
                 # [84, 16, 64] -> [4, 21, 16, 64]
                 fp = fp.view(args.batch_size, -1, *fp.shape[1:])
                 # store fixed points
                 # fixed_points[indices] = fp.detach()
                 for _idx, _fp in zip(indices, fp):
+                    # TODO is clone necessary?
+                    # fixed_points[_idx] = _fp.detach().clone().to(fpdevice)
                     fixed_points[_idx] = _fp.detach().to(fpdevice)
+                # print(' nsteps:', info["nstep"][0].item())
             else:
                 # energy, force
                 pred_y, pred_dy, info = model(
@@ -1323,6 +1345,8 @@ def train_one_epoch(
                 ]
                 grad_norm = torch.cat(grads).norm()
                 wandb.log({"grad_norm": grad_norm}, step=global_step)
+            
+            # if args.lr > 0:
             optimizer.step()
 
             if len(info) > 0:
@@ -1332,9 +1356,14 @@ def train_one_epoch(
                     step=global_step,
                     datasplit="train",
                 )
+                abs_fixed_point_error.append(info["abs_trace"].mean(dim=0)[-1].item())
+                rel_fixed_point_error.append(info["rel_trace"].mean(dim=0)[-1].item())
+                # TODO: [0] .mean()?
+                f_steps_to_fixed_point.append(info["nstep"][0].mean().item())
 
             loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
             loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
+            # TODO: other losses
 
             energy_err = pred_y.detach() * task_std + task_mean - data.y
             energy_err = torch.mean(torch.abs(energy_err)).item()
@@ -1375,16 +1404,32 @@ def train_one_epoch(
                 wandb.log(
                     {
                         "train_loss": loss.item(),
-                        "train_e_mae": mae_metrics["energy"].avg,
-                        "train_f_mae": mae_metrics["force"].avg,
-                        "train_loss_e": loss_metrics["energy"].avg,
-                        "train_loss_f": loss_metrics["force"].avg,
-                        "lr": optimizer.param_groups[0]["lr"],
+                        # "train_e_mae": mae_metrics["energy"].avg,
+                        # "train_f_mae": mae_metrics["force"].avg,
+                        # "train_loss_e": loss_metrics["energy"].avg,
+                        # "train_loss_f": loss_metrics["force"].avg,
+                        # "lr": optimizer.param_groups[0]["lr"],
                     },
                     step=global_step,
                 )
 
             global_step += 1
+        
+        # end of epoch
+        
+        # log fixed-point statistics
+        if len(abs_fixed_point_error) > 0:
+            wandb.log(
+                {
+                    "abs_fixed_point_error_train": np.mean(abs_fixed_point_error),
+                    "rel_fixed_point_error_train": np.mean(rel_fixed_point_error),
+                    "f_steps_to_fixed_point_train": np.mean(f_steps_to_fixed_point),
+                },
+                step=global_step,
+            )
+            abs_fixed_point_error = []
+            rel_fixed_point_error = []
+            f_steps_to_fixed_point = []
 
         # if loss_metrics is all nan
         # probably because deq_kwargs.f_solver=broyden,anderson did not converge
@@ -1393,7 +1438,7 @@ def train_one_epoch(
                 f"Most energy predictions are nan ({isnan_cnt}/{max_steps}). Try deq_kwargs.f_solver=fixed_point_iter"
             )
 
-    return mae_metrics, loss_metrics, global_step
+    return mae_metrics, loss_metrics, global_step, fixed_points
 
 
 def evaluate(
@@ -1431,6 +1476,9 @@ def evaluate(
 
     loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
     mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
+    abs_fixed_point_error = []
+    rel_fixed_point_error = []
+    f_steps_to_fixed_point = []
 
     task_mean = model.task_mean
     task_std = model.task_std
@@ -1539,13 +1587,18 @@ def evaluate(
                     n_fsolver_steps += info["nstep"][0].mean().item()
 
                 # --- logging ---
-                if len(info) > 0 and pass_step is not None:
-                    # log fixed-point trajectory
-                    logging_utils_deq.log_fixed_point_error(
-                        info,
-                        step=global_step,
-                        datasplit=_datasplit,
-                    )
+                if len(info) > 0: 
+                    if pass_step is not None:
+                        # log fixed-point trajectory
+                        logging_utils_deq.log_fixed_point_error(
+                            info,
+                            step=global_step,
+                            datasplit=_datasplit,
+                        )
+                    abs_fixed_point_error.append(info["abs_trace"].mean(dim=0)[-1].item())
+                    rel_fixed_point_error.append(info["rel_trace"].mean(dim=0)[-1].item())
+                    # TODO: [0] .mean()?
+                    f_steps_to_fixed_point.append(info["nstep"][0].mean().item())
 
                 if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
                     w = time.perf_counter() - start_time
@@ -1571,6 +1624,20 @@ def evaluate(
                     # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_time),
                     f"time_forward_total_{_datasplit}": np.sum(model_forward_time),
                 }, step=global_step)
+            
+            # log fixed-point statistics
+            if len(abs_fixed_point_error) > 0:
+                wandb.log(
+                    {
+                        f"abs_fixed_point_error_{_datasplit}": np.mean(abs_fixed_point_error),
+                        f"rel_fixed_point_error_{_datasplit}": np.mean(rel_fixed_point_error),
+                        f"f_steps_to_fixed_point_{_datasplit}": np.mean(f_steps_to_fixed_point),
+                    },
+                    step=global_step,
+                )
+                abs_fixed_point_error = []
+                rel_fixed_point_error = []
+                f_steps_to_fixed_point = []
 
             if n_fsolver_steps > 0:
                 n_fsolver_steps /= max_steps

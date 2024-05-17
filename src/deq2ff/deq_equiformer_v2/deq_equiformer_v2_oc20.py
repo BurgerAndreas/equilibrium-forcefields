@@ -310,6 +310,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # f = lambda z: self.mfn_forward(z, u)
         def f(_x):
             # x is a tensor, not SO3_Embedding
+            # if batchify_for_torchdeq is True, x in and out should be [B, N, D, C]
             return self.deq_implicit_layer(
                 _x,
                 emb=emb,
@@ -320,8 +321,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             )
         
         # [B*N, D, C] -> [B, N, D, C] # TODO: torchdeq batchify
-        # if self.batchify_for_torchdeq:
-        #     x = x.view(self.shape_unbatched)
+        if self.batchify_for_torchdeq:
+            x = x.view(self.shape_unbatched)
 
         # find fixed-point
         # | During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
@@ -330,6 +331,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         z_pred, info = self.deq(
             f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse)
         )
+        # [B, N, D, C] -> [B*N, D, C] # TODO: torchdeq batchify
+        if self.batchify_for_torchdeq:
+            z_pred = [z.view(self.shape_batched) for z in z_pred]
         info["z_pred"] = z_pred
 
         x = SO3_Embedding(
@@ -344,6 +348,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         ######################################################
         # Fixed-point reuse loss
         if fpr_loss == True:
+            # TODO: torchdeq batchify
             z_next, _, _info = broyden_solver_grad(
                 func=f, 
                 x0=z_pred[-1].clone(), 
@@ -428,8 +433,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         Make sure to input and output only torch.tensor, not SO3_Embedding, to not break TorchDEQ.
         """
         # [B, N, D, C] -> [B*N, D, C] # TODO: torchdeq batchify
-        # if self.batchify_for_torchdeq:
-            # x = x.view(self.shape_batched)
+        if self.batchify_for_torchdeq:
+            x = x.view(self.shape_batched)
         # input injection
         if self.cat_injection:
             # x = torch.cat([x, emb], dim=-1)
@@ -470,8 +475,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             )
         x = x.embedding
         # [B*N, D, C] -> [B, N, D, C] # TODO: torchdeq batchify
-        # if self.batchify_for_torchdeq:
-        #     x = x.view(self.shape_unbatched)
+        if self.batchify_for_torchdeq:
+            x = x.view(self.shape_unbatched)
         return x
 
     def _init_z(self, shape, emb=None):

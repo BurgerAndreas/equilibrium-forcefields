@@ -8,33 +8,31 @@ md17=(aspirin benzene ethanol malonaldehyde naphthalene salicylic_acid toluene u
 md22=(AT_AT_CG_CG AT_AT Ac_Ala3_NHMe DHA buckyball_catcher dw_nanotube stachyose)
 
 for mol in ${md17[@]}; do
-  launchrun +use=deq +cfg=fpc_of target=$mol
-#   launchrun model.num_layers=1 target=$mol
-#   launchrun model.num_layers=4 target=$mol
+    launchrun +use=deq +cfg=fpc_of wandb_tags=["md17"] target=$mol
+    launchrun model.num_layers=1 wandb_tags=["md17"] target=$mol
+    launchrun model.num_layers=4 wandb_tags=["md17"] target=$mol
 done
 
 # Baseline Equiformer2 with one layer
-# launchrun model.num_layers=1 target=aspirin
-# launchrun model.num_layers=1 target=benzene
-# launchrun model.num_layers=1 target=ethanol
-# launchrun model.num_layers=1 target=malonaldehyde
-
-# launchrun model.num_layers=1 target=naphthalene
-# launchrun model.num_layers=1 target=salicylic_acid
-# launchrun model.num_layers=1 target=toluene
-# launchrun model.num_layers=1 target=uracil
+# launchrun model.num_layers=1 wandb_tags=["md17"] target=aspirin
+# launchrun model.num_layers=1 wandb_tags=["md17"] target=benzene
+# launchrun model.num_layers=1 wandb_tags=["md17"] target=ethanol
+# launchrun model.num_layers=1 wandb_tags=["md17"] target=malonaldehyde
+# launchrun model.num_layers=1 wandb_tags=["md17"] target=naphthalene
+# launchrun model.num_layers=1 wandb_tags=["md17"] target=salicylic_acid
+# launchrun model.num_layers=1 wandb_tags=["md17"] target=toluene
+# launchrun model.num_layers=1 wandb_tags=["md17"] target=uracil
 
 
 # Baseline Equiformer2 with four layers
-# launchrun model.num_layers=4 target=aspirin
-# launchrun model.num_layers=4 target=benzene
-# launchrun model.num_layers=4 target=ethanol
-# launchrun model.num_layers=4 target=malonaldehyde
-
-# launchrun model.num_layers=4 target=naphthalene
-# launchrun model.num_layers=4 target=salicylic_acid
-# launchrun model.num_layers=4 target=toluene
-# launchrun model.num_layers=4 target=uracil
+# launchrun model.num_layers=4 wandb_tags=["md17"] target=aspirin
+# launchrun model.num_layers=4 wandb_tags=["md17"] target=benzene
+# launchrun model.num_layers=4 wandb_tags=["md17"] target=ethanol
+# launchrun model.num_layers=4 wandb_tags=["md17"] target=malonaldehyde
+# launchrun model.num_layers=4 wandb_tags=["md17"] target=naphthalene
+# launchrun model.num_layers=4 wandb_tags=["md17"] target=salicylic_acid
+# launchrun model.num_layers=4 wandb_tags=["md17"] target=toluene
+# launchrun model.num_layers=4 wandb_tags=["md17"] target=uracil
 
 # TODO: replace this with a loop for all molecules
 # seed=2
@@ -46,3 +44,88 @@ done
 # launchrun +use=deq +cfg=fpc_of seed=3
 # launchrun model.num_layers=1 seed=3
 # launchrun model.num_layers=4 seed=3
+
+
+########################################################################################
+# With dropout
+########################################################################################
+
+# # DEQ 2 layers
+# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=aspirin
+# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=benzene
+# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=ethanol
+# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=malonaldehyde
+# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=naphthalene
+# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=salicylic_acid
+# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=toluene
+# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=uracil
+
+# # Baseline Equiformer2 with one layer
+# launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=aspirin
+# launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=benzene
+# launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=ethanol
+# launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=malonaldehyde
+# launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=naphthalene
+# launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=salicylic_acid
+# launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=toluene
+# launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=uracil
+
+# # Baseline Equiformer2 with four layers
+# launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=aspirin
+# launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=benzene
+# launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=ethanol
+# launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=malonaldehyde
+# launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=naphthalene
+# launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=salicylic_acid
+# launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=toluene
+# launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=uracil
+
+# # Baseline Equiformer2 with eight layers
+# launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=aspirin
+# launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=benzene
+# launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=ethanol
+# launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=malonaldehyde
+# launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=naphthalene
+# launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=salicylic_acid
+# launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=toluene
+# launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=uracil
+
+########################################################
+# MD22
+# AT_AT_CG_CG AT_AT Ac_Ala3_NHMe DHA buckyball_catcher dw_nanotube stachyose
+
+# DEQ 2 layers
+launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=AT_AT_CG_CG
+launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=AT_AT
+launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=Ac_Ala3_NHMe
+launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=DHA
+launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=buckyball_catcher
+launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=dw_nanotube
+launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=stachyose
+
+# Baseline Equiformer2 with one layer
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=AT_AT_CG_CG
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=AT_AT
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=Ac_Ala3_NHMe
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=DHA
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=buckyball_catcher
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=dw_nanotube
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=stachyose
+
+# Baseline Equiformer2 with four layers
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=AT_AT_CG_CG
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=AT_AT
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=Ac_Ala3_NHMe
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=DHA
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=buckyball_catcher
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=dw_nanotube
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=stachyose
+
+# Baseline Equiformer2 with eight layers
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=AT_AT_CG_CG
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=AT_AT
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=Ac_Ala3_NHMe
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=DHA
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=buckyball_catcher
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=dw_nanotube
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["md17"] target=stachyose

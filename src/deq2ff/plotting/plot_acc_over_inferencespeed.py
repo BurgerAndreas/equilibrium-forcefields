@@ -1,6 +1,7 @@
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 import wandb
 import copy
 import os, sys, pathlib
@@ -10,10 +11,15 @@ from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder
 
 """ Options """
 filter_eval_batch_size = 4 # 1 or 4
+filter_fpreuseftol = [1e1, 1e0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5] + ['NaN', pd.NA, None, float("inf"), np.nan]
 time_metric = "time_forward_per_batch_test" + "_lowest" # time_test, time_forward_per_batch_test, time_forward_total_test
 target = "aspirin" # aspirin, all
 acc_metric = "test_f_mae" # test_f_mae, test_e_mae, best_test_f_mae, best_test_e_mae
+layers_deq = [1, 2]
+layers_equi = [1, 4, 8]
+runs_with_dropout = False
 
+# choose from
 eval_batch_sizes = [1, 4]
 time_metrics = ["time_test", "time_forward_per_batch_test", "time_forward_total_test"]
 timelabels = {
@@ -32,12 +38,18 @@ acclabels = {
 """ Load data """
 # get all runs with tag 'inference_speed'
 api = wandb.Api()
-runs = api.runs(project, {"tags": "inference_speed"})
+runs = api.runs(project, {"tags": "inference_speed", "state": "finished"})
 run_ids = [run.id for run in runs]
 print(f"Found {len(run_ids)} runs with tag 'inference_speed'")
 
 # get runs with accuracy
-runs_acc = api.runs(project, {"$or": [{"tags": "md17"}, {"tags": "depth"}, {"tags": "inference_acc"}]})
+runs_acc = api.runs(
+    project, 
+    filters={
+        "$or": [{"tags": "md17"}, {"tags": "depth"}, {"tags": "inference_acc"}],
+        "state": "finished"
+    }
+)
 # runs_acc = api.runs(project, {"tags": "md17"})
 # run_ids_acc = [run.id for run in runs_acc]
 # #
@@ -56,9 +68,17 @@ for run in runs_acc:
     # run = api.run(project + "/" + run_id)
     print(' ', run.name)
     try:
+        # model.drop_path_rate=0.05
+        if runs_with_dropout:
+            if run.config["model"]["drop_path_rate"] != 0.05:
+                continue
+        else:
+            if run.config["model"]["drop_path_rate"] != 0.0:
+                continue
         info = {
             "run_id_acc": run.id,
             "run_name": run.name,
+            "target": run.config["target"],
             "seed": run.config["seed"],
             "num_layers": run.config["model"]["num_layers"],
             "model_is_deq": run.config["model_is_deq"],
@@ -66,9 +86,15 @@ for run in runs_acc:
             "test_e_mae": run.summary["test_e_mae"],
             "test_f_mae": run.summary["test_f_mae"],
         }
+        # Plots: pick the smaller of test_fpreuse_f_mae and test_f_mae
+        if 'test_fpreuse_f_mae' in run.summary:
+            info["test_f_mae"] = min(run.summary["test_f_mae"], run.summary["test_fpreuse_f_mae"])
+            info["test_e_mae"] = min(run.summary["test_e_mae"], run.summary["test_epreuse_e_mae"])
     except KeyError as e:
         print(f"Skipping run {run.id} {run.name} because of KeyError: {e}")
         continue
+    if "deq_kwargs_test" in run.config:
+        info["fpreuse_f_tol"] = run.config["deq_kwargs_test"]["fpreuse_f_tol"]
     # evaluate does not have best_test_e_mae and best_test_f_mae
     try:
         info["best_test_e_mae"] = run.summary["best_test_e_mae"]
@@ -78,30 +104,50 @@ for run in runs_acc:
         info["best_test_f_mae"] = run.summary["test_f_mae"]
     infos_acc.append(info)
 
-print('\nRuns')
+# TODO
+# currently we select the one matching run by name, which includes the seed
+# Option 1: get the same seeds for accuracy and speed runs
+# option 2: create to separate df for accuracy and speed, average separately, then merge
+df_acc = pd.DataFrame(infos_acc)
+# filter for target
+df_acc = df_acc[df_acc["target"] == target]
+print('\nAccuracy runs:\n', df_acc[["run_name", "fpreuse_f_tol", acc_metric]])
+
+print('\nSpeed runs')
 optional_summary_keys = [_m + "_fpreuse" for _m in time_metrics]
 infos = []
 for run in runs:
+    # model.drop_path_rate=0.05
+    if runs_with_dropout:
+        if run.config["model"]["drop_path_rate"] != 0.05:
+            continue
+    else:
+        if run.config["model"]["drop_path_rate"] != 0.0:
+            continue
     # run = api.run(project + "/" + run_id)
     # api = wandb.Api()
     print(' ', run.name)
     # print('run_config', yaml.dump(run.config))
     # exit()
-    info = {
-        "run_id_speed": run.id,
-        "run_name": run.name,
-        # "config": run.config,
-        # "summary": run.summary,
-        "seed": run.config["seed"],
-        "num_layers": run.config["model"]["num_layers"],
-        "model_is_deq": run.config["model_is_deq"],
-        "eval_batch_size": run.config["eval_batch_size"],
-        "target": run.config["target"],
-        # time metrics
-        "time_test": run.summary["time_test"],
-        "time_forward_per_batch_test": run.summary["time_forward_per_batch_test"],
-        "time_forward_total_test": run.summary["time_forward_total_test"],
-    }
+    try:
+        info = {
+            "run_id_speed": run.id,
+            "run_name": run.name,
+            # "config": run.config,
+            # "summary": run.summary,
+            "seed": run.config["seed"],
+            "num_layers": run.config["model"]["num_layers"],
+            "model_is_deq": run.config["model_is_deq"],
+            "eval_batch_size": run.config["eval_batch_size"],
+            "target": run.config["target"],
+            # time metrics
+            "time_test": run.summary["time_test"],
+            "time_forward_per_batch_test": run.summary["time_forward_per_batch_test"],
+            "time_forward_total_test": run.summary["time_forward_total_test"],
+        }
+    except KeyError as e:
+        print(f"Skipping run {run.id} {run.name} because of KeyError: {e}")
+        raise e
     for key in optional_summary_keys:
         if key in run.summary:
             info[key] = run.summary[key]
@@ -116,10 +162,16 @@ for run in runs:
         _run_name = info["run_name"]
         _run_name = _run_name.replace(" evalbatchsize-1", "").replace(" evalbatchsize-4", "")
         _run_name_acc = info_acc["run_name"]
-        _run_name_acc = _run_name_acc.replace(" target-ethanol", "")
+        # aspirin is the default
+        _run_name_acc = _run_name_acc.replace(" target-aspirin", "")
         if _run_name_acc == _run_name:
+            # ensure num_layers, target, seed are the same
+            assert info_acc["num_layers"] == info["num_layers"], f"num_layers: {info_acc['num_layers']} != {info['num_layers']}"
+            assert info_acc["target"] == info["target"], f"target: {info_acc['target']} != {info['target']}"
+            assert info_acc["seed"] == info["seed"], f"seed: {info_acc['seed']} != {info['seed']}"
             try:
                 info["run_id_acc"] = info_acc["run_id_acc"]
+                info["run_name_acc"] = info_acc["run_name"]
                 info["test_e_mae"] = info_acc["test_e_mae"]
                 info["test_f_mae"] = info_acc["test_f_mae"]
                 info["best_test_e_mae"] = info_acc["best_test_e_mae"]
@@ -129,11 +181,15 @@ for run in runs:
             break
     if "test_f_mae" not in info:
         print(f"    Warning: Could not find accuracy run for {_run_name}")
-
-    infos.append(info)
+    else:
+        infos.append(info)
 
 # to pandas dataframe
 df = pd.DataFrame(infos)
+
+# print('\nRuns combined:\n', df[["run_name", acc_metric, time_metric]])
+print('\nRuns combined:\n', df[["run_name", "run_name_acc", acc_metric, "fpreuse_f_tol"]])
+
 
 """Rename columns"""
 # rename 'model_is_deq' to 'Model'
@@ -160,9 +216,11 @@ if target == "all":
     #     if col in cols_not_avg:
     #         cols_not_avg.remove(col)
     # df = df.groupby(cols_not_avg).mean().reset_index()
+    do_not_average_over.remove("target")
     df = df.groupby(do_not_average_over).mean(numeric_only=True).reset_index()
 else:
     # filter out one target
+    print('Filtering for target:', target)
     df = df[df["target"] == target]
 
 # compute mean and std over 'seed'
@@ -174,13 +232,22 @@ else:
 
 df = df[df["eval_batch_size"] == filter_eval_batch_size]
 
+# fpreuse_f_tol="_default" -> 1e-3
+df["fpreuse_f_tol"] = df["fpreuse_f_tol"].apply(lambda x: 1e-3 if x == "_default" else x)
+
 # remove fpreuseftol-1e2
-df = df[df["fpreuse_f_tol"] != 1e2]
+# df = df[df["fpreuse_f_tol"] != 1e2]
+df = df[df["fpreuse_f_tol"].isin(filter_fpreuseftol)]
 
 # for Equiformer only keep num_layers=[1,4, 8]
-df = df[df["num_layers"].isin([1, 4, 8])]
+# df = df[df["num_layers"].isin(layers)]
+df = df[
+    (df["num_layers"].isin(layers_deq) & (df["Model"] == "DEQ")) | (df["num_layers"].isin(layers_equi) & (df["Model"] == "Equiformer"))
+]
+# isin(layers_deq) and Model=DEQ or isin(layers_equi) and Model=Equiformer
+# df = df[(df["num_layers"].isin(layers_equi) & (df["Model"] == "Equiformer")) | (df["num_layers"].isin(layers_deq) & (df["Model"] == "DEQ"))]
 
-print('\n', df)
+print('\nAfter filtering:\n', df[["run_name", "run_name_acc", acc_metric, time_metric, "fpreuse_f_tol"]])
 
 
 ################################################################################################################################
@@ -210,6 +277,8 @@ for p in ax.patches:
 # plt.xticks(rotation=90)
 
 loc, labels = plt.xticks()
+# ax.set_xticks(loc[::2]) # TODO: this is a hack, only show every second label
+ax.set_xticks(loc) 
 ax.set_xticklabels(labels, rotation=45, horizontalalignment='right', fontsize=8)
 
 # labels
@@ -245,6 +314,8 @@ for p in ax.patches:
 # plt.xticks(rotation=90)
 
 loc, labels = plt.xticks()
+ax.set_xticks(loc)
+# UserWarning: set_ticklabels() should only be used with a fixed number of ticks, i.e. after set_ticks() or using a FixedLocator.
 ax.set_xticklabels(labels, rotation=45, horizontalalignment='right', fontsize=8)
 
 # labels
@@ -299,16 +370,25 @@ x = time_metric
 colorstyle = "Model"
 shapestyle = "num_layers"
 # https://stackoverflow.com/a/64403147/18361030
-marks = ["o", "s"]
+marks = ["o", "s", "^"]
 
 # plot
 set_seaborn_style()
 
 fig, ax = plt.subplots()
-sns.scatterplot(data=df, x=x, y=y, hue=colorstyle, style=shapestyle, ax=ax, markers=marks)
 
-# connect same colorstyle with line
-sns.lineplot(data=df, x=x, y=y, hue=colorstyle, ax=ax, markers=marks, legend=False)
+
+sns.lineplot(
+    data=df, x=x, y=y, hue=colorstyle, ax=ax, 
+    # markers=marks[:len(list(df[shapestyle].unique()))], style=shapestyle, 
+    legend=False,
+)
+sns.scatterplot(data=df, x=x, y=y, hue=colorstyle, style=shapestyle, ax=ax, markers=marks[:len(list(df[shapestyle].unique()))], s=200)
+
+# # mean and std over 'seed'
+# df_mean = df.groupby([x, colorstyle, shapestyle]).mean(numeric_only=True).reset_index()
+# df_std = df.groupby([x, colorstyle, shapestyle]).std(numeric_only=True).reset_index()
+# sns.pointplot(data=df_mean, x=x, y=y, hue=colorstyle, ax=ax, markers=marks[:len(list(df[shapestyle].unique()))], style=shapestyle, legend=False)
 
 # sns.lineplot(data=df_mean, x=x, y=y, hue=color, ax=ax, markers=marks, legend=False)
 # ax.errorbar(df_mean[x], df_mean[y], yerr=df_std[y], fmt='o', color='black', capsize=5)

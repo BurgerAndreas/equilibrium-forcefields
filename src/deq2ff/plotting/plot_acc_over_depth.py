@@ -12,28 +12,14 @@ from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder
 
 
 """ Options """
+acc_metric = "test_f_mae"
 target = "aspirin" # ethanol
 # layers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 # layers = [1, 2, 4, 8]
 remove_single_seed_runs = True
+runs_with_dropout = False
 
 """ Get runs """
-
-# run_ids = [
-#     # seed=1, target=aspirin
-#     "en7keqeo",
-#     "89gcuv3e",
-#     "jp5n1t1n",
-#     "449r21m9",
-#     "74diu4i3",
-#     "9iit4b06",
-#     "cfrmpql5",
-#     "3dg5u6gb",
-#     "h66aekmn",
-#     # TODO: two layer DEQ
-#     # TODO: average over seeds
-#     # TODO: average over molecules
-# ]
 
 api = wandb.Api()
 # runs = api.runs("username/project", filters={"tags": {"$in": ["best"]}})
@@ -49,6 +35,13 @@ infos = []
 for run in runs:
     # run = api.run(project + "/" + run_id)
     try:
+        # model.drop_path_rate=0.05
+        if runs_with_dropout:
+            if run.config["model"]["drop_path_rate"] != 0.05:
+                continue
+        else:
+            if run.config["model"]["drop_path_rate"] != 0.0:
+                continue
         info = {
             "run_id": run.id,
             "run_name": run.name,
@@ -65,6 +58,10 @@ for run in runs:
             "test_e_mae": run.summary["test_e_mae"],
             "test_f_mae": run.summary["test_f_mae"],
         }
+        # Plots: pick the smaller of test_fpreuse_f_mae and test_f_mae
+        if 'test_fpreuse_f_mae' in run.summary:
+            info["test_f_mae"] = min(run.summary["test_f_mae"], run.summary["test_fpreuse_f_mae"])
+            info["test_e_mae"] = min(run.summary["test_e_mae"], run.summary["test_epreuse_e_mae"])
     except KeyError as e:
         print(f"Skipping run {run.id} {run.name} because of KeyError: {e}. (Probably run is not finished yet)")
         continue
@@ -86,8 +83,8 @@ df = df[df["target"] == target]
 # filter for layers
 # df = df[df["num_layers"].isin(layers)]
 
-print('')
-print(df)
+print('\nBefore averaging:')
+print(df[["run_name", "Model", "num_layers", "test_f_mae"]])
 
 
 # compute mean and std over 'seed'
@@ -111,13 +108,13 @@ if remove_single_seed_runs:
     df_mean = df_mean.drop(indices_to_remove)
     df_std = df_std.drop(indices_to_remove)
 
-print('')
+print('After averaging:')
 print(df_mean)
 
 
 """ Plot """
 # y = "best_test_f_mae"
-y = "test_f_mae"
+y = acc_metric
 x = "num_layers"
 color = "Model"
 # https://stackoverflow.com/a/64403147/18361030

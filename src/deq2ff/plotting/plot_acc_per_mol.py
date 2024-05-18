@@ -8,6 +8,10 @@ import yaml
 
 from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder
 
+# options
+acc_metric = "test_f_mae"
+x = "type" # "Model" run_name
+runs_with_dropout = False
 
 # get all runs with tag 'inference_speed'
 api = wandb.Api()
@@ -20,6 +24,13 @@ print(f"Found {len(run_ids)} runs with tag 'inference_speed'")
 infos = []
 for run in runs:
     try:
+        # model.drop_path_rate=0.05
+        if runs_with_dropout:
+            if run.config["model"]["drop_path_rate"] != 0.05:
+                continue
+        else:
+            if run.config["model"]["drop_path_rate"] != 0.0:
+                continue
         info = {
             "run_id": run.id,
             "run_name": run.name,
@@ -33,6 +44,10 @@ for run in runs:
             "best_test_e_mae": run.summary["best_test_e_mae"],
             "best_test_f_mae": run.summary["best_test_f_mae"],
         }
+        # Plots: pick the smaller of test_fpreuse_f_mae and test_f_mae
+        if 'test_fpreuse_f_mae' in run.summary:
+            info["test_f_mae"] = min(run.summary["test_f_mae"], run.summary["test_fpreuse_f_mae"])
+            info["test_e_mae"] = min(run.summary["test_e_mae"], run.summary["test_epreuse_e_mae"])
     except KeyError as e:
         print(f"Skipping run {run.id} {run.name} because of KeyError: {e}")
         continue
@@ -71,7 +86,12 @@ targets.append("all")
 # new column that combines Model and num_layers
 df["type"] = df["Model"] + " " + df["num_layers"].astype(str) + " layers"
 
-x = "type" # "Model" run_name
+accmetriclables = {
+    "test_f_mae": "Force MAE (final)",
+    "best_test_f_mae": "Force MAE (best)",
+    "test_e_mae": "Energy MAE (final)",
+    "best_test_e_mae": "Energy MAE (best)"
+}
 
 for mol in targets:
     # filter by molecule
@@ -84,6 +104,7 @@ for mol in targets:
         df_mol = df[df["target"] == mol]
         std = None
 
+    """ Barchart with four quadrants """
     # plot four bar charts side by side
     fig, ax = plt.subplots(2, 2, figsize=(10, 10))
     # fig, ax = plt.subplots(1, 2, figsize=(10, 5))
@@ -152,9 +173,37 @@ for mol in targets:
     plt.tight_layout()
 
     # save
-    name = f"acc-{mol}"
+    name = f"acc-{mol}-allmetrics"
     plt.savefig(f"{plotfolder}/{name}.png")
     print(f"\nSaved plot to {plotfolder}/{name}.png")
+
+
+    """ Simple barchart of a single metric """
+    set_seaborn_style(figsize=(20, 5))
+    fig, ax = plt.subplots()
+
+    sns.barplot(data=df_mol, x=x, y=acc_metric, hue="Model", ax=ax[0][0], legend=False)
+    if std is not None:
+        ax.errorbar(
+            x=df_mol[x], y=df_mol[acc_metric], yerr=std[acc_metric], fmt='none', ecolor='black', capsize=5
+        )
+    ax.set_title(f"Test f_mae for {mol}")
+
+    # labels
+    ax.set_xlabel("Molecule size")
+    ax.set_ylabel(accmetriclables[acc_metric])
+    ax.set_title(f"Accuracy scaling with molecule size")
+
+    # move legend outside
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+    plt.tight_layout()
+
+    # save
+    name = f"acc-{mol}-{acc_metric}"
+    plt.savefig(f"{plotfolder}/{name}.png")
+    print(f"\nSaved plot to {plotfolder}/{name}.png")
+
 
 
 """ Plot accuracy over molecule size """
@@ -186,14 +235,8 @@ df = df[~df["target"].isin(["dw_nanotube", "buckyball_catcher"])]
 
 styletype = "target" # "num_layers" target
 
-ynames = {
-    "test_f_mae": "Force MAE (final)",
-    "best_test_f_mae": "Force MAE (best)",
-    "test_e_mae": "Energy MAE (final)",
-    "best_test_e_mae": "Energy MAE (best)"
-
-}
-for y in ["test_f_mae", "best_test_f_mae", "test_e_mae", "best_test_e_mae"]:
+# for y in ["test_f_mae", "best_test_f_mae", "test_e_mae", "best_test_e_mae"]:
+for y in ["test_f_mae", "test_e_mae"]:
     # plot
     set_seaborn_style(figsize=(20, 5))
     fig, ax = plt.subplots(figsize=(10,5))
@@ -210,7 +253,7 @@ for y in ["test_f_mae", "best_test_f_mae", "test_e_mae", "best_test_e_mae"]:
 
     # labels
     ax.set_xlabel("Molecule size")
-    ax.set_ylabel(ynames[y])
+    ax.set_ylabel(accmetriclables[y])
     ax.set_title(f"Accuracy scaling with molecule size")
 
     # move legend outside

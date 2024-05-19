@@ -282,6 +282,6 @@ for orient in ['v', 'h']:
     # save
     name = f"dropout-{orient}-{target}"
     plt.savefig(f"{plotfolder}/{name}.png")
-    print(f"\nSaved plot to {plotfolder}/{name}.png")
+    print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
 

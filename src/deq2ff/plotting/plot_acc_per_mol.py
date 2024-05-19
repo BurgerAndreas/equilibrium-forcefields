@@ -176,7 +176,7 @@ for mol in targets:
     # save
     name = f"acc-{mol}-allmetrics"
     plt.savefig(f"{plotfolder}/{name}.png")
-    print(f"\nSaved plot to {plotfolder}/{name}.png")
+    print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
 
     """ Simple barchart of a single metric """
@@ -203,7 +203,7 @@ for mol in targets:
     # save
     name = f"acc-{mol}-{acc_metric}"
     plt.savefig(f"{plotfolder}/{name}.png")
-    print(f"\nSaved plot to {plotfolder}/{name}.png")
+    print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
 
 
@@ -265,4 +265,4 @@ for y in ["test_f_mae", "test_e_mae"]:
     # save
     name = f"acc_over_molecule_size-{y}"
     plt.savefig(f"{plotfolder}/{name}.png")
-    print(f"\nSaved plot to {plotfolder}/{name}.png")
+    print(f"\nSaved plot to \n {plotfolder}/{name}.png")

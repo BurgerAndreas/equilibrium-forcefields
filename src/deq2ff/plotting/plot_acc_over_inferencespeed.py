@@ -336,7 +336,7 @@ plt.tight_layout()
 # save
 name = f"inferencetime-bs{filter_eval_batch_size}-{time_metric}"
 plt.savefig(f"{plotfolder}/{name}.png")
-print(f"\nSaved plot to {plotfolder}/{name}.png")
+print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
 
 """ Barchart of accuracy """
@@ -374,7 +374,7 @@ plt.tight_layout()
 # save
 name = f"acc-bs{filter_eval_batch_size}-{acc_metric.replace('_lowest', '')}"
 plt.savefig(f"{plotfolder}/{name}.png")
-print(f"\nSaved plot to {plotfolder}/{name}.png")
+print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
 
 """ Plot accuracy over fpreuse_f_tol """
@@ -436,7 +436,7 @@ plt.tight_layout()
 # save
 name = f"acc_over_fpreuse_f_tol" + f"-bs{filter_eval_batch_size}"
 plt.savefig(f"{plotfolder}/{name}.png")
-print(f"\nSaved plot to {plotfolder}/{name}.png")
+print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
 
 """ Plot accuracy over inference time"""
@@ -532,7 +532,7 @@ plt.tight_layout(pad=0.1)
 # save
 name = f"acc_over_inferencetime" + f"-bs{filter_eval_batch_size}-{time_metric}"
 plt.savefig(f"{plotfolder}/{name}.png")
-print(f"\nSaved plot to {plotfolder}/{name}.png")
+print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
 
 
@@ -626,7 +626,7 @@ plt.tight_layout(pad=0.1)
 # save
 name = f"acc_over_inferencetime_params" + f"-bs{filter_eval_batch_size}-{time_metric}"
 plt.savefig(f"{plotfolder}/{name}.png")
-print(f"\nSaved plot to {plotfolder}/{name}.png")
+print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
 
 """ Ablation fpreuse: Plot accuracy over inference time"""
@@ -740,4 +740,4 @@ plt.tight_layout(pad=0.1)
 # save
 name = f"acc_over_inferencetime_fpreuseablation" + f"-bs{filter_eval_batch_size}-{time_metric}"
 plt.savefig(f"{plotfolder}/{name}.png")
-print(f"\nSaved plot to {plotfolder}/{name}.png")
+print(f"\nSaved plot to \n {plotfolder}/{name}.png")

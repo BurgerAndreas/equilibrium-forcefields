@@ -172,6 +172,6 @@ for plotstyle in ['avg', 'all']:
     # save
     name = f"acc_over_depth-{target}-{plotstyle}"
     plt.savefig(f"{plotfolder}/{name}.png")
-    print(f"\nSaved plot to {plotfolder}/{name}.png")
+    print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
 

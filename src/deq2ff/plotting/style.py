@@ -10,8 +10,9 @@ project = "EquilibriumEquiFormer"
 plotfolder = pathlib.Path(__file__).parent.absolute()
 plotfolder = os.path.join(plotfolder, "plots")
 
-def set_seaborn_style(style="whitegrid", context="poster", figsize=(8, 6), font_scale=0.8):
+def set_seaborn_style(style="whitegrid", palette="muted", context="poster", figsize=(8, 6), font_scale=0.8):
     sns.set_style(style=style) # whitegrid white
+    sns.set_palette(palette)
     sns.set_context(
         context, # {paper, notebook, talk, poster}
         font_scale=font_scale,

@@ -570,6 +570,7 @@ def main(args):
                 # also save as best metrics?
                 # "best_test_e_mae": test_err["energy"].avg,
                 # "best_test_f_mae": test_err["force"].avg,
+                "epoch": start_epoch,
             },
             step=global_step,
         )

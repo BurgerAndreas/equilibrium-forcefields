@@ -162,4 +162,4 @@ sns.pointplot(
 # save
 name = f"acc_over_depth-{target}"
 plt.savefig(f"{plotfolder}/{name}.png")
-print(f"\nSaved plot to {plotfolder}/{name}.png")
+print(f"\nSaved plot to \n {plotfolder}/{name}.png")

@@ -179,4 +179,4 @@ plt.tight_layout(pad=0.1)
 # save
 name = "acc_over_malloc"
 plt.savefig(f"{plotfolder}/{name}.png")
-print(f"\nSaved plot to {plotfolder}/{name}.png")
+print(f"\nSaved plot to \n {plotfolder}/{name}.png")

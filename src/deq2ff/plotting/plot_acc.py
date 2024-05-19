@@ -32,7 +32,7 @@ timelabels = {
 acc_metrics = ["best_test_f_mae", "test_f_mae", "best_test_e_mae", "test_e_mae"]
 acclabels = {
     "best_test_f_mae": "Best force MAE",
-    "test_f_mae": "Force MAE",
+    "test_f_mae": r"Force MAE [meV/$\AA$]",
     "best_test_e_mae": "Best energy MAE",
     "test_e_mae": "Energy MAE",
 }

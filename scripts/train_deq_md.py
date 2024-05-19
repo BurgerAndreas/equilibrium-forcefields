@@ -1510,8 +1510,8 @@ def evaluate(
             rel_fixed_point_error = []
             f_steps_to_fixed_point = []
             model_forward_time = []
+            n_fsolver_steps = []
 
-            n_fsolver_steps = 0
             fixedpoint = None
             prev_idx = None
             max_steps = max_iter if max_iter != -1 else len(data_loader)
@@ -1596,13 +1596,11 @@ def evaluate(
                 ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
-                if "nstep" in info:
-                    n_fsolver_steps += info["nstep"].mean().item()
 
                 # --- logging ---
                 if len(info) > 0: 
                     if pass_step is not None:
-                        # log fixed-point trajectory
+                        # log fixed-point trajectory once per evaluation
                         logging_utils_deq.log_fixed_point_error(
                             info,
                             step=global_step,
@@ -1610,7 +1608,9 @@ def evaluate(
                         )
                     abs_fixed_point_error.append(info["abs_trace"].mean(dim=0)[-1].item())
                     rel_fixed_point_error.append(info["rel_trace"].mean(dim=0)[-1].item())
+                    # duplicates kept for legacy reasons
                     f_steps_to_fixed_point.append(info["nstep"].mean().item())
+                    n_fsolver_steps.append(info["nstep"].mean().item())
 
                 if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
                     w = time.perf_counter() - start_time
@@ -1663,10 +1663,13 @@ def evaluate(
                     f"f_steps_to_fixed_point_{_datasplit}": np.mean(f_steps_to_fixed_point),
                 })
 
-            if n_fsolver_steps > 0:
-                n_fsolver_steps /= max_steps
+            if len(n_fsolver_steps) > 0:
                 wandb.log(
-                    {f"avg_n_fsolver_steps_{_datasplit}": n_fsolver_steps}, step=global_step
+                    {f"avg_n_fsolver_steps_{_datasplit}": np.mean(n_fsolver_steps)}, step=global_step
+                )
+                # log the full list
+                wandb.log(
+                    {f"n_fsolver_steps_{_datasplit}": n_fsolver_steps}, step=global_step
                 )
             
             # log test error for fpreuse

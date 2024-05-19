@@ -10,10 +10,10 @@ project = "EquilibriumEquiFormer"
 plotfolder = pathlib.Path(__file__).parent.absolute()
 plotfolder = os.path.join(plotfolder, "plots")
 
-def set_seaborn_style(style="poster", figsize=(8, 6), font_scale=0.8):
-    sns.set_style(style="whitegrid") # whitegrid white
+def set_seaborn_style(style="whitegrid", context="poster", figsize=(8, 6), font_scale=0.8):
+    sns.set_style(style=style) # whitegrid white
     sns.set_context(
-        style, # {paper, notebook, talk, poster}
+        context, # {paper, notebook, talk, poster}
         font_scale=font_scale,
         rc={
             'figure.figsize': figsize,     # Adjust the figure size as needed
@@ -23,9 +23,22 @@ def set_seaborn_style(style="poster", figsize=(8, 6), font_scale=0.8):
             'legend.fontsize': 12,         # Legend font size
             'legend.frameon': True,        # Display legend frame
             'legend.loc': 'upper right',   # Adjust legend position
-            "axes.spines.right": False, "axes.spines.top": False
+            # "axes.spines.right": False, "axes.spines.top": False # top and right border
+            'text.usetex' : True,
         },
     )
+
+timelabels = {
+    "time_test": "Test time for 1000 samples [s]",
+    "time_forward_per_batch_test": "Forward time per batch [s]",
+    "time_forward_total_test": "Total forward time for 1000 samples [s]",
+}
+acclabels = {
+    "best_test_f_mae": r"Best force MAE [meV/$\AA$]",
+    "test_f_mae": r"Force MAE [meV/$\AA$]",
+    "best_test_e_mae": "Best energy MAE [meV]",
+    "test_e_mae": "Energy MAE [meV]",
+}
 
 def combine_legend(ax, colorstyle_dict, markerstyle):
     # https://stackoverflow.com/questions/68591271/how-can-i-combine-hue-and-style-groups-in-a-seaborn-legend

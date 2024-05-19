@@ -9,7 +9,7 @@ import yaml
 import json
 import requests
 
-from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder
+from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder, acclabels, timelabels
 
 """ Options """
 filter_eval_batch_size = 4 # 1 or 4
@@ -30,18 +30,7 @@ download_data = False
 # choose from
 eval_batch_sizes = [1, 4]
 time_metrics = ["time_test", "time_forward_per_batch_test", "time_forward_total_test"]
-timelabels = {
-    "time_test": "Test time for 1000 samples [s]",
-    "time_forward_per_batch_test": "Forward time per batch [s]",
-    "time_forward_total_test": "Total forward time for 1000 samples [s]",
-}
 acc_metrics = ["best_test_f_mae", "test_f_mae", "best_test_e_mae", "test_e_mae"]
-acclabels = {
-    "best_test_f_mae": "Best force MAE",
-    "test_f_mae": "Force MAE",
-    "best_test_e_mae": "Best energy MAE",
-    "test_e_mae": "Energy MAE",
-}
 acclabels.update({f"{k}_lowest": v for k, v in acclabels.items()})
 
 """ Load data """
@@ -240,6 +229,9 @@ df["model_is_deq"] = df["model_is_deq"].apply(lambda x: "DEQ" if x else "Equifor
 # rename 'model_is_deq' to 'Model'
 df = df.rename(columns={"model_is_deq": "Model"})
 
+# rename for prettier legends
+df = df.rename(columns={"num_layers": "Layers"})
+
 """ If FPReuse exists, use it """
 # time_test_lowest should be lowest out of time_test and time_test_fpreuse
 df["time_test_lowest"] = df.apply(lambda x: min(x["time_test"], x["time_test_fpreuse"]), axis=1)
@@ -253,7 +245,7 @@ df["test_e_mae_lowest"] = df.apply(lambda x: min(x["test_e_mae"], x["test_fpreus
 
 """ Averages and filters """
 print(f'\nColumns in df: {df.columns}')
-do_not_average_over = ["run_name", "run_id_acc", "run_id_speed", "target", "seed", "eval_batch_size", "fpreuse_f_tol", "Model", "num_layers"]
+do_not_average_over = ["run_name", "run_id_acc", "run_id_speed", "target", "seed", "eval_batch_size", "fpreuse_f_tol", "Model", "Layers"]
 if target == "all":
     # average over all targets
     # cols_not_avg = list(df.columns)
@@ -286,13 +278,13 @@ df["fpreuse_f_tol"] = df["fpreuse_f_tol"].apply(lambda x: 1e-3 if x == "_default
 nans = ['NaN', pd.NA, None, float("inf"), np.nan]
 df = df[df["fpreuse_f_tol"].isin(filter_fpreuseftol + nans)]
 
-# for Equiformer only keep num_layers=[1,4, 8]
-# df = df[df["num_layers"].isin(layers)]
+# for Equiformer only keep Layers=[1,4, 8]
+# df = df[df["Layers"].isin(layers)]
 df = df[
-    (df["num_layers"].isin(layers_deq) & (df["Model"] == "DEQ")) | (df["num_layers"].isin(layers_equi) & (df["Model"] == "Equiformer"))
+    (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ")) | (df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer"))
 ]
 # isin(layers_deq) and Model=DEQ or isin(layers_equi) and Model=Equiformer
-# df = df[(df["num_layers"].isin(layers_equi) & (df["Model"] == "Equiformer")) | (df["num_layers"].isin(layers_deq) & (df["Model"] == "DEQ"))]
+# df = df[(df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer")) | (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ"))]
 
 print('\nAfter filtering:\n', df[["run_name", "run_name_acc", acc_metric, time_metric, "fpreuse_f_tol"]])
 
@@ -308,9 +300,6 @@ model_to_color = {"Equiformer": color_equiformer, "DEQ": color_deq}
 equiformer_first = True
 
 sns.set_palette(color_palette)
-
-# rename for prettier legends
-df = df.rename(columns={"num_layers": "Layers"})
 
 """ Barchart of inference time """
 y = time_metric
@@ -439,7 +428,7 @@ ax.set_xticks(filter_fpreuseftol)
 
 # labels
 ax.set_xlabel("Abs solver tolerance")
-ax.set_ylabel("Force MAE")
+ax.set_ylabel(r"Force MAE [meV/$\AA$]")
 ax.set_title("Accuracy vs. solver stopping criterion")
 
 plt.tight_layout()
@@ -533,7 +522,7 @@ for i, m in enumerate(list(df["Model"].unique())):
 
 # labels
 ax.set_xlabel(timelabels[x.replace("_lowest", "")])
-ax.set_ylabel("Force MAE")
+ax.set_ylabel(r"Force MAE [meV/$\AA$]")
 ax.set_title("Inference speed vs. accuracy")
 
 # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")
@@ -617,7 +606,7 @@ for i, m in enumerate(list(df["Model"].unique())):
 
 # labels
 plt.xlabel(timelabels[x.replace("_lowest", "")])
-plt.ylabel("Force MAE")
+plt.ylabel(r"Force MAE  [meV/$\AA$]")
 plt.title("Inference speed vs. accuracy")
 
 # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")
@@ -660,7 +649,7 @@ df_fpreuse[_time_metric] = df_fpreuse[_time_metric.replace("test", "test_fpreuse
 # TODO: test time should not depend on fpreuse_f_tol
 # probably did not reinit the metric?
 # hack for now: just select one datapoint fpreuse_f_tol=1e-3
-df_fpreuse = df_fpreuse[df_fpreuse["fpreuse_f_tol"] == 1e-3]
+df_ablation = df_ablation[df_ablation["fpreuse_f_tol"] == 1e-3]
 
 df_ablation = pd.concat([df_ablation, df_fpreuse], ignore_index=True)
 print(f'\nAfter adding fpreuse:\n', df_ablation[["run_name", "Model", "test_f_mae", "test_fpreuse_f_mae", _time_metric, "fpreuse_f_tol"]])
@@ -676,8 +665,10 @@ df_std = _df.groupby(cols_to_keep).std(numeric_only=True).reset_index()
 
 # sort for color
 # df_mean = df_mean.sort_values(by=["colorstyle", shapestyle])
-df_mean = df_mean.sort_values(by="Model", key=lambda x: x.map({"Equiformer": 0, "DEQ": 1}))
+# df_mean = df_mean.sort_values(by="Model", key=lambda x: x.map({"Equiformer": 0, "DEQ": 1}))
+# df_std = df_std.sort_values(by="Model", key=lambda x: x.map({"Equiformer": 0, "DEQ": 1}))
 df_mean = df_mean.sort_values(by="Model", ascending=not equiformer_first)
+df_std = df_std.sort_values(by="Model", ascending=not equiformer_first)
 
 # y = "best_test_f_mae"
 y = "test_f_mae"
@@ -703,22 +694,22 @@ sns.scatterplot(
     s=200, 
 )
 # draws error bars and lines
-# for i, m in enumerate(list(df["Model"].unique())):
-#     ax.errorbar(
-#         df_mean[df_mean["Model"] == m][x], 
-#         df_mean[df_mean["Model"] == m][y], 
-#         yerr=df_std[df_std["Model"] == m][y], 
-#         xerr=df_std[df_std["Model"] == m][x], 
-#         # fmt='o', 
-#         # fmt='none', # no line
-#         lw=2,
-#         # color='black', 
-#         color=model_to_color[m],
-#         capsize=8,
-#         elinewidth=3,
-#         capthick=3,
-#         # legend=False,
-#     )
+for i, m in enumerate(list(df["Model"].unique())):
+    ax.errorbar(
+        df_mean[df_mean["Model"] == m][x], 
+        df_mean[df_mean["Model"] == m][y], 
+        yerr=df_std[df_std["Model"] == m][y], 
+        xerr=df_std[df_std["Model"] == m][x], 
+        # fmt='o', 
+        fmt='none', # no line
+        lw=2,
+        # color='black', 
+        color=model_to_color[m],
+        capsize=8,
+        elinewidth=3,
+        capthick=3,
+        # legend=False,
+    )
 
 # sns.pointplot(
 #     data=df, x=x, y=y, hue=colorstyle, ax=ax, markers=marks[:len(list(df[shapestyle].unique()))], 
@@ -739,7 +730,7 @@ sns.scatterplot(
 
 # labels
 ax.set_xlabel(timelabels[x.replace("_lowest", "")])
-ax.set_ylabel("Force MAE")
+ax.set_ylabel(r"Force MAE [meV/$\AA$]")
 ax.set_title("Inference speed vs. accuracy")
 
 # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")

@@ -132,7 +132,7 @@ sns.scatterplot(data=df, x=x, y=y, hue=colorstyle, style=markerstyle, ax=ax, mar
 
 # labels
 ax.set_xlabel("Memory allocated [bytes]")
-ax.set_ylabel("Force MAE")
+ax.set_ylabel(r"Force MAE [meV/$\AA$]")
 ax.set_title("Accuracy over GPU memory allocation")
 
 # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")

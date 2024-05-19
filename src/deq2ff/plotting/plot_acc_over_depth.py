@@ -161,7 +161,7 @@ for plotstyle in ['avg', 'all']:
 
     # labels
     ax.set_xlabel("Number of Layers")
-    ax.set_ylabel("Force MAE")
+    ax.set_ylabel(r"Force MAE [meV/$\AA$]")
     ax.set_title("Accuracy scaling with depth")
 
     # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")

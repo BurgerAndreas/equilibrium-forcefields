@@ -13,6 +13,9 @@
 # --account=deadline --qos=deadline --qos=normal
 #SBATCH --qos=normal
 #SBATCH --time=16:00:00
+#SBATCH --output=outslurm/slurm-%j.txt 
+#SBATCH --error=outslurm/slurm-%j.txt
+# errslurm-%j.err
 
 # Append is important because otherwise preemption resets the file
 #SBATCH --open-mode=append

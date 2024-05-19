@@ -168,7 +168,7 @@ for mol in targets:
         _ax.get_legend().remove()
 
     # no legend
-    plt.legend()
+    # plt.legend()
 
     plt.tight_layout()
 
@@ -182,7 +182,7 @@ for mol in targets:
     set_seaborn_style(figsize=(20, 5))
     fig, ax = plt.subplots()
 
-    sns.barplot(data=df_mol, x=x, y=acc_metric, hue="Model", ax=ax[0][0], legend=False)
+    sns.barplot(data=df_mol, x=x, y=acc_metric, hue="Model", ax=ax, legend=False)
     if std is not None:
         ax.errorbar(
             x=df_mol[x], y=df_mol[acc_metric], yerr=std[acc_metric], fmt='none', ecolor='black', capsize=5

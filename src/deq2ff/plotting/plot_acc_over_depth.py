@@ -13,7 +13,8 @@ from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder
 
 """ Options """
 acc_metric = "test_f_mae"
-target = "aspirin" # ethanol
+# averaging over all molecules won't work, since we don't have depth data for all molecules
+target = "aspirin" # ethanol aspirin
 # layers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 # layers = [1, 2, 4, 8]
 remove_single_seed_runs = True
@@ -27,7 +28,9 @@ api = wandb.Api()
 # runs = api.runs(project, {"tags": "md17"})
 # runs = api.runs(project, {"$or": [{"tags": "md17"}, {"tags": "md22"}]})
 # runs = api.runs(project, {"tags": "depth"})
-runs = api.runs(project, {"$and": [{"tags": "depth"}, {"state": "finished"}]})
+# runs = api.runs(project, {"$and": [{"tags": "depth"}, {"state": "finished"}]})
+# state finished or crashed
+runs = api.runs(project, {"$and": [{"tags": "depth"}, {"$or": [{"state": "finished"}, {"state": "crashed"}]}]})
 
 infos = []
 
@@ -38,9 +41,11 @@ for run in runs:
         # model.drop_path_rate=0.05
         if runs_with_dropout:
             if run.config["model"]["drop_path_rate"] != 0.05:
+                print(f"Skipping run {run.id} {run.name} because of drop_path_rate={run.config['model']['drop_path_rate']}")
                 continue
         else:
             if run.config["model"]["drop_path_rate"] != 0.0:
+                print(f"Skipping run {run.id} {run.name} because of drop_path_rate={run.config['model']['drop_path_rate']}")
                 continue
         info = {
             "run_id": run.id,
@@ -78,13 +83,14 @@ df["model_is_deq"] = df["model_is_deq"].apply(lambda x: "DEQ" if x else "Equifor
 df = df.rename(columns={"model_is_deq": "Model"})
 
 # filter for target
-df = df[df["target"] == target]
+if target not in [None, "all"]:
+    df = df[df["target"] == target]
 
 # filter for layers
 # df = df[df["num_layers"].isin(layers)]
 
 print('\nBefore averaging:')
-print(df[["run_name", "Model", "num_layers", "test_f_mae"]])
+print(df[["run_name", "Model", "num_layers", "test_f_mae", "target"]])
 
 
 # compute mean and std over 'seed'
@@ -140,7 +146,7 @@ for plotstyle in ['avg', 'all']:
             estimator="mean", 
             # errorbar method (either “ci”, “pi”, “se”, or “sd”)
             errorbar="sd", # errorbar=('ci', 95), # errorbar="sd"
-            capsize=0.1,
+            capsize=0.3,
             native_scale=True,
             linestyles=["-", "--"],
             # https://matplotlib.org/stable/api/_as_gen/matplotlib.lines.Line2D.html#matplotlib.lines.Line2D

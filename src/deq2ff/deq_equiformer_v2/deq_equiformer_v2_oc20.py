@@ -329,7 +329,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # | During inference, returns a list containing the fixed point solution only.
         # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
         z_pred, info = self.deq(
-            f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse)
+            f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
         )
         # [B, N, D, C] -> [B*N, D, C] # TODO: torchdeq batchify
         if self.batchify_for_torchdeq:

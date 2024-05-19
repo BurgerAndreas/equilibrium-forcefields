@@ -629,6 +629,7 @@ def main(args):
             idx_to_indices=idx_to_indices,
             fpdevice=fpdevice,
         )
+        epoch_train_time = time.perf_counter() - epoch_start_time
 
         if args.torch_record_memory:
             # Snapshots will save last `max_entries` number of memory events
@@ -784,6 +785,7 @@ def main(args):
             "epoch": epoch,
             "time_train": time.perf_counter() - start_time,
             "time_per_epoch": time.perf_counter() - epoch_start_time,
+            "time_train_per_epoch": epoch_train_time,
         }
         if test_err is not None:
             logs["test_e_mae"] = test_err["energy"].avg
@@ -1369,8 +1371,7 @@ def train_one_epoch(
                 )
                 abs_fixed_point_error.append(info["abs_trace"].mean(dim=0)[-1].item())
                 rel_fixed_point_error.append(info["rel_trace"].mean(dim=0)[-1].item())
-                # TODO: [0] .mean()?
-                f_steps_to_fixed_point.append(info["nstep"][0].mean().item())
+                f_steps_to_fixed_point.append(info["nstep"].mean().item())
 
             loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
             loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
@@ -1596,7 +1597,7 @@ def evaluate(
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
                 if "nstep" in info:
-                    n_fsolver_steps += info["nstep"][0].mean().item()
+                    n_fsolver_steps += info["nstep"].mean().item()
 
                 # --- logging ---
                 if len(info) > 0: 
@@ -1609,8 +1610,7 @@ def evaluate(
                         )
                     abs_fixed_point_error.append(info["abs_trace"].mean(dim=0)[-1].item())
                     rel_fixed_point_error.append(info["rel_trace"].mean(dim=0)[-1].item())
-                    # TODO: [0] .mean()?
-                    f_steps_to_fixed_point.append(info["nstep"][0].mean().item())
+                    f_steps_to_fixed_point.append(info["nstep"].mean().item())
 
                 if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
                     w = time.perf_counter() - start_time
@@ -1630,6 +1630,15 @@ def evaluate(
             
             # test set finished
             eval_time = time.perf_counter() - start_time # time for whole test set
+            _logs = {
+                f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
+                f"{_datasplit}_f_mae": mae_metrics["force"].avg,
+                f"time_{_datasplit}": eval_time,
+                f"time_forward_per_batch_{_datasplit}": np.mean(model_forward_time),
+                # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_time)
+                f"time_forward_total_{_datasplit}": np.sum(model_forward_time),
+            }
+            # log the time
             wandb.log(
                 {
                     f"time_{_datasplit}": eval_time,
@@ -1648,6 +1657,11 @@ def evaluate(
                     },
                     step=global_step,
                 )
+                _logs.update({
+                    f"abs_fixed_point_error_{_datasplit}": np.mean(abs_fixed_point_error),
+                    f"rel_fixed_point_error_{_datasplit}": np.mean(rel_fixed_point_error),
+                    f"f_steps_to_fixed_point_{_datasplit}": np.mean(f_steps_to_fixed_point),
+                })
 
             if n_fsolver_steps > 0:
                 n_fsolver_steps /= max_steps
@@ -1656,6 +1670,7 @@ def evaluate(
                 )
             
             # log test error for fpreuse
+            # for fpreuse=False, we log the error in main()
             if fpreuse_test == True:
                 wandb.log(
                     {
@@ -1664,6 +1679,10 @@ def evaluate(
                     },
                     step=global_step,
                 )
+            
+            print(f"Finished {_datasplit} evaluation.")
+            for k, v in _logs.items():
+                logger.info(f" {k}: {v}")
 
         # fp_reuse True/False finished
 

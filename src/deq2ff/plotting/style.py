@@ -11,7 +11,7 @@ plotfolder = pathlib.Path(__file__).parent.absolute()
 plotfolder = os.path.join(plotfolder, "plots")
 
 def set_seaborn_style(style="poster", figsize=(8, 6), font_scale=0.8):
-    sns.set_style(style="whitegrid")
+    sns.set_style(style="whitegrid") # whitegrid white
     sns.set_context(
         style, # {paper, notebook, talk, poster}
         font_scale=font_scale,
@@ -23,6 +23,7 @@ def set_seaborn_style(style="poster", figsize=(8, 6), font_scale=0.8):
             'legend.fontsize': 12,         # Legend font size
             'legend.frameon': True,        # Display legend frame
             'legend.loc': 'upper right',   # Adjust legend position
+            "axes.spines.right": False, "axes.spines.top": False
         },
     )
 

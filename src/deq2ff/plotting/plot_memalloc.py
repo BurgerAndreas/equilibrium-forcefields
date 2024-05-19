@@ -82,6 +82,7 @@ for r in runs:
     info.update({
         "run_id_acc": run_id,
         "run_name_acc": run.name,
+        "params": run.summary["Model Parameters"],
         # "config": run.config,
         # "summary": run.summary,
         "best_test_e_mae": run.summary["best_test_e_mae"],

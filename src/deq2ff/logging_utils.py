@@ -130,6 +130,7 @@ IGNORE_OVERRIDES = [
 IGNORE_OVERRIDES_CHECKPOINT = [
     "deq_kwargs_test",
     "fpreuse_f_tol",
+    "fpreuse_test",
     "eval_batch_size",
     "wandb_tags",
     "evaluate",

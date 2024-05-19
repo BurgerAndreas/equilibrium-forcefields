@@ -38,6 +38,7 @@ for run in runs:
             "num_layers": run.config["model"]["num_layers"],
             "model_is_deq": run.config["model_is_deq"],
             "target": run.config["target"],
+            "params": run.summary["Model Parameters"],
             # accuracy metrics
             "test_e_mae": run.summary["test_e_mae"],
             "test_f_mae": run.summary["test_f_mae"],
@@ -47,7 +48,7 @@ for run in runs:
         # Plots: pick the smaller of test_fpreuse_f_mae and test_f_mae
         if 'test_fpreuse_f_mae' in run.summary:
             info["test_f_mae"] = min(run.summary["test_f_mae"], run.summary["test_fpreuse_f_mae"])
-            info["test_e_mae"] = min(run.summary["test_e_mae"], run.summary["test_epreuse_e_mae"])
+            info["test_e_mae"] = min(run.summary["test_e_mae"], run.summary["test_fpreuse_e_mae"])
     except KeyError as e:
         print(f"Skipping run {run.id} {run.name} because of KeyError: {e}")
         continue

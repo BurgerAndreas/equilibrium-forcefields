@@ -53,9 +53,9 @@ def _process_solver_kwargs(solver_kwargs, reuse=False):
     for k, v in solver_kwargs.items():
         # kwargs that are only used when reusing the fixed-point
         if k.startswith("fpreuse_"):
-            k = k.replace("fpreuse_", "")
             if reuse == False:
                 continue
+            k = k.replace("fpreuse_", "")
         # add kwargs to solver
         if v != "_default":
             _solver_kwargs[k] = v

@@ -50,8 +50,18 @@ done
 # With dropout
 ########################################################################################
 
+# # DEQ 1 layer
+# # launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 wandb_tags=["md17"] target=aspirin
+# launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 wandb_tags=["md17"] target=benzene
+# launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 wandb_tags=["md17"] target=ethanol
+# launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 wandb_tags=["md17"] target=malonaldehyde
+# launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 wandb_tags=["md17"] target=naphthalene
+# launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 wandb_tags=["md17"] target=salicylic_acid
+# launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 wandb_tags=["md17"] target=toluene
+# launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 wandb_tags=["md17"] target=uracil
+
 # # DEQ 2 layers
-# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=aspirin
+# # launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=aspirin
 # launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=benzene
 # launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=ethanol
 # launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.drop_path_rate=0.05 wandb_tags=["md17"] target=malonaldehyde

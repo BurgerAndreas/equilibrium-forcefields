@@ -381,7 +381,7 @@ def main(args):
             model.load_state_dict(state_dict["state_dict"])
             optimizer.load_state_dict(state_dict["optimizer"])
             lr_scheduler.load_state_dict(state_dict["lr_scheduler"])
-            start_epoch = state_dict["epoch"] + 1
+            start_epoch = state_dict["epoch"]
             global_step = state_dict["global_step"]
             best_metrics = state_dict["best_metrics"]
             best_ema_metrics = state_dict["best_ema_metrics"]
@@ -391,6 +391,7 @@ def main(args):
         except Exception as e:
             # probably checkpoint not found
             _log.info(f"Error loading checkpoint: {e}")
+    wandb.log({"start_epoch": start_epoch, "epoch": start_epoch}, step=global_step)
 
     # if we want to run inference only we want to make sure that the model is loaded
     if args.assert_checkpoint:
@@ -570,7 +571,7 @@ def main(args):
                 # also save as best metrics?
                 # "best_test_e_mae": test_err["energy"].avg,
                 # "best_test_f_mae": test_err["force"].avg,
-                "epoch": start_epoch,
+                # "epoch": start_epoch,
             },
             step=global_step,
         )

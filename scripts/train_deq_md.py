@@ -396,6 +396,7 @@ def main(args):
     # if we want to run inference only we want to make sure that the model is loaded
     if args.assert_checkpoint:
         assert loaded_checkpoint, f"Failed to load checkpoint at path={args.checkpoint_path}."
+        assert start_epoch >= args.epochs * 0.98, f"Loaded checkpoint at path={args.checkpoint_path} isn't finished yet. start_epoch={start_epoch}."
 
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch
@@ -499,41 +500,46 @@ def main(args):
         return True
 
     """ Dryrun for logging shapes """
-    model.train()
-    # criterion.train()
-    criterion_energy.train()
-    criterion_force.train()
+    try:
+        model.train()
+        # criterion.train()
+        criterion_energy.train()
+        criterion_force.train()
 
-    for step, data in enumerate(train_loader):
-        data = data.to(device)
+        for step, data in enumerate(train_loader):
+            data = data.to(device)
 
-        # energy, force
-        shapes_to_log = model.get_shapes(
-            data=data,
-            node_atom=data.z,
-            pos=data.pos,
-            batch=data.batch,
-        )
-        break
+            # energy, force
+            shapes_to_log = model.get_shapes(
+                data=data,
+                node_atom=data.z,
+                pos=data.pos,
+                batch=data.batch,
+            )
+            break
 
-    # nums include batch size
-    shapes_to_log["batch_size"] = args.batch_size
-    shapes_to_log["NumNodes"] = shapes_to_log["NumNodes"] // args.batch_size
-    shapes_to_log["NumEdges"] = shapes_to_log["NumEdges"] // args.batch_size
+        # nums include batch size
+        shapes_to_log["batch_size"] = args.batch_size
+        shapes_to_log["NumNodes"] = shapes_to_log["NumNodes"] // args.batch_size
+        shapes_to_log["NumEdges"] = shapes_to_log["NumEdges"] // args.batch_size
 
-    import pprint
+        import pprint
 
-    ppr = pprint.PrettyPrinter(indent=4)
-    print(f"Shapes (target={args.target}):")
-    ppr.pprint(shapes_to_log)
-    wandb.run.summary.update(shapes_to_log)
+        ppr = pprint.PrettyPrinter(indent=4)
+        print(f"Shapes (target={args.target}):")
+        ppr.pprint(shapes_to_log)
+        wandb.run.summary.update(shapes_to_log)
 
-    # TODO: might not work with input injection as concat
-    NODE_EMBEDDING_BATCH_SHAPE = shapes_to_log["NodeEmbeddingShape"]
-    NODE_EMBEDDING_SHAPE = list(NODE_EMBEDDING_BATCH_SHAPE)
-    NODE_EMBEDDING_SHAPE[0] = NODE_EMBEDDING_SHAPE[0] // args.batch_size
-    print(f"NODE_EMBEDDING_SHAPE: {NODE_EMBEDDING_SHAPE}")
-    print(f"NODE_EMBEDDING_BATCH_SHAPE: {NODE_EMBEDDING_BATCH_SHAPE}")
+        # TODO: might not work with input injection as concat
+        NODE_EMBEDDING_BATCH_SHAPE = shapes_to_log["NodeEmbeddingShape"]
+        NODE_EMBEDDING_SHAPE = list(NODE_EMBEDDING_BATCH_SHAPE)
+        NODE_EMBEDDING_SHAPE[0] = NODE_EMBEDDING_SHAPE[0] // args.batch_size
+        print(f"NODE_EMBEDDING_SHAPE: {NODE_EMBEDDING_SHAPE}")
+        print(f"NODE_EMBEDDING_BATCH_SHAPE: {NODE_EMBEDDING_BATCH_SHAPE}")
+    except Exception as e:
+        print(f"Failed to log shapes: {e}")
+        NODE_EMBEDDING_BATCH_SHAPE = None
+        NODE_EMBEDDING_SHAPE = None
     
     """ Log memory usage """
     # Start recording memory snapshot history, initialized with a buffer
@@ -589,14 +595,14 @@ def main(args):
         return True
 
     """ Train! """
+    if NODE_EMBEDDING_SHAPE is not None:
     # empty list to store fixed-points across epochs
-    # fixed_points = [None] * args.train_size
-    fpdevice = device if args.fp_on_gpu else torch.device("cpu")
-    # TODO: replace by tensor?
-    # fixed_points = [torch.zeros(NODE_EMBEDDING_SHAPE, device=fpdevice)] * args.train_size 
-    fixed_points = torch.zeros(args.train_size, *NODE_EMBEDDING_SHAPE, device=fpdevice, requires_grad=False)
-    # empty tensor to store fixed-points across epochs
-    # fixed_points = torch.zeros(args.train_size, 3, device=device)
+        # fixed_points = [None] * args.train_size
+        fpdevice = device if args.fp_on_gpu else torch.device("cpu")
+        # fixed_points = [torch.zeros(NODE_EMBEDDING_SHAPE, device=fpdevice)] * args.train_size 
+        fixed_points = torch.zeros(args.train_size, *NODE_EMBEDDING_SHAPE, device=fpdevice, requires_grad=False)
+        # empty tensor to store fixed-points across epochs
+        # fixed_points = torch.zeros(args.train_size, 3, device=device)
     _log.info("\nStart training!\n")
     start_time = time.perf_counter()
     final_epoch = 0

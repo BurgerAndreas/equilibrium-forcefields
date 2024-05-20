@@ -66,7 +66,7 @@ def main_new(artifacts, datasplit, run_id):
         f"{plotfolder}/fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}.png"
     )
     plt.savefig(fname)
-    print(f"Saved plot to {fname}")
+    print(f"Saved plot to \n {fname}")
 
 
 def main_old(artifacts, datasplit, run_id):

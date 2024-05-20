@@ -189,7 +189,7 @@ def plot_num_edges_over_max_radius(max_radius, num_edges, molecule="Aspirin"):
     plt.axvline(x=5.0, color="gray", linestyle="--")
     plt.title(f"Number of directed edges vs max_radius {molecule}")
     plt.savefig(f"{plotfolder}/num_edges_over_max_radius.png")
-    print(f"Saved plot to {plotfolder}/num_edges_over_max_radius.png")
+    print(f"Saved plot to \n {plotfolder}/num_edges_over_max_radius.png")
 
 
 @hydra.main(

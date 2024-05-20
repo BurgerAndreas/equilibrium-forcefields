@@ -97,7 +97,7 @@ def main(
 
     fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}_{error_type}.png"
     plt.savefig(fname)
-    print(f"Saved plot to {fname}")
+    print(f"Saved plot to \n {fname}")
 
     # close the plot
     plt.close()

@@ -795,9 +795,9 @@ def main(args):
             "time_per_epoch": time.perf_counter() - epoch_start_time,
             "time_train_per_epoch": epoch_train_time,
         }
-        if test_err is not None:
-            logs["test_e_mae"] = test_err["energy"].avg
-            logs["test_f_mae"] = test_err["force"].avg
+        # if test_err is not None: # inside evaluate
+        #     logs["test_e_mae"] = test_err["energy"].avg
+        #     logs["test_f_mae"] = test_err["force"].avg
         # if global_step % args.log_every_step_minor == 0:
         wandb.log(logs, step=global_step)
 
@@ -985,25 +985,26 @@ def main(args):
 
     # all epochs done
     # evaluate on the whole testing set
-    optimizer.zero_grad(set_to_none=True)
-    test_err, test_loss = evaluate(
-        args=args,
-        model=model,
-        # criterion=criterion,
-        criterion_energy=criterion_energy,
-        criterion_force=criterion_force,
-        data_loader=test_loader,
-        optimizer=optimizer,
-        device=device,
-        print_freq=args.print_freq,
-        logger=_log,
-        print_progress=True,
-        max_iter=args.test_max_iter_final,  # -1 means evaluate the whole dataset
-        global_step=global_step,
-        datasplit="test_final",
-        normalizers=normalizers,
-    )
-    optimizer.zero_grad(set_to_none=True)
+    if args.do_final_test:
+        optimizer.zero_grad(set_to_none=True)
+        test_err, test_loss = evaluate(
+            args=args,
+            model=model,
+            # criterion=criterion,
+            criterion_energy=criterion_energy,
+            criterion_force=criterion_force,
+            data_loader=test_loader,
+            optimizer=optimizer,
+            device=device,
+            print_freq=args.print_freq,
+            logger=_log,
+            print_progress=True,
+            max_iter=args.test_max_iter_final,  # -1 means evaluate the whole dataset
+            global_step=global_step,
+            datasplit="test_final",
+            normalizers=normalizers,
+        )
+        optimizer.zero_grad(set_to_none=True)
 
     # save the final model
     if args.save_final_checkpoint:
@@ -1503,8 +1504,11 @@ def evaluate(
 
         # if we use fpreuse_test, also try without to get a comparison
         if datasplit == "test" and args.fpreuse_test == True:
-            # important that fpreuse comes first
-            fpreuse_list = [True, False]
+            if args.fpreuse_test_only == True:
+                fpreuse_list = [True]
+            else:
+                # important that fpreuse comes first
+                fpreuse_list = [True, False]
         else:
             fpreuse_list = [False]
         for fpreuse_test in fpreuse_list:
@@ -1680,16 +1684,14 @@ def evaluate(
                     {f"n_fsolver_steps_{_datasplit}": n_fsolver_steps}, step=global_step
                 )
             
-            # log test error for fpreuse
-            # for fpreuse=False, we log the error in main()
-            if fpreuse_test == True:
-                wandb.log(
-                    {
-                        f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
-                        f"{_datasplit}_f_mae": mae_metrics["force"].avg,
-                    },
-                    step=global_step,
-                )
+            # log test error
+            wandb.log(
+                {
+                    f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
+                    f"{_datasplit}_f_mae": mae_metrics["force"].avg,
+                },
+                step=global_step,
+            )
             
             print(f"Finished {_datasplit} evaluation.")
             for k, v in _logs.items():

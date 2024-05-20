@@ -157,7 +157,7 @@ model_is_deq: False
 # reuse fixed-point of previous step
 # DEQ Optical Flow used FPR only during inference
 fpreuse_test: False
-fpreuse_test_only: False
+fpreuse_test_only: True
 
 # reuse fixed-points across epochs
 fpreuse_across_epochs: False

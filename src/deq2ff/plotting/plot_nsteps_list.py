@@ -9,7 +9,7 @@ import yaml
 import json
 import requests
 
-from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder, acclabels, timelabels
+from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder, acclabels, timelabels, set_style_after, myrc
 
 
 
@@ -63,6 +63,8 @@ def main(
             # hue="nstep", palette="viridis",
         )
 
+        plt.gcf().set_size_inches(8, 6)
+
         plt.xlabel("Fixed-point solver steps")
         plt.ylabel(f"Number of occurences")
         if logscale:
@@ -110,14 +112,23 @@ def main(
         data=_df, x="nstep", hue="class", 
         kind="count",
         # palette="pastel", 
-        edgecolor=".6",
+        palette="muted",
+        # figsize = (8, 6), # Width, height
+        # height=6, aspect=1.,
+        # edgecolor=".6",
         # legend=False,
         # height=6, aspect=1.5,
         native_scale=True,
         # width=0.8,
         gap=0.0,
         dodge=False,
+        rc=myrc,
     )
+
+    # set size to (8,6)
+    plt.gcf().set_size_inches(8, 6)
+    fig = g.figure
+    fig.set_size_inches(8, 6)
 
     # add small xticks
     maxx = plt.gca().get_xlim()[1]
@@ -127,6 +138,8 @@ def main(
     # turn of grid
     plt.grid(False)
     plt.grid(which='major', axis='y', linestyle='-', linewidth='1.0', color='lightgray')
+
+    # set_style_after(ax)
 
     plt.xlabel("Fixed-point solver steps")
     plt.ylabel(f"Number of occurences")

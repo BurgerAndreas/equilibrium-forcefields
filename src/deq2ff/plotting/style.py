@@ -10,24 +10,41 @@ project = "EquilibriumEquiFormer"
 plotfolder = pathlib.Path(__file__).parent.absolute()
 plotfolder = os.path.join(plotfolder, "plots")
 
+myrc = {
+    'figure.figsize': (8, 6),     # Adjust the figure size as needed
+    'font.size': 20,               # Increase font size
+    'lines.linewidth': 3.5,        # Thicker lines
+    'lines.markersize': 8,        # Thicker lines
+    'legend.fontsize': 15,         # Legend font size
+    'legend.frameon': False,        # Display legend frame
+    'legend.loc': 'upper right',   # Adjust legend position
+    "axes.spines.right": False, "axes.spines.top": False, # top and right border
+    'text.usetex' : True,
+}
+
 def set_seaborn_style(style="whitegrid", palette="muted", context="poster", figsize=(8, 6), font_scale=0.8):
     sns.set_style(style=style) # whitegrid white
     sns.set_palette(palette)
+    myrc['figure.figsize'] = figsize
     sns.set_context(
         context, # {paper, notebook, talk, poster}
         font_scale=font_scale,
-        rc={
-            'figure.figsize': figsize,     # Adjust the figure size as needed
-            'font.size': 20,               # Increase font size
-            'lines.linewidth': 3.5,        # Thicker lines
-            'lines.markersize': 8,        # Thicker lines
-            'legend.fontsize': 12,         # Legend font size
-            'legend.frameon': False,        # Display legend frame
-            'legend.loc': 'upper right',   # Adjust legend position
-            "axes.spines.right": False, "axes.spines.top": False, # top and right border
-            'text.usetex' : True,
-        },
+        rc=myrc,
     )
+
+def set_style_after(ax):
+    plt.grid(False)
+    plt.grid(which='major', axis='y', linestyle='-', linewidth='1.0', color='lightgray')
+
+    # removes axes spines top and right
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    # increase legend fontsize
+    ax.legend(fontsize=15)
+
+    # remove legend border
+    ax.legend(frameon=False)
 
 timelabels = {
     "time_test": "Test time for 1000 samples [s]",

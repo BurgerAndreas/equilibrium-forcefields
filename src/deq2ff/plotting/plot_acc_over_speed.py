@@ -9,7 +9,7 @@ import yaml
 import json
 import requests
 
-from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder, acclabels, timelabels
+from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder, acclabels, timelabels, set_style_after, myrc
 
 nans = ['NaN', pd.NA, None, float("inf"), np.nan]
 
@@ -126,11 +126,12 @@ def barcharts_speed_acc_target(dfc, runs_with_dropout, target):
         plt.savefig(f"{plotfolder}/{name}.png")
         print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
-def plot_speed_over_acc_target(dfc, runs_with_dropout, target):
+def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
     """ Plot accuracy over inference time"""
 
-    # only plot one point TODO
-    # df = df[df["fpreuse_f_tol"].isin([1e0] + nans)]
+    # only plot one point 
+    if tol is not None:
+        df = df[df["fpreuse_f_tol"].isin([tol] + nans)]
     # select the lower
     m = "test_f_mae"
     mfp = m.replace('test', 'test_fpreuse')
@@ -205,7 +206,7 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target):
                 elinewidth=2,
                 capthick=2,
                 # legend=False,
-                alpha=0.5,
+                # alpha=0.5,
             )
             _i += 1
 
@@ -213,6 +214,8 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target):
     sns.scatterplot(
         data=df_mean, x=x, y=y, hue=colorstyle, style=shapestyle, ax=ax, markers=marks[:len(list(dfc[shapestyle].unique()))], s=200, 
     )
+
+    set_style_after(ax)
 
     # labels
     ax.set_xlabel(timelabels[x.replace("_lowest", "")])
@@ -235,12 +238,13 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target):
 
 
 
-def plot_acc_over_nfe(dfc, runs_with_dropout, target):
+def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
     # avg_n_fsolver_steps_test_fpreuse
     # f_steps_to_fixed_point_test_fpreuse
 
-    # only plot one point TODO
-    # df = df[df["fpreuse_f_tol"].isin([1e0] + nans)]
+    # only plot one point 
+    if tol is not None:
+        df = df[df["fpreuse_f_tol"].isin([tol] + nans)]
     # select the lower
     m = "test_f_mae"
     mfp = m.replace('test', 'test_fpreuse')
@@ -356,8 +360,8 @@ if __name__ == "__main__":
     """ Options """
     filter_eval_batch_size = 1 # 1 or 4
     filter_fpreuseftol = [1e1, 1e0, 1e-1, 1e-2, 1e-3, 1e-4]
-    seeds = [1]
-    # seeds = [1, 2, 3]
+    # seeds = [1]
+    seeds = [1, 2, 3]
     filter_fpreuseftol = {"max": 1e1, "min": 1e-4}
     Target = "apirin" # aspirin, all, malonaldehyde, ethanol
     time_metric = "time_forward_per_batch_test" + "_lowest" # time_test, time_forward_per_batch_test, time_forward_total_test
@@ -390,7 +394,7 @@ if __name__ == "__main__":
         runs = api.runs(
             project, 
             {
-                "tags": "inference", "state": "finished",
+                "tags": "inference2", "state": "finished",
                 # $or": [{"tags": "md17"}, {"tags": "main2"}, {"tags": "inference"}],
                 # "state": "finished",
                 # "$or": [{"state": "finished"}, {"state": "crashed"}],
@@ -551,6 +555,9 @@ if __name__ == "__main__":
 
     # barcharts_speed_acc_target(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
 
-    plot_speed_over_acc_target(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
+    # tol = 2e-1
+    # plot_speed_over_acc_target(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
+    plot_speed_over_acc_target(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target, tol=2e-1)
 
-    plot_acc_over_nfe(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
+    # plot_acc_over_nfe(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
+    plot_acc_over_nfe(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target, tol=2e-1)

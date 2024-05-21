@@ -134,6 +134,8 @@ IGNORE_OVERRIDES_CHECKPOINT = [
     "eval_batch_size",
     "wandb_tags",
     "evaluate",
+    "test_w_eval_mode",
+    "testwevalmode",
 ]
 
 REPLACE = {

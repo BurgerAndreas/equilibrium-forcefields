@@ -13,226 +13,98 @@ from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder
 
 nans = ['NaN', pd.NA, None, float("inf"), np.nan]
 
-def barcharts_speed_acc_target(dfc, runs_with_dropout, target):
-    """Speed barchart and accuracy barchart"""
-    color_palette = sns.color_palette('muted')
-    color_equiformer = color_palette[0]
-    color_deq = color_palette[1]
-    model_to_color = {"Equiformer": color_equiformer, "DEQ": color_deq}
-    equiformer_first = True
 
-    dfc.sort_values(by=["Model", "Layers", "fpreuse_f_tol"], inplace=True, ascending=[not equiformer_first, True, True])
+def plot_acc_over_ftol(dfc, runs_with_dropout, target):
+    """ Plot accuracy over fpreuse_f_tol """
+    # rename column avg_n_fsolver_steps_test_fpreuse -> nsteps
+    dfc = dfc.rename(columns={"avg_n_fsolver_steps_test_fpreuse": "nsteps"})
+    # dfc = dfc.rename(columns={"f_steps_to_fixed_point_test_fpreuse": "nsteps"})
 
-    df_clustered = copy.deepcopy(dfc)
-    df_clustered["fpreuse_f_tol"] = df_clustered["fpreuse_f_tol"].apply(lambda x: 0.0 if np.isnan(x) else x)
-    # combine cols_to_keep into one
-    df_clustered["run_name"] = df_clustered.apply(lambda x: f"{x['Model']} {x['Layers']}", axis=1)
-    df_clustered["run_name"] = df_clustered.apply(
-        lambda x: x['run_name'] + f" {x['fpreuse_f_tol']:.0e}" if x['fpreuse_f_tol'] != 0.0 else x['run_name'], axis=1
-    )
-    # print('\nAfter renaming:\n', df_clustered[["run_name", "Model", "Layers", acc_metric, time_metric, "fpreuse_f_tol"]])
+    # new column nfe = nsteps * Layers
+    # dfc["nfe"] = dfc["nsteps"] * dfc["Layers"]
+    dfc["nfe"] = dfc["nsteps"] 
 
-    # cols_to_keep = ["Model", "Layers", "fpreuse_f_tol"] + ["run_name"] 
-    # df_mean = df_clustered.groupby(cols_to_keep).mean(numeric_only=True).reset_index()
-    # df_std = df_clustered.groupby(cols_to_keep).std(numeric_only=True).reset_index()
-    # print('\nAfter averaging:\n', df_mean[["run_name", acc_metric, time_metric, "fpreuse_f_tol"]])
+    df_fpreuse = dfc[dfc["Model"] == "DEQ"]
 
-    for _avg in [True, False]:
-        if _avg:
-            # barplots make their own mean and error bars
-            _df = df_clustered
+    x = "fpreuse_f_tol"
+    color = "Layers"
+    
+    # y = acc_metric
+    # for y in ["test_f_mae", "time_forward_per_batch_test"]:
+    for y in ["test_f_mae_lowest", "time_forward_per_batch_test_lowest", "nfe"]:
+        # plot
+        set_seaborn_style()
+        fig, ax = plt.subplots()
+        # sns.scatterplot(data=df_fpreuse, x=x, y=y, hue=color, ax=ax)
+
+        # x axis on log scale
+        ax.set_xscale('log')
+        # turn around x axis
+        ax.invert_xaxis()
+
+        cols_to_keep = ["Model", "Layers", "fpreuse_f_tol"]
+        df_mean = df_fpreuse.groupby(cols_to_keep).mean(numeric_only=True).reset_index()
+        df_std = df_fpreuse.groupby(cols_to_keep).std(numeric_only=True).reset_index()
+        sns.pointplot(
+            data=df_fpreuse, 
+            x=x, y=y, 
+            estimator="mean", 
+            # errorbar="sd",
+            errorbar=("ci", 95),
+            hue=color, 
+            ax=ax, 
+            # markers=["o", "s", "^"], linestyles=["-", "--", "-."], 
+            palette="muted",
+            markersize=3, linewidth=3,
+            native_scale=True, 
+            capsize=.3, # log scale
+            # legend=False,
+        )
+
+        # if there is only one layer, remove the legend
+        if len(dfc["Layers"].unique()) == 1:
+            ax.get_legend().remove()
+
+        # custom legend label
+        # handles, labels = ax.get_legend_handles_labels()
+        # ax.legend(handles=handles[1:], labels=["DEQ"], loc="upper right")
+
+        # set xticks at fpreuse_f_tol 
+        fpreuseftols = df_fpreuse["fpreuse_f_tol"].unique()
+        ax.set_xticks(fpreuseftols)
+        # TODO has to be before xscale?
+        # ax.get_xaxis().get_major_formatter().labelOnlyBase = False
+
+        # turn on scientific notation
+        # ax.ticklabel_format(axis='x', style='sci', scilimits=(0, 0))
+
+        # from matplotlib.ticker import FuncFormatter
+        # scientific_formatter = FuncFormatter(lambda x, pos: '%.1e' % x)
+        # ax.yaxis.set_major_formatter(scientific_formatter)
+
+        # labels
+        ax.set_xlabel(r"Abs solver tolerance $\epsilon^{FPreuse}_{test}$")
+        ax.set_title("Accuracy vs. Solver Stopping Criterion")
+
+        plt.tight_layout()
+
+        # save
+        if "mae" in y:
+            name = f"acc_over_fpreuseftol" + f"-bs{filter_eval_batch_size}"
+            ax.set_ylabel(r"Force MAE [meV/$\AA$]")
+        elif "nfe" in y:
+            name = f"nfe_over_fpreuseftol" + f"-bs{filter_eval_batch_size}"
+            ax.set_ylabel(r"Number of Solver Steps")
         else:
-            _df = dfc
-
-        sns.set_palette(color_palette)
-
-        """ Barchart of inference time """
-        y = time_metric
-        x = "run_name"
-        color = "Model"
-
-        # plot
-        # set_seaborn_style(figsize=(10, 5))
-        # sns.set_style("whitegrid")
-        fig, ax = plt.subplots(figsize=(10, 5))
-        sns.barplot(data=_df, x=x, y=y, hue=color, ax=ax)
-
-        # write values on top of bars
-        for p in ax.patches:
-            # do not write 0.00
-            if p.get_height() == 0:
-                continue
-            ax.annotate(f"{p.get_height():.2f}", (p.get_x() + p.get_width() / 2., p.get_height()), ha='center', va='center', xytext=(0, 10), textcoords='offset points', fontsize=8)
-
-        # make labels vertical
-        # plt.xticks(rotation=90)
-
-        loc, labels = plt.xticks()
-        # ax.set_xticks(loc[::2]) # this is a hack, only show every second label
-        ax.set_xticks(loc) 
-        ax.set_xticklabels(labels, rotation=45, horizontalalignment='right', fontsize=8)
-
-        # labels
-        ax.set_xlabel("") # "Run name"
-        ax.set_ylabel(timelabels[y.replace("_lowest", "")])
-
-        plt.tight_layout()
-
-        # save
-        name = f"speed2{'-avg' if _avg else ''}-bs{filter_eval_batch_size}-{time_metric.replace('_lowest', '')}"
-        plt.savefig(f"{plotfolder}/{name}.png")
-        print(f"\nSaved plot to \n {plotfolder}/{name}.png")
-
-
-        """ Barchart of accuracy """
-        y = acc_metric
-        x = "run_name"
-        color = "Model"
-
-        # plot
-        # set_seaborn_style(figsize=(10, 5))
-        # sns.set_style("whitegrid")
-        fig, ax = plt.subplots(figsize=(10, 5))
-        sns.barplot(data=_df, x=x, y=y, hue=color, ax=ax)
-
-        # write values on top of bars
-        for p in ax.patches:
-            # do not write 0.00
-            if p.get_height() == 0:
-                continue
-            ax.annotate(f"{p.get_height():.2f}", (p.get_x() + p.get_width() / 2., p.get_height()), ha='center', va='center', xytext=(0, 10), textcoords='offset points', fontsize=8)
-
-        # make labels vertical
-        # plt.xticks(rotation=90)
-
-        loc, labels = plt.xticks()
-        ax.set_xticks(loc)
-        # UserWarning: set_ticklabels() should only be used with a fixed number of ticks, i.e. after set_ticks() or using a FixedLocator.
-        ax.set_xticklabels(labels, rotation=45, horizontalalignment='right', fontsize=8)
-
-        # labels
-        ax.set_xlabel("") # "Run name"
-        ax.set_ylabel(acclabels[y.replace("_lowest", "")])
-
-        plt.tight_layout()
-
-        # save
-        name = f"acc2{'-avg' if _avg else ''}-bs{filter_eval_batch_size}-{acc_metric.replace('_lowest', '')}"
+            name = f"time_over_fpreuseftol" + f"-bs{filter_eval_batch_size}"
+            ax.set_ylabel(r"Time per Batch [s]")
         if runs_with_dropout:
             name += '-dropout'
         else:
             name += '-nodropout'
-        name += "-" + target        
+        name += "-" + target
         plt.savefig(f"{plotfolder}/{name}.png")
         print(f"\nSaved plot to \n {plotfolder}/{name}.png")
-
-def plot_speed_over_acc_target(dfc, runs_with_dropout, target):
-    """ Plot accuracy over inference time"""
-
-    # only plot one point TODO
-    # df = df[df["fpreuse_f_tol"].isin([1e0] + nans)]
-    # select the lower
-    m = "test_f_mae"
-    mfp = m.replace('test', 'test_fpreuse')
-    # dfc[f"{m}_lowest"] = dfc.apply(lambda x: min(x[m], x[mfp]), axis=1)
-
-    color_palette = sns.color_palette('muted')
-    color_equiformer = color_palette[0]
-    color_deq = color_palette[1]
-    model_to_color = {"Equiformer": color_equiformer, "DEQ": color_deq}
-    equiformer_first = True
-
-    dfc.sort_values(by=["Model", "Layers", "fpreuse_f_tol"], inplace=True, ascending=[not equiformer_first, True, True])
-
-    df_clustered = copy.deepcopy(dfc)
-    df_clustered["fpreuse_f_tol"] = df_clustered["fpreuse_f_tol"].apply(lambda x: 0.0 if np.isnan(x) else x)
-    # combine cols_to_keep into one
-    df_clustered["run_name"] = df_clustered.apply(lambda x: f"{x['Model']} {x['Layers']}", axis=1)
-    df_clustered["run_name"] = df_clustered.apply(
-        lambda x: x['run_name'] + f" {x['fpreuse_f_tol']:.0e}" if x['fpreuse_f_tol'] != 0.0 else x['run_name'], axis=1
-    )
-    # print('\nAfter renaming:\n', df_clustered[["run_name", "Model", "Layers", acc_metric, time_metric, "fpreuse_f_tol"]])
-
-    cols_to_keep = ["Model", "Layers", "fpreuse_f_tol"] + ["run_name"] 
-    df_mean = df_clustered.groupby(cols_to_keep).mean(numeric_only=True).reset_index()
-    df_std = df_clustered.groupby(cols_to_keep).std(numeric_only=True).reset_index()
-    # print('\nAfter averaging:\n', df_mean[["run_name", acc_metric, time_metric, "fpreuse_f_tol"]])
-
-    y = acc_metric
-    x = time_metric
-    colorstyle = "Model"
-    shapestyle = "Layers"
-    # https://stackoverflow.com/a/64403147/18361030
-    # marks = ["o", "s", "^"]
-    marks = ["o", "X", "^", "P"]
-    # marks = ["o", "P", "^"]
-
-    set_seaborn_style()
-
-    fig, ax = plt.subplots()
-
-    df_mean.sort_values(by=["Model"], inplace=True, ascending=[not equiformer_first])
-    print('\nMean for acc vs speed:\n', df_mean[[x, y, colorstyle, shapestyle]])
-
-    # error bars on both axes
-    # shades of blue
-    blues = sns.color_palette("Blues", n_colors=3)
-    # oranges
-    oranges = sns.color_palette("Reds", n_colors=6)
-    model_to_colors = {"Equiformer": blues, "DEQ": oranges}
-    _i = 0
-    # draws error bars and lines
-    for i, m in enumerate(list(dfc["Model"].unique())):
-        for _l, l in enumerate(list(dfc[shapestyle].unique())):
-            _mean = copy.deepcopy(df_mean)
-            _mean = _mean[_mean["Model"] == m]
-            _mean = _mean[_mean[shapestyle] == l]
-            _std = copy.deepcopy(df_std)
-            _std = _std[_std["Model"] == m]
-            _std = _std[_std[shapestyle] == l]
-            ax.errorbar(
-                _mean[x], 
-                _mean[y], 
-                xerr=_std[x], 
-                yerr=_std[y], 
-                # fmt='o', 
-                # fmt='none', # no line
-                lw=2,
-                # color='black', 
-                color=model_to_color[m],
-                # color=model_to_colors[m][_l],
-                capsize=5,
-                elinewidth=2,
-                capthick=2,
-                # legend=False,
-                alpha=0.5,
-            )
-            _i += 1
-
-    # sns.lineplot(data=df_mean, x=x, y=y, hue=color, ax=ax, markers=marks, legend=False)
-    sns.scatterplot(
-        data=df_mean, x=x, y=y, hue=colorstyle, style=shapestyle, ax=ax, markers=marks[:len(list(dfc[shapestyle].unique()))], s=200, 
-    )
-
-    # labels
-    ax.set_xlabel(timelabels[x.replace("_lowest", "")])
-    ax.set_ylabel(r"Force MAE [meV/$\AA$]")
-    ax.set_title("Inference accuracy vs speed")
-
-    # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")
-
-    plt.tight_layout(pad=0.1)
-
-    # save
-    name = f"acc_over_time" + f"-bs{filter_eval_batch_size}-{time_metric}"
-    if runs_with_dropout:
-        name += '-dropout'
-    else:
-        name += '-nodropout'
-    name += "-" + target
-    plt.savefig(f"{plotfolder}/{name}.png")
-    print(f"\nSaved plot to \n {plotfolder}/{name}.png")
-
 
 
 def plot_acc_over_nfe(dfc, runs_with_dropout, target):
@@ -333,9 +205,9 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target):
     )
 
     # labels
-    ax.set_xlabel("Function Evaluations (NFE)")
+    ax.set_xlabel(timelabels[x.replace("_lowest", "")])
     ax.set_ylabel(r"Force MAE [meV/$\AA$]")
-    ax.set_title("Inference accuracy vs Function Evaluations")
+    ax.set_title("Inference speed vs. accuracy")
 
     # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")
 
@@ -356,10 +228,10 @@ if __name__ == "__main__":
     """ Options """
     filter_eval_batch_size = 1 # 1 or 4
     filter_fpreuseftol = [1e1, 1e0, 1e-1, 1e-2, 1e-3, 1e-4]
-    seeds = [1]
-    # seeds = [1, 2, 3]
+    # seeds = [1]
+    seeds = [1, 2, 3]
     filter_fpreuseftol = {"max": 1e1, "min": 1e-4}
-    Target = "apirin" # aspirin, all, malonaldehyde, ethanol
+    Target = "aspirin" # aspirin, all, malonaldehyde, ethanol
     time_metric = "time_forward_per_batch_test" + "_lowest" # time_test, time_forward_per_batch_test, time_forward_total_test
     acc_metric = "test_f_mae" + "_lowest" # test_f_mae_lowest, test_f_mae, test_e_mae_lowest, test_e_mae, best_test_f_mae, best_test_e_mae
     layers_deq = [1, 2]
@@ -370,7 +242,7 @@ if __name__ == "__main__":
     runs_with_dropout = False
 
     # download data or load from file
-    download_data = True
+    download_data = False
 
     # choose from
     eval_batch_sizes = [1, 4]
@@ -390,7 +262,7 @@ if __name__ == "__main__":
         runs = api.runs(
             project, 
             {
-                "tags": "inference", "state": "finished",
+                "tags": "inference2", "state": "finished",
                 # $or": [{"tags": "md17"}, {"tags": "main2"}, {"tags": "inference"}],
                 # "state": "finished",
                 # "$or": [{"state": "finished"}, {"state": "crashed"}],
@@ -549,8 +421,10 @@ if __name__ == "__main__":
     ################################################################################################################################
 
 
-    # barcharts_speed_acc_target(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
+    barcharts_speed_acc_target(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
 
     plot_speed_over_acc_target(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
 
     plot_acc_over_nfe(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
+
+    plot_acc_over_ftol(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)

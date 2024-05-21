@@ -9,7 +9,7 @@ import numpy as np
 
 from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder, acclabels, timelabels
 
-def plot_acc_all_mols(_df, _targets, _x, _y):
+def plot_acc_all_mols(_df, _targets, _x, _y, runs_with_dropout):
     # new column that combines Model and Layers
     _df["type"] = _df["Model"] + " " + _df["Layers"].astype(str) + " layers"
 
@@ -123,12 +123,16 @@ def plot_acc_all_mols(_df, _targets, _x, _y):
 
         # save
         name = f"acc2-{mol}-{acc_metric}"
+        if runs_with_dropout:
+            name += "-dropout"
+        else:
+            name += "-nodropout"
         plt.savefig(f"{plotfolder}/{name}.png")
         print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
 
 
-def plot_acc_over_size(_df, _y="test_f_mae"):
+def plot_acc_over_size(_df, _y="test_f_mae", runs_with_dropout=True):
     """ Plot accuracy over molecule size """
 
     molecule_sizes = {
@@ -186,10 +190,17 @@ def plot_acc_over_size(_df, _y="test_f_mae"):
 
         # save
         name = f"acc_over_molecule_size2-{_y}"
+        if runs_with_dropout:
+            name += "-dropout"
+        else:
+            name += "-nodropout"
         plt.savefig(f"{plotfolder}/{name}.png")
         print(f"\nSaved plot to \n {plotfolder}/{name}.png")
     
-def print_acc_all(_df):
+def print_acc_all(_df, runs_with_dropout):
+    # filter for target=aspirin
+    # _df = _df[_df["Target"] == "aspirin"]
+    
     # format
     # cols: Aspirin & Benzene & Ethanol & Malonaldehyde & Naphthalene & Salicylic acid & Toluene & Uracil
     # cols: energy & forces
@@ -238,7 +249,10 @@ def print_acc_all(_df):
             first_deq = False
         print(line)
 
-def print_acc(_df, energies=False):
+def print_acc(_df, runs_with_dropout, energies=False):
+    # filter for target=aspirin
+    # _df = _df[_df["Target"] == "aspirin"]
+
     # format
     # cols: Aspirin & Benzene & Ethanol & Malonaldehyde & Naphthalene & Salicylic acid & Toluene & Uracil
     # cols: energy & forces
@@ -256,6 +270,7 @@ def print_acc(_df, energies=False):
         # print(_df.pivot(index="type", columns="Target", values=row).to_latex(float_format="%.2f"))
     
     _df = _df.sort_values(by=["Target", "Model", "Layers"], ascending=[True, False, True])
+    _df = _df.sort_values(by=["Model", "Target", "Layers"], ascending=[False, True, True])
 
     print('\nResult df:\n', _df[["type", "Model", "Layers", "Target", "seed", "test_f_mae", "test_e_mae"]])
 
@@ -277,6 +292,7 @@ def print_acc(_df, energies=False):
             if len(val) == 0:
                 mean = float("inf")
                 line += [f"${mean}$ & "]
+                print(f" Warning: No value for {row} and {col}")
             elif len(val) > 3:
                 # TODO: what to do with duplicates?
                 # if there are duplicate seeds, take the first of the duplicates
@@ -318,6 +334,7 @@ def print_acc(_df, energies=False):
         else:
             lines[best_row][_c+1] += ' &'
     
+    print('\nResult table:')
     for _l, line in enumerate(lines):
         if _l == first_deq:
             print("\midrule[0.6pt]")
@@ -329,7 +346,7 @@ if __name__ == "__main__":
     """ Options """
     acc_metric = "test_f_mae"
     x = "type" # "Model" run_name
-    runs_with_dropout = True
+    runs_with_dropout = False
 
     layers_deq = [1, 2]
     layers_equi = [1, 4, 8]
@@ -340,7 +357,8 @@ if __name__ == "__main__":
         project, 
         {
             # "tags": "inference", 
-            "$or": [{"tags": "md17"}, {"tags": "md22"}, {"tags": "main2"}],
+            # "$or": [{"tags": "md17"}, {"tags": "md22"}, {"tags": "main2"}],
+            "$or": [{"tags": "md17"}],
             # "state": "finished",
             # $or": [{"tags": "md17"}, {"tags": "main2"}, {"tags": "inference"}],
             # "state": "finished",
@@ -446,5 +464,5 @@ if __name__ == "__main__":
     # plot accuracy over molecule size
     # plot_acc_over_size(copy.deepcopy(df))
 
-    print_acc(copy.deepcopy(df))
-    print_acc(copy.deepcopy(df), energies=True)
+    print_acc(copy.deepcopy(df), runs_with_dropout=runs_with_dropout)
+    # print_acc(copy.deepcopy(df), energies=True, runs_with_dropout=runs_with_dropout)

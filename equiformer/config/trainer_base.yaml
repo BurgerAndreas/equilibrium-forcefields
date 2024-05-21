@@ -190,6 +190,10 @@ squeeze_e_dim: False # if to reshape data [B,1] (MD17) -> [B] (OC20)
 # if true, torchdeq treats each graph (molecule) as a separate batch. # [B*N, D, C] -> [B, N, D, C]
 batchify_for_torchdeq: False 
 
+# log fixed_point_trace
+log_fixed_point_trace_train: False
+log_trace_freq: null
+
 # wandb.watch gradients, activations, model parameters (bool)
 watch_model: False
 

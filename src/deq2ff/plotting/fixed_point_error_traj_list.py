@@ -107,6 +107,17 @@ def main(
 
 if __name__ == "__main__":
 
+    # ----------------- E2 paper -----------------
+    # DEQE2 fpcof droppathrate-005 numlayers-2 target-aspirin 44347 y74fi59q
+
+    # DEQE2 fpcof droppathrate-005 numlayers-2 seed-3 44235 l4967hbt
+
+    # DEQE2 fpcof numlayers-2 44195 6ovbmv0v
+
+    # DEQE2 fpcof numlayers-2 seed-2 44196 ef3trp9e
+
+    # launchrun +use=deq +cfg=[fpc_of,fptrace] model.num_layers=2
+
     # ----------------- E2 -----------------
     # E2 aauf 8uuq632s
     # not converged
@@ -140,11 +151,11 @@ if __name__ == "__main__":
 
     # E2 fsolver-broyden alphadrop-0 droppathrate-0 1hjry1oh
     run_id = "1hjry1oh"
-    main(run_id, error_type="abs", datasplit="train", logscale=True)
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
 
     # E2 alphadrop-0 droppathrate-0 12uk3wdo
     run_id = "12uk3wdo"
-    main(run_id, error_type="abs", datasplit="train", logscale=True)
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
 
     # ----------------- E1 -----------------
     # broyden pathnorm: f9bg18sp

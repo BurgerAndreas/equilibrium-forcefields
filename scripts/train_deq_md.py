@@ -1373,10 +1373,12 @@ def train_one_epoch(
 
             if len(info) > 0:
                 # log fixed-point trajectory
+                # if args.log_fixed_point_trace_train: 
                 logging_utils_deq.log_fixed_point_error(
                     info,
                     step=global_step,
                     datasplit="train",
+                    log_trace_freq=args.log_trace_freq,
                 )
                 abs_fixed_point_error.append(info["abs_trace"].mean(dim=0)[-1].item())
                 rel_fixed_point_error.append(info["rel_trace"].mean(dim=0)[-1].item())

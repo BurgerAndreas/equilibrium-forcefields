@@ -136,6 +136,8 @@ IGNORE_OVERRIDES_CHECKPOINT = [
     "evaluate",
     "test_w_eval_mode",
     "testwevalmode",
+    # target is defined in the path
+    # "target",
 ]
 
 REPLACE = {
@@ -195,6 +197,7 @@ REPLACE = {
     "  ": " ",
     # ignore defaults
     "targetaspirin": "",
+    "seed1": "",
 }
 
 

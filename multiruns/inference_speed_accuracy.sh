@@ -15,133 +15,41 @@
 # launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 model.num_layers=2 seed=2
 # launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 model.num_layers=2 seed=3
 
-# ls models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2fpcofdroppathrate005
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-5 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-4 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-3 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-2 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e0 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e2 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1
+# for speed table and accuracy table
 
-# seed=2
-# ls models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2fpcofdroppathrate005seed2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-5 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-4 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-3 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-2 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e0 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e2 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=2
+# loop over molecules
+# get_all_models
+md17=(aspirin benzene ethanol malonaldehyde naphthalene salicylic_acid toluene uracil)
+for target in "${md17[@]}"; do
+    # loop over fpreuse_f_tol
+    # 16 values * 8 molecules * 2 models * 3 seeds * 1 minute = 768 minutes = 12.8 hours
+    # for fpreuse_f_tol in 1e-4 1e-3 1e-2 5e-2 1e-1 2e-1 3e-1 4e-1 5e-1 6e-1 7e-1 8e-1 9e-1 1e0 1e1 1e2; do
+    #     # without dropout
+    #     launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=$fpreuse_f_tol target=$target
+    #     launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 deq_kwargs_test.fpreuse_f_tol=$fpreuse_f_tol target=$target
+    #     # with dropout
+    #     # launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.drop_path_rate=0.05 model.num_layers=2 deq_kwargs_test.fpreuse_f_tol=$fpreuse_f_tol target=$target
+    # done
 
-# seed=3
-# ls models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2fpcofdroppathrate005seed3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-5 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-4 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-3 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-2 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e0 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e2 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 seed=3
+    # DEQ most important run
+    launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
+    launchrun +use=deq +cfg=fpc_of model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
 
-# model.num_layers=2
-# ls models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2fpcofdroppathrate005numlayers2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-5 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-4 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-3 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-2 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e0 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e2 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2
+    # Equiformer
+    launchrun evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1 target=$target
+    launchrun evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4 target=$target
+    launchrun evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=$target
+done
 
-# model.num_layers=2, seed=2
-# ls models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2fpcofdroppathrate005numlayers2seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-5 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-4 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-3 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-2 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e0 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=2
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e2 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=2
+# # dropout 
+# for target in "${md17[@]}"; do
 
-# model.num_layers=2, seed=3
-# ls models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2fpcofdroppathrate005numlayers3seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-5 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-4 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-3 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-2 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e0 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=3
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e2 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 seed=3
+#     # DEQ most important run
+#     launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
+#     launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
 
-
-####################################################################################################
-# Equiformer aspirin
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8
-
-# seed=2
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1 seed=2
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4 seed=2
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 seed=2
-
-# seed=3
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1 seed=3
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4 seed=3
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 seed=3
-
-
-####################################################################################################
-# Speed runs for all molecules at deq_kwargs_test.fpreuse_f_tol=1e-1
-####################################################################################################
-
-# md17=(aspirin benzene ethanol malonaldehyde naphthalene salicylic_acid toluene uracil)
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 target=benzene
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 target=ethanol
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 target=malonaldehyde
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 target=naphthalene
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 target=salicylic_acid
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 target=toluene
-launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True deq_kwargs_test.fpreuse_f_tol=1e-1 wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 target=uracil
-
-
-####################################################################################################
-# Equiformer
-
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1 target=benzene
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1 target=ethanol
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1 target=malonaldehyde
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1 target=naphthalene
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1 target=salicylic_acid
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1 target=toluene
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1 target=uracil
-
-# model.num_layers=4
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4 target=benzene
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4 target=ethanol
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4 target=malonaldehyde
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4 target=naphthalene
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4 target=salicylic_acid
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4 target=toluene
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4 target=uracil
-
-
-# model.num_layers=8
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=benzene
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=ethanol
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=malonaldehyde
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=naphthalene
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=salicylic_acid
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=toluene
-launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=uracil
-
-
-# md22=(AT_AT_CG_CG AT_AT Ac_Ala3_NHMe DHA buckyball_catcher dw_nanotube stachyose)
-
+#     # Equiformer
+#     launchrun evaluate=True model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1 target=$target
+#     launchrun evaluate=True model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4 target=$target
+#     launchrun evaluate=True model.alpha_drop=0.1 model.drop_path_rate=0.05 wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=$target
+# done

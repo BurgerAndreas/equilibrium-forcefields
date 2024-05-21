@@ -22,9 +22,9 @@ def set_seaborn_style(style="whitegrid", palette="muted", context="poster", figs
             'lines.linewidth': 3.5,        # Thicker lines
             'lines.markersize': 8,        # Thicker lines
             'legend.fontsize': 12,         # Legend font size
-            'legend.frameon': True,        # Display legend frame
+            'legend.frameon': False,        # Display legend frame
             'legend.loc': 'upper right',   # Adjust legend position
-            # "axes.spines.right": False, "axes.spines.top": False # top and right border
+            "axes.spines.right": False, "axes.spines.top": False, # top and right border
             'text.usetex' : True,
         },
     )
@@ -33,12 +33,14 @@ timelabels = {
     "time_test": "Test time for 1000 samples [s]",
     "time_forward_per_batch_test": "Forward time per batch [s]",
     "time_forward_total_test": "Total forward time for 1000 samples [s]",
+    "nfe": "NFE",
 }
 acclabels = {
     "best_test_f_mae": r"Best force MAE [meV/$\AA$]",
     "test_f_mae": r"Force MAE [meV/$\AA$]",
     "best_test_e_mae": "Best energy MAE [meV]",
     "test_e_mae": "Energy MAE [meV]",
+    "nfe": "NFE",
 }
 
 def combine_legend(ax, colorstyle_dict, markerstyle):

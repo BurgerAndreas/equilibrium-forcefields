@@ -7,7 +7,7 @@ import copy
 import os, sys, pathlib
 import yaml
 
-from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder
+from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder
 
 # Summary metrics are the last value of your logged metrics. 
 # If you’re logging metrics over time/steps then you could retrieve them using our Public API with the methods history and scan_history. 
@@ -32,7 +32,7 @@ timelabels = {
 acc_metrics = ["best_test_f_mae", "test_f_mae", "best_test_e_mae", "test_e_mae"]
 acclabels = {
     "best_test_f_mae": "Best force MAE",
-    "test_f_mae": r"Force MAE [meV/$\AA$]",
+    "test_f_mae": r"Force MAE [kcal/mol/$\AA$]",
     "best_test_e_mae": "Best energy MAE",
     "test_e_mae": "Energy MAE",
 }

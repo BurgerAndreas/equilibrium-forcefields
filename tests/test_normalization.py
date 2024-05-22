@@ -81,7 +81,7 @@ def test_normalization_layers(num_atoms, lmax_list, sphere_channels, device, dty
     """What does normalization layer do to a random tensor?"""
 
     sns.set_style("whitegrid")
-    colors = sns.color_palette(palette="muted", n_colors=20)
+    colors = sns.color_palette(palette=PALETTE, n_colors=20)
 
     # create two figures
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
@@ -218,7 +218,7 @@ def test_multiple_passes_normalization_layers(
     normlayer_affine = True
 
     sns.set_style("whitegrid")
-    colors = sns.color_palette(palette="muted", n_colors=20)
+    colors = sns.color_palette(palette=PALETTE, n_colors=20)
 
     # create two figures
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))

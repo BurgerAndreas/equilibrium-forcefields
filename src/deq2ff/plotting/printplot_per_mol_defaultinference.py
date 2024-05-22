@@ -7,7 +7,7 @@ import os, sys, pathlib
 import yaml
 import numpy as np
 
-from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder, acclabels, timelabels
+from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, acclabels, timelabels
 
 def plot_acc_all_mols(_df, _targets, _x, _y, runs_with_dropout):
     # new column that combines Model and Layers
@@ -197,7 +197,7 @@ def plot_acc_over_size(_df, _y="test_f_mae", runs_with_dropout=True):
         plt.savefig(f"{plotfolder}/{name}.png")
         print(f"\nSaved plot to \n {plotfolder}/{name}.png")
     
-def print_acc_all(_df, runs_with_dropout):
+def print_acc_energiesforces(_df, runs_with_dropout):
     # filter for target=aspirin
     # _df = _df[_df["Target"] == "aspirin"]
     
@@ -366,12 +366,13 @@ if __name__ == "__main__":
         }
     )
     run_ids = [run.id for run in runs]
-    print(f"Found {len(run_ids)} runs with tag 'inference_speed'")
+    print(f"Found {len(run_ids)} runs:")
 
     time_metrics = ["time_test", "time_forward_per_batch_test", "time_forward_total_test"]
     acc_metrics = ["test_f_mae", "test_e_mae"]
 
     infos = []
+    # TODO: replace by plot_acc_over_speed loading inference values
     for run in runs:
         try:
             # model.drop_path_rate=0.05
@@ -398,10 +399,15 @@ if __name__ == "__main__":
             }
             # Plots: pick the smaller of test_fpreuse_f_mae and test_f_mae
             for _m in acc_metrics + time_metrics:
-                if _m in run.summary:
+                _mfp = _m.replace("test", "test_fpreuse")
+                if _m in run.summary and _mfp not in run.summary:
                     info[_m] = run.summary[_m]
-                if _m.replace("test", "test_fpreuse") in run.summary:
+                elif _m in run.summary and _mfp in run.summary:
+                    info[_mfp] = run.summary[_mfp]
                     info[_m] = min(run.summary[_m], run.summary[_m.replace("test", "test_fpreuse")])
+                elif _mfp in run.summary:
+                    info[_m] = run.summary[_mfp]
+                    info[_mfp] = run.summary[_mfp]
             # if 'test_fpreuse_f_mae' in run.summary:
             #     info["test_f_mae"] = min(run.summary["test_f_mae"], run.summary["test_fpreuse_f_mae"])
             #     info["test_e_mae"] = min(run.summary["test_e_mae"], run.summary["test_fpreuse_e_mae"])

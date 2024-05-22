@@ -9,7 +9,7 @@ import yaml
 import json
 import requests
 
-from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder, acclabels, timelabels, set_style_after, myrc
+from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, acclabels, timelabels, set_style_after, myrc
 
 
 
@@ -112,7 +112,7 @@ def main(
         data=_df, x="nstep", hue="class", 
         kind="count",
         # palette="pastel", 
-        palette="muted",
+        palette=PALETTE,
         # figsize = (8, 6), # Width, height
         # height=6, aspect=1.,
         # edgecolor=".6",

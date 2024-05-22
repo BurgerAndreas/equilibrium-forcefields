@@ -6,7 +6,7 @@ import seaborn as sns
 import json
 import os, sys, pathlib
 
-from deq2ff.plotting.style import set_seaborn_style, combine_legend, entity, project, plotfolder
+from deq2ff.plotting.style import set_seaborn_style, PALETTE, combine_legend, entity, project, plotfolder
 
 # define data as a json
 # https://vega.github.io/vega-lite/docs/data.html
@@ -132,7 +132,7 @@ sns.scatterplot(data=df, x=x, y=y, hue=colorstyle, style=markerstyle, ax=ax, mar
 
 # labels
 ax.set_xlabel("Memory allocated [bytes]")
-ax.set_ylabel(r"Force MAE [meV/$\AA$]")
+ax.set_ylabel(r"Force MAE [kcal/mol/$\AA$]")
 ax.set_title("Accuracy over GPU memory allocation")
 
 # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")

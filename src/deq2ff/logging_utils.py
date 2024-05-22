@@ -138,6 +138,7 @@ IGNORE_OVERRIDES_CHECKPOINT = [
     "testwevalmode",
     # target is defined in the path
     # "target",
+    "inf",
 ]
 
 REPLACE = {

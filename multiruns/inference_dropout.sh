@@ -29,6 +29,9 @@ for target in "${md17[@]}"; do
 
     # DEQ most important run
     launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
+    launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=1e-1 target=$target
+
+    launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=1e-1 target=$target
     launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
 
     # Equiformer

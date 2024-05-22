@@ -9,7 +9,7 @@ import yaml
 import json
 import requests
 
-from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder, acclabels, timelabels, set_style_after, myrc
+from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, acclabels, timelabels, set_style_after, myrc
 
 nans = ['NaN', pd.NA, None, float("inf"), np.nan]
 
@@ -131,7 +131,7 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
 
     # only plot one point 
     if tol is not None:
-        df = df[df["fpreuse_f_tol"].isin([tol] + nans)]
+        dfc = dfc[dfc["fpreuse_f_tol"].isin([tol] + nans)]
     # select the lower
     m = "test_f_mae"
     mfp = m.replace('test', 'test_fpreuse')
@@ -165,7 +165,7 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
     shapestyle = "Layers"
     # https://stackoverflow.com/a/64403147/18361030
     # marks = ["o", "s", "^"]
-    marks = ["o", "X", "^", "P"]
+    marks = ["o", "X", "^", "P", "D"]
     # marks = ["o", "P", "^"]
 
     set_seaborn_style()
@@ -215,11 +215,18 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
         data=df_mean, x=x, y=y, hue=colorstyle, style=shapestyle, ax=ax, markers=marks[:len(list(dfc[shapestyle].unique()))], s=200, 
     )
 
-    set_style_after(ax)
+    set_style_after(ax, fs=10)
+
+    # increase x and y lim a bit
+    ax.set_xlim(ax.get_xlim()[0] - 0.001, 1.05 * ax.get_xlim()[1])
+    ax.set_ylim(ax.get_ylim()[0] - 0.01, 1.05 * ax.get_ylim()[1])
+
+    # scientific notation on x axis
+    ax.ticklabel_format(axis='x', style='sci', scilimits=(0,0))
 
     # labels
     ax.set_xlabel(timelabels[x.replace("_lowest", "")])
-    ax.set_ylabel(r"Force MAE [meV/$\AA$]")
+    ax.set_ylabel(r"Force MAE [kcal/mol/$\AA$]")
     ax.set_title("Inference accuracy vs speed")
 
     # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")
@@ -227,14 +234,18 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
     plt.tight_layout(pad=0.1)
 
     # save
-    name = f"acc_over_time" + f"-bs{filter_eval_batch_size}-{time_metric}"
+    name = f"acc_over_time" + f"-bs{filter_eval_batch_size}-{time_metric.replace('_', '')}"
     if runs_with_dropout:
         name += '-dropout'
     else:
         name += '-nodropout'
     name += "-" + target
     plt.savefig(f"{plotfolder}/{name}.png")
-    print(f"\nSaved plot to \n {plotfolder}/{name}.png")
+    print(f"\nSaved speed_over_acc plot to \n {plotfolder}/{name}.png")
+
+    plt.cla()
+    plt.clf() 
+    plt.close()
 
 
 
@@ -244,7 +255,7 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
 
     # only plot one point 
     if tol is not None:
-        df = df[df["fpreuse_f_tol"].isin([tol] + nans)]
+        dfc = dfc[dfc["fpreuse_f_tol"].isin([tol] + nans)]
     # select the lower
     m = "test_f_mae"
     mfp = m.replace('test', 'test_fpreuse')
@@ -286,8 +297,7 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
     shapestyle = "Layers"
     # https://stackoverflow.com/a/64403147/18361030
     # marks = ["o", "s", "^"]
-    marks = ["o", "X", "^", "P"]
-    # marks = ["o", "P", "^"]
+    marks = ["o", "X", "^", "P", "D"]
 
     set_seaborn_style()
 
@@ -327,7 +337,7 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
                 elinewidth=2,
                 capthick=2,
                 # legend=False,
-                alpha=0.5,
+                # alpha=0.5,
             )
             _i += 1
 
@@ -336,17 +346,19 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
         data=df_mean, x=x, y=y, hue=colorstyle, style=shapestyle, ax=ax, markers=marks[:len(list(dfc[shapestyle].unique()))], s=200, 
     )
 
+    set_style_after(ax, fs=10)
+
     # labels
     ax.set_xlabel("Function Evaluations (NFE)")
-    ax.set_ylabel(r"Force MAE [meV/$\AA$]")
-    ax.set_title("Inference accuracy vs Function Evaluations")
+    ax.set_ylabel(r"Force MAE [kcal/mol/$\AA$]")
+    ax.set_title("Inference accuracy vs NFE")
 
     # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")
 
     plt.tight_layout(pad=0.1)
 
     # save
-    name = f"acc_over_nfe" + f"-bs{filter_eval_batch_size}-{time_metric}"
+    name = f"acc_over_nfe" + f"-bs{filter_eval_batch_size}"
     if runs_with_dropout:
         name += '-dropout'
     else:
@@ -354,6 +366,10 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
     name += "-" + target
     plt.savefig(f"{plotfolder}/{name}.png")
     print(f"\nSaved plot_acc_over_nfe plot to \n {plotfolder}/{name}.png")
+
+    plt.cla()
+    plt.clf() 
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -363,10 +379,10 @@ if __name__ == "__main__":
     # seeds = [1]
     seeds = [1, 2, 3]
     filter_fpreuseftol = {"max": 1e1, "min": 1e-4}
-    Target = "apirin" # aspirin, all, malonaldehyde, ethanol
+    Target = "aspirin" # aspirin, all, malonaldehyde, ethanol
     time_metric = "time_forward_per_batch_test" + "_lowest" # time_test, time_forward_per_batch_test, time_forward_total_test
     acc_metric = "test_f_mae" + "_lowest" # test_f_mae_lowest, test_f_mae, test_e_mae_lowest, test_e_mae, best_test_f_mae, best_test_e_mae
-    layers_deq = [1, 2]
+    layers_deq = [1, 2, 3]
     layers_equi = [1, 4, 8]
     # hosts = ["tacozoid11", "tacozoid10", "andreasb-lenovo"]
     # hosts, hostname = ["tacozoid11", "tacozoid10"], "taco"
@@ -374,7 +390,7 @@ if __name__ == "__main__":
     runs_with_dropout = False
 
     # download data or load from file
-    download_data = True
+    download_data = False
 
     # choose from
     eval_batch_sizes = [1, 4]
@@ -486,10 +502,6 @@ if __name__ == "__main__":
 
     print('Loaded dataframe:', df.head())
 
-    # print('\nFiltering for Target:', _Target)
-    df = df[df["Target"] == Target]
-    assert not df.empty, "Dataframe is empty for Target"
-
     """Rename columns"""
     # rename 'model_is_deq' to 'Model'
     # true -> DEQ, false -> Equiformer
@@ -544,6 +556,12 @@ if __name__ == "__main__":
     # isin(layers_deq) and Model=DEQ or isin(layers_equi) and Model=Equiformer
     # df = df[(df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer")) | (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ"))]
     assert not df.empty, "Dataframe is empty"
+
+    dfalltargets = copy.deepcopy(df)
+
+    # print('\nFiltering for Target:', _Target)
+    df = df[df["Target"] == Target]
+    assert not df.empty, "Dataframe is empty for Target"
 
     print('\nAfter filtering:\n', df[["Model", "Layers", "test_f_mae_lowest", "test_f_mae", "test_fpreuse_f_mae", "fpreuse_f_tol"]])
 

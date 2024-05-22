@@ -9,7 +9,7 @@ import yaml
 import json
 import requests
 
-from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder, acclabels, timelabels
+from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, acclabels, timelabels, set_style_after
 
 nans = ['NaN', pd.NA, None, float("inf"), np.nan]
 
@@ -54,16 +54,28 @@ def plot_acc_over_ftol(dfc, runs_with_dropout, target):
             hue=color, 
             ax=ax, 
             # markers=["o", "s", "^"], linestyles=["-", "--", "-."], 
-            palette="muted",
+            palette=PALETTE,
             markersize=3, linewidth=3,
             native_scale=True, 
             capsize=.3, # log scale
             # legend=False,
         )
 
+        # set_style_after(ax, fs=10)
+
+        # only major grid
+        plt.grid(False)
+        plt.grid(which='major', axis='y', linestyle='-', linewidth='1.0', color='lightgray')
+
+        # ax.get_legend().get_frame().set_linewidth(0.0)
+        # removes axes spines top and right
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+
         # if there is only one layer, remove the legend
         if len(dfc["Layers"].unique()) == 1:
             ax.get_legend().remove()
+        ax.get_legend().remove()
 
         # custom legend label
         # handles, labels = ax.get_legend_handles_labels()
@@ -91,7 +103,7 @@ def plot_acc_over_ftol(dfc, runs_with_dropout, target):
         # save
         if "mae" in y:
             name = f"acc_over_fpreuseftol" + f"-bs{filter_eval_batch_size}"
-            ax.set_ylabel(r"Force MAE [meV/$\AA$]")
+            ax.set_ylabel(r"Force MAE [kcal/mol/$\AA$]")
         elif "nfe" in y:
             name = f"nfe_over_fpreuseftol" + f"-bs{filter_eval_batch_size}"
             ax.set_ylabel(r"Number of Solver Steps")
@@ -107,11 +119,16 @@ def plot_acc_over_ftol(dfc, runs_with_dropout, target):
         print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
 
+        plt.cla()
+        plt.clf()   
+        plt.close()
+
+
 def plot_acc_over_nfe(dfc, runs_with_dropout, target):
     # avg_n_fsolver_steps_test_fpreuse
     # f_steps_to_fixed_point_test_fpreuse
 
-    # only plot one point TODO
+    # only plot one point
     # df = df[df["fpreuse_f_tol"].isin([1e0] + nans)]
     # select the lower
     m = "test_f_mae"
@@ -206,7 +223,7 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target):
 
     # labels
     ax.set_xlabel(timelabels[x.replace("_lowest", "")])
-    ax.set_ylabel(r"Force MAE [meV/$\AA$]")
+    ax.set_ylabel(r"Force MAE [kcal/mol/$\AA$]")
     ax.set_title("Inference speed vs. accuracy")
 
     # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")
@@ -223,18 +240,23 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target):
     plt.savefig(f"{plotfolder}/{name}.png")
     print(f"\nSaved plot_acc_over_nfe plot to \n {plotfolder}/{name}.png")
 
+    plt.cla()
+    plt.clf()   
+    plt.close()
+
 
 if __name__ == "__main__":
     """ Options """
     filter_eval_batch_size = 1 # 1 or 4
     filter_fpreuseftol = [1e1, 1e0, 1e-1, 1e-2, 1e-3, 1e-4]
+    filter_fpreuseftol = {"max": 1e1, "min": 1e-4}
+    filter_fpreuseftol = [1e1, 1e0, 1e-1, 2e-1, 3e-1, 4e-1, 5e-1, 6e-1, 7e-1, 8e-1, 9e-1, 1e-2, 1e-3, 1e-4]
     # seeds = [1]
     seeds = [1, 2, 3]
-    filter_fpreuseftol = {"max": 1e1, "min": 1e-4}
     Target = "aspirin" # aspirin, all, malonaldehyde, ethanol
     time_metric = "time_forward_per_batch_test" + "_lowest" # time_test, time_forward_per_batch_test, time_forward_total_test
     acc_metric = "test_f_mae" + "_lowest" # test_f_mae_lowest, test_f_mae, test_e_mae_lowest, test_e_mae, best_test_f_mae, best_test_e_mae
-    layers_deq = [1, 2]
+    layers_deq = [2] # [1, 2]
     layers_equi = [1, 4, 8]
     # hosts = ["tacozoid11", "tacozoid10", "andreasb-lenovo"]
     # hosts, hostname = ["tacozoid11", "tacozoid10"], "taco"
@@ -396,10 +418,10 @@ if __name__ == "__main__":
     df["avg_n_fsolver_steps_test_fpreuse"] = df["avg_n_fsolver_steps_test_fpreuse"].apply(lambda x: 1 if x == float('inf') else x)
     df["f_steps_to_fixed_point_test_fpreuse"] = df["f_steps_to_fixed_point_test_fpreuse"].apply(lambda x: 1 if x == float('inf') else x)
 
-    # if isinstance(filter_fpreuseftol, dict):
-    #     df = df[(df["fpreuse_f_tol"] >= filter_fpreuseftol["min"]) & (df["fpreuse_f_tol"] <= filter_fpreuseftol["max"])]
-    # else:
-    #     df = df[df["fpreuse_f_tol"].isin(filter_fpreuseftol + nans)]
+    if isinstance(filter_fpreuseftol, dict):
+        df = df[(df["fpreuse_f_tol"] >= filter_fpreuseftol["min"]) & (df["fpreuse_f_tol"] <= filter_fpreuseftol["max"])]
+    else:
+        df = df[df["fpreuse_f_tol"].isin(filter_fpreuseftol + nans)]
 
     # fpreuse_f_tol: replace nans with 0
     # df["fpreuse_f_tol"] = df["fpreuse_f_tol"].apply(lambda x: 0.0 if np.isnan(x) else x)
@@ -420,11 +442,6 @@ if __name__ == "__main__":
     # PLOTS
     ################################################################################################################################
 
-
-    barcharts_speed_acc_target(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
-
-    plot_speed_over_acc_target(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
-
-    plot_acc_over_nfe(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
+    # plot_acc_over_nfe(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
 
     plot_acc_over_ftol(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)

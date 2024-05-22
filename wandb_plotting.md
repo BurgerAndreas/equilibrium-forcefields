@@ -97,7 +97,7 @@ ifTest ? thenValue : elseValue
 
       "encoding": {
         "x": {"field": "combined_x", "type": "quantitative", "axis": {"title": "Inference time [s]"}, "scale": {"domain": [0, 120]}},
-        "y": {"field": "${field:y}", "type": "quantitative", "axis": {"title": r"Force MAE [meV/$\AA$]"}, "scale": {"domain": [0, 1]}},
+        "y": {"field": "${field:y}", "type": "quantitative", "axis": {"title": r"Force MAE [kcal/mol/$\AA$]"}, "scale": {"domain": [0, 1]}},
         "color": {
           "field": "${field:colorstyle}",
           "scale": {"range": {"field": "color"}},

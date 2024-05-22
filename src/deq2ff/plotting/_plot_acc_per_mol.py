@@ -6,7 +6,7 @@ import copy
 import os, sys, pathlib
 import yaml
 
-from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder
+from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder
 
 # options
 acc_metric = "test_f_mae"

@@ -6,7 +6,7 @@ import copy
 import os, sys, pathlib
 import numpy as np
 
-from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder, timelabels, acclabels
+from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, timelabels, acclabels
 
 
 # if __name__ == "__main__":
@@ -250,7 +250,7 @@ for orient in ['v', 'h']:
         ax.set_xticklabels(labels, rotation=45, horizontalalignment='right', fontsize=12)
 
         ax.set_xlabel("")
-        ax.set_ylabel(r"Force MAE [meV/$\AA$]")
+        ax.set_ylabel(r"Force MAE [kcal/mol/$\AA$]")
 
     else:
         loc, labels = plt.yticks()
@@ -266,7 +266,7 @@ for orient in ['v', 'h']:
         plt.ylim(ylim)
 
         ax.set_ylabel("")
-        ax.set_xlabel(r"Force MAE [meV/$\AA$]")
+        ax.set_xlabel(r"Force MAE [kcal/mol/$\AA$]")
         
     # remove legend
     # handles, labels = ax.get_legend_handles_labels()

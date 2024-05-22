@@ -5,7 +5,7 @@ import wandb
 import copy
 import os, sys, pathlib
 
-from deq2ff.plotting.style import set_seaborn_style, entity, project, plotfolder, set_style_after
+from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, set_style_after
 
 
 if __name__ == "__main__":
@@ -158,7 +158,7 @@ if __name__ == "__main__":
         # https://matplotlib.org/stable/api/_as_gen/matplotlib.lines.Line2D.html#matplotlib.lines.Line2D
         linewidth=3,
         # markeredgewidth=1, markersize=5,
-        palette="muted",
+        palette=PALETTE,
     )
 
     set_style_after(ax)
@@ -169,7 +169,7 @@ if __name__ == "__main__":
 
     # labels
     ax.set_xlabel(f"Number of {x}")
-    ax.set_ylabel(r"Force MAE [meV/$\AA$]")
+    ax.set_ylabel(r"Force MAE [kcal/mol/$\AA$]")
     if x == "Parameters":
         ax.set_title(f"Accuracy Scaling with Parameters")
     else:
@@ -217,7 +217,7 @@ if __name__ == "__main__":
         # https://matplotlib.org/stable/api/_as_gen/matplotlib.lines.Line2D.html#matplotlib.lines.Line2D
         linewidth=3,
         # markeredgewidth=1, markersize=5,
-        palette="muted",
+        palette=PALETTE,
     )
 
     set_style_after(ax)
@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
     # labels
     ax.set_xlabel(f"Number of {x}")
-    ax.set_ylabel(r"Force MAE [meV/$\AA$]")
+    ax.set_ylabel(r"Force MAE [kcal/mol/$\AA$]")
     if x == "Parameters":
         ax.set_title(f"Accuracy Scaling with Parameters")
     else:

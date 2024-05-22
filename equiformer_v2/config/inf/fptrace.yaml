@@ -47,7 +47,7 @@ save_checkpoint_after_test: False
 save_final_checkpoint: False
 assert_checkpoint: False
 
-epochs: 1001
+epochs: 1000
 
 # no testing
 test_interval: 100000000

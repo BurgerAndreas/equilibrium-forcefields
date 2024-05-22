@@ -22,7 +22,9 @@ myrc = {
     'text.usetex' : True,
 }
 
-def set_seaborn_style(style="whitegrid", palette="muted", context="poster", figsize=(8, 6), font_scale=0.8):
+PALETTE = "muted"
+
+def set_seaborn_style(style="whitegrid", palette=PALETTE, context="poster", figsize=(8, 6), font_scale=0.8):
     sns.set_style(style=style) # whitegrid white
     sns.set_palette(palette)
     myrc['figure.figsize'] = figsize
@@ -32,7 +34,7 @@ def set_seaborn_style(style="whitegrid", palette="muted", context="poster", figs
         rc=myrc,
     )
 
-def set_style_after(ax):
+def set_style_after(ax, fs=15, legend=True):
     plt.grid(False)
     plt.grid(which='major', axis='y', linestyle='-', linewidth='1.0', color='lightgray')
 
@@ -40,11 +42,16 @@ def set_style_after(ax):
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    # increase legend fontsize
-    ax.legend(fontsize=15)
+    if legend:
+        # increase legend fontsize
+        ax.legend(fontsize=fs)
 
-    # remove legend border
-    ax.legend(frameon=False)
+        # remove legend border
+        # ax.legend(frameon=False)
+        ax.get_legend().get_frame().set_linewidth(0.0)
+        # plt.legend().get_frame().set_linewidth(0.0)
+    else:
+        ax.get_legend().remove()
 
 timelabels = {
     "time_test": "Test time for 1000 samples [s]",
@@ -53,10 +60,10 @@ timelabels = {
     "nfe": "NFE",
 }
 acclabels = {
-    "best_test_f_mae": r"Best force MAE [meV/$\AA$]",
-    "test_f_mae": r"Force MAE [meV/$\AA$]",
-    "best_test_e_mae": "Best energy MAE [meV]",
-    "test_e_mae": "Energy MAE [meV]",
+    "best_test_f_mae": r"Best force MAE [kcal/mol/$\AA$]",
+    "test_f_mae": r"Force MAE [kcal/mol/$\AA$]",
+    "best_test_e_mae": "Best energy MAE [kcal/mol]",
+    "test_e_mae": "Energy MAE [kcal/mol]",
     "nfe": "NFE",
 }
 

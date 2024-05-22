@@ -105,7 +105,7 @@ def log_fixed_point_error_trace_table(
             return None
 
 
-def log_fixed_point_error(info, step, datasplit=None, log_trace_freq=None):
+def log_fixed_point_error(info, step, datasplit=None, log_trace_freq=None, save_to_file=False):
     """Log fixed point error to wandb."""
     # absolute fixed point errors along the solver trajectory
     f_abs_trace = info["abs_trace"]
@@ -136,14 +136,17 @@ def log_fixed_point_error(info, step, datasplit=None, log_trace_freq=None):
         if log_trace_freq is None:
             log_trace_freq = log_every_step_major
         if (step % log_trace_freq == 0) or datasplit in ["test", "val"]:
+            # print('Logging fixed point error', f"abs_fixed_point_error_traj{n}")
             # log the fixed point error along the solver trajectory
             # https://github.com/wandb/wandb/issues/3966
             _abs = f_abs_trace.detach().cpu().numpy().tolist()
             _rel = f_rel_trace.detach().cpu().numpy().tolist()
+            # print('   _abs', _abs)
             # only log if the list does not contain NaNs or Nones
             if all([x is not None for x in _abs]) and all(
                 [x is not None for x in _rel]
             ):
+                # print('   _abs', 'not None')
                 wandb.log(
                     {
                         f"abs_fixed_point_error_traj{n}": _abs,

@@ -11,12 +11,9 @@ abs_trace over forward-solver-iteration-steps
 https://colab.research.google.com/drive/12HiUnde7qLadeZGGtt7FITnSnbUmJr-I?usp=sharing#scrollTo=V5Zff4FHqR5d
 """
 
-entity = "andreas-burger"
-project = "EquilibriumEquiFormer"
+from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, set_style_after
 
-# parent folder of the plot
-plotfolder = pathlib.Path(__file__).parent.absolute()
-plotfolder = os.path.join(plotfolder, "plots")
+
 
 # columns = ['abs', 'rel', 'solver_step', 'train_step']
 
@@ -32,6 +29,8 @@ def main(
     api = wandb.Api()
     run = api.run(project + "/" + run_id)
     run_name = run.name
+    print('\nrun_id:', run_id)
+    print('name:', run.name)
 
     # artifact = run.logged_artifacts()
     # print(f"len(artifact): {len(artifact)}")
@@ -47,43 +46,61 @@ def main(
     # wandb.finish()
 
     # metrics_dataframe = run.history()
+    mname = ''.join(e for e in run_name if e.isalnum())
+    csvname = f"{run.id}_{error_type}_fixed_point_error_traj_{datasplit}.csv"
+    # try to load from csv
+    try:
+        df = pd.read_csv(csvname)
+        print(f"Loaded from csv: {csvname}")
 
-    print("Downloading run history...")
-    history = run.scan_history()
-    print("Processing run history...")
-    losses = [
-        [row[artifact_name], row["_step"]]
-        for row in history
-        if artifact_name in row.keys()
-    ]
-    print(f" Losses found: {len(losses[0][0]) if len(losses) > 0 else None}")
+    except FileNotFoundError:
+        print("Downloading run history...")
+        history = run.scan_history()
+        print("Processing run history...")
+        losses = [
+            [row[artifact_name], row["_step"]]
+            for row in history
+            if artifact_name in row.keys()
+        ]
+        print(f" Losses found: {len(losses[0][0]) if len(losses) > 0 else None}")
 
-    print(f"Filtering out None values...")
-    losses_nonone = [[r, s] for r, s in losses if r is not None]
-    print(f" Rows that were None: {len(losses) - len(losses_nonone)} / {len(losses)}")
-    losses = losses_nonone
+        print(f"Filtering out None values...")
+        losses_nonone = [[r, s] for r, s in losses if r is not None]
+        print(f" Rows that were None: {len(losses) - len(losses_nonone)} / {len(losses)}")
+        losses = losses_nonone
 
-    print(f"Combining data into dataframe...")
-    # losses = [[r, s, [*range(len(r))]] for r, s in losses]
-    losses = [
-        {
-            error_type: pd.Series(r),
-            "train_step": pd.Series([s] * len(r)),
-            "solver_step": pd.Series(range(len(r))),
+        print(f"Combining data into dataframe...")
+        # losses = [[r, s, [*range(len(r))]] for r, s in losses]
+        losses = [
+            {
+                error_type: pd.Series(r),
+                "train_step": pd.Series([s] * len(r)),
+                "solver_step": pd.Series(range(len(r))),
+            }
+            for r, s in losses
+        ]
+        losses_concat = {
+            k: pd.concat([d[k] for d in losses], axis=0) for k in losses[0].keys()
         }
-        for r, s in losses
-    ]
-    losses_concat = {
-        k: pd.concat([d[k] for d in losses], axis=0) for k in losses[0].keys()
-    }
-    # print(f"losses_concat: {losses_concat}")
-    df = pd.DataFrame(losses_concat)
+        # print(f"losses_concat: {losses_concat}")
+        df = pd.DataFrame(losses_concat)
+
+        # save dataframe using runname
+        df.to_csv(csvname)
 
     # dataframe with three colums: error_type, train_step, solver_step
     # print(df)
 
+    set_seaborn_style()
+
+    fig, ax = plt.subplots()
+
     # plot: x=solver_step, y=error_type, hue=train_step
-    sns.lineplot(data=df, x="solver_step", y=error_type, hue="train_step")
+    sns.lineplot(
+        data=df, x="solver_step", y=error_type, hue="train_step", ax=ax,
+        # palette="viridis",
+        # paleette="tab10",
+    )
     plt.xlabel("Fixed-point solver step")
     plt.ylabel(f"Fixed-point error ({error_type})")
     if logscale:
@@ -93,28 +110,45 @@ def main(
         # plt.ylim(1e-12, ymax)
         plt.ylim(top=ymax)
     # legend title
-    plt.title(f"{run_name}")
+    # plt.title(f"{run_name}")
+    plt.title(f"Fixed-Point Trace over Training")
+    
+    set_style_after(ax, fs=10)
 
-    fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{run_id.split('/')[-1]}_{error_type}.png"
+    # legend outside the plot on the right
+    # plt.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
+    # ax.get_legend().get_frame().set_linewidth(0.0)
+
+    plt.tight_layout()
+
+    fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{error_type}_{run_id.split('/')[-1]}_{mname}.png"
     plt.savefig(fname)
     print(f"Saved plot to \n {fname}")
 
     # close the plot
+    plt.cla()
+    plt.clf()
     plt.close()
-    plt.gca().clear()
-    plt.gcf().clear()
 
 
 if __name__ == "__main__":
 
     # ----------------- E2 paper -----------------
     # DEQE2 fpcof droppathrate-005 numlayers-2 target-aspirin 44347 y74fi59q
+    run_id = "y74fi59q"
+    main(run_id, error_type="abs", datasplit="train", logscale=True)
 
     # DEQE2 fpcof droppathrate-005 numlayers-2 seed-3 44235 l4967hbt
+    run_id = "l4967hbt"
+    main(run_id, error_type="abs", datasplit="train", logscale=False)
 
     # DEQE2 fpcof numlayers-2 44195 6ovbmv0v
+    run_id = "6ovbmv0v"
+    main(run_id, error_type="abs", datasplit="train", logscale=False)
 
     # DEQE2 fpcof numlayers-2 seed-2 44196 ef3trp9e
+    run_id = "ef3trp9e"
+    main(run_id, error_type="abs", datasplit="train", logscale=False)
 
     # launchrun +use=deq +cfg=[fpc_of,fptrace] model.num_layers=2
 

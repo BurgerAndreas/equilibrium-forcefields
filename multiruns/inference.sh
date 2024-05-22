@@ -43,13 +43,24 @@
 #     launchrun evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=$target
 # done
 
-for target in benzene ethanol malonaldehyde naphthalene salicylic_acid toluene uracil; do
-    launchrun evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=$target
+# for target in benzene ethanol malonaldehyde naphthalene salicylic_acid toluene uracil; do
+#     launchrun evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=$target
     
-    launchrun +use=deq +cfg=fpc_of model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
-    launchrun +use=deq +cfg=fpc_of model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=1e-1 target=$target
+#     launchrun +use=deq +cfg=fpc_of model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
+#     launchrun +use=deq +cfg=fpc_of model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=1e-1 target=$target
 
-    launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
-    launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=1e-1 target=$target
+#     launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
+#     launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=1e-1 target=$target
+
+# done
+
+for target in benzene ethanol malonaldehyde naphthalene salicylic_acid toluene uracil; do
+    # launchrun evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=$target
+    
+    # launchrun +use=deq +cfg=fpc_of model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
+    launchrun +use=deq +cfg=fpc_of model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 target=$target
+
+    launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 target=$target
+    # launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=1e-1 target=$target
 
 done

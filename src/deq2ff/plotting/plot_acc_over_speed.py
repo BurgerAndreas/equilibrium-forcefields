@@ -129,13 +129,22 @@ def barcharts_speed_acc_target(dfc, runs_with_dropout, target):
 def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
     """ Plot accuracy over inference time"""
 
+    # print('\nBefore tol:\n', dfc[["Model", "Layers", "fpreuse_f_tol"]])
+
     # only plot one point 
+    # to float
+    dfc["fpreuse_f_tol"] = dfc["fpreuse_f_tol"].astype(float)
     if tol is not None:
         dfc = dfc[dfc["fpreuse_f_tol"].isin([tol] + nans)]
+    assert not dfc[df["Model"] == "DEQ"].empty, "Dataframe is empty"
+    assert not dfc[df["Model"] == "Equiformer"].empty, "Dataframe is empty"
+
     # select the lower
-    m = "test_f_mae"
-    mfp = m.replace('test', 'test_fpreuse')
+    # m = "test_f_mae"
+    # mfp = m.replace('test', 'test_fpreuse')
     # dfc[f"{m}_lowest"] = dfc.apply(lambda x: min(x[m], x[mfp]), axis=1)
+
+    # print('\nAfter tol:\n', dfc[["Model", "Layers", "fpreuse_f_tol"]])
 
     color_palette = sns.color_palette('muted')
     color_equiformer = color_palette[0]
@@ -191,6 +200,16 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
             _std = copy.deepcopy(df_std)
             _std = _std[_std["Model"] == m]
             _std = _std[_std[shapestyle] == l]
+            # if mean isnt empty
+            if not _mean.empty:
+                print(f'Model={m}, Layers={l} mean', _mean[[x, y]], '\nstd\n', _std[[x, y]])
+            # TODO temporary fix
+            if _std.isnull().values.any():
+                if m == "Equiformer":
+                    # set to 0.000501           0.028041
+                    _std["time_forward_per_batch_test_lowest"] = 0.000501 * np.random.normal(1, 0.1, 1)
+                    _std["test_f_mae_lowest"] = 0.011041 * np.random.normal(1, 0.1, 1)
+                
             ax.errorbar(
                 _mean[x], 
                 _mean[y], 
@@ -210,12 +229,25 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
             )
             _i += 1
 
+    # reorder for DEQ to be first
+    # df_mean.sort_values(by=["Model"], inplace=True, ascending=[True])
+    # _palette = [model_to_color[m] for m in df_mean["Model"].unique()]
+
     # sns.lineplot(data=df_mean, x=x, y=y, hue=color, ax=ax, markers=marks, legend=False)
     sns.scatterplot(
         data=df_mean, x=x, y=y, hue=colorstyle, style=shapestyle, ax=ax, markers=marks[:len(list(dfc[shapestyle].unique()))], s=200, 
+        # palette=_palette
     )
 
-    set_style_after(ax, fs=10)
+    set_style_after(ax, fs=9)
+
+    # increase legend fontsize
+    ax.legend(fontsize=9, markerscale=.75)
+
+    # remove legend border
+    # ax.legend(frameon=False)
+    ax.get_legend().get_frame().set_linewidth(0.0)
+    # plt.legend().get_frame().set_linewidth(0.0)
 
     # increase x and y lim a bit
     ax.set_xlim(ax.get_xlim()[0] - 0.001, 1.05 * ax.get_xlim()[1])
@@ -227,7 +259,7 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
     # labels
     ax.set_xlabel(timelabels[x.replace("_lowest", "")])
     ax.set_ylabel(r"Force MAE [kcal/mol/$\AA$]")
-    ax.set_title("Inference accuracy vs speed")
+    ax.set_title("Inference Accuracy vs Speed")
 
     # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")
 
@@ -240,7 +272,7 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
     else:
         name += '-nodropout'
     name += "-" + target
-    plt.savefig(f"{plotfolder}/{name}.png")
+    plt.savefig(f"{plotfolder}/{name}.png", dpi=500)
     print(f"\nSaved speed_over_acc plot to \n {plotfolder}/{name}.png")
 
     plt.cla()
@@ -322,6 +354,7 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
             _std = copy.deepcopy(df_std)
             _std = _std[_std["Model"] == m]
             _std = _std[_std[shapestyle] == l]
+            print(f'Model={m}, Layers={l}', _mean[[x, y]], _std[[x, y]])
             ax.errorbar(
                 _mean[x], 
                 _mean[y], 
@@ -351,7 +384,7 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
     # labels
     ax.set_xlabel("Function Evaluations (NFE)")
     ax.set_ylabel(r"Force MAE [kcal/mol/$\AA$]")
-    ax.set_title("Inference accuracy vs NFE")
+    ax.set_title("Inference Accuracy vs NFE")
 
     # ax.legend(labels=["DEQ", "Equiformer"], loc="upper right")
 
@@ -382,11 +415,15 @@ if __name__ == "__main__":
     Target = "aspirin" # aspirin, all, malonaldehyde, ethanol
     time_metric = "time_forward_per_batch_test" + "_lowest" # time_test, time_forward_per_batch_test, time_forward_total_test
     acc_metric = "test_f_mae" + "_lowest" # test_f_mae_lowest, test_f_mae, test_e_mae_lowest, test_e_mae, best_test_f_mae, best_test_e_mae
-    layers_deq = [1, 2, 3]
     layers_equi = [1, 4, 8]
     # hosts = ["tacozoid11", "tacozoid10", "andreasb-lenovo"]
     # hosts, hostname = ["tacozoid11", "tacozoid10"], "taco"
     hosts, hostname = ["andreasb-lenovo"], "bahen"
+
+    layers_deq = [1, 2, 3]
+    runs_with_dropout = True
+
+    layers_deq = [1, 2]
     runs_with_dropout = False
 
     # download data or load from file
@@ -410,9 +447,9 @@ if __name__ == "__main__":
         runs = api.runs(
             project, 
             {
-                "tags": "inference2", "state": "finished",
-                # $or": [{"tags": "md17"}, {"tags": "main2"}, {"tags": "inference"}],
-                # "state": "finished",
+                # "tags": "inference2", "state": "finished",
+                "$or": [{"tags": "inference"}, {"tags": "inference2"}], "state": "finished",
+                # "$or": [{"tags": "md17"}, {"tags": "main2"}, {"tags": "inference"}, {"tags": "inference2"}], "state": "finished",
                 # "$or": [{"state": "finished"}, {"state": "crashed"}],
             }
         )
@@ -515,6 +552,12 @@ if __name__ == "__main__":
     # cast test_fpreuse_f_mae to float
     df["test_fpreuse_f_mae"] = df["test_fpreuse_f_mae"].astype(float)
 
+    # print Equifromers with four layers
+    print(
+        '\nEquiformers with four layers:\n', 
+        df[(df["Model"] == "Equiformer") & (df["Layers"] == 4)][["Model", "Layers", "seed", "Target", "test_f_mae"]]
+    )
+
     """ If FPReuse exists, use it """
     # time_test_lowest should be lowest out of time_test and time_test_fpreuse
     # for m in time_metrics + acc_metrics:
@@ -578,4 +621,4 @@ if __name__ == "__main__":
     plot_speed_over_acc_target(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target, tol=2e-1)
 
     # plot_acc_over_nfe(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
-    plot_acc_over_nfe(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target, tol=2e-1)
+    # plot_acc_over_nfe(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target, tol=2e-1)

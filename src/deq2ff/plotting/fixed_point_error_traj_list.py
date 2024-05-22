@@ -145,10 +145,12 @@ if __name__ == "__main__":
     # DEQE2 fpcof numlayers-2 44195 6ovbmv0v
     run_id = "6ovbmv0v"
     main(run_id, error_type="abs", datasplit="train", logscale=False)
+    main(run_id, error_type="rel", datasplit="train", logscale=False)
 
     # DEQE2 fpcof numlayers-2 seed-2 44196 ef3trp9e
     run_id = "ef3trp9e"
     main(run_id, error_type="abs", datasplit="train", logscale=False)
+    main(run_id, error_type="rel", datasplit="train", logscale=False)
 
     # launchrun +use=deq +cfg=[fpc_of,fptrace] model.num_layers=2
 

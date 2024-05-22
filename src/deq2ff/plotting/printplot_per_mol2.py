@@ -38,12 +38,19 @@ def print_table(_df, runs_with_dropout, mode="Force", add_nfe=False):
     _df = _df.sort_values(by=["Target", "Model", "Layers"], ascending=[True, False, True])
     _df = _df.sort_values(by=["Model", "Target", "Layers"], ascending=[False, True, True])
 
+    # reset index
+    _df = _df.reset_index(drop=True)
+
     # print(f'\n{mode} df:\n', _df[["type", "Model", "Layers", "Target", "seed", "test_f_mae", "test_e_mae"]])
+
+    # mean
+    # dfmean = _df.groupby(["type", "Target"]).mean(numeric_only=True).reset_index()
+    # print(f'\n{mode} dfmean:\n', dfmean[["type", "Target", "test_f_mae", "test_e_mae"]])
 
     # padding of 9 chars to compensate for 'mathbf{}'
     padding = " " * 9
 
-    print(f'\n{mode} table:')
+    print(f'\n{mode} table (dropout={runs_with_dropout}):')
     first_deq = True
     lines = []
     nfe_lines = []
@@ -166,6 +173,171 @@ def print_table(_df, runs_with_dropout, mode="Force", add_nfe=False):
         if _l == first_deq:
             print("\midrule[0.6pt]")
         print("".join(line))
+    
+    return
+
+def print_table_time_forces(_df, runs_with_dropout):
+    # filter for target=aspirin
+    # _df = _df[_df["Target"] == "aspirin"]
+
+    # format
+    # cols: Aspirin & Benzene & Ethanol & Malonaldehyde & Naphthalene & Salicylic acid & Toluene & Uracil
+    # cols: energy & forces
+    # rows: Equiformer 1 layer & Equiformer 4 layers & Equiformer 8 layers & DEQ 1 layer & DEQ 2 layers
+    # mean \pm std
+    _df["type"] = _df["Model"] + " (" + _df["Layers"].astype(str) + " layers)"
+    _df["type"] = _df["type"].str.replace("1 layers", "1 layer")
+    _df["type"] = _df["type"].str.replace("DEQ", "DEQuiformer")
+
+    # cast test_f_mae and test_e_mae to float
+    _df["test_f_mae"] = _df["test_f_mae"].astype(float)
+    _df["test_e_mae"] = _df["test_e_mae"].astype(float)
+
+    # for row in ["test_f_mae", "test_e_mae"]:
+        # print(_df.pivot(index="type", columns="Target", values=row).to_latex(float_format="%.2f"))
+    
+    _df = _df.sort_values(by=["Target", "Model", "Layers"], ascending=[True, False, True])
+    _df = _df.sort_values(by=["Model", "Target", "Layers"], ascending=[False, True, True])
+
+    # reset index
+    _df = _df.reset_index(drop=True)
+
+    # print(f'\n{mode} df:\n', _df[["type", "Model", "Layers", "Target", "seed", "test_f_mae", "test_e_mae"]])
+
+    # mean
+    # dfmean = _df.groupby(["type", "Target"]).mean(numeric_only=True).reset_index()
+    # print(f'\n{mode} dfmean:\n', dfmean[["type", "Target", "test_f_mae", "test_e_mae"]])
+
+    # padding of 9 chars to compensate for 'mathbf{}'
+    padding = " " * 9
+
+    print(f'\nCombined table (dropout={runs_with_dropout}):')
+    lines_both = []
+    for mode in ["Force", "Time"]:
+        first_deq = True
+        lines = []
+        mean_values = np.zeros((len(_df["type"].unique()), len(_df["Target"].unique())))
+        if mode == "Force":
+            metric = "test_f_mae"
+        elif mode == "Energy":
+            metric = "test_e_mae"
+        else:
+            metric = "time_forward_per_batch_test_lowest"
+        for _r, row in enumerate(list(_df["type"].unique())):
+            line = [row + " & "]
+            # print(_df[_df["type"] == row].pivot(index="Target", columns="type", values="test_f_mae").to_latex(float_format="%.2f"))
+            for _c, col in enumerate(list(_df["Target"].unique())):
+                val = _df[(_df["type"] == row) & (_df["Target"] == col)][metric].values
+                seeds = _df[(_df["type"] == row) & (_df["Target"] == col)]["seed"].values
+                # print(f'type={row}, target={col}, metric={subcol}:', val, type(val))
+                if len(val) == 0:
+                    mean = float("inf")
+                    line += [f"${mean}$ & "]
+                    print(f" Warning: No value for {row} and {col}")
+                elif len(val) > 3:
+                    # TODO: what to do with duplicates?
+                    # if there are duplicate seeds, take the first of the duplicates
+                    drop_index = []
+                    unqiue_seeds = []
+                    for i, s in enumerate(seeds):
+                        if s in unqiue_seeds:
+                            drop_index.append(i)
+                        else:
+                            unqiue_seeds.append(s)
+                    val = np.asarray(val)
+                    drop_index = np.asarray(drop_index)
+                    val = val[~drop_index]
+                    mean = val.mean()
+                    std = val.std()
+                    line += [f"${padding}{mean:.3f} \pm {std:.3f}$ & "]
+                elif len(val) > 1:
+                    mean = val.mean()
+                    std = val.std()
+                    line += [f"${padding}{mean:.3f} \pm {std:.3f}$ & "]
+                else:
+                    mean = val[0]
+                    line += [f"${padding}{mean:.3f}$ & "]
+                
+                # to calc best row
+                mean_values[_r, _c] = mean
+            
+            line[-1] = line[-1][:-2] + "\\\\" # NFE has to come first
+            line[0] = line[0].replace('Equiformer', "\equiformer{}")
+            if "DEQ" in row and first_deq == True:
+                # print("\hline")
+                first_deq = _r
+            lines.append(line)
+
+        # mark the best row in each column
+        for _c in range(mean_values.shape[1]):
+            if mode == "Time":
+                # ingore the first row: Equiformer 1 layer
+                # compare the second row (Equiformer 4 layers) and the fourth row (DEQ 2 layers)
+                for pair in [(1, 3), (2, 4)]:
+                    _means = mean_values[:, _c]
+                    mask = np.ones(_means.shape, dtype=bool) * 1000.
+                    mask[pair[0]] = 0
+                    mask[pair[1]] = 0
+                    _means = _means + mask
+                    best_row = np.argmin(_means)
+                    # lines first column is the row name
+                    line_prev = lines[best_row][_c+1]
+                    line_prev = line_prev.replace('$', '').replace(' &', '').replace('\\\\', '').replace(padding, '')
+                    lines[best_row][_c+1] = "$ \\mathbf{" + line_prev + "} $"
+                    if _c == mean_values.shape[1] - 1:
+                        lines[best_row][_c+1] += '\\\\'
+                    else:
+                        lines[best_row][_c+1] += ' &'
+            else:
+                best_row = np.argmin(mean_values[:, _c])
+                # lines first column is the row name
+                line_prev = lines[best_row][_c+1]
+                line_prev = line_prev.replace('$', '').replace(' &', '').replace('\\\\', '').replace(padding, '')
+                lines[best_row][_c+1] = "$ \\mathbf{" + line_prev + "} $"
+                if _c == mean_values.shape[1] - 1:
+                    lines[best_row][_c+1] += '\\\\'
+                else:
+                    lines[best_row][_c+1] += ' &'
+        
+        lines_both.append(lines)
+    
+    lines_force = lines_both[0]
+    lines_time = lines_both[1]
+    lines = copy.deepcopy(lines_force)
+    # combine both into one table
+    for _r, line in enumerate(lines_force):
+        for _c, cell in enumerate(line):
+            if _c == 0: 
+                # first column is the row name
+                continue
+            lines[_r][_c] = lines_force[_r][_c].replace('\\\\', '&') + lines_time[_r][_c]
+    
+    # compute relative speedupt between Equiformer 8 layers and DEQ 2 layers
+    avg_speedup = 0.0
+    for _c, col in enumerate(list(_df["Target"].unique())):
+        val_eq8 = _df[(_df["type"] == "Equiformer (8 layers)") & (_df["Target"] == col)]["time_forward_per_batch_test_lowest"].values
+        val_deq2 = _df[(_df["type"] == "DEQuiformer (2 layers)") & (_df["Target"] == col)]["time_forward_per_batch_test_lowest"].values
+        if len(val_eq8) == 0 or len(val_deq2) == 0:
+            print(f" Warning: No value for Equiformer 8 layers and DEQ 2 layers for {col}")
+            continue
+        for seed in range(1, 4):
+            try:
+                speedup = val_eq8[seed] / val_deq2[seed]
+                print(f' Target={col} Speedup: {speedup:.2f}')
+            except:
+                pass
+        speedup = val_eq8[0] / val_deq2[0]
+        # speedup = val_deq2[0] / val_eq8[0]
+        print(f'Target={col} Speedup: {speedup:.2f}')
+        avg_speedup += speedup
+    avg_speedup /= len(list(_df["Target"].unique()))
+    print(f'Average speedup: {avg_speedup:.2f}')
+    
+    print(f'\nCombined table:')
+    for _l, line in enumerate(lines):
+        if _l == first_deq:
+            print("\midrule[0.6pt]")
+        print("".join(line))
 
 
 if __name__ == "__main__":
@@ -174,16 +346,6 @@ if __name__ == "__main__":
     # filter_fpreuseftol = [1e1, 1e0, 1e-1, 1e-2, 1e-3, 1e-4]
     # filter_fpreuseftol = {"max": 1e1, "min": 1e-4}
     set_fpreuseftol = 2e-1
-    set_fpreuseftol = {
-        "aspirin": 2e-1,
-        "benzene": 2e-1,
-        "ethanol": 1e-1,
-        "malonaldehyde": 1e-1,
-        "naphthalene": 1e-1,
-        "salicylic_acid": 1e-1,
-        "toluene": 1e-1,
-        "uracil": 1e-1,
-    }
     # seeds = [1]
     seeds = [1, 2, 3]
     Target = "aspirin" # aspirin, all, malonaldehyde, ethanol
@@ -194,6 +356,29 @@ if __name__ == "__main__":
     # hosts = ["tacozoid11", "tacozoid10", "andreasb-lenovo"]
     # hosts, hostname = ["tacozoid11", "tacozoid10"], "taco"
     hosts, hostname = ["andreasb-lenovo"], "bahen"
+
+    # set_fpreuseftol = {
+    #     "aspirin": 2e-1,
+    #     "benzene": 2e-1,
+    #     "ethanol": 1e-3,
+    #     "malonaldehyde": 1e-3,
+    #     "naphthalene": 1e-3,
+    #     "salicylic_acid": 1e-3,
+    #     "toluene": 1e-3,
+    #     "uracil": 1e-3,
+    # }
+    # runs_with_dropout = True
+
+    set_fpreuseftol = {
+        "aspirin": 2e-1,
+        "benzene": 2e-1,
+        "ethanol": 1e-1,
+        "malonaldehyde": 1e-1,
+        "naphthalene": 1e-1,
+        "salicylic_acid": 1e-1,
+        "toluene": 1e-1,
+        "uracil": 1e-1,
+    }
     runs_with_dropout = False
 
     # download data or load from file
@@ -353,13 +538,17 @@ if __name__ == "__main__":
     df["f_steps_to_fixed_point_test_fpreuse"] = df["f_steps_to_fixed_point_test_fpreuse"].apply(lambda x: 1 if x == float('inf') else x)
     df["NFE"] = df["avg_n_fsolver_steps_test_fpreuse"] * df["Layers"]
 
+    # fpreuse_f_tol to float
+    df["fpreuse_f_tol"] = df["fpreuse_f_tol"].astype(float)
+
     # filter for fpreuse_f_tol per target
     if isinstance(set_fpreuseftol, dict):
         _dfts = []
         for _target, _tol in set_fpreuseftol.items():
             _dft = df[df["Target"] == _target]
+            print(f' Found fpreuse_f_tol={_dft["fpreuse_f_tol"].unique()} for target={_target}')
             _dft = _dft[_dft["fpreuse_f_tol"].isin([_tol] + nans)]
-            print(f' Found {_dft.shape[0]} rows for target={_target} and fpreuse_f_tol={_tol}')
+            print(f'  Found {_dft.shape[0]} rows for target={_target} and fpreuse_f_tol={_tol}')
             _dfts.append(_dft)
         df = pd.concat(_dfts)
         # df = df[(df["fpreuse_f_tol"] >= filter_fpreuseftol["min"]) & (df["fpreuse_f_tol"] <= filter_fpreuseftol["max"])]
@@ -389,8 +578,9 @@ if __name__ == "__main__":
     ################################################################################################################################
 
     # print_speed(df, metric="time_forward_per_batch_test_lowest")
-    print_table(copy.deepcopy(df), runs_with_dropout, mode="Time", add_nfe=True)
-    # print_table(copy.deepcopy(df), runs_with_dropout, mode="Time", add_nfe=True)
+    print_table(copy.deepcopy(df), runs_with_dropout, mode="Time", add_nfe=False)
 
     print_table(copy.deepcopy(df), runs_with_dropout, mode="Force", add_nfe=False)
     print_table(copy.deepcopy(df), runs_with_dropout, mode="Energy", add_nfe=False)
+
+    print_table_time_forces(copy.deepcopy(df), runs_with_dropout)

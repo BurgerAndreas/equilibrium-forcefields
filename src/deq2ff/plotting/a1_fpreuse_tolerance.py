@@ -123,6 +123,115 @@ def plot_acc_over_ftol(dfc, runs_with_dropout, target):
         plt.clf()   
         plt.close()
 
+# source multiruns/tolerance_sweep_fpreuseablation.sh
+def plot_acc_over_ftol_wo_fpreuse(dfc, runs_with_dropout, target):
+    """ Plot accuracy over fpreuse_f_tol """
+    # rename column avg_n_fsolver_steps_test_fpreuse -> nsteps
+    dfc = dfc.rename(columns={"avg_n_fsolver_steps_test_fpreuse": "nsteps"})
+    # dfc = dfc.rename(columns={"f_steps_to_fixed_point_test_fpreuse": "nsteps"})
+
+    # new column nfe = nsteps * Layers
+    # dfc["nfe"] = dfc["nsteps"] * dfc["Layers"]
+    dfc["nfe"] = dfc["nsteps"] 
+
+    df_fpreuse = dfc[dfc["Model"] == "DEQ"]
+
+    x = "fpreuse_f_tol"
+    color = "FPReuse"
+    
+    # y = acc_metric
+    # for y in ["test_f_mae", "time_forward_per_batch_test"]:
+    for y in ["test_f_mae_lowest", "time_forward_per_batch_test_lowest", "nfe"]:
+        # plot
+        set_seaborn_style()
+        fig, ax = plt.subplots()
+        # sns.scatterplot(data=df_fpreuse, x=x, y=y, hue=color, ax=ax)
+
+        # x axis on log scale
+        ax.set_xscale('log')
+        # turn around x axis
+        ax.invert_xaxis()
+
+        cols_to_keep = ["Model", "Layers", "fpreuse_f_tol"]
+        df_mean = df_fpreuse.groupby(cols_to_keep).mean(numeric_only=True).reset_index()
+        df_std = df_fpreuse.groupby(cols_to_keep).std(numeric_only=True).reset_index()
+        sns.pointplot(
+            data=df_fpreuse, 
+            x=x, y=y, 
+            estimator="mean", 
+            # errorbar="sd",
+            errorbar=("ci", 95),
+            hue=color, 
+            ax=ax, 
+            # markers=["o", "s", "^"], linestyles=["-", "--", "-."], 
+            palette=PALETTE,
+            markersize=3, linewidth=3,
+            native_scale=True, 
+            capsize=.3, # log scale
+            # legend=False,
+        )
+
+        # set_style_after(ax, fs=10)
+
+        # only major grid
+        plt.grid(False)
+        plt.grid(which='major', axis='y', linestyle='-', linewidth='1.0', color='lightgray')
+
+        # ax.get_legend().get_frame().set_linewidth(0.0)
+        # removes axes spines top and right
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+
+        # if there is only one layer, remove the legend
+        if len(dfc["Layers"].unique()) == 1:
+            ax.get_legend().remove()
+        ax.get_legend().remove()
+
+        # custom legend label
+        # handles, labels = ax.get_legend_handles_labels()
+        # ax.legend(handles=handles[1:], labels=["DEQ"], loc="upper right")
+
+        # set xticks at fpreuse_f_tol 
+        fpreuseftols = df_fpreuse["fpreuse_f_tol"].unique()
+        ax.set_xticks(fpreuseftols)
+        # TODO has to be before xscale?
+        # ax.get_xaxis().get_major_formatter().labelOnlyBase = False
+
+        # turn on scientific notation
+        # ax.ticklabel_format(axis='x', style='sci', scilimits=(0, 0))
+
+        # from matplotlib.ticker import FuncFormatter
+        # scientific_formatter = FuncFormatter(lambda x, pos: '%.1e' % x)
+        # ax.yaxis.set_major_formatter(scientific_formatter)
+
+        # labels
+        ax.set_xlabel(r"Abs solver tolerance $\epsilon^{FPreuse}_{test}$")
+        ax.set_title("Accuracy vs. Solver Stopping Criterion")
+
+        plt.tight_layout()
+
+        # save
+        if "mae" in y:
+            name = f"fpreuseablation_acc_over_fpreuseftol" + f"-bs{filter_eval_batch_size}"
+            ax.set_ylabel(r"Force MAE [kcal/mol/$\AA$]")
+        elif "nfe" in y:
+            name = f"fpreuseablation_nfe_over_fpreuseftol" + f"-bs{filter_eval_batch_size}"
+            ax.set_ylabel(r"Number of Solver Steps")
+        else:
+            name = f"fpreuseablation_time_over_fpreuseftol" + f"-bs{filter_eval_batch_size}"
+            ax.set_ylabel(r"Time per Batch [s]")
+        if runs_with_dropout:
+            name += '-dropout'
+        else:
+            name += '-nodropout'
+        name += "-" + target
+        plt.savefig(f"{plotfolder}/{name}.png")
+        print(f"\nSaved plot to \n {plotfolder}/{name}.png")
+
+
+        plt.cla()
+        plt.clf()   
+        plt.close()
 
 def plot_acc_over_nfe(dfc, runs_with_dropout, target):
     # avg_n_fsolver_steps_test_fpreuse
@@ -322,6 +431,7 @@ if __name__ == "__main__":
                     "num_layers": run.config["model"]["num_layers"],
                     "model_is_deq": run.config["model_is_deq"],
                     "evaluate": run.config["evaluate"],
+                    "FPReuse": run.config["fpreuse_test"],
                 }
                 # if we run fpreuse only we won't have these, that's why we need to make them optional
                 # summary_keys = time_metrics + acc_metrics
@@ -445,3 +555,6 @@ if __name__ == "__main__":
     # plot_acc_over_nfe(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
 
     plot_acc_over_ftol(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
+
+    plot_acc_over_ftol_wo_fpreuse(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
+    

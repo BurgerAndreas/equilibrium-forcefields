@@ -74,7 +74,7 @@ def main(
             # plt.ylim(1e-12, ymax)
             plt.ylim(top=ymax)
         # legend title
-        plt.title(f"Solver steps {'with' if fpreuse else 'without'} fpreuse")
+        plt.title(f"Solver Steps {'with' if fpreuse else 'without'} FPreuse")
 
         plt.tight_layout()
 
@@ -112,7 +112,7 @@ def main(
         data=_df, x="nstep", hue="class", 
         kind="count",
         # palette="pastel", 
-        palette=PALETTE,
+        palette="muted",
         # figsize = (8, 6), # Width, height
         # height=6, aspect=1.,
         # edgecolor=".6",
@@ -122,7 +122,7 @@ def main(
         # width=0.8,
         gap=0.0,
         dodge=False,
-        rc=myrc,
+        # rc=myrc,
     )
 
     # set size to (8,6)
@@ -140,9 +140,19 @@ def main(
     plt.grid(which='major', axis='y', linestyle='-', linewidth='1.0', color='lightgray')
 
     # set_style_after(ax)
+    # set runtime configuration (rc) parameters
+    g.figure.set_linewidth(myrc["lines.linewidth"])
 
-    plt.xlabel("Fixed-point solver steps")
-    plt.ylabel(f"Number of occurences")
+    # set font size of labels
+    g.set_axis_labels("Fixed-point solver steps", "Number of occurences", fontsize=myrc["font.size"])
+    # g.set_titles("Solver steps with and without fixed-point reuse", fontsize=myrc["font.size"])
+    g.set_xticklabels(fontsize=myrc["font.size"])
+    g.set_yticklabels(fontsize=myrc["font.size"])
+
+    # g.facet_axis(0, 0).set_xlabel("Fixed-point solver steps")
+
+    plt.xlabel("Fixed-Point Solver Steps")
+    plt.ylabel(f"Number of Occurences")
     if logscale:
         plt.yscale("log")
     if ymax is not None:
@@ -152,7 +162,7 @@ def main(
     if xmax is not None:
         plt.xlim(right=xmax)
     # legend title
-    plt.title(f"Solver steps w/o fixed-point reuse")
+    plt.title(f"Solver Steps w/o Fixed-point Reuse", fontsize=myrc["font.size"])
 
     # no legend title
     # plt.legend(title=None)
@@ -161,7 +171,7 @@ def main(
     # set to top right
     legend.set_bbox_to_anchor([0.95, 0.82])
 
-    plt.tight_layout()
+    plt.tight_layout(pad=0.1)
 
     mname = run.name # wandb.run.name # args.checkpoint_wandb_name
     # remove special characters
@@ -171,6 +181,10 @@ def main(
     fname = f"{plotfolder}/nsteps_wo_fpreuse_{mname}.png"
     plt.savefig(fname)
     print(f"Saved plot to \n {fname}")
+
+    plt.cla()
+    plt.clf()
+    plt.close()
 
 
 

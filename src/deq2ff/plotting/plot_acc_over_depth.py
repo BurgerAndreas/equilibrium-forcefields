@@ -19,6 +19,8 @@ if __name__ == "__main__":
     # layers = [1, 2, 4, 8]
     remove_single_seed_runs = True
     runs_with_dropout = False
+    layers_deq = [1,2]
+    layers_equi = [1,2,3,4,5,6,7,8]
 
     """ Get runs """
 
@@ -86,6 +88,10 @@ if __name__ == "__main__":
     # filter for Target
     if Target not in [None, "all"]:
         df = df[df["Target"] == Target]
+    
+    df = df[
+        (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ")) | (df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer"))
+    ]
 
     # filter for layers
     # df = df[df["Layers"].isin(layers)]

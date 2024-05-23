@@ -63,6 +63,7 @@ deq_kwargs:
   f_max_iter: 40
   # b_max_iter (int, optional) – Maximum number of iterations (NFE) for the backward solver. Default 40
   b_max_iter: 40
+  f_stop_mode: 'abs' # 'rel', 'abs'
   # ift (bool, optional) – If true, enable Implicit Differentiation. 
   # IFT=Implicit Function Theorem. Default False.
   ift: False

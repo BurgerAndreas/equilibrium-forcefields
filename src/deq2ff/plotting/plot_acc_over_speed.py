@@ -203,12 +203,11 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
             # if mean isnt empty
             if not _mean.empty:
                 print(f'Model={m}, Layers={l} mean', _mean[[x, y]], '\nstd\n', _std[[x, y]])
-            # TODO temporary fix
-            if _std.isnull().values.any():
-                if m == "Equiformer":
-                    # set to 0.000501           0.028041
-                    _std["time_forward_per_batch_test_lowest"] = 0.000501 * np.random.normal(1, 0.1, 1)
-                    _std["test_f_mae_lowest"] = 0.011041 * np.random.normal(1, 0.1, 1)
+
+            # if _std.isnull().values.any():
+                # # set to 0.000501           0.028041
+                # _std["time_forward_per_batch_test_lowest"] = 0.000501 * np.random.normal(1, 0.1, 1)
+                # _std["test_f_mae_lowest"] = 0.011041 * np.random.normal(1, 0.1, 1)
                 
             ax.errorbar(
                 _mean[x], 

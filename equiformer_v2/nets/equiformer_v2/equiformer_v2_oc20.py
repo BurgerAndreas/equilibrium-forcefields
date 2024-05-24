@@ -624,8 +624,10 @@ class EquiformerV2_OC20(BaseModel):
                 self.blocks[i].graph_attention.alpha_dropout.update_mask(
                     shape=[self.num_edges, 1, self.num_heads, 1]
                 )
-            self.blocks[i].path_drop.update_mask(x=x, batch=batch)
-            # self.blocks[i].proj_drop.update_mask(x=x, batch=data.batch)
+            if self.blocks[i].path_drop is not None:
+                self.blocks[i].path_drop.update_mask(x=x, batch=batch)
+            if self.blocks[i].proj_drop is not None:
+                self.blocks[i].proj_drop.update_mask(x=x, batch=batch)
 
     @conditional_grad(torch.enable_grad())
     def forward(self, data, step=None, datasplit=None, **kwargs):

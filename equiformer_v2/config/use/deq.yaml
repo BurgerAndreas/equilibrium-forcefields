@@ -29,12 +29,15 @@ model:
     clip: False # (bool, optional) – If true, clip the scale factor. Default False.
     clip_value: 1.0 # (float, optional) – The value to clip the scale factor to. Default 1.
 
+  # use_variational_alpha_drop: False
+  # use_variational_path_drop: False
+
   # deq
   z0: "zero"
   # concat or add input injection to node_features (fixed-point estimate)
   cat_injection: False
   norm_injection: prev # None=False, 'one', 'prev'
-  # not used
+  
   path_norm: "none"
   irrep_norm: null
 

@@ -28,5 +28,5 @@ model:
   alpha_drop: 0.0
   proj_drop: 0.0
   out_drop: 0.0
-  drop_path_rate: 0.0
+  path_drop: 0.0
   scale: null

@@ -105,7 +105,9 @@ def log_fixed_point_error_trace_table(
             return None
 
 
-def log_fixed_point_error(info, step, datasplit=None, log_trace_freq=None, save_to_file=False):
+def log_fixed_point_error(
+    info, step, datasplit=None, log_trace_freq=None, save_to_file=False
+):
     """Log fixed point error to wandb."""
     # absolute fixed point errors along the solver trajectory
     f_abs_trace = info["abs_trace"]

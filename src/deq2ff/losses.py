@@ -32,7 +32,8 @@ def load_loss(loss_fn={"energy": "mae", "force": "mae"}):
         #     self.loss_fn[loss] = DDPLoss(self.loss_fn[loss])
     return loss_fn
 
-# 
+
+#
 # https://omoindrot.github.io/triplet-loss
 def _pairwise_distances(embeddings, squared=False, save_squared=False):
     """Compute the 2D matrix of distances between all the embeddings.
@@ -59,7 +60,11 @@ def _pairwise_distances(embeddings, squared=False, save_squared=False):
     # ||a - b||^2 = ||a||^2  - 2 <a, b> + ||b||^2
     # shape (batch_size, batch_size)
     # distances = tf.expand_dims(square_norm, 0) - 2.0 * dot_product + tf.expand_dims(square_norm, 1)
-    distances = torch.unsqueeze(square_norm, 0) - 2.0 * dot_product + torch.unsqueeze(square_norm, 1)
+    distances = (
+        torch.unsqueeze(square_norm, 0)
+        - 2.0 * dot_product
+        + torch.unsqueeze(square_norm, 1)
+    )
 
     # Because of computation errors, some distances might be negative so we put everything >= 0.0
     distances = torch.clamp(distances, min=0.0)
@@ -80,8 +85,9 @@ def _pairwise_distances(embeddings, squared=False, save_squared=False):
 
     return distances
 
+
 def contrastive_loss(fixedpoints, data, closs_type="next", squared=True):
-    """ Fixed-point contrastive loss.
+    """Fixed-point contrastive loss.
     fixedpoints = info["z_pred"][-1]
     """
     # Fixed-point contrastive loss
@@ -105,19 +111,23 @@ def contrastive_loss(fixedpoints, data, closs_type="next", squared=True):
     # similarity = torch.cdist(fp_reshaped, fp_reshaped, p=2) # BxPxM, BxRxM -> BxPxR
     distances = _pairwise_distances(fixedpoints, squared=squared)
 
-    # Similarity matrix 
+    # Similarity matrix
     # for the contrastive loss we construct a matrix of positive and negative relations
     # similarity = torch.zeros(batch_size, batch_size, device=fixedpoints.device, dtype=fixedpoints.dtype)
-    
+
     if closs_type == "next":
         # |FP(x_t) - FP(x_t+/-1)| -> diagonal shifted right-up by 1
         similarity = torch.diag(
-            torch.ones(batch_size-1, device=fixedpoints.device, dtype=fixedpoints.dtype), diagonal=1
+            torch.ones(
+                batch_size - 1, device=fixedpoints.device, dtype=fixedpoints.dtype
+            ),
+            diagonal=1,
         )
     else:
         raise NotImplementedError(f"Unknown closs_type: {closs_type}")
-    
+
     return (distances * similarity).mean()
+
 
 class TripletLoss(torch.nn.Module):
     # https://medium.com/@Skpd/triplet-loss-on-imagenet-dataset-a2b29b8c2952
@@ -130,8 +140,10 @@ class TripletLoss(torch.nn.Module):
         # sum over feature dims
         dim = [i for i in range(1, len(x1.shape))]
         return (x1 - x2).pow(2).sum(dim=dim)
-    
-    def forward(self, anchor: torch.Tensor, positive: torch.Tensor, negative: torch.Tensor) -> torch.Tensor:
+
+    def forward(
+        self, anchor: torch.Tensor, positive: torch.Tensor, negative: torch.Tensor
+    ) -> torch.Tensor:
         # anchor, positive, negative: [num_pairs, ...]
         distance_positive = self.calc_euclidean(anchor, positive)
         distance_negative = self.calc_euclidean(anchor, negative)
@@ -141,11 +153,12 @@ class TripletLoss(torch.nn.Module):
         # mean over pairs
         return losses.mean()
 
+
 def calc_triplet_loss(fixedpoints, data, triplet_lossfn):
     """
     Assumes:
     - fixedpoints: [batch_size*num_atoms, ...]
-    - positive/negative pairs and buffers are ordered: 
+    - positive/negative pairs and buffers are ordered:
         [p1 p1 p2 p2 (b1) (b1) (b2) (b2) ... n1 n2]
     """
     # Fixed-point contrastive loss
@@ -159,18 +172,18 @@ def calc_triplet_loss(fixedpoints, data, triplet_lossfn):
     # reshape to [batch_size, num_atoms, ...]
     # data.batch contains the batch index for each atom (node)
     fixedpoints = fixedpoints.view(batch_size, num_atoms, *dims_per_atom)
-    print('fixedpoints calc_triplet_loss', fixedpoints.shape)
+    print("fixedpoints calc_triplet_loss", fixedpoints.shape)
 
     # reshape to [batch_size, features]
     # fixedpoints = fixedpoints.reshape(batch_size, -1)
 
     triplets_per_batch = batch_size // 3
     anchors = fixedpoints[:triplets_per_batch]
-    positives = fixedpoints[triplets_per_batch:2*triplets_per_batch]
-    negatives = fixedpoints[batch_size-triplets_per_batch:]
+    positives = fixedpoints[triplets_per_batch : 2 * triplets_per_batch]
+    negatives = fixedpoints[batch_size - triplets_per_batch :]
 
-    print('anchors', anchors.shape)
-    print('positives', positives.shape)
+    print("anchors", anchors.shape)
+    print("positives", positives.shape)
 
     return triplet_lossfn(anchors, positives, negatives)
 
@@ -182,9 +195,9 @@ class TripletDataloader:
         self.num_batches = len(dataset) // batch_size
 
         # Idea: split up dataset into two unequal parts
-        # first part: 2/3 + buffer of the dataset for the positive pairs 
+        # first part: 2/3 + buffer of the dataset for the positive pairs
         # second part: 1/3 of the dataset for the negative pairs
-        # a batch will be formed by taking 
+        # a batch will be formed by taking
         # n*2 + n*buffer_per_batch samples from the first part and n*1 samples from the second part
         # where n = triplets_per_batch
         # batch_size = 8: [p1 p1 p2 p2 b1 b2 ... n1 n2] (positive, buffer, negative)
@@ -202,7 +215,7 @@ class TripletDataloader:
 
         self.start = 0
         # current index in the dataset where the next batch starts
-        self.idx = 0 
+        self.idx = 0
         # current batch index
         self.ibatch = 0
         self.reset()
@@ -226,37 +239,43 @@ class TripletDataloader:
 
     def __iter__(self):
         return self
-    
+
     def __next__(self):
         if self.ibatch >= self.num_batches:
             raise StopIteration
-        
+
         # prefer not to use random_start with indices tensors here.
-        # indexing a tensor with slice or int returns a view of that without copying its underlying storage 
+        # indexing a tensor with slice or int returns a view of that without copying its underlying storage
         # but indexing with another tensor (a Bool or a Long one but not a 0-dim long tensor) or a list returns a copy of the tensor
         # (You can use .storage().data_ptr() to see if the underlying data of a tensor has been copied or not.)
         if self.random_start:
-            # indices for the current batch 
-            indices1 = torch.arange(self.idx, self.idx+self.bs1)
-            indices2 = torch.arange(self.idx+self.ds1, self.idx+self.ds1+self.bs2)
+            # indices for the current batch
+            indices1 = torch.arange(self.idx, self.idx + self.bs1)
+            indices2 = torch.arange(self.idx + self.ds1, self.idx + self.ds1 + self.bs2)
             # if we start from a random position, we need to wrap around the dataset
-            indices1 = torch.where(indices1 >= len(self.dataset), indices1 - len(self.dataset), indices1).long()
-            indices2 = torch.where(indices2 >= len(self.dataset), indices2 - len(self.dataset), indices2).long()
+            indices1 = torch.where(
+                indices1 >= len(self.dataset), indices1 - len(self.dataset), indices1
+            ).long()
+            indices2 = torch.where(
+                indices2 >= len(self.dataset), indices2 - len(self.dataset), indices2
+            ).long()
             # using indices tensor will copy the data
             # print("dataset storage                             ", self.dataset.storage().data_ptr())
             # print("dataset[self.idx, self.idx+self.bs1] storage", self.dataset[self.idx:self.idx+self.bs1].storage().data_ptr())
             # print("dataset[indices1] storage                   ", self.dataset[indices1].storage().data_ptr())
             # build the batch
-            batch = torch.concat([
-                self.dataset[indices1],
-                self.dataset[indices2]
-            ], dim=0)
+            batch = torch.concat(
+                [self.dataset[indices1], self.dataset[indices2]], dim=0
+            )
 
         else:
-            batch = torch.concat([
-                self.dataset[self.idx : self.idx+self.bs1],
-                self.dataset[self.idx+self.ds1 : self.idx+self.ds1+self.bs2]
-            ], dim=0)
+            batch = torch.concat(
+                [
+                    self.dataset[self.idx : self.idx + self.bs1],
+                    self.dataset[self.idx + self.ds1 : self.idx + self.ds1 + self.bs2],
+                ],
+                dim=0,
+            )
 
         # update counters
         self.idx += self.bs1

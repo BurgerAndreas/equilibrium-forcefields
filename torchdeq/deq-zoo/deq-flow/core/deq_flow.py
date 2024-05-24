@@ -126,7 +126,7 @@ class DEQFlow(nn.Module):
         cached_result=None,
         writer=None,
         sradius_mode=False,
-        **kwargs
+        **kwargs,
     ):
         """Estimate optical flow between pair of frames"""
         # model(image1, image2, flow, valid, fc_loss, writer=writer_f)
@@ -186,15 +186,15 @@ class DEQFlow(nn.Module):
             return new_h, new_c
 
         if len(kwargs) > 0:
-            print('kwargs passed to deq:', kwargs)
+            print("kwargs passed to deq:", kwargs)
         z_out, info = self.deq(
             func,
             (net, coords1),
             sradius_mode=sradius_mode,
             backward_writer=writer,
-            **kwargs
+            **kwargs,
         )
-        print(f'len(z_out): {len(z_out)}')
+        print(f"len(z_out): {len(z_out)}")
         flow_pred = [self._decode(z, coords0) for z in z_out]
 
         if self.training:

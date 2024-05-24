@@ -102,7 +102,7 @@ class DEQGraphAttentionTransformerMD17(DEQDotProductAttentionTransformerMD17):
                 nonlinear_message=self.nonlinear_message,
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
-                drop_path_rate=self.drop_path_rate,
+                path_drop=self.path_drop,
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
                 # added

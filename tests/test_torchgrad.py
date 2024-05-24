@@ -1,16 +1,16 @@
 import torch
 
-# import necessary libraries 
-import torch 
-  
-# define a tensor 
-A = torch.tensor(1., requires_grad=True) 
-print("Tensor A:", A) 
+# import necessary libraries
+import torch
 
-# define a function using A tensor  
-def f(x): 
+# define a tensor
+A = torch.tensor(1.0, requires_grad=True)
+print("Tensor A:", A)
+
+# define a function using A tensor
+def f(x):
     B = x + 1
-    # check gradient 
+    # check gradient
     print("B.requires_grad:", B.requires_grad)
 
 
@@ -19,7 +19,7 @@ f(A)
 
 
 """ Does not require grad """
-with torch.no_grad(): 
+with torch.no_grad():
     f(A)
 
 

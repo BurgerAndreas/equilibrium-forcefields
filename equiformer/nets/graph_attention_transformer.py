@@ -24,7 +24,7 @@ from .tensor_product_rescale import (
     sort_irreps_even_first,
 )
 from .fast_activation import Activation, Gate
-from .drop import EquivariantDropout, EquivariantScalarsDropout, GraphDropPath
+from .drop import EquivariantDropout, EquivariantScalarsDropout, GraphPathDrop
 from .gaussian_rbf import GaussianRadialBasisLayer
 
 # for bessel radial basis
@@ -799,7 +799,7 @@ class TransBlock(torch.nn.Module):
         nonlinear_message=False,
         alpha_drop=0.1,
         proj_drop=0.1,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         irreps_mlp_mid=None,
         norm_layer="layer",
         # added
@@ -850,7 +850,7 @@ class TransBlock(torch.nn.Module):
             activation=activation,
         )
 
-        self.drop_path = GraphDropPath(drop_path_rate) if drop_path_rate > 0.0 else None
+        self.path_drop = GraphPathDrop(path_drop) if path_drop > 0.0 else None
 
         self.norm_2 = get_norm_layer(norm_layer)(self.irreps_node_input)
         # self.concat_norm_output = ConcatIrrepsTensor(self.irreps_node_input,
@@ -905,8 +905,8 @@ class TransBlock(torch.nn.Module):
             batch=batch,
         )
 
-        if self.drop_path is not None:
-            node_features = self.drop_path(node_features, batch)
+        if self.path_drop is not None:
+            node_features = self.path_drop(node_features, batch)
         node_output = node_output + node_features
 
         node_features = node_output
@@ -916,8 +916,8 @@ class TransBlock(torch.nn.Module):
         if self.ffn_shortcut is not None:
             node_output = self.ffn_shortcut(node_output, node_attr)
 
-        if self.drop_path is not None:
-            node_features = self.drop_path(node_features, batch)
+        if self.path_drop is not None:
+            node_features = self.path_drop(node_features, batch)
         node_output = node_output + node_features
 
         return node_output
@@ -1027,7 +1027,7 @@ class GraphAttentionTransformer(torch.nn.Module):
         alpha_drop=0.2,
         proj_drop=0.0,
         out_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         mean=None,
         std=None,
         scale=None,
@@ -1040,7 +1040,7 @@ class GraphAttentionTransformer(torch.nn.Module):
         self.alpha_drop = alpha_drop
         self.proj_drop = proj_drop
         self.out_drop = out_drop
-        self.drop_path_rate = drop_path_rate
+        self.path_drop = path_drop
         self.norm_layer = norm_layer
         self.task_mean = mean
         self.task_std = std
@@ -1124,7 +1124,7 @@ class GraphAttentionTransformer(torch.nn.Module):
                 nonlinear_message=self.nonlinear_message,
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
-                drop_path_rate=self.drop_path_rate,
+                path_drop=self.path_drop,
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
             )
@@ -1243,7 +1243,7 @@ def graph_attention_transformer_l2(
         alpha_drop=0.2,
         proj_drop=0.0,
         out_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         mean=task_mean,
         std=task_std,
         scale=None,
@@ -1282,7 +1282,7 @@ def graph_attention_transformer_nonlinear_l2(
         alpha_drop=0.2,
         proj_drop=0.0,
         out_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         mean=task_mean,
         std=task_std,
         scale=None,
@@ -1321,7 +1321,7 @@ def graph_attention_transformer_nonlinear_l2_e3(
         alpha_drop=0.2,
         proj_drop=0.0,
         out_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         mean=task_mean,
         std=task_std,
         scale=None,
@@ -1362,7 +1362,7 @@ def graph_attention_transformer_nonlinear_bessel_l2(
         alpha_drop=0.2,
         proj_drop=0.0,
         out_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         mean=task_mean,
         std=task_std,
         scale=None,
@@ -1403,7 +1403,7 @@ def graph_attention_transformer_nonlinear_bessel_l2_drop01(
         alpha_drop=0.1,
         proj_drop=0.0,
         out_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         mean=task_mean,
         std=task_std,
         scale=None,
@@ -1444,7 +1444,7 @@ def graph_attention_transformer_nonlinear_bessel_l2_drop00(
         alpha_drop=0.0,
         proj_drop=0.0,
         out_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         mean=task_mean,
         std=task_std,
         scale=None,

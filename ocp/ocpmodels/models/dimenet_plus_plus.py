@@ -35,6 +35,7 @@ THE SOFTWARE.
 import torch
 from torch import nn
 from torch_geometric.nn import radius_graph
+
 try:
     # 2.0.4
     from torch_geometric.nn.acts import swish

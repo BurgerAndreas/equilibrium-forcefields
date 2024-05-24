@@ -281,9 +281,11 @@ def fetch_dataloader(args, TRAIN_DS="C+T+K+S+H"):
 
         elif TRAIN_DS == "C+T+K/S":
             train_dataset = 100 * sintel_clean + 100 * sintel_final + things
-        
+
         else:
-            raise ValueError(f"Unknown TRAIN_DS {TRAIN_DS}. Must be one of 'C+T+K+S+H', 'C+T+K/S'")
+            raise ValueError(
+                f"Unknown TRAIN_DS {TRAIN_DS}. Must be one of 'C+T+K+S+H', 'C+T+K/S'"
+            )
 
     elif args.stage == "kitti":
         aug_params = {
@@ -293,14 +295,16 @@ def fetch_dataloader(args, TRAIN_DS="C+T+K+S+H"):
             "do_flip": False,
         }
         train_dataset = KITTI(aug_params, split="training")
-    
+
     else:
-        raise ValueError(f"Unknown stage {args.stage}. Must be one of 'chairs', 'things', 'sintel', 'kitti'")
+        raise ValueError(
+            f"Unknown stage {args.stage}. Must be one of 'chairs', 'things', 'sintel', 'kitti'"
+        )
 
     if len(train_dataset) == 0:
         print("No training data found!")
         return []
-    
+
     train_loader = data.DataLoader(
         train_dataset,
         batch_size=args.batch_size,

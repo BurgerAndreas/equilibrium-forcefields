@@ -318,7 +318,7 @@ def equiformerv2(
     use_grid_mlp=False,
     use_sep_s2_act=True,
     alpha_drop=0.1,
-    drop_path_rate=0.05,
+    path_drop=0.05,
     proj_drop=0.0,
     weight_init="normal",
     # added

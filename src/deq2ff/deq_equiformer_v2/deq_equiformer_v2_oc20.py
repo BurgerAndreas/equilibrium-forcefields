@@ -150,7 +150,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 norm_type=self.norm_type,
                 # dropout
                 alpha_drop=self.alpha_drop,
-                drop_path_rate=self.drop_path_rate,
+                path_drop=self.path_drop,
                 proj_drop=self.proj_drop,
                 # added
                 normlayer_norm=self.normlayer_norm,
@@ -219,6 +219,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             _,  # cell offset distances
             neighbors,
         ) = self.generate_graph(data)
+
+        self.num_edges = edge_distance.shape[0]
 
         ###############################################################
         # Initialize data structures
@@ -305,6 +307,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             x = fixedpoint.to(emb.device)
 
         reset_norm(self.blocks)
+        self.reset_dropout(x, data.batch)
 
         # Transformer blocks
         # f = lambda z: self.mfn_forward(z, u)
@@ -319,8 +322,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 atomic_numbers=atomic_numbers,
                 data=data,
             )
-        
-        # [B*N, D, C] -> [B, N, D, C] # TODO: torchdeq batchify
+
+        # [B*N, D, C] -> [B, N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             x = x.view(self.shape_unbatched)
 
@@ -331,7 +334,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         z_pred, info = self.deq(
             f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
         )
-        # [B, N, D, C] -> [B*N, D, C] # TODO: torchdeq batchify
+        # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             z_pred = [z.view(self.shape_batched) for z in z_pred]
         info["z_pred"] = z_pred
@@ -348,10 +351,10 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         ######################################################
         # Fixed-point reuse loss
         if fpr_loss == True:
-            # TODO: torchdeq batchify
+            # torchdeq batchify
             z_next, _, _info = broyden_solver_grad(
-                func=f, 
-                x0=z_pred[-1].clone(), 
+                func=f,
+                x0=z_pred[-1].clone(),
                 max_iter=1,
                 tol=solver_kwargs.get("f_tol", self.deq.f_tol),
                 stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
@@ -380,7 +383,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         ###############################################################
         node_energy = self.energy_block(x)
         # if self.learn_scale_after_energy_block:
-        node_energy.embedding = node_energy.embedding * self.learn_scale_after_energy_block
+        node_energy.embedding = (
+            node_energy.embedding * self.learn_scale_after_energy_block
+        )
         node_energy = node_energy.embedding.narrow(1, 0, 1)
         energy = torch.zeros(
             len(data.natoms), device=node_energy.device, dtype=node_energy.dtype
@@ -432,7 +437,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         """Implicit layer for DEQ that defines the fixed-point.
         Make sure to input and output only torch.tensor, not SO3_Embedding, to not break TorchDEQ.
         """
-        # [B, N, D, C] -> [B*N, D, C] # TODO: torchdeq batchify
+        # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             x = x.view(self.shape_batched)
         # input injection
@@ -471,10 +476,10 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 atomic_numbers,
                 edge_distance,
                 edge_index,
-                batch=data.batch,  # for GraphDropPath
+                batch=data.batch,  # for GraphPathDrop
             )
         x = x.embedding
-        # [B*N, D, C] -> [B, N, D, C] # TODO: torchdeq batchify
+        # [B*N, D, C] -> [B, N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             x = x.view(self.shape_unbatched)
         return x

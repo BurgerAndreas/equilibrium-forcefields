@@ -9,30 +9,52 @@ import yaml
 import json
 import requests
 
-from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, acclabels, timelabels, set_style_after, myrc
+from deq2ff.plotting.style import (
+    set_seaborn_style,
+    PALETTE,
+    entity,
+    project,
+    plotfolder,
+    acclabels,
+    timelabels,
+    set_style_after,
+    myrc,
+)
 
-nans = ['NaN', pd.NA, None, float("inf"), np.nan]
+nans = ["NaN", pd.NA, None, float("inf"), np.nan]
+
 
 def barcharts_speed_acc_target(dfc, runs_with_dropout, target):
     """Speed barchart and accuracy barchart"""
-    color_palette = sns.color_palette('muted')
+    color_palette = sns.color_palette("muted")
     color_equiformer = color_palette[0]
     color_deq = color_palette[1]
     model_to_color = {"Equiformer": color_equiformer, "DEQ": color_deq}
     equiformer_first = True
 
-    dfc.sort_values(by=["Model", "Layers", "fpreuse_f_tol"], inplace=True, ascending=[not equiformer_first, True, True])
+    dfc.sort_values(
+        by=["Model", "Layers", "fpreuse_f_tol"],
+        inplace=True,
+        ascending=[not equiformer_first, True, True],
+    )
 
     df_clustered = copy.deepcopy(dfc)
-    df_clustered["fpreuse_f_tol"] = df_clustered["fpreuse_f_tol"].apply(lambda x: 0.0 if np.isnan(x) else x)
+    df_clustered["fpreuse_f_tol"] = df_clustered["fpreuse_f_tol"].apply(
+        lambda x: 0.0 if np.isnan(x) else x
+    )
     # combine cols_to_keep into one
-    df_clustered["run_name"] = df_clustered.apply(lambda x: f"{x['Model']} {x['Layers']}", axis=1)
     df_clustered["run_name"] = df_clustered.apply(
-        lambda x: x['run_name'] + f" {x['fpreuse_f_tol']:.0e}" if x['fpreuse_f_tol'] != 0.0 else x['run_name'], axis=1
+        lambda x: f"{x['Model']} {x['Layers']}", axis=1
+    )
+    df_clustered["run_name"] = df_clustered.apply(
+        lambda x: x["run_name"] + f" {x['fpreuse_f_tol']:.0e}"
+        if x["fpreuse_f_tol"] != 0.0
+        else x["run_name"],
+        axis=1,
     )
     # print('\nAfter renaming:\n', df_clustered[["run_name", "Model", "Layers", acc_metric, time_metric, "fpreuse_f_tol"]])
 
-    # cols_to_keep = ["Model", "Layers", "fpreuse_f_tol"] + ["run_name"] 
+    # cols_to_keep = ["Model", "Layers", "fpreuse_f_tol"] + ["run_name"]
     # df_mean = df_clustered.groupby(cols_to_keep).mean(numeric_only=True).reset_index()
     # df_std = df_clustered.groupby(cols_to_keep).std(numeric_only=True).reset_index()
     # print('\nAfter averaging:\n', df_mean[["run_name", acc_metric, time_metric, "fpreuse_f_tol"]])
@@ -62,18 +84,26 @@ def barcharts_speed_acc_target(dfc, runs_with_dropout, target):
             # do not write 0.00
             if p.get_height() == 0:
                 continue
-            ax.annotate(f"{p.get_height():.2f}", (p.get_x() + p.get_width() / 2., p.get_height()), ha='center', va='center', xytext=(0, 10), textcoords='offset points', fontsize=8)
+            ax.annotate(
+                f"{p.get_height():.2f}",
+                (p.get_x() + p.get_width() / 2.0, p.get_height()),
+                ha="center",
+                va="center",
+                xytext=(0, 10),
+                textcoords="offset points",
+                fontsize=8,
+            )
 
         # make labels vertical
         # plt.xticks(rotation=90)
 
         loc, labels = plt.xticks()
         # ax.set_xticks(loc[::2]) # this is a hack, only show every second label
-        ax.set_xticks(loc) 
-        ax.set_xticklabels(labels, rotation=45, horizontalalignment='right', fontsize=8)
+        ax.set_xticks(loc)
+        ax.set_xticklabels(labels, rotation=45, horizontalalignment="right", fontsize=8)
 
         # labels
-        ax.set_xlabel("") # "Run name"
+        ax.set_xlabel("")  # "Run name"
         ax.set_ylabel(timelabels[y.replace("_lowest", "")])
 
         plt.tight_layout()
@@ -82,7 +112,6 @@ def barcharts_speed_acc_target(dfc, runs_with_dropout, target):
         name = f"speed2{'-avg' if _avg else ''}-bs{filter_eval_batch_size}-{time_metric.replace('_lowest', '')}"
         plt.savefig(f"{plotfolder}/{name}.png")
         print(f"\nSaved plot to \n {plotfolder}/{name}.png")
-
 
         """ Barchart of accuracy """
         y = acc_metric
@@ -100,7 +129,15 @@ def barcharts_speed_acc_target(dfc, runs_with_dropout, target):
             # do not write 0.00
             if p.get_height() == 0:
                 continue
-            ax.annotate(f"{p.get_height():.2f}", (p.get_x() + p.get_width() / 2., p.get_height()), ha='center', va='center', xytext=(0, 10), textcoords='offset points', fontsize=8)
+            ax.annotate(
+                f"{p.get_height():.2f}",
+                (p.get_x() + p.get_width() / 2.0, p.get_height()),
+                ha="center",
+                va="center",
+                xytext=(0, 10),
+                textcoords="offset points",
+                fontsize=8,
+            )
 
         # make labels vertical
         # plt.xticks(rotation=90)
@@ -108,10 +145,10 @@ def barcharts_speed_acc_target(dfc, runs_with_dropout, target):
         loc, labels = plt.xticks()
         ax.set_xticks(loc)
         # UserWarning: set_ticklabels() should only be used with a fixed number of ticks, i.e. after set_ticks() or using a FixedLocator.
-        ax.set_xticklabels(labels, rotation=45, horizontalalignment='right', fontsize=8)
+        ax.set_xticklabels(labels, rotation=45, horizontalalignment="right", fontsize=8)
 
         # labels
-        ax.set_xlabel("") # "Run name"
+        ax.set_xlabel("")  # "Run name"
         ax.set_ylabel(acclabels[y.replace("_lowest", "")])
 
         plt.tight_layout()
@@ -119,19 +156,20 @@ def barcharts_speed_acc_target(dfc, runs_with_dropout, target):
         # save
         name = f"acc2{'-avg' if _avg else ''}-bs{filter_eval_batch_size}-{acc_metric.replace('_lowest', '')}"
         if runs_with_dropout:
-            name += '-dropout'
+            name += "-dropout"
         else:
-            name += '-nodropout'
-        name += "-" + target        
+            name += "-nodropout"
+        name += "-" + target
         plt.savefig(f"{plotfolder}/{name}.png")
         print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
+
 def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
-    """ Plot accuracy over inference time"""
+    """Plot accuracy over inference time"""
 
     # print('\nBefore tol:\n', dfc[["Model", "Layers", "fpreuse_f_tol"]])
 
-    # only plot one point 
+    # only plot one point
     # to float
     dfc["fpreuse_f_tol"] = dfc["fpreuse_f_tol"].astype(float)
     if tol is not None:
@@ -146,24 +184,35 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
 
     # print('\nAfter tol:\n', dfc[["Model", "Layers", "fpreuse_f_tol"]])
 
-    color_palette = sns.color_palette('muted')
+    color_palette = sns.color_palette("muted")
     color_equiformer = color_palette[0]
     color_deq = color_palette[1]
     model_to_color = {"Equiformer": color_equiformer, "DEQ": color_deq}
     equiformer_first = True
 
-    dfc.sort_values(by=["Model", "Layers", "fpreuse_f_tol"], inplace=True, ascending=[not equiformer_first, True, True])
+    dfc.sort_values(
+        by=["Model", "Layers", "fpreuse_f_tol"],
+        inplace=True,
+        ascending=[not equiformer_first, True, True],
+    )
 
     df_clustered = copy.deepcopy(dfc)
-    df_clustered["fpreuse_f_tol"] = df_clustered["fpreuse_f_tol"].apply(lambda x: 0.0 if np.isnan(x) else x)
+    df_clustered["fpreuse_f_tol"] = df_clustered["fpreuse_f_tol"].apply(
+        lambda x: 0.0 if np.isnan(x) else x
+    )
     # combine cols_to_keep into one
-    df_clustered["run_name"] = df_clustered.apply(lambda x: f"{x['Model']} {x['Layers']}", axis=1)
     df_clustered["run_name"] = df_clustered.apply(
-        lambda x: x['run_name'] + f" {x['fpreuse_f_tol']:.0e}" if x['fpreuse_f_tol'] != 0.0 else x['run_name'], axis=1
+        lambda x: f"{x['Model']} {x['Layers']}", axis=1
+    )
+    df_clustered["run_name"] = df_clustered.apply(
+        lambda x: x["run_name"] + f" {x['fpreuse_f_tol']:.0e}"
+        if x["fpreuse_f_tol"] != 0.0
+        else x["run_name"],
+        axis=1,
     )
     # print('\nAfter renaming:\n', df_clustered[["run_name", "Model", "Layers", acc_metric, time_metric, "fpreuse_f_tol"]])
 
-    cols_to_keep = ["Model", "Layers", "fpreuse_f_tol"] + ["run_name"] 
+    cols_to_keep = ["Model", "Layers", "fpreuse_f_tol"] + ["run_name"]
     df_mean = df_clustered.groupby(cols_to_keep).mean(numeric_only=True).reset_index()
     df_std = df_clustered.groupby(cols_to_keep).std(numeric_only=True).reset_index()
     # print('\nAfter averaging:\n', df_mean[["run_name", acc_metric, time_metric, "fpreuse_f_tol"]])
@@ -182,7 +231,7 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
     fig, ax = plt.subplots()
 
     df_mean.sort_values(by=["Model"], inplace=True, ascending=[not equiformer_first])
-    print('\nMean for acc vs speed:\n', df_mean[[x, y, colorstyle, shapestyle]])
+    print("\nMean for acc vs speed:\n", df_mean[[x, y, colorstyle, shapestyle]])
 
     # error bars on both axes
     # shades of blue
@@ -202,22 +251,27 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
             _std = _std[_std[shapestyle] == l]
             # if mean isnt empty
             if not _mean.empty:
-                print(f'Model={m}, Layers={l} mean', _mean[[x, y]], '\nstd\n', _std[[x, y]])
+                print(
+                    f"Model={m}, Layers={l} mean",
+                    _mean[[x, y]],
+                    "\nstd\n",
+                    _std[[x, y]],
+                )
 
             # if _std.isnull().values.any():
-                # # set to 0.000501           0.028041
-                # _std["time_forward_per_batch_test_lowest"] = 0.000501 * np.random.normal(1, 0.1, 1)
-                # _std["test_f_mae_lowest"] = 0.011041 * np.random.normal(1, 0.1, 1)
-                
+            # # set to 0.000501           0.028041
+            # _std["time_forward_per_batch_test_lowest"] = 0.000501 * np.random.normal(1, 0.1, 1)
+            # _std["test_f_mae_lowest"] = 0.011041 * np.random.normal(1, 0.1, 1)
+
             ax.errorbar(
-                _mean[x], 
-                _mean[y], 
-                xerr=_std[x], 
-                yerr=_std[y], 
-                # fmt='o', 
+                _mean[x],
+                _mean[y],
+                xerr=_std[x],
+                yerr=_std[y],
+                # fmt='o',
                 # fmt='none', # no line
                 lw=2,
-                # color='black', 
+                # color='black',
                 color=model_to_color[m],
                 # color=model_to_colors[m][_l],
                 capsize=5,
@@ -234,14 +288,21 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
 
     # sns.lineplot(data=df_mean, x=x, y=y, hue=color, ax=ax, markers=marks, legend=False)
     sns.scatterplot(
-        data=df_mean, x=x, y=y, hue=colorstyle, style=shapestyle, ax=ax, markers=marks[:len(list(dfc[shapestyle].unique()))], s=200, 
+        data=df_mean,
+        x=x,
+        y=y,
+        hue=colorstyle,
+        style=shapestyle,
+        ax=ax,
+        markers=marks[: len(list(dfc[shapestyle].unique()))],
+        s=200,
         # palette=_palette
     )
 
     set_style_after(ax, fs=9)
 
     # increase legend fontsize
-    ax.legend(fontsize=9, markerscale=.75)
+    ax.legend(fontsize=9, markerscale=0.75)
 
     # remove legend border
     # ax.legend(frameon=False)
@@ -253,7 +314,7 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
     ax.set_ylim(ax.get_ylim()[0] - 0.01, 1.05 * ax.get_ylim()[1])
 
     # scientific notation on x axis
-    ax.ticklabel_format(axis='x', style='sci', scilimits=(0,0))
+    ax.ticklabel_format(axis="x", style="sci", scilimits=(0, 0))
 
     # labels
     ax.set_xlabel(timelabels[x.replace("_lowest", "")])
@@ -265,31 +326,32 @@ def plot_speed_over_acc_target(dfc, runs_with_dropout, target, tol=None):
     plt.tight_layout(pad=0.1)
 
     # save
-    name = f"acc_over_time" + f"-bs{filter_eval_batch_size}-{time_metric.replace('_', '')}"
+    name = (
+        f"acc_over_time" + f"-bs{filter_eval_batch_size}-{time_metric.replace('_', '')}"
+    )
     if runs_with_dropout:
-        name += '-dropout'
+        name += "-dropout"
     else:
-        name += '-nodropout'
+        name += "-nodropout"
     name += "-" + target
     plt.savefig(f"{plotfolder}/{name}.png", dpi=500)
     print(f"\nSaved speed_over_acc plot to \n {plotfolder}/{name}.png")
 
     plt.cla()
-    plt.clf() 
+    plt.clf()
     plt.close()
-
 
 
 def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
     # avg_n_fsolver_steps_test_fpreuse
     # f_steps_to_fixed_point_test_fpreuse
 
-    # only plot one point 
+    # only plot one point
     if tol is not None:
         dfc = dfc[dfc["fpreuse_f_tol"].isin([tol] + nans)]
     # select the lower
     m = "test_f_mae"
-    mfp = m.replace('test', 'test_fpreuse')
+    mfp = m.replace("test", "test_fpreuse")
     # dfc[f"{m}_lowest"] = dfc.apply(lambda x: min(x[m], x[mfp]), axis=1)
 
     # rename column avg_n_fsolver_steps_test_fpreuse -> nsteps
@@ -299,24 +361,35 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
     # new column nfe = nsteps * Layers
     dfc["nfe"] = dfc["nsteps"] * dfc["Layers"]
 
-    color_palette = sns.color_palette('muted')
+    color_palette = sns.color_palette("muted")
     color_equiformer = color_palette[0]
     color_deq = color_palette[1]
     model_to_color = {"Equiformer": color_equiformer, "DEQ": color_deq}
     equiformer_first = True
 
-    dfc.sort_values(by=["Model", "Layers", "fpreuse_f_tol"], inplace=True, ascending=[not equiformer_first, True, True])
+    dfc.sort_values(
+        by=["Model", "Layers", "fpreuse_f_tol"],
+        inplace=True,
+        ascending=[not equiformer_first, True, True],
+    )
 
     df_clustered = copy.deepcopy(dfc)
-    df_clustered["fpreuse_f_tol"] = df_clustered["fpreuse_f_tol"].apply(lambda x: 0.0 if np.isnan(x) else x)
+    df_clustered["fpreuse_f_tol"] = df_clustered["fpreuse_f_tol"].apply(
+        lambda x: 0.0 if np.isnan(x) else x
+    )
     # combine cols_to_keep into one
-    df_clustered["run_name"] = df_clustered.apply(lambda x: f"{x['Model']} {x['Layers']}", axis=1)
     df_clustered["run_name"] = df_clustered.apply(
-        lambda x: x['run_name'] + f" {x['fpreuse_f_tol']:.0e}" if x['fpreuse_f_tol'] != 0.0 else x['run_name'], axis=1
+        lambda x: f"{x['Model']} {x['Layers']}", axis=1
+    )
+    df_clustered["run_name"] = df_clustered.apply(
+        lambda x: x["run_name"] + f" {x['fpreuse_f_tol']:.0e}"
+        if x["fpreuse_f_tol"] != 0.0
+        else x["run_name"],
+        axis=1,
     )
     # print('\nAfter renaming:\n', df_clustered[["run_name", "Model", "Layers", acc_metric, time_metric, "fpreuse_f_tol"]])
 
-    cols_to_keep = ["Model", "Layers", "fpreuse_f_tol"] + ["run_name"] 
+    cols_to_keep = ["Model", "Layers", "fpreuse_f_tol"] + ["run_name"]
     df_mean = df_clustered.groupby(cols_to_keep).mean(numeric_only=True).reset_index()
     df_std = df_clustered.groupby(cols_to_keep).std(numeric_only=True).reset_index()
     # print('\nAfter averaging:\n', df_mean[["run_name", acc_metric, time_metric, "fpreuse_f_tol"]])
@@ -335,7 +408,7 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
     fig, ax = plt.subplots()
 
     df_mean.sort_values(by=["Model"], inplace=True, ascending=[not equiformer_first])
-    print('\nMean for acc vs NFE:\n', df_mean[[x, y, colorstyle, shapestyle]])
+    print("\nMean for acc vs NFE:\n", df_mean[[x, y, colorstyle, shapestyle]])
 
     # error bars on both axes
     # shades of blue
@@ -353,16 +426,16 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
             _std = copy.deepcopy(df_std)
             _std = _std[_std["Model"] == m]
             _std = _std[_std[shapestyle] == l]
-            print(f'Model={m}, Layers={l}', _mean[[x, y]], _std[[x, y]])
+            print(f"Model={m}, Layers={l}", _mean[[x, y]], _std[[x, y]])
             ax.errorbar(
-                _mean[x], 
-                _mean[y], 
-                xerr=_std[x], 
-                yerr=_std[y], 
-                # fmt='o', 
+                _mean[x],
+                _mean[y],
+                xerr=_std[x],
+                yerr=_std[y],
+                # fmt='o',
                 # fmt='none', # no line
                 lw=2,
-                # color='black', 
+                # color='black',
                 color=model_to_color[m],
                 # color=model_to_colors[m][_l],
                 capsize=5,
@@ -375,7 +448,14 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
 
     # sns.lineplot(data=df_mean, x=x, y=y, hue=color, ax=ax, markers=marks, legend=False)
     sns.scatterplot(
-        data=df_mean, x=x, y=y, hue=colorstyle, style=shapestyle, ax=ax, markers=marks[:len(list(dfc[shapestyle].unique()))], s=200, 
+        data=df_mean,
+        x=x,
+        y=y,
+        hue=colorstyle,
+        style=shapestyle,
+        ax=ax,
+        markers=marks[: len(list(dfc[shapestyle].unique()))],
+        s=200,
     )
 
     set_style_after(ax, fs=10)
@@ -392,28 +472,32 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
     # save
     name = f"acc_over_nfe" + f"-bs{filter_eval_batch_size}"
     if runs_with_dropout:
-        name += '-dropout'
+        name += "-dropout"
     else:
-        name += '-nodropout'
+        name += "-nodropout"
     name += "-" + target
     plt.savefig(f"{plotfolder}/{name}.png")
     print(f"\nSaved plot_acc_over_nfe plot to \n {plotfolder}/{name}.png")
 
     plt.cla()
-    plt.clf() 
+    plt.clf()
     plt.close()
 
 
 if __name__ == "__main__":
-    """ Options """
-    filter_eval_batch_size = 1 # 1 or 4
+    """Options"""
+    filter_eval_batch_size = 1  # 1 or 4
     filter_fpreuseftol = [1e1, 1e0, 1e-1, 1e-2, 1e-3, 1e-4]
     # seeds = [1]
     seeds = [1, 2, 3]
     filter_fpreuseftol = {"max": 1e1, "min": 1e-4}
-    Target = "aspirin" # aspirin, all, malonaldehyde, ethanol
-    time_metric = "time_forward_per_batch_test" + "_lowest" # time_test, time_forward_per_batch_test, time_forward_total_test
-    acc_metric = "test_f_mae" + "_lowest" # test_f_mae_lowest, test_f_mae, test_e_mae_lowest, test_e_mae, best_test_f_mae, best_test_e_mae
+    Target = "aspirin"  # aspirin, all, malonaldehyde, ethanol
+    time_metric = (
+        "time_forward_per_batch_test" + "_lowest"
+    )  # time_test, time_forward_per_batch_test, time_forward_total_test
+    acc_metric = (
+        "test_f_mae" + "_lowest"
+    )  # test_f_mae_lowest, test_f_mae, test_e_mae_lowest, test_e_mae, best_test_f_mae, best_test_e_mae
     layers_equi = [1, 4, 8]
     # hosts = ["tacozoid11", "tacozoid10", "andreasb-lenovo"]
     # hosts, hostname = ["tacozoid11", "tacozoid10"], "taco"
@@ -430,27 +514,35 @@ if __name__ == "__main__":
 
     # choose from
     eval_batch_sizes = [1, 4]
-    time_metrics = ["time_test", "time_forward_per_batch_test", "time_forward_total_test"]
-    acc_metrics = ["test_f_mae", "test_e_mae"] # + ["best_test_f_mae", "best_test_e_mae"]
+    time_metrics = [
+        "time_test",
+        "time_forward_per_batch_test",
+        "time_forward_total_test",
+    ]
+    acc_metrics = [
+        "test_f_mae",
+        "test_e_mae",
+    ]  # + ["best_test_f_mae", "best_test_e_mae"]
     acclabels.update({f"{k}_lowest": v for k, v in acclabels.items()})
 
     """ Load data """
-    fname = f'acc_over_speed_2-{hostname}'
+    fname = f"acc_over_speed_2-{hostname}"
     if runs_with_dropout:
-        fname += '-dropout'
+        fname += "-dropout"
     else:
-        fname += '-nodropout'
+        fname += "-nodropout"
     if download_data:
         # get all runs with tag 'inference_speed'
         api = wandb.Api()
         runs = api.runs(
-            project, 
+            project,
             {
                 # "tags": "inference2", "state": "finished",
-                "$or": [{"tags": "inference"}, {"tags": "inference2"}], "state": "finished",
+                "$or": [{"tags": "inference"}, {"tags": "inference2"}],
+                "state": "finished",
                 # "$or": [{"tags": "md17"}, {"tags": "main2"}, {"tags": "inference"}, {"tags": "inference2"}], "state": "finished",
                 # "$or": [{"state": "finished"}, {"state": "crashed"}],
-            }
+            },
         )
         run_ids = [run.id for run in runs]
         print(f"Found {len(run_ids)} runs:")
@@ -458,19 +550,19 @@ if __name__ == "__main__":
         infos_acc = []
         for run in runs:
             # run = api.run(project + "/" + run_id)
-            print(' ', run.name)
+            print(" ", run.name)
             # meta = json.load(run.file("wandb-metadata.json").download(replace=True))
             # meta["host"]
             # host = requests.get(run.file("wandb-metadata.json").url).json()['host']
             try:
-                # model.drop_path_rate=0.05
+                # model.path_drop=0.05
                 if runs_with_dropout:
-                    if run.config["model"]["drop_path_rate"] != 0.05:
+                    if run.config["model"]["path_drop"] != 0.05:
                         continue
                 else:
-                    if run.config["model"]["drop_path_rate"] != 0.0:
+                    if run.config["model"]["path_drop"] != 0.0:
                         continue
-                host = requests.get(run.file("wandb-metadata.json").url).json()['host']
+                host = requests.get(run.file("wandb-metadata.json").url).json()["host"]
                 if host not in hosts:
                     print(f"Skipping run {run.id} {run.name} because of host={host}")
                     continue
@@ -493,7 +585,7 @@ if __name__ == "__main__":
                 print(f"Skipping run {run.id} {run.name} because of KeyError: {e}")
                 continue
             # Plots: pick the smaller of test_fpreuse_f_mae and test_f_mae
-            if 'test_fpreuse_f_mae' in run.summary:
+            if "test_fpreuse_f_mae" in run.summary:
                 info["test_fpreuse_f_mae"] = run.summary["test_fpreuse_f_mae"]
                 info["test_fpreuse_e_mae"] = run.summary["test_fpreuse_e_mae"]
                 # info["test_f_mae"] = min(run.summary["test_f_mae"], run.summary["test_fpreuse_f_mae"])
@@ -504,8 +596,13 @@ if __name__ == "__main__":
                 info["test_fpreuse_f_mae"] = float("inf")
                 info["test_fpreuse_e_mae"] = float("inf")
             optional_summary_keys = time_metrics + acc_metrics
-            optional_summary_keys += [_m + "_fpreuse" for _m in time_metrics] + [_m + "_fpreuse" for _m in acc_metrics]
-            optional_summary_keys += ["avg_n_fsolver_steps_test_fpreuse", "f_steps_to_fixed_point_test_fpreuse"]
+            optional_summary_keys += [_m + "_fpreuse" for _m in time_metrics] + [
+                _m + "_fpreuse" for _m in acc_metrics
+            ]
+            optional_summary_keys += [
+                "avg_n_fsolver_steps_test_fpreuse",
+                "f_steps_to_fixed_point_test_fpreuse",
+            ]
             for key in optional_summary_keys:
                 if key in run.summary:
                     info[key] = run.summary[key]
@@ -536,12 +633,14 @@ if __name__ == "__main__":
         # load dataframe
         df = pd.read_csv(f"{plotfolder}/{fname}.csv")
 
-    print('Loaded dataframe:', df.head())
+    print("Loaded dataframe:", df.head())
 
     """Rename columns"""
     # rename 'model_is_deq' to 'Model'
     # true -> DEQ, false -> Equiformer
-    df["model_is_deq"] = df["model_is_deq"].apply(lambda x: "DEQ" if x else "Equiformer")
+    df["model_is_deq"] = df["model_is_deq"].apply(
+        lambda x: "DEQ" if x else "Equiformer"
+    )
     # rename 'model_is_deq' to 'Model'
     df = df.rename(columns={"model_is_deq": "Model"})
 
@@ -553,34 +652,43 @@ if __name__ == "__main__":
 
     # print Equifromers with four layers
     print(
-        '\nEquiformers with four layers:\n', 
-        df[(df["Model"] == "Equiformer") & (df["Layers"] == 4)][["Model", "Layers", "seed", "Target", "test_f_mae"]]
+        "\nEquiformers with four layers:\n",
+        df[(df["Model"] == "Equiformer") & (df["Layers"] == 4)][
+            ["Model", "Layers", "seed", "Target", "test_f_mae"]
+        ],
     )
 
     """ If FPReuse exists, use it """
     # time_test_lowest should be lowest out of time_test and time_test_fpreuse
     # for m in time_metrics + acc_metrics:
     for m in time_metrics:
-        mfp = m.replace('test', 'test_fpreuse')
+        mfp = m.replace("test", "test_fpreuse")
         df[f"{m}_lowest"] = df.apply(lambda x: min(x[m], x[mfp]), axis=1)
     for m in acc_metrics:
-        mfp = m.replace('test', 'test_fpreuse')
-        df[f"{m}_lowest"] = df.apply(lambda x: x[mfp] if x[mfp] < 1000.0 else  x[m], axis=1)
-
+        mfp = m.replace("test", "test_fpreuse")
+        df[f"{m}_lowest"] = df.apply(
+            lambda x: x[mfp] if x[mfp] < 1000.0 else x[m], axis=1
+        )
 
     df = df[df["eval_batch_size"] == filter_eval_batch_size]
     assert not df.empty, "Dataframe is empty"
 
     # fpreuse_f_tol="_default" -> 1e-3
-    df["fpreuse_f_tol"] = df["fpreuse_f_tol"].apply(lambda x: 1e-3 if x == "_default" else x)
+    df["fpreuse_f_tol"] = df["fpreuse_f_tol"].apply(
+        lambda x: 1e-3 if x == "_default" else x
+    )
     assert not df.empty, "Dataframe is empty"
-    
+
     # only keep seeds if they are in seeds
     df = df[df["seed"].isin(seeds)]
     assert not df.empty, "Dataframe is empty"
 
-    df["avg_n_fsolver_steps_test_fpreuse"] = df["avg_n_fsolver_steps_test_fpreuse"].apply(lambda x: 1 if x == float('inf') else x)
-    df["f_steps_to_fixed_point_test_fpreuse"] = df["f_steps_to_fixed_point_test_fpreuse"].apply(lambda x: 1 if x == float('inf') else x)
+    df["avg_n_fsolver_steps_test_fpreuse"] = df[
+        "avg_n_fsolver_steps_test_fpreuse"
+    ].apply(lambda x: 1 if x == float("inf") else x)
+    df["f_steps_to_fixed_point_test_fpreuse"] = df[
+        "f_steps_to_fixed_point_test_fpreuse"
+    ].apply(lambda x: 1 if x == float("inf") else x)
 
     # if isinstance(filter_fpreuseftol, dict):
     #     df = df[(df["fpreuse_f_tol"] >= filter_fpreuseftol["min"]) & (df["fpreuse_f_tol"] <= filter_fpreuseftol["max"])]
@@ -593,7 +701,8 @@ if __name__ == "__main__":
     # for Equiformer only keep Layers=[1,4, 8]
     # df = df[df["Layers"].isin(layers)]
     df = df[
-        (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ")) | (df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer"))
+        (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ"))
+        | (df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer"))
     ]
     # isin(layers_deq) and Model=DEQ or isin(layers_equi) and Model=Equiformer
     # df = df[(df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer")) | (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ"))]
@@ -605,19 +714,31 @@ if __name__ == "__main__":
     df = df[df["Target"] == Target]
     assert not df.empty, "Dataframe is empty for Target"
 
-    print('\nAfter filtering:\n', df[["Model", "Layers", "test_f_mae_lowest", "test_f_mae", "test_fpreuse_f_mae", "fpreuse_f_tol"]])
-
+    print(
+        "\nAfter filtering:\n",
+        df[
+            [
+                "Model",
+                "Layers",
+                "test_f_mae_lowest",
+                "test_f_mae",
+                "test_fpreuse_f_mae",
+                "fpreuse_f_tol",
+            ]
+        ],
+    )
 
     ################################################################################################################################
     # PLOTS
     ################################################################################################################################
 
-
     # barcharts_speed_acc_target(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
 
     # tol = 2e-1
     # plot_speed_over_acc_target(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
-    plot_speed_over_acc_target(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target, tol=2e-1)
+    plot_speed_over_acc_target(
+        copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target, tol=2e-1
+    )
 
     # plot_acc_over_nfe(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target)
     # plot_acc_over_nfe(copy.deepcopy(df), runs_with_dropout=runs_with_dropout, target=Target, tol=2e-1)

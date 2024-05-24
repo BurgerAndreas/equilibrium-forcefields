@@ -24,13 +24,13 @@ dest_dir = "equiformer/config/preset"
 # task_mean=mean,
 # task_std=std,
 # atomref=None,
-# drop_path=args.drop_path
+# path_drop=args.path_drop
 model_keys = [
     "irreps_in",
     "radius",
     "number_of_basis",
     "atomref",
-    "drop_path",
+    "path_drop",
 ]
 keys_to_ignore = ["task_mean", "task_std"]
 keys_to_replace = {

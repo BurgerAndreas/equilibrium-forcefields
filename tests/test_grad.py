@@ -152,7 +152,7 @@ def do_test(args_base: DictConfig) -> None:
                 task_mean=mean,
                 task_std=std,
                 atomref=None,
-                drop_path=args.drop_path,
+                path_drop=args.path_drop,
                 num_layers=args.num_layers,
                 deq_kwargs=args.deq_kwargs,
             )
@@ -164,7 +164,7 @@ def do_test(args_base: DictConfig) -> None:
                 task_mean=mean,
                 task_std=std,
                 atomref=None,
-                drop_path=args.drop_path,
+                path_drop=args.path_drop,
                 num_layers=args.num_layers,
             )
         print(f"model parameters: {sum(p.numel() for p in model.parameters())}")

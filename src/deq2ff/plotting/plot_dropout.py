@@ -6,7 +6,15 @@ import copy
 import os, sys, pathlib
 import numpy as np
 
-from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, timelabels, acclabels
+from deq2ff.plotting.style import (
+    set_seaborn_style,
+    PALETTE,
+    entity,
+    project,
+    plotfolder,
+    timelabels,
+    acclabels,
+)
 
 
 # if __name__ == "__main__":
@@ -16,13 +24,13 @@ from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, p
 acc_metric = "test_f_mae"
 x = "Dropouts"
 # averaging over all molecules won't work, since we don't have depth data for all molecules
-target = "aspirin" # ethanol aspirin
+target = "aspirin"  # ethanol aspirin
 # layers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 # layers = [1, 2, 4, 8]
 remove_single_seed_runs = True
 runs_with_dropout = False
-layers_deq = [1] # [2] [1, 2]
-layers_equi = [4] # [8] [1, 4, 8]
+layers_deq = [1]  # [2] [1, 2]
+layers_equi = [4]  # [8] [1, 4, 8]
 
 """ Get runs """
 
@@ -41,14 +49,14 @@ infos = []
 for run in runs:
     # run = api.run(project + "/" + run_id)
     try:
-        # model.drop_path_rate=0.05
+        # model.path_drop=0.05
         # if runs_with_dropout:
-        #     if run.config["model"]["drop_path_rate"] != 0.05:
-        #         print(f"Skipping run {run.id} {run.name} because of drop_path_rate={run.config['model']['drop_path_rate']}")
+        #     if run.config["model"]["path_drop"] != 0.05:
+        #         print(f"Skipping run {run.id} {run.name} because of path_drop={run.config['model']['path_drop']}")
         #         continue
         # else:
-        #     if run.config["model"]["drop_path_rate"] != 0.0:
-        #         print(f"Skipping run {run.id} {run.name} because of drop_path_rate={run.config['model']['drop_path_rate']}")
+        #     if run.config["model"]["path_drop"] != 0.0:
+        #         print(f"Skipping run {run.id} {run.name} because of path_drop={run.config['model']['path_drop']}")
         #         continue
         info = {
             "run_id": run.id,
@@ -60,7 +68,7 @@ for run in runs:
             "model_is_deq": run.config["model_is_deq"],
             "target": run.config["target"],
             "params": run.summary["Model Parameters"],
-            "PathDropout": run.config["model"]["drop_path_rate"],
+            "PathDropout": run.config["model"]["path_drop"],
             "AlphaDropout": run.config["model"]["alpha_drop"],
             # "load_stats": run.config["load_stats"],
             # metrics
@@ -70,11 +78,17 @@ for run in runs:
             "test_f_mae": run.summary["test_f_mae"],
         }
         # Plots: pick the smaller of test_fpreuse_f_mae and test_f_mae
-        if 'test_fpreuse_f_mae' in run.summary:
-            info["test_f_mae"] = min(run.summary["test_f_mae"], run.summary["test_fpreuse_f_mae"])
-            info["test_e_mae"] = min(run.summary["test_e_mae"], run.summary["test_fpreuse_e_mae"])
+        if "test_fpreuse_f_mae" in run.summary:
+            info["test_f_mae"] = min(
+                run.summary["test_f_mae"], run.summary["test_fpreuse_f_mae"]
+            )
+            info["test_e_mae"] = min(
+                run.summary["test_e_mae"], run.summary["test_fpreuse_e_mae"]
+            )
     except KeyError as e:
-        print(f"Skipping run {run.id} {run.name} because of KeyError: {e}. (Probably run is not finished yet)")
+        print(
+            f"Skipping run {run.id} {run.name} because of KeyError: {e}. (Probably run is not finished yet)"
+        )
         continue
     infos.append(info)
 
@@ -105,7 +119,10 @@ df["Dropouts"] = df["Dropouts"].str.replace(" path", " (path)")
 df["Dropouts"] = df["Dropouts"].str.replace(" alpha", " (alpha)")
 df["Dropouts"] = df["Dropouts"].str.replace(", (alpha)", ", alpha")
 
-print("\nDF after renaming:\n", df[['run_name', 'Model', 'Layers', 'Dropouts', 'test_f_mae', 'seed']])
+print(
+    "\nDF after renaming:\n",
+    df[["run_name", "Model", "Layers", "Dropouts", "test_f_mae", "seed"]],
+)
 
 
 """ Filter and statistics """
@@ -128,7 +145,8 @@ if target not in [None, "all"]:
 # df = df[df["Layers"].isin(layers)]
 # for Equiformer only keep Layers=[1,4, 8]
 df = df[
-    (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ")) | (df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer"))
+    (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ"))
+    | (df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer"))
 ]
 # isin(layers_deq) and Model=DEQ or isin(layers_equi) and Model=Equiformer
 # df = df[(df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer")) | (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ"))]
@@ -136,7 +154,7 @@ df = df[
 # sort by Dropouts
 df = df.sort_values("Dropouts", ascending=False)
 
-print('\nBefore averaging:')
+print("\nBefore averaging:")
 print(df[["Dropouts", "Model", "Layers", "test_f_mae", "target", "seed"]])
 
 
@@ -161,7 +179,7 @@ if remove_single_seed_runs:
     df_mean = df_mean.drop(indices_to_remove)
     df_std = df_std.drop(indices_to_remove)
 
-print('After averaging:')
+print("After averaging:")
 print(df_mean)
 
 
@@ -174,7 +192,7 @@ color = "Model"
 marks = ["o", "s"]
 
 # plot
-for orient in ['v', 'h']:
+for orient in ["v", "h"]:
     set_seaborn_style()
 
     fig, ax = plt.subplots()
@@ -185,8 +203,8 @@ for orient in ['v', 'h']:
     # sns.lineplot(data=df_mean, x=x, y=y, hue=color, ax=ax, markers=marks, legend=False)
 
     # sns.pointplot(
-    #     data=df, x=x, y=y, hue=color, ax=ax, markers=marks, 
-    #     estimator="mean", 
+    #     data=df, x=x, y=y, hue=color, ax=ax, markers=marks,
+    #     estimator="mean",
     #     # errorbar method (either “ci”, “pi”, “se”, or “sd”)
     #     errorbar="sd", # errorbar=('ci', 95), # errorbar="sd"
     #     capsize=0.3,
@@ -201,19 +219,20 @@ for orient in ['v', 'h']:
     # sns.despine()
 
     sns.barplot(
-        data=df, 
-        x=x if orient == 'v' else y,
-        y=y if orient == 'v' else x, 
+        data=df,
+        x=x if orient == "v" else y,
+        y=y if orient == "v" else x,
         orient=orient,
-        hue=color, ax=ax,
+        hue=color,
+        ax=ax,
         legend=False,
         width=0.5,
         gap=0.1,
     )
 
     # sns.catplot(
-    #     data=df, 
-    #     x=x, y=y, 
+    #     data=df,
+    #     x=x, y=y,
     #     # x=y, y=x, orient='h',
     #     hue=color, ax=ax,
     #     kind="bar",
@@ -232,22 +251,23 @@ for orient in ['v', 'h']:
 
     # For custom labels (e.g., tip bars with total_bill values), use the labels parameter:
     # ax = sns.barplot(x='day', y='tip', data=groupedvalues)
-    # ax.bar_label(ax.containers[0], labels=groupedvalues['total_bill'])     
+    # ax.bar_label(ax.containers[0], labels=groupedvalues['total_bill'])
 
     # For multi-group bar plots (i.e., with hue), there will be multiple bar containers that need to be iterated:
     # ax = sns.barplot(x='day', y='tip', hue='sex', data=df)
     # for container in ax.containers:
     #     ax.bar_label(container)
 
-
-    if orient == 'v':
+    if orient == "v":
         # make labels vertical
         # plt.xticks(rotation=90)
 
         loc, labels = plt.xticks()
         # ax.set_xticks(loc[::2]) # TODO: this is a hack, only show every second label
-        ax.set_xticks(loc) 
-        ax.set_xticklabels(labels, rotation=45, horizontalalignment='right', fontsize=12)
+        ax.set_xticks(loc)
+        ax.set_xticklabels(
+            labels, rotation=45, horizontalalignment="right", fontsize=12
+        )
 
         ax.set_xlabel("")
         ax.set_ylabel(r"Force MAE [kcal/mol/$\AA$]")
@@ -258,8 +278,10 @@ for orient in ['v', 'h']:
         plt.yticks([], [])
         # write text at location
         for i, txt in enumerate(labels):
-            ax.text(x=0.01, y=i-0.4, s=txt.get_text(), ha='left', va='center', fontsize=15)
-        
+            ax.text(
+                x=0.01, y=i - 0.4, s=txt.get_text(), ha="left", va="center", fontsize=15
+            )
+
         # more space above the top bar
         ylim = list(ax.get_ylim())
         ylim[1] = ylim[1] * 1.5
@@ -267,7 +289,7 @@ for orient in ['v', 'h']:
 
         ax.set_ylabel("")
         ax.set_xlabel(r"Force MAE [kcal/mol/$\AA$]")
-        
+
     # remove legend
     # handles, labels = ax.get_legend_handles_labels()
     # ax.legend(handles=handles[0:], labels=labels[0:])
@@ -283,5 +305,3 @@ for orient in ['v', 'h']:
     name = f"dropout-{orient}-{target}"
     plt.savefig(f"{plotfolder}/{name}.png")
     print(f"\nSaved plot to \n {plotfolder}/{name}.png")
-
-

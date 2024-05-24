@@ -58,7 +58,7 @@ from equiformer.nets.fast_activation import Activation, Gate
 from equiformer.nets.drop import (
     EquivariantDropout,
     EquivariantScalarsDropout,
-    GraphDropPath,
+    GraphPathDrop,
 )
 
 from equiformer.nets.gaussian_rbf import GaussianRadialBasisLayer
@@ -263,7 +263,7 @@ class DPA(torch.nn.Module):
         # nonlinear_message=False,
         alpha_drop=0.0,  # 0.1
         proj_drop=0.0,  # 0.1
-        # drop_path_rate=0.0,
+        # path_drop=0.0,
         # irreps_mlp_mid=None,
         # norm_layer="layer",
         # added
@@ -409,17 +409,17 @@ class DPAFFNorm(DPTransBlock):
             batch=batch,  # batch unused
         )
 
-        if self.drop_path is not None:
-            node_features = self.drop_path(node_features, batch)
+        if self.path_drop is not None:
+            node_features = self.path_drop(node_features, batch)
 
         node_features = self.norm_2(node_features, batch=batch)  # batch unused
 
         # optionally reduce irreps dim
         node_features = self.ffn(node_features, node_attr)
 
-        if self.drop_path is not None:
+        if self.path_drop is not None:
             # uses batch. TODO
-            node_features = self.drop_path(node_features, batch)
+            node_features = self.path_drop(node_features, batch)
 
         return node_features
 
@@ -488,7 +488,7 @@ class DEQMinimalDotProductAttention(DEQDotProductAttentionTransformerMD17):
                 nonlinear_message=self.nonlinear_message,
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
-                drop_path_rate=self.drop_path_rate,
+                path_drop=self.path_drop,
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
                 # added

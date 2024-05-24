@@ -34,7 +34,7 @@ from .tensor_product_rescale import (
     irreps2gate,
 )
 from .fast_activation import Activation, Gate
-from .drop import EquivariantDropout, EquivariantScalarsDropout, DropPath
+from .drop import EquivariantDropout, EquivariantScalarsDropout, PathDrop
 from .graph_attention_transformer import (
     get_norm_layer,
     FullyConnectedTensorProductRescaleNorm,
@@ -119,7 +119,7 @@ class GraphAttentionTransformerOC20(torch.nn.Module):
         alpha_drop=0.2,
         proj_drop=0.0,
         out_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         use_auxiliary_task=False,
         auxiliary_head_dropout=True,
         use_attention_head=False,
@@ -135,7 +135,7 @@ class GraphAttentionTransformerOC20(torch.nn.Module):
         self.alpha_drop = alpha_drop
         self.proj_drop = proj_drop
         self.out_drop = out_drop
-        self.drop_path_rate = drop_path_rate
+        self.path_drop = path_drop
         self.norm_layer = norm_layer
 
         # for OC20
@@ -289,7 +289,7 @@ class GraphAttentionTransformerOC20(torch.nn.Module):
                 nonlinear_message=self.nonlinear_message,
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
-                drop_path_rate=self.drop_path_rate,
+                path_drop=self.path_drop,
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
             )

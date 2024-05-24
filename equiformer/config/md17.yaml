@@ -50,7 +50,7 @@ model:
   alpha_drop: 0.0 # 0.2
   proj_drop: 0.0 # 0.1
   out_drop: 0.0
-  drop_path_rate: 0.0 # 0.05
+  path_drop: 0.0 # 0.05
   scale: null
   # (str)
   irreps_in: null

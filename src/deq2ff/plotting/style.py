@@ -11,36 +11,41 @@ plotfolder = pathlib.Path(__file__).parent.absolute()
 plotfolder = os.path.join(plotfolder, "plots")
 
 myrc = {
-    'figure.figsize': (8, 6),     # Adjust the figure size as needed
-    'font.size': 20,               # Increase font size
-    'lines.linewidth': 3.5,        # Thicker lines
-    'lines.markersize': 8,        # Thicker lines
-    'legend.fontsize': 15,         # Legend font size
-    'legend.frameon': False,        # Display legend frame
-    'legend.loc': 'upper right',   # Adjust legend position
-    "axes.spines.right": False, "axes.spines.top": False, # top and right border
-    'text.usetex' : True,
+    "figure.figsize": (8, 6),  # Adjust the figure size as needed
+    "font.size": 20,  # Increase font size
+    "lines.linewidth": 3.5,  # Thicker lines
+    "lines.markersize": 8,  # Thicker lines
+    "legend.fontsize": 15,  # Legend font size
+    "legend.frameon": False,  # Display legend frame
+    "legend.loc": "upper right",  # Adjust legend position
+    "axes.spines.right": False,
+    "axes.spines.top": False,  # top and right border
+    "text.usetex": True,
 }
 
 PALETTE = "muted"
 
-def set_seaborn_style(style="whitegrid", palette=PALETTE, context="poster", figsize=(8, 6), font_scale=0.8):
-    sns.set_style(style=style) # whitegrid white
+
+def set_seaborn_style(
+    style="whitegrid", palette=PALETTE, context="poster", figsize=(8, 6), font_scale=0.8
+):
+    sns.set_style(style=style)  # whitegrid white
     sns.set_palette(palette)
-    myrc['figure.figsize'] = figsize
+    myrc["figure.figsize"] = figsize
     sns.set_context(
-        context, # {paper, notebook, talk, poster}
+        context,  # {paper, notebook, talk, poster}
         font_scale=font_scale,
         rc=myrc,
     )
 
+
 def set_style_after(ax, fs=15, legend=True):
     plt.grid(False)
-    plt.grid(which='major', axis='y', linestyle='-', linewidth='1.0', color='lightgray')
+    plt.grid(which="major", axis="y", linestyle="-", linewidth="1.0", color="lightgray")
 
     # removes axes spines top and right
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
 
     if legend:
         # increase legend fontsize
@@ -52,6 +57,7 @@ def set_style_after(ax, fs=15, legend=True):
         # plt.legend().get_frame().set_linewidth(0.0)
     else:
         ax.get_legend().remove()
+
 
 timelabels = {
     "time_test": "Test time for 1000 samples [s]",
@@ -67,6 +73,7 @@ acclabels = {
     "nfe": "NFE",
 }
 
+
 def combine_legend(ax, colorstyle_dict, markerstyle):
     # https://stackoverflow.com/questions/68591271/how-can-i-combine-hue-and-style-groups-in-a-seaborn-legend
 
@@ -78,18 +85,22 @@ def combine_legend(ax, colorstyle_dict, markerstyle):
     index_item_title = labels.index(markerstyle)
     color_dict = {
         label: handle.get_color()
-        for handle, label in zip(handles[offset:index_item_title], labels[offset:index_item_title])
+        for handle, label in zip(
+            handles[offset:index_item_title], labels[offset:index_item_title]
+        )
     }
-    print('color_dict:', color_dict)
+    print("color_dict:", color_dict)
 
     # loop through the items, assign color via the colorstyle of the item
-    for handle, label in zip(handles[index_item_title + offset:], labels[index_item_title + offset:]):
+    for handle, label in zip(
+        handles[index_item_title + offset :], labels[index_item_title + offset :]
+    ):
         handle.set_color(color_dict[colorstyle_dict[label]])
 
     # create a legend only using the items
     ax.legend(
-        handles=handles[index_item_title + 1:], 
-        labels=labels[index_item_title + 1:], 
+        handles=handles[index_item_title + 1 :],
+        labels=labels[index_item_title + 1 :],
         # title='Item',
         # bbox_to_anchor=(1.03, 1.02), fontsize=10
     )
@@ -97,39 +108,41 @@ def combine_legend(ax, colorstyle_dict, markerstyle):
 
 # Kevin Xi
 
+
 def prep_plot_style(do_legend=True, xrange=None, legend_framealpha=0, legend_loc=None):
-  # A function that sets some simple matplotlib style options re-used in each plot
-  ax = plt.gca()
+    # A function that sets some simple matplotlib style options re-used in each plot
+    ax = plt.gca()
 
-  if do_legend:
-    plt.legend(framealpha=legend_framealpha, loc=legend_loc)
+    if do_legend:
+        plt.legend(framealpha=legend_framealpha, loc=legend_loc)
 
-  ax.spines['right'].set_visible(False)
-  ax.spines['top'].set_visible(False)
-  plt.tick_params(
-    axis='both',        # changes apply to the x-axis
-    which='both',       # both major and minor ticks are affected
-    bottom=False,       # ticks along the bottom edge are off
-    top=False,          # ticks along the top edge are off
-    right=False,
-    left=False)         # labels along the bottom edge are off
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    plt.tick_params(
+        axis="both",  # changes apply to the x-axis
+        which="both",  # both major and minor ticks are affected
+        bottom=False,  # ticks along the bottom edge are off
+        top=False,  # ticks along the top edge are off
+        right=False,
+        left=False,
+    )  # labels along the bottom edge are off
 
-  if xrange:
-    ax.set_xticks([xrange[0], (xrange[0] + xrange[1])/2, xrange[1]])
-  #plt.tight_layout()
+    if xrange:
+        ax.set_xticks([xrange[0], (xrange[0] + xrange[1]) / 2, xrange[1]])
+    # plt.tight_layout()
 
 
 import matplotlib.style as style
 
 # Define custom style parameters
 custom_style = {
-    'figure.figsize': (8, 6),     # Adjust the figure size as needed
-    'font.size': 20,               # Increase font size
-    'lines.linewidth': 3.5,        # Thicker lines
-    'lines.markersize': 8,        # Thicker lines
-    'legend.fontsize': 12,         # Legend font size
-    'legend.frameon': True,        # Display legend frame
-    'legend.loc': 'upper right',   # Adjust legend position
+    "figure.figsize": (8, 6),  # Adjust the figure size as needed
+    "font.size": 20,  # Increase font size
+    "lines.linewidth": 3.5,  # Thicker lines
+    "lines.markersize": 8,  # Thicker lines
+    "legend.fontsize": 12,  # Legend font size
+    "legend.frameon": True,  # Display legend frame
+    "legend.loc": "upper right",  # Adjust legend position
 }
 
 if __name__ == "__main__":

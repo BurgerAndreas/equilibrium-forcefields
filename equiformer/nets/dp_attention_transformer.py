@@ -22,7 +22,7 @@ from .tensor_product_rescale import (
     irreps2gate,
 )
 from .fast_activation import Activation, Gate
-from .drop import EquivariantDropout, EquivariantScalarsDropout, GraphDropPath
+from .drop import EquivariantDropout, EquivariantScalarsDropout, GraphPathDrop
 from .gaussian_rbf import GaussianRadialBasisLayer
 from .graph_attention_transformer import (
     get_norm_layer,
@@ -252,7 +252,7 @@ class DPTransBlock(torch.nn.Module):
         nonlinear_message=False,
         alpha_drop=0.1,
         proj_drop=0.1,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         irreps_mlp_mid=None,
         norm_layer="layer",
         # added
@@ -308,7 +308,7 @@ class DPTransBlock(torch.nn.Module):
         )
 
         # regularization
-        self.drop_path = GraphDropPath(drop_path_rate) if drop_path_rate > 0.0 else None
+        self.path_drop = GraphPathDrop(path_drop) if path_drop > 0.0 else None
 
         self.norm_2 = get_norm_layer(norm_layer)(
             self.irreps_node_input, affine=affine_ln
@@ -376,9 +376,9 @@ class DPTransBlock(torch.nn.Module):
             batch=batch,  # batch unused
         )
 
-        if self.drop_path is not None:
+        if self.path_drop is not None:
             # uses batch. TODO
-            node_features = self.drop_path(node_features, batch)
+            node_features = self.path_drop(node_features, batch)
         node_output = node_output + node_features
 
         node_features = node_output
@@ -389,9 +389,9 @@ class DPTransBlock(torch.nn.Module):
         if self.ffn_shortcut is not None:
             node_output = self.ffn_shortcut(node_output, node_attr)
 
-        if self.drop_path is not None:
+        if self.path_drop is not None:
             # uses batch. TODO
-            node_features = self.drop_path(node_features, batch)
+            node_features = self.path_drop(node_features, batch)
         node_output = node_output + node_features
 
         return node_output
@@ -419,7 +419,7 @@ class DotProductAttentionTransformer(torch.nn.Module):
         alpha_drop=0.2,
         proj_drop=0.0,
         out_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         mean=None,
         std=None,
         scale=None,
@@ -435,7 +435,7 @@ class DotProductAttentionTransformer(torch.nn.Module):
         self.alpha_drop = alpha_drop
         self.proj_drop = proj_drop
         self.out_drop = out_drop
-        self.drop_path_rate = drop_path_rate
+        self.path_drop = path_drop
         self.norm_layer = norm_layer
         self.task_mean = mean
         self.task_std = std
@@ -513,7 +513,7 @@ class DotProductAttentionTransformer(torch.nn.Module):
                 nonlinear_message=self.nonlinear_message,
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
-                drop_path_rate=self.drop_path_rate,
+                path_drop=self.path_drop,
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
             )
@@ -631,7 +631,7 @@ def dot_product_attention_transformer_l2(
         alpha_drop=0.2,
         proj_drop=0.0,
         out_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         mean=task_mean,
         std=task_std,
         scale=None,

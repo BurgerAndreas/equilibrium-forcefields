@@ -26,7 +26,7 @@ from .tensor_product_rescale import (
     sort_irreps_even_first,
 )
 from .fast_activation import Activation, Gate
-from .drop import EquivariantDropout, EquivariantScalarsDropout, GraphDropPath
+from .drop import EquivariantDropout, EquivariantScalarsDropout, GraphPathDrop
 from .gaussian_rbf import GaussianRadialBasisLayer
 
 # for bessel radial basis
@@ -161,7 +161,7 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
         alpha_drop=0.2,
         proj_drop=0.0,
         out_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         task_mean=None,
         task_std=None,
         scale=None,
@@ -174,7 +174,7 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
         self.alpha_drop = alpha_drop
         self.proj_drop = proj_drop
         self.out_drop = out_drop
-        self.drop_path_rate = drop_path_rate
+        self.path_drop = path_drop
         self.use_attn_head = use_attn_head
         self.norm_layer = norm_layer
         self.task_mean = task_mean
@@ -282,7 +282,7 @@ class GraphAttentionTransformerMD17(torch.nn.Module):
                 nonlinear_message=self.nonlinear_message,
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
-                drop_path_rate=self.drop_path_rate,
+                path_drop=self.path_drop,
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
             )
@@ -459,7 +459,7 @@ def graph_attention_transformer_l2_md17(
     alpha_drop=0.2,
     proj_drop=0.0,
     out_drop=0.0,
-    drop_path_rate=0.0,
+    path_drop=0.0,
     scale=None,
     **kwargs,
 ):
@@ -484,7 +484,7 @@ def graph_attention_transformer_l2_md17(
         alpha_drop=alpha_drop,
         proj_drop=proj_drop,
         out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
+        path_drop=path_drop,
         task_mean=task_mean,
         task_std=task_std,
         scale=scale,
@@ -518,7 +518,7 @@ def graph_attention_transformer_nonlinear_l2_md17(
     alpha_drop=0.2,
     proj_drop=0.0,
     out_drop=0.0,
-    drop_path_rate=0.0,
+    path_drop=0.0,
     scale=None,
     **kwargs,
 ):
@@ -543,7 +543,7 @@ def graph_attention_transformer_nonlinear_l2_md17(
         alpha_drop=alpha_drop,
         proj_drop=proj_drop,
         out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
+        path_drop=path_drop,
         task_mean=task_mean,
         task_std=task_std,
         scale=scale,
@@ -577,7 +577,7 @@ def graph_attention_transformer_nonlinear_l2_e3_md17(
     alpha_drop=0.2,
     proj_drop=0.0,
     out_drop=0.0,
-    drop_path_rate=0.0,
+    path_drop=0.0,
     scale=None,
     **kwargs,
 ):
@@ -602,7 +602,7 @@ def graph_attention_transformer_nonlinear_l2_e3_md17(
         alpha_drop=alpha_drop,
         proj_drop=proj_drop,
         out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
+        path_drop=path_drop,
         task_mean=task_mean,
         task_std=task_std,
         scale=scale,
@@ -637,7 +637,7 @@ def graph_attention_transformer_nonlinear_bessel_l2_md17(
     alpha_drop=0.0,
     proj_drop=0.0,
     out_drop=0.0,
-    drop_path_rate=0.0,
+    path_drop=0.0,
     scale=None,
     **kwargs,
 ):
@@ -662,7 +662,7 @@ def graph_attention_transformer_nonlinear_bessel_l2_md17(
         alpha_drop=alpha_drop,
         proj_drop=proj_drop,
         out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
+        path_drop=path_drop,
         task_mean=task_mean,
         task_std=task_std,
         scale=scale,
@@ -697,7 +697,7 @@ def graph_attention_transformer_nonlinear_exp_l2_md17(
     alpha_drop=0.0,
     proj_drop=0.0,
     out_drop=0.0,
-    drop_path_rate=0.0,
+    path_drop=0.0,
     scale=None,
     **kwargs,
 ):
@@ -722,7 +722,7 @@ def graph_attention_transformer_nonlinear_exp_l2_md17(
         alpha_drop=alpha_drop,
         proj_drop=proj_drop,
         out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
+        path_drop=path_drop,
         task_mean=task_mean,
         task_std=task_std,
         scale=scale,
@@ -757,7 +757,7 @@ def graph_attention_transformer_nonlinear_exp_l3_md17(
     alpha_drop=0.0,
     proj_drop=0.0,
     out_drop=0.0,
-    drop_path_rate=0.0,
+    path_drop=0.0,
     scale=None,
     **kwargs,
 ):
@@ -782,7 +782,7 @@ def graph_attention_transformer_nonlinear_exp_l3_md17(
         alpha_drop=alpha_drop,
         proj_drop=proj_drop,
         out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
+        path_drop=path_drop,
         task_mean=task_mean,
         task_std=task_std,
         scale=scale,
@@ -818,7 +818,7 @@ def graph_attention_transformer_nonlinear_attn_exp_l3_md17(
     alpha_drop=0.0,
     proj_drop=0.0,
     out_drop=0.0,
-    drop_path_rate=0.0,
+    path_drop=0.0,
     scale=None,
     **kwargs,
 ):
@@ -843,7 +843,7 @@ def graph_attention_transformer_nonlinear_attn_exp_l3_md17(
         alpha_drop=alpha_drop,
         proj_drop=proj_drop,
         out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
+        path_drop=path_drop,
         task_mean=task_mean,
         task_std=task_std,
         scale=scale,
@@ -879,7 +879,7 @@ def graph_attention_transformer_nonlinear_exp_l3_e3_md17(
     alpha_drop=0.0,
     proj_drop=0.0,
     out_drop=0.0,
-    drop_path_rate=0.0,
+    path_drop=0.0,
     scale=None,
     **kwargs,
 ):
@@ -904,7 +904,7 @@ def graph_attention_transformer_nonlinear_exp_l3_e3_md17(
         alpha_drop=alpha_drop,
         proj_drop=proj_drop,
         out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
+        path_drop=path_drop,
         task_mean=task_mean,
         task_std=task_std,
         scale=scale,
@@ -939,7 +939,7 @@ def graph_attention_transformer_nonlinear_bessel_l3_md17(
     alpha_drop=0.0,
     proj_drop=0.0,
     out_drop=0.0,
-    drop_path_rate=0.0,
+    path_drop=0.0,
     scale=None,
     **kwargs,
 ):
@@ -964,7 +964,7 @@ def graph_attention_transformer_nonlinear_bessel_l3_md17(
         alpha_drop=alpha_drop,
         proj_drop=proj_drop,
         out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
+        path_drop=path_drop,
         task_mean=task_mean,
         task_std=task_std,
         scale=scale,
@@ -999,7 +999,7 @@ def graph_attention_transformer_nonlinear_bessel_l3_e3_md17(
     alpha_drop=0.0,
     proj_drop=0.0,
     out_drop=0.0,
-    drop_path_rate=0.0,
+    path_drop=0.0,
     scale=None,
     **kwargs,
 ):
@@ -1024,7 +1024,7 @@ def graph_attention_transformer_nonlinear_bessel_l3_e3_md17(
         alpha_drop=alpha_drop,
         proj_drop=proj_drop,
         out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
+        path_drop=path_drop,
         task_mean=task_mean,
         task_std=task_std,
         scale=scale,

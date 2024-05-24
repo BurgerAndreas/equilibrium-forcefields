@@ -5,22 +5,28 @@ import wandb
 import copy
 import os, sys, pathlib
 
-from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, set_style_after
+from deq2ff.plotting.style import (
+    set_seaborn_style,
+    PALETTE,
+    entity,
+    project,
+    plotfolder,
+    set_style_after,
+)
 
 
 if __name__ == "__main__":
 
-
-    """ Options """
+    """Options"""
     acc_metric = "test_f_mae"
     # averaging over all molecules won't work, since we don't have depth data for all molecules
-    Target = "aspirin" # ethanol aspirin
+    Target = "aspirin"  # ethanol aspirin
     # layers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     # layers = [1, 2, 4, 8]
     remove_single_seed_runs = True
     runs_with_dropout = False
-    layers_deq = [1,2]
-    layers_equi = [1,2,3,4,5,6,7,8]
+    layers_deq = [1, 2]
+    layers_equi = [1, 2, 3, 4, 5, 6, 7, 8]
 
     """ Get runs """
 
@@ -32,7 +38,15 @@ if __name__ == "__main__":
     # runs = api.runs(project, {"tags": "depth"})
     # runs = api.runs(project, {"$and": [{"tags": "depth"}, {"state": "finished"}]})
     # state finished or crashed
-    runs = api.runs(project, {"$and": [{"tags": "depth"}, {"$or": [{"state": "finished"}, {"state": "crashed"}]}]})
+    runs = api.runs(
+        project,
+        {
+            "$and": [
+                {"tags": "depth"},
+                {"$or": [{"state": "finished"}, {"state": "crashed"}]},
+            ]
+        },
+    )
 
     infos = []
 
@@ -40,14 +54,18 @@ if __name__ == "__main__":
     for run in runs:
         # run = api.run(project + "/" + run_id)
         try:
-            # model.drop_path_rate=0.05
+            # model.path_drop=0.05
             if runs_with_dropout:
-                if run.config["model"]["drop_path_rate"] != 0.05:
-                    print(f"Skipping run {run.id} {run.name} because of drop_path_rate={run.config['model']['drop_path_rate']}")
+                if run.config["model"]["path_drop"] != 0.05:
+                    print(
+                        f"Skipping run {run.id} {run.name} because of path_drop={run.config['model']['path_drop']}"
+                    )
                     continue
             else:
-                if run.config["model"]["drop_path_rate"] != 0.0:
-                    print(f"Skipping run {run.id} {run.name} because of drop_path_rate={run.config['model']['drop_path_rate']}")
+                if run.config["model"]["path_drop"] != 0.0:
+                    print(
+                        f"Skipping run {run.id} {run.name} because of path_drop={run.config['model']['path_drop']}"
+                    )
                     continue
             info = {
                 "run_id": run.id,
@@ -67,11 +85,17 @@ if __name__ == "__main__":
                 "test_f_mae": run.summary["test_f_mae"],
             }
             # Plots: pick the smaller of test_fpreuse_f_mae and test_f_mae
-            if 'test_fpreuse_f_mae' in run.summary:
-                info["test_f_mae"] = min(run.summary["test_f_mae"], run.summary["test_fpreuse_f_mae"])
-                info["test_e_mae"] = min(run.summary["test_e_mae"], run.summary["test_fpreuse_e_mae"])
+            if "test_fpreuse_f_mae" in run.summary:
+                info["test_f_mae"] = min(
+                    run.summary["test_f_mae"], run.summary["test_fpreuse_f_mae"]
+                )
+                info["test_e_mae"] = min(
+                    run.summary["test_e_mae"], run.summary["test_fpreuse_e_mae"]
+                )
         except KeyError as e:
-            print(f"Skipping run {run.id} {run.name} because of KeyError: {e}. (Probably run is not finished yet)")
+            print(
+                f"Skipping run {run.id} {run.name} because of KeyError: {e}. (Probably run is not finished yet)"
+            )
             continue
         infos.append(info)
 
@@ -81,16 +105,19 @@ if __name__ == "__main__":
     """ Filter and statistics """
     # rename 'model_is_deq' to 'Model'
     # true -> DEQ, false -> Equiformer
-    df["model_is_deq"] = df["model_is_deq"].apply(lambda x: "DEQ" if x else "Equiformer")
+    df["model_is_deq"] = df["model_is_deq"].apply(
+        lambda x: "DEQ" if x else "Equiformer"
+    )
     # rename 'model_is_deq' to 'Model'
     df = df.rename(columns={"model_is_deq": "Model"})
 
     # filter for Target
     if Target not in [None, "all"]:
         df = df[df["Target"] == Target]
-    
+
     df = df[
-        (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ")) | (df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer"))
+        (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ"))
+        | (df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer"))
     ]
 
     # filter for layers
@@ -99,9 +126,8 @@ if __name__ == "__main__":
     # sort by model, layers
     df = df.sort_values(["Model", "Layers"])
 
-    print('\nBefore averaging:')
+    print("\nBefore averaging:")
     print(df[["run_name", "Model", "Layers", "test_f_mae", "Target"]])
-
 
     # compute mean and std over 'seed'
     cols = list(df.columns)
@@ -124,9 +150,8 @@ if __name__ == "__main__":
         df_mean = df_mean.drop(indices_to_remove)
         df_std = df_std.drop(indices_to_remove)
 
-    print('After averaging:')
+    print("After averaging:")
     print(df_mean)
-
 
     """ Plot """
     # y = "best_test_f_mae"
@@ -151,13 +176,15 @@ if __name__ == "__main__":
     # sns.lineplot(data=df_mean, x=x, y=y, hue=color, ax=ax, markers=marks, legend=False)
 
     sns.pointplot(
-        data=df, 
-        x=x, y=y, hue=color, 
-        ax=ax, 
-        markers=marks, 
-        estimator="mean", 
+        data=df,
+        x=x,
+        y=y,
+        hue=color,
+        ax=ax,
+        markers=marks,
+        estimator="mean",
         # errorbar method (either “ci”, “pi”, “se”, or “sd”)
-        errorbar="sd", # errorbar=('ci', 95), # errorbar="sd"
+        errorbar="sd",  # errorbar=('ci', 95), # errorbar="sd"
         # capsize=0.3,
         native_scale=True,
         # linestyles=["-", "--"],
@@ -193,7 +220,6 @@ if __name__ == "__main__":
     # close plot
     plt.close()
 
-
     """ Plot """
     # y = "best_test_f_mae"
     y = acc_metric
@@ -208,14 +234,15 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
 
     sns.pointplot(
-        data=df, 
-        x=x, y=y, 
-        hue=color, 
-        ax=ax, 
-        markers=marks, 
-        estimator="mean", 
+        data=df,
+        x=x,
+        y=y,
+        hue=color,
+        ax=ax,
+        markers=marks,
+        estimator="mean",
         # errorbar method (either “ci”, “pi”, “se”, or “sd”)
-        errorbar="sd", # errorbar=('ci', 95), # errorbar="sd"
+        errorbar="sd",  # errorbar=('ci', 95), # errorbar="sd"
         # capsize=0.3,
         native_scale=True,
         # linestyles=["-", "--"],

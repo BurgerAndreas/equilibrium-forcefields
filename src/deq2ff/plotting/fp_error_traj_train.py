@@ -11,13 +11,20 @@ abs_trace over forward-solver-iteration-steps
 https://colab.research.google.com/drive/12HiUnde7qLadeZGGtt7FITnSnbUmJr-I?usp=sharing#scrollTo=V5Zff4FHqR5d
 """
 
-from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, set_style_after
-
+from deq2ff.plotting.style import (
+    set_seaborn_style,
+    PALETTE,
+    entity,
+    project,
+    plotfolder,
+    set_style_after,
+)
 
 
 # columns = ['abs', 'rel', 'solver_step', 'train_step']
 
 # launchrun +use=deq +cfg=fpc_of +inf=fptrace model.num_layers=2
+
 
 def main(
     run_id: str, datasplit: str = "train", error_type="abs", ymax=None, logscale=False
@@ -30,11 +37,11 @@ def main(
     api = wandb.Api()
     run = api.run(project + "/" + run_id)
     run_name = run.name
-    print('\nrun_id:', run_id)
-    print('name:', run.name)
+    print("\nrun_id:", run_id)
+    print("name:", run.name)
 
     # metrics_dataframe = run.history()
-    mname = ''.join(e for e in run_name if e.isalnum())
+    mname = "".join(e for e in run_name if e.isalnum())
     csvname = f"{run.id}_{error_type}_fixed_point_error_traj_full_{datasplit}.csv"
     # try to load from csv
     # try:
@@ -49,7 +56,7 @@ def main(
 
     # abs_fixed_point_error_train
     # abs_fixed_point_error_traj_train
-    print('abs_fixed_point_error_traj_train\n', df["abs_fixed_point_error_traj_train"])
+    print("abs_fixed_point_error_traj_train\n", df["abs_fixed_point_error_traj_train"])
 
     # drop first row
     df = df.drop(df.index[0])
@@ -82,12 +89,12 @@ def main(
         )
         # append the new dataframe to the list
         dfs.append(dfi)
-    
+
     # concatenate the list of dataframes
     df = pd.concat(dfs)
 
-    sns.lineplot(data=df, y='abs', x="solver_step", hue="_step", ax=ax)
- 
+    sns.lineplot(data=df, y="abs", x="solver_step", hue="_step", ax=ax)
+
     plt.xlabel("Fixed-point solver step")
     plt.ylabel(f"Fixed-point error ({error_type})")
     if logscale:
@@ -99,7 +106,7 @@ def main(
     # legend title
     # plt.title(f"{run_name}")
     plt.title(f"Fixed-Point Trace over Training")
-    
+
     set_style_after(ax, fs=10)
 
     # legend outside the plot on the right

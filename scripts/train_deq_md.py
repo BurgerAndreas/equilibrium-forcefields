@@ -8,6 +8,7 @@ import torch
 import numpy as np
 from torch_geometric.loader import DataLoader
 from torch_geometric.loader.dataloader import Collater
+
 # from torch_geometric.data import collate
 
 import os
@@ -66,7 +67,13 @@ Adapted from equiformer/main_md17.py
 
 import deq2ff
 import deq2ff.logging_utils_deq as logging_utils_deq
-from deq2ff.losses import load_loss, L2MAELoss, contrastive_loss, TripletLoss, calc_triplet_loss
+from deq2ff.losses import (
+    load_loss,
+    L2MAELoss,
+    contrastive_loss,
+    TripletLoss,
+    calc_triplet_loss,
+)
 from deq2ff.deq_equiformer.deq_dp_md17 import (
     deq_dot_product_attention_transformer_exp_l2_md17,
 )
@@ -92,31 +99,35 @@ import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
+
 def get_next_batch(dataset, batch, collate):
     """Get batch where indices are consecutive to previous batch."""
     # get the next timesteps
     idx = batch.idx + 1
-    idx = idx.to('cpu')
+    idx = idx.to("cpu")
 
     # only works when dataset is consecutive
     # make sure we don't go out of bounds
-    len_train = len(dataset) 
-    idx = torch.where(idx >= len_train, idx - 2, idx) 
-    # idx.clamp_(0, len_train - 1) 
+    len_train = len(dataset)
+    idx = torch.where(idx >= len_train, idx - 2, idx)
+    # idx.clamp_(0, len_train - 1)
     idx = idx.tolist()
 
     # If you want to access specific elements we need to use torch.utils.data.Dataset
     # DataLoader has no __getitem__ method (see in the source code for yourself).
-    # DataLoader is used for iterating, not random access, over data (or batches of data). 
+    # DataLoader is used for iterating, not random access, over data (or batches of data).
     # index the dataset:                      <class 'equiformer.datasets.pyg.md_all.MDAll'>
     # with collate / next(iter(data_loader)): <class 'torch_geometric.data.batch.DataBatch'>
     next_data = collate([dataset[_idx] for _idx in idx])
     next_data = next_data.to(batch.idx.device)
 
     # assert idx and next_data.idx are (at max, if we use clamp) one apart
-    assert (next_data.idx - batch.idx).abs().float().mean() <= 1., f'idx: {idx}, next_data.idx: {next_data.idx}'
+    assert (
+        next_data.idx - batch.idx
+    ).abs().float().mean() <= 1.0, f"idx: {idx}, next_data.idx: {next_data.idx}"
 
     return next_data
+
 
 # def save_checkpoint():
 #     torch.save(
@@ -137,6 +148,7 @@ def get_next_batch(dataset, batch, collate):
 #         ),
 #     )
 
+
 def remove_extra_checkpoints(output_dir, max_checkpoints, startswith="epochs@"):
     # list all files starting with "epochs@" in the output directory
     # and sort them by the epoch number
@@ -151,7 +163,7 @@ def remove_extra_checkpoints(output_dir, max_checkpoints, startswith="epochs@"):
     )
     for f in checkpoints[:-max_checkpoints]:
         os.remove(os.path.join(output_dir, f))
-    
+
 
 def get_force_placeholder(dy, loss_e):
     """if meas_force is False, return a placeholder for force prediction and loss_f"""
@@ -165,15 +177,15 @@ def get_force_placeholder(dy, loss_e):
 def main(args):
 
     # create output directory
-    if args.output_dir == 'auto':
+    if args.output_dir == "auto":
         # args.output_dir = os.path.join('outputs', datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         # models/md17/equiformer/test
-        mname = args.checkpoint_wandb_name # wandb.run.name
+        mname = args.checkpoint_wandb_name  # wandb.run.name
         # remove special characters
-        mname = ''.join(e for e in mname if e.isalnum())
-        args.output_dir = f'models/{args.dname}/{args.model.name}/{args.target}/{mname}'
+        mname = "".join(e for e in mname if e.isalnum())
+        args.output_dir = f"models/{args.dname}/{args.model.name}/{args.target}/{mname}"
         print(f"Set output directory automatically: {args.output_dir}")
-    elif args.output_dir == 'checkpoint_path':
+    elif args.output_dir == "checkpoint_path":
         # args.output_dir = args.checkpoint_path
         args.output_dir = os.path.dirname(args.checkpoint_path)
         print(f"Set output directory: {args.output_dir}")
@@ -190,7 +202,7 @@ def main(args):
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
-    """ Dataset """        
+    """ Dataset """
     if args.use_original_datasetcreation:
         import equiformer.datasets.pyg.md17 as md17_dataset
 
@@ -217,9 +229,13 @@ def main(args):
             order=md_all.get_order(args),
         )
         # assert that dataset is consecutive
-        samples = Collater(follow_batch=None, exclude_keys=None)([all_dataset[i] for i in range(10)])
-        assert torch.allclose(samples.idx, torch.arange(10)), f"idx are not consecutive: {samples.idx}"
-    
+        samples = Collater(follow_batch=None, exclude_keys=None)(
+            [all_dataset[i] for i in range(10)]
+        )
+        assert torch.allclose(
+            samples.idx, torch.arange(10)
+        ), f"idx are not consecutive: {samples.idx}"
+
     _log.info("")
     _log.info("Training set size:   {}".format(len(train_dataset)))
     _log.info("Validation set size: {}".format(len(val_dataset)))
@@ -254,7 +270,7 @@ def main(args):
 
     """ Data Loader """
     # We don't need to shuffle because either the indices are already randomized
-    # or we want to keep the order 
+    # or we want to keep the order
     # we just keep the shuffle option for the sake of consistency with equiformer
     shuffle = True
     # if args.datasplit in ["fpreuse_ordered"]:
@@ -269,7 +285,9 @@ def main(args):
     )
     # idx are from the dataset e.g. (1, ..., 100k)
     # indices are from the DataLoader e.g. (0, ..., 1k)
-    idx_to_indices = {idx.item(): i for i, idx in enumerate(train_loader.dataset.indices)}
+    idx_to_indices = {
+        idx.item(): i for i, idx in enumerate(train_loader.dataset.indices)
+    }
     indices_to_idx = {v: k for k, v in idx_to_indices.items()}
     # added drop_last=True to avoid error with fixed-point reuse
     val_loader = DataLoader(
@@ -284,7 +302,6 @@ def main(args):
     test_loader = DataLoader(
         test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
     )
-    
 
     """ Compute stats """
     # Compute _AVG_NUM_NODES, _AVG_DEGREE
@@ -295,8 +312,14 @@ def main(args):
             logger=_log,
             print_freq=args.print_freq,
         )
-        print(f'\nComputed stats: \n\tavg_node={avg_node} \n\tavg_edge={avg_edge} \n\tavg_degree={avg_degree}\n')
-        return {"avg_node": avg_node, "avg_edge": avg_edge, "avg_degree": avg_degree.item()}
+        print(
+            f"\nComputed stats: \n\tavg_node={avg_node} \n\tavg_edge={avg_edge} \n\tavg_degree={avg_degree}\n"
+        )
+        return {
+            "avg_node": avg_node,
+            "avg_edge": avg_edge,
+            "avg_degree": avg_degree.item(),
+        }
 
     """ Instantiate Model """
     create_model = model_entrypoint(args.model.name)
@@ -316,14 +339,15 @@ def main(args):
 
     # log available memory
     if torch.cuda.is_available():
-        _log.info(f"Available memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+        _log.info(
+            f"Available memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB"
+        )
     else:
-        _log.info(f"torch.cuda not available")
+        _log.info(f"Warning: torch.cuda not available!\n")
 
-    # If you need to move a model to GPU via .cuda() , please do so before constructing optimizers for it. 
+    # If you need to move a model to GPU via .cuda() , please do so before constructing optimizers for it.
     # Parameters of a model after .cuda() will be different objects with those before the call.
     model = model.to(device)
-
 
     """ Instantiate everything else """
     optimizer = create_optimizer(args, model)
@@ -352,7 +376,6 @@ def main(args):
     loss_fn = load_loss({"energy": args.loss_energy, "force": args.loss_force})
     criterion_energy = loss_fn["energy"]
     criterion_force = loss_fn["force"]
-    
 
     """ Load checkpoint """
     loaded_checkpoint = False
@@ -375,7 +398,9 @@ def main(args):
                     ],
                     key=lambda x: int(x.split("@")[1].split("_")[0]),
                 )
-                args.checkpoint_path = os.path.join(args.checkpoint_path, checkpoints[-1])
+                args.checkpoint_path = os.path.join(
+                    args.checkpoint_path, checkpoints[-1]
+                )
             state_dict = torch.load(args.checkpoint_path)
             # write state_dict
             model.load_state_dict(state_dict["state_dict"])
@@ -395,8 +420,12 @@ def main(args):
 
     # if we want to run inference only we want to make sure that the model is loaded
     if args.assert_checkpoint:
-        assert loaded_checkpoint, f"Failed to load checkpoint at path={args.checkpoint_path}."
-        assert start_epoch >= args.epochs * 0.98, f"Loaded checkpoint at path={args.checkpoint_path} isn't finished yet. start_epoch={start_epoch}."
+        assert (
+            loaded_checkpoint
+        ), f"Failed to load checkpoint at path={args.checkpoint_path}."
+        assert (
+            start_epoch >= args.epochs * 0.98
+        ), f"Loaded checkpoint at path={args.checkpoint_path} isn't finished yet. start_epoch={start_epoch}."
 
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch
@@ -411,7 +440,7 @@ def main(args):
             decay=args.model_ema_decay,
             device="cpu" if args.model_ema_force_cpu else None,
         )
-    
+
     """ Log number of parameters """
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     _log.info("Number of Model params: {}".format(n_parameters))
@@ -439,6 +468,7 @@ def main(args):
     # Overwrite _AVG_NUM_NODES and _AVG_DEGREE with the dataset statistics
     if args.load_stats:
         import json
+
         if type(args.load_stats) == str:
             stats = json.load(open(args.load_stats))
         else:
@@ -450,10 +480,14 @@ def main(args):
             _stats = stats[args.dname]["_avg"][str(float(args.model.max_radius))]
         else:
             try:
-                _stats = stats[args.dname][args.target][str(float(args.model.max_radius))]
+                _stats = stats[args.dname][args.target][
+                    str(float(args.model.max_radius))
+                ]
             except:
-                print(f'Could not find statistics for {args.dname}, {args.target}, {args.model.max_radius}')
-                print(f'Only found: {yaml.dump(stats)}')
+                print(
+                    f"Could not find statistics for {args.dname}, {args.target}, {args.model.max_radius}"
+                )
+                print(f"Only found: {yaml.dump(stats)}")
                 _stats = stats[args.dname]["_avg"][str(float(args.model.max_radius))]
         _AVG_NUM_NODES, _AVG_DEGREE = _stats["avg_node"], _stats["avg_degree"]
         # overwrite model parameters
@@ -466,13 +500,17 @@ def main(args):
         # V2: dont: this will overwrite the config
         # wandb.run.config.update({"model": {"_AVG_NUM_NODES": _AVG_NUM_NODES, "_AVG_DEGREE": _AVG_DEGREE}})
         # V3: this will add new entries to the config
-        wandb.run.config.update({"_AVG_NUM_NODES": _AVG_NUM_NODES, "_AVG_DEGREE": _AVG_DEGREE})
+        wandb.run.config.update(
+            {"_AVG_NUM_NODES": _AVG_NUM_NODES, "_AVG_DEGREE": _AVG_DEGREE}
+        )
         # V4: update all config args
         args.model._AVG_NUM_NODES = float(_AVG_NUM_NODES)
         args.model._AVG_DEGREE = float(_AVG_DEGREE)
         # wandb.config.update(args)
-        _log.info(f"Loaded computed stats: _AVG_NUM_NODES={_AVG_NUM_NODES}, _AVG_DEGREE={_AVG_DEGREE}")
-    
+        _log.info(
+            f"Loaded computed stats: _AVG_NUM_NODES={_AVG_NUM_NODES}, _AVG_DEGREE={_AVG_DEGREE}"
+        )
+
     # update all config args
     # wandb.config.update(OmegaConf.to_container(args, resolve=True), allow_val_change=True)
 
@@ -540,7 +578,7 @@ def main(args):
         print(f"Failed to log shapes: {e}")
         NODE_EMBEDDING_BATCH_SHAPE = None
         NODE_EMBEDDING_SHAPE = None
-    
+
     """ Log memory usage """
     # Start recording memory snapshot history, initialized with a buffer
     # capacity of 100,000 memory events, via the `max_entries` field.
@@ -584,7 +622,9 @@ def main(args):
         if args.torch_record_memory:
             # Snapshots will save last `max_entries` number of memory events
             try:
-                torch.cuda.memory._dump_snapshot(f"{args.output_dir}/cuda_memory_snapshot_inference_s{global_step}.pickle")
+                torch.cuda.memory._dump_snapshot(
+                    f"{args.output_dir}/cuda_memory_snapshot_inference_s{global_step}.pickle"
+                )
             except Exception as e:
                 _log.info(f"Failed to capture memory snapshot {e}")
             # Stop recording memory snapshot history.
@@ -596,11 +636,13 @@ def main(args):
 
     """ Train! """
     if NODE_EMBEDDING_SHAPE is not None:
-    # empty list to store fixed-points across epochs
+        # empty list to store fixed-points across epochs
         # fixed_points = [None] * args.train_size
         fpdevice = device if args.fp_on_gpu else torch.device("cpu")
-        # fixed_points = [torch.zeros(NODE_EMBEDDING_SHAPE, device=fpdevice)] * args.train_size 
-        fixed_points = torch.zeros(args.train_size, *NODE_EMBEDDING_SHAPE, device=fpdevice, requires_grad=False)
+        # fixed_points = [torch.zeros(NODE_EMBEDDING_SHAPE, device=fpdevice)] * args.train_size
+        fixed_points = torch.zeros(
+            args.train_size, *NODE_EMBEDDING_SHAPE, device=fpdevice, requires_grad=False
+        )
         # empty tensor to store fixed-points across epochs
         # fixed_points = torch.zeros(args.train_size, 3, device=device)
     _log.info("\nStart training!\n")
@@ -642,7 +684,9 @@ def main(args):
         if args.torch_record_memory:
             # Snapshots will save last `max_entries` number of memory events
             try:
-                torch.cuda.memory._dump_snapshot(f"{args.output_dir}/cuda_memory_snapshot_e{epoch}_s{global_step}.pickle")
+                torch.cuda.memory._dump_snapshot(
+                    f"{args.output_dir}/cuda_memory_snapshot_e{epoch}_s{global_step}.pickle"
+                )
             except Exception as e:
                 _log.info(f"Failed to capture memory snapshot {e}")
 
@@ -709,7 +753,9 @@ def main(args):
                     ),
                 ),
             )
-            remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="best_val_epochs@")
+            remove_extra_checkpoints(
+                args.output_dir, args.max_checkpoints, startswith="best_val_epochs@"
+            )
             saved_best_checkpoint = True
 
         if update_test_result and args.save_best_test_checkpoint:
@@ -731,7 +777,9 @@ def main(args):
                     ),
                 ),
             )
-            remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="best_test_epochs@")
+            remove_extra_checkpoints(
+                args.output_dir, args.max_checkpoints, startswith="best_test_epochs@"
+            )
             saved_best_checkpoint = True
 
         if (
@@ -759,7 +807,9 @@ def main(args):
                     ),
                 ),
             )
-            remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="epochs@")
+            remove_extra_checkpoints(
+                args.output_dir, args.max_checkpoints, startswith="epochs@"
+            )
 
         # log once per epoch
         info_str = "Epoch: [{epoch}] Target: [{target}] train_e_MAE: {train_e_mae:.5f}, train_f_MAE: {train_f_mae:.5f}, ".format(
@@ -883,7 +933,11 @@ def main(args):
                         ),
                     ),
                 )
-                remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="best_ema_val_epochs@")
+                remove_extra_checkpoints(
+                    args.output_dir,
+                    args.max_checkpoints,
+                    startswith="best_ema_val_epochs@",
+                )
                 saved_best_ema_checkpoint = True
 
             if update_test_result and args.save_best_test_checkpoint:
@@ -897,7 +951,11 @@ def main(args):
                         ),
                     ),
                 )
-                remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="best_ema_test_epochs@")
+                remove_extra_checkpoints(
+                    args.output_dir,
+                    args.max_checkpoints,
+                    startswith="best_ema_test_epochs@",
+                )
                 saved_best_ema_checkpoint = True
 
             if (
@@ -917,7 +975,9 @@ def main(args):
                         ),
                     ),
                 )
-                remove_extra_checkpoints(args.output_dir, args.max_checkpoints, startswith="ema_epochs@")
+                remove_extra_checkpoints(
+                    args.output_dir, args.max_checkpoints, startswith="ema_epochs@"
+                )
 
             info_str = "EMA "
             info_str += "val_e_MAE: {:.5f}, val_f_MAE: {:.5f}, ".format(
@@ -1154,10 +1214,12 @@ def train_one_epoch(
             if args.fpc_freq > 0:
                 if args.fpc_rand:
                     # randomly uniform sample indices
-                    solver_kwargs['indexing'] = torch.randperm(len(losses_fpc))[: args.fpc_freq]
+                    solver_kwargs["indexing"] = torch.randperm(len(losses_fpc))[
+                        : args.fpc_freq
+                    ]
                 else:
                     # uniformly spaced indices
-                    solver_kwargs['n_states'] = args.fpc_freq
+                    solver_kwargs["n_states"] = args.fpc_freq
 
             if args.fpreuse_across_epochs and epoch >= args.fpreuse_start_epoch:
                 indices = [idx_to_indices[_idx.item()] for _idx in data.idx]
@@ -1181,7 +1243,9 @@ def train_one_epoch(
                     return_fixedpoint=True,
                     fixedpoint=_fp_prev,
                 )
-                assert _fp_prev.shape == fp.shape, f"Fixed-point shape mismatch: {_fp_prev.shape} != {fp.shape}"
+                assert (
+                    _fp_prev.shape == fp.shape
+                ), f"Fixed-point shape mismatch: {_fp_prev.shape} != {fp.shape}"
                 # split up fixed points [B*N, D, C] -> [B, N, D, C]
                 # [84, 16, 64] -> [4, 21, 16, 64]
                 fp = fp.view(args.batch_size, -1, *fp.shape[1:])
@@ -1234,37 +1298,55 @@ def train_one_epoch(
             # for superior performance and training stability
             # https://arxiv.org/abs/2204.08442
             if args.fpc_freq > 0:
-                if (
-                    len(info) > 0
-                    and "z_pred" in info
-                    and len(info["z_pred"]) > 1
-                ):
+                if len(info) > 0 and "z_pred" in info and len(info["z_pred"]) > 1:
                     # last z is fixed point
                     z_pred = info["z_pred"]
                     losses_fpc = fp_correction(
-                        criterion_fpc, (z_pred[:-1], z_pred[-1]), return_loss_values=True
+                        criterion_fpc,
+                        (z_pred[:-1], z_pred[-1]),
+                        return_loss_values=True,
                     )
                     loss_fpc += args.fpc_weight * losses_fpc.mean()
                     loss += loss_fpc
                     if wandb.run is not None:
-                        wandb.log({"fpc_loss_scaled": loss_fpc.item()},step=global_step,)
+                        wandb.log(
+                            {"fpc_loss_scaled": loss_fpc.item()},
+                            step=global_step,
+                        )
                 # else:
                 # # For example if we would index step 5, but only four forward solver steps were performed
                 #     print('Warning: Couldnt perform fixed-point correction:', 'info', len(info), 'z_pred', len(info["z_pred"]))
-            
+
             # Contrastive loss
             if args.contrastive_loss not in [False, None]:
                 # DEPRECATED: consecutive dataset won't converge, irrespective of loss
                 if args.contrastive_loss.endswith("ordered"):
-                    assert (data.idx[0] - data.idx[1]).abs() == 1, f"Contrastive loss requires consecutive indices {data.idx}"
+                    assert (
+                        data.idx[0] - data.idx[1]
+                    ).abs() == 1, (
+                        f"Contrastive loss requires consecutive indices {data.idx}"
+                    )
                     if args.contrastive_loss.startswith("triplet"):
-                        closs = calc_triplet_loss(info["z_pred"][-1], data, triplet_lossfn)
+                        closs = calc_triplet_loss(
+                            info["z_pred"][-1], data, triplet_lossfn
+                        )
                     elif args.contrastive_loss.startswith("next"):
-                        assert (data.idx[0] - data.idx[1]).abs() == 1, f"Contrastive loss requires consecutive indices {data.idx}"
-                        closs = contrastive_loss(info["z_pred"][-1], data, closs_type=args.contrastive_loss, squared=True)
-                
+                        assert (
+                            data.idx[0] - data.idx[1]
+                        ).abs() == 1, (
+                            f"Contrastive loss requires consecutive indices {data.idx}"
+                        )
+                        closs = contrastive_loss(
+                            info["z_pred"][-1],
+                            data,
+                            closs_type=args.contrastive_loss,
+                            squared=True,
+                        )
+
                 elif args.contrastive_loss == "next":
-                    next_data = get_next_batch(dataset=all_dataset, batch=data, collate=collate)
+                    next_data = get_next_batch(
+                        dataset=all_dataset, batch=data, collate=collate
+                    )
                     next_data = next_data.to(device)
 
                     # get correct fixed-point of next timestep
@@ -1282,15 +1364,21 @@ def train_one_epoch(
                     closs = criterion_contrastive(z_next_true, info["z_pred"][-1])
 
                 else:
-                    raise NotImplementedError(f"Contrastive loss {args.contrastive_loss} not implemented.")
-                
+                    raise NotImplementedError(
+                        f"Contrastive loss {args.contrastive_loss} not implemented."
+                    )
+
                 closs = args.contrastive_weight * closs
                 loss += closs
                 if wandb.run is not None:
-                    wandb.log({"contrastive_loss_scaled": closs.item()}, step=global_step)
-            
+                    wandb.log(
+                        {"contrastive_loss_scaled": closs.item()}, step=global_step
+                    )
+
             if args.fpr_loss == True:
-                next_data = get_next_batch(dataset=all_dataset, batch=data, collate=collate)
+                next_data = get_next_batch(
+                    dataset=all_dataset, batch=data, collate=collate
+                )
                 next_data = next_data.to(device)
                 # get correct fixed-point of next timestep
                 with torch.set_grad_enabled(args.fpr_w_grad):
@@ -1306,7 +1394,10 @@ def train_one_epoch(
                 z_next_true = next_info["z_pred"][-1]
                 fpr_loss = criterion_fpr(z_next_true, info["z_next"])
                 loss += args.fpr_weight * fpr_loss
-                wandb.log({"scaled_fpr_loss": (args.fpr_weight * fpr_loss).item()}, step=global_step)
+                wandb.log(
+                    {"scaled_fpr_loss": (args.fpr_weight * fpr_loss).item()},
+                    step=global_step,
+                )
 
             if wandb.run is not None:
                 wandb.log(
@@ -1367,13 +1458,13 @@ def train_one_epoch(
                 ]
                 grad_norm = torch.cat(grads).norm()
                 wandb.log({"grad_norm": grad_norm}, step=global_step)
-            
+
             # if args.lr > 0:
             optimizer.step()
 
             if len(info) > 0:
                 # log fixed-point trajectory
-                # if args.log_fixed_point_trace_train: 
+                # if args.log_fixed_point_trace_train:
                 logging_utils_deq.log_fixed_point_error(
                     info,
                     step=global_step,
@@ -1437,9 +1528,9 @@ def train_one_epoch(
                 )
 
             global_step += 1
-        
+
         # end of epoch
-        
+
         # log fixed-point statistics
         if len(abs_fixed_point_error) > 0:
             wandb.log(
@@ -1501,7 +1592,7 @@ def evaluate(
     task_std = model.task_std
 
     # remove because of torchdeq and force prediction via dE/dx
-    # with torch.no_grad(): 
+    # with torch.no_grad():
     with torch.set_grad_enabled(args.test_w_grad):
 
         # if we use fpreuse_test, also try without to get a comparison
@@ -1529,7 +1620,7 @@ def evaluate(
             fixedpoint = None
             prev_idx = None
             max_steps = max_iter if max_iter != -1 else len(data_loader)
-            
+
             start_time = time.perf_counter()
             for step, data in enumerate(data_loader):
                 data = data.to(device)
@@ -1610,9 +1701,8 @@ def evaluate(
                 ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
-
                 # --- logging ---
-                if len(info) > 0: 
+                if len(info) > 0:
                     if pass_step is not None:
                         # log fixed-point trajectory once per evaluation
                         logging_utils_deq.log_fixed_point_error(
@@ -1620,8 +1710,12 @@ def evaluate(
                             step=global_step,
                             datasplit=_datasplit,
                         )
-                    abs_fixed_point_error.append(info["abs_trace"].mean(dim=0)[-1].item())
-                    rel_fixed_point_error.append(info["rel_trace"].mean(dim=0)[-1].item())
+                    abs_fixed_point_error.append(
+                        info["abs_trace"].mean(dim=0)[-1].item()
+                    )
+                    rel_fixed_point_error.append(
+                        info["rel_trace"].mean(dim=0)[-1].item()
+                    )
                     # duplicates kept for legacy reasons
                     f_steps_to_fixed_point.append(info["nstep"].mean().item())
                     n_fsolver_steps.append(info["nstep"].mean().item())
@@ -1629,7 +1723,9 @@ def evaluate(
                 if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
                     w = time.perf_counter() - start_time
                     e = (step + 1) / max_steps
-                    info_str = f"[{step}/{max_steps}]{'(fpreuse)' if fpreuse_test else ''} \t"
+                    info_str = (
+                        f"[{step}/{max_steps}]{'(fpreuse)' if fpreuse_test else ''} \t"
+                    )
                     info_str += "e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
                         e_mae=mae_metrics["energy"].avg,
                         f_mae=mae_metrics["force"].avg,
@@ -1641,9 +1737,9 @@ def evaluate(
 
                 if (step + 1) >= max_steps:
                     break
-            
+
             # test set finished
-            eval_time = time.perf_counter() - start_time # time for whole test set
+            eval_time = time.perf_counter() - start_time  # time for whole test set
             _logs = {
                 f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
                 f"{_datasplit}_f_mae": mae_metrics["force"].avg,
@@ -1659,33 +1755,50 @@ def evaluate(
                     f"time_forward_per_batch_{_datasplit}": np.mean(model_forward_time),
                     # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_time),
                     f"time_forward_total_{_datasplit}": np.sum(model_forward_time),
-                }, step=global_step)
-            
+                },
+                step=global_step,
+            )
+
             # log fixed-point statistics
             if len(abs_fixed_point_error) > 0:
                 wandb.log(
                     {
-                        f"abs_fixed_point_error_{_datasplit}": np.mean(abs_fixed_point_error),
-                        f"rel_fixed_point_error_{_datasplit}": np.mean(rel_fixed_point_error),
-                        f"f_steps_to_fixed_point_{_datasplit}": np.mean(f_steps_to_fixed_point),
+                        f"abs_fixed_point_error_{_datasplit}": np.mean(
+                            abs_fixed_point_error
+                        ),
+                        f"rel_fixed_point_error_{_datasplit}": np.mean(
+                            rel_fixed_point_error
+                        ),
+                        f"f_steps_to_fixed_point_{_datasplit}": np.mean(
+                            f_steps_to_fixed_point
+                        ),
                     },
                     step=global_step,
                 )
-                _logs.update({
-                    f"abs_fixed_point_error_{_datasplit}": np.mean(abs_fixed_point_error),
-                    f"rel_fixed_point_error_{_datasplit}": np.mean(rel_fixed_point_error),
-                    f"f_steps_to_fixed_point_{_datasplit}": np.mean(f_steps_to_fixed_point),
-                })
+                _logs.update(
+                    {
+                        f"abs_fixed_point_error_{_datasplit}": np.mean(
+                            abs_fixed_point_error
+                        ),
+                        f"rel_fixed_point_error_{_datasplit}": np.mean(
+                            rel_fixed_point_error
+                        ),
+                        f"f_steps_to_fixed_point_{_datasplit}": np.mean(
+                            f_steps_to_fixed_point
+                        ),
+                    }
+                )
 
             if len(n_fsolver_steps) > 0:
                 wandb.log(
-                    {f"avg_n_fsolver_steps_{_datasplit}": np.mean(n_fsolver_steps)}, step=global_step
+                    {f"avg_n_fsolver_steps_{_datasplit}": np.mean(n_fsolver_steps)},
+                    step=global_step,
                 )
                 # log the full list
                 wandb.log(
                     {f"n_fsolver_steps_{_datasplit}": n_fsolver_steps}, step=global_step
                 )
-            
+
             # log test error
             wandb.log(
                 {
@@ -1694,7 +1807,7 @@ def evaluate(
                 },
                 step=global_step,
             )
-            
+
             print(f"Finished {_datasplit} evaluation.")
             for k, v in _logs.items():
                 logger.info(f" {k}: {v}")

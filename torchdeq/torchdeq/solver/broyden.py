@@ -85,7 +85,9 @@ def line_search(update, x0, g0, g, nstep=0, on=True):
         # Do a line search
         def phi(s, store=True):
             if s == tmp_s[0]:
-                return tmp_phi[0]  # If the step size is so small... just return something
+                return tmp_phi[
+                    0
+                ]  # If the step size is so small... just return something
             x_est = x0 + s * update
             g0_new = g(x_est)
             phi_new = _safe_norm(g0_new) ** 2
@@ -306,6 +308,7 @@ def broyden_solver(
     #     return x_est.view_as(x0), indexing_list, info
     return lowest_xest, indexing_list, info
 
+
 def broyden_solver_grad(
     func,
     x0,
@@ -448,10 +451,10 @@ def broyden_solver_grad(
             if new_objective < 3 * tol and progress.max() < 1.3:
                 # If there's hardly been any progress in the last 30 steps
                 break
-        
+
         # Update the inverses Jacobian approximation using the Broyden's update formula
         # part_Us, part_VTs = Us[:, :, : nstep - 1], VTs[:, : nstep - 1]
-        part_Us = Us[:, :, : nstep - 1].clone() # TODO: is clone necessary?
+        part_Us = Us[:, :, : nstep - 1].clone()  # TODO: is clone necessary?
         part_VTs = VTs[:, : nstep - 1].clone()
         vT = rmatvec(part_Us, part_VTs, delta_x)
         _c = matvec(part_Us, part_VTs, delta_gx)
@@ -465,13 +468,13 @@ def broyden_solver_grad(
         u = torch.nan_to_num(u).unsqueeze(-1)
 
         # VTs[:, (nstep - 1) % LBFGS_thres] = vT
-        mask = torch.zeros_like(VTs) # doesn't require grad
+        mask = torch.zeros_like(VTs)  # doesn't require grad
         # because mask didn't require grad, this works with autograd
-        mask[:, (nstep - 1) % LBFGS_thres] = 1 
+        mask[:, (nstep - 1) % LBFGS_thres] = 1
         VTs = VTs * (1 - mask) + vT * mask
 
         # Us[:, :, (nstep - 1) % LBFGS_thres] = u
-        mask2 = torch.zeros_like(Us) # doesn't require grad
+        mask2 = torch.zeros_like(Us)  # doesn't require grad
         mask2[:, :, (nstep - 1) % LBFGS_thres] = 1
         Us = Us * (1 - mask2) + u * mask2
 
@@ -607,10 +610,10 @@ def test_broyden_solver_grad(
             if new_objective < 3 * tol and progress.max() < 1.3:
                 # If there's hardly been any progress in the last 30 steps
                 break
-        
+
         # Update the inverses Jacobian approximation using the Broyden's update formula
         # part_Us, part_VTs = Us[:, :, : nstep - 1], VTs[:, : nstep - 1]
-        part_Us = Us[:, :, : nstep - 1].clone() # TODO: is clone necessary?
+        part_Us = Us[:, :, : nstep - 1].clone()  # TODO: is clone necessary?
         part_VTs = VTs[:, : nstep - 1].clone()
         vT = rmatvec(part_Us, part_VTs, delta_x)
         _c = matvec(part_Us, part_VTs, delta_gx)
@@ -631,8 +634,8 @@ def test_broyden_solver_grad(
 
         VTs_grad = VTs.clone()
         # new
-        mask = torch.zeros_like(VTs_grad) # doesn't require grad
-        mask[:, (nstep - 1) % LBFGS_thres] = 1 
+        mask = torch.zeros_like(VTs_grad)  # doesn't require grad
+        mask[:, (nstep - 1) % LBFGS_thres] = 1
         VTs_grad = VTs_grad * (1 - mask) + vT_grad * mask
         # legacy
         VTs[:, (nstep - 1) % LBFGS_thres] = vT
@@ -641,7 +644,7 @@ def test_broyden_solver_grad(
 
         Us_grad = Us.clone()
         # new
-        mask2 = torch.zeros_like(Us_grad) # doesn't require grad
+        mask2 = torch.zeros_like(Us_grad)  # doesn't require grad
         mask2[:, :, (nstep - 1) % LBFGS_thres] = 1
         Us_grad = Us_grad * (1 - mask2) + u_grad * mask2
         # legacy

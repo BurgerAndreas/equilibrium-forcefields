@@ -100,7 +100,7 @@ class EquiformerV2_OC20(BaseModel):
         use_sep_s2_act (bool):      If `True`, use separable S2 activation when `use_gate_act` is False.
 
         alpha_drop (float):         Dropout rate for attention weights
-        drop_path_rate (float):     Drop path rate
+        path_drop (float):     Drop path rate
         proj_drop (float):          Dropout rate for outputs of attention and FFN in Transformer blocks
 
         weight_init (str):          ['normal', 'uniform'] initialization of weights of linear layers except those in radial functions
@@ -148,11 +148,13 @@ class EquiformerV2_OC20(BaseModel):
         use_sep_s2_act=True,
         # dropout rates
         alpha_drop=0.1,
-        drop_path_rate=0.05,
+        path_drop=0.05,
         proj_drop=0.0,
-        head_alpha_drop=0.0,
+        head_alpha_drop=0.0,  # added and decreases accuracy
         weight_init="normal",
         # added
+        use_variational_alpha_drop=False,
+        use_variational_path_drop=False,
         # Statistics of IS2RE 100K
         # IS2RE: 100k, max_radius = 5, max_neighbors = 100
         _AVG_NUM_NODES=77.81317,
@@ -187,40 +189,62 @@ class EquiformerV2_OC20(BaseModel):
 
         self.batchify_for_torchdeq = batchify_for_torchdeq
 
-        print('Number of trainable params:', sum(p.numel() for p in self.parameters() if p.requires_grad))
+        print(
+            "Number of trainable params:",
+            sum(p.numel() for p in self.parameters() if p.requires_grad),
+        )
         # shape: B x irrep_dim x channels -> 1 x 1 x sphere_channels
         _shape = (1, 1, sphere_channels)
         if learn_scale_after_encoder:
             # nn.Parameter(torch.tensor(1.0, requires_grad=True).clone(), requires_grad=True)
-            self.learn_scale_after_encoder = torch.nn.Parameter(torch.ones(_shape, requires_grad=True), requires_grad=True)
+            self.learn_scale_after_encoder = torch.nn.Parameter(
+                torch.ones(_shape, requires_grad=True), requires_grad=True
+            )
             # self.learn_scale_after_encoder = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True), requires_grad=True)
             # torch.nn.init.constant_(self.learn_scale_after_encoder, 1)
-            self.register_parameter('learn_scale_after_encoder', self.learn_scale_after_encoder)
+            self.register_parameter(
+                "learn_scale_after_encoder", self.learn_scale_after_encoder
+            )
         else:
             self.learn_scale_after_encoder = 1.0
-        
+
         if learn_scale_before_decoder:
-            self.learn_scale_before_decoder = torch.nn.Parameter(torch.ones(_shape, requires_grad=True), requires_grad=True)
+            self.learn_scale_before_decoder = torch.nn.Parameter(
+                torch.ones(_shape, requires_grad=True), requires_grad=True
+            )
             # self.learn_scale_before_decoder = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True), requires_grad=True)
             # torch.nn.init.constant_(self.learn_scale_before_decoder, 1)
-            self.register_parameter('learn_scale_before_decoder', self.learn_scale_before_decoder)
+            self.register_parameter(
+                "learn_scale_before_decoder", self.learn_scale_before_decoder
+            )
         else:
             self.learn_scale_before_decoder = 1.0
-        
+
         _shape = (1, 1, 1)
         if learn_scale_after_decoder:
-            self.learn_scale_after_energy_block = torch.nn.Parameter(torch.ones(_shape, requires_grad=True), requires_grad=True)
-            self.learn_scale_after_force_block = torch.nn.Parameter(torch.ones(_shape, requires_grad=True), requires_grad=True)
+            self.learn_scale_after_energy_block = torch.nn.Parameter(
+                torch.ones(_shape, requires_grad=True), requires_grad=True
+            )
+            self.learn_scale_after_force_block = torch.nn.Parameter(
+                torch.ones(_shape, requires_grad=True), requires_grad=True
+            )
             # self.learn_scale_after_energy_block = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True), requires_grad=True)
             # self.learn_scale_after_force_block = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True), requires_grad=True)
             # torch.nn.init.constant_(self.learn_scale_after_energy_block, 1)
             # torch.nn.init.constant_(self.learn_scale_after_force_block, 1)
-            self.register_parameter('learn_scale_after_energy_block', self.learn_scale_after_energy_block)
-            self.register_parameter('learn_scale_after_force_block', self.learn_scale_after_force_block)
+            self.register_parameter(
+                "learn_scale_after_energy_block", self.learn_scale_after_energy_block
+            )
+            self.register_parameter(
+                "learn_scale_after_force_block", self.learn_scale_after_force_block
+            )
         else:
             self.learn_scale_after_energy_block = 1.0
             self.learn_scale_after_force_block = 1.0
-        print('Number of trainable params:', sum(p.numel() for p in self.parameters() if p.requires_grad))
+        print(
+            "Number of trainable params:",
+            sum(p.numel() for p in self.parameters() if p.requires_grad),
+        )
 
         self.use_pbc = use_pbc
         self.regress_forces = regress_forces
@@ -268,9 +292,12 @@ class EquiformerV2_OC20(BaseModel):
         self.use_sep_s2_act = use_sep_s2_act
 
         self.alpha_drop = alpha_drop
-        self.drop_path_rate = drop_path_rate
+        self.path_drop = path_drop
         self.proj_drop = proj_drop
         self.head_alpha_drop = head_alpha_drop
+
+        self.use_variational_alpha_drop = use_variational_alpha_drop
+        self.use_variational_path_drop = use_variational_path_drop
 
         self.weight_init = weight_init
         assert self.weight_init in [
@@ -468,15 +495,18 @@ class EquiformerV2_OC20(BaseModel):
                 use_grid_mlp=self.use_grid_mlp,
                 use_sep_s2_act=self.use_sep_s2_act,
                 norm_type=self.norm_type,
+                # dropout
                 alpha_drop=self.alpha_drop,
-                drop_path_rate=self.drop_path_rate,
+                path_drop=self.path_drop,
                 proj_drop=self.proj_drop,
                 # added
+                use_variational_alpha_drop=self.use_variational_alpha_drop,
+                use_variational_path_drop=self.use_variational_path_drop,
                 normlayer_norm=self.normlayer_norm,
                 normlayer_affine=self.normlayer_affine,
             )
             self.blocks.append(block)
-    
+
     def get_shapes(self, data, **kwargs):
         """Return dictionary of shapes."""
         """Return dictionary of shapes."""
@@ -575,13 +605,27 @@ class EquiformerV2_OC20(BaseModel):
 
         edge_src = edge_index[0]
         logs = {
-            "NumNodes": x.embedding.shape[0], # num_atoms * batch_size
+            "NumNodes": x.embedding.shape[0],  # num_atoms * batch_size
             "NumEdges": edge_src.shape[0],
             "DimInputInjection": x.embedding.shape[1],
             "DimFixedPoint": x.embedding.shape[1],
             "NodeEmbeddingShape": x.embedding.shape,
         }
         return logs
+
+    def reset_dropout(self, x, batch):
+        # set dropout mask
+        for i in range(self.num_layers):
+            if callable(
+                getattr(
+                    self.blocks[i].graph_attention.alpha_dropout, "update_mask", None
+                )
+            ):
+                self.blocks[i].graph_attention.alpha_dropout.update_mask(
+                    shape=[self.num_edges, 1, self.num_heads, 1]
+                )
+            self.blocks[i].path_drop.update_mask(x=x, batch=batch)
+            # self.blocks[i].proj_drop.update_mask(x=x, batch=data.batch)
 
     @conditional_grad(torch.enable_grad())
     def forward(self, data, step=None, datasplit=None, **kwargs):
@@ -612,6 +656,8 @@ class EquiformerV2_OC20(BaseModel):
             _,  # cell offset distances
             neighbors,
         ) = self.generate_graph(data)
+
+        self.num_edges = edge_distance.shape[0]
 
         ###############################################################
         # Initialize data structures
@@ -683,6 +729,8 @@ class EquiformerV2_OC20(BaseModel):
         # Update spherical node embeddings
         ###############################################################
 
+        self.reset_dropout(x.embedding, data.batch)
+
         if self.skip_blocks:
             pass
         else:
@@ -692,7 +740,7 @@ class EquiformerV2_OC20(BaseModel):
                     atomic_numbers,
                     edge_distance,
                     edge_index,
-                    batch=data.batch,  # for GraphDropPath
+                    batch=data.batch,  # for GraphPathDrop
                 )
 
         # Final layer norm
@@ -715,7 +763,9 @@ class EquiformerV2_OC20(BaseModel):
         # (B, num_coefficients, 1)
         node_energy = self.energy_block(x)
         # if self.learn_scale_after_energy_block:
-        node_energy.embedding = node_energy.embedding * self.learn_scale_after_energy_block
+        node_energy.embedding = (
+            node_energy.embedding * self.learn_scale_after_energy_block
+        )
         # (B, 1, 1)
         node_energy = node_energy.embedding.narrow(dim=1, start=0, length=1)
         energy = torch.zeros(

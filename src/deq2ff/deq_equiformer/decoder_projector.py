@@ -59,7 +59,7 @@ from equiformer.nets.fast_activation import Activation, Gate
 from equiformer.nets.drop import (
     EquivariantDropout,
     EquivariantScalarsDropout,
-    GraphDropPath,
+    GraphPathDrop,
 )
 
 from equiformer.nets.gaussian_rbf import GaussianRadialBasisLayer
@@ -223,7 +223,7 @@ class FFResidualFCTPProjection(torch.nn.Module):
         node_features = self.ffn(node_features, node_attr)
         if self.ffn_shortcut is not None:
             node_output = self.ffn_shortcut(node_output, node_attr)
-        # optionally add drop_path
+        # optionally add path_drop
         return node_output + node_features
 
 

@@ -9,13 +9,20 @@ import yaml
 import json
 import requests
 
-from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, acclabels, timelabels, set_style_after, myrc
+from deq2ff.plotting.style import (
+    set_seaborn_style,
+    PALETTE,
+    entity,
+    project,
+    plotfolder,
+    acclabels,
+    timelabels,
+    set_style_after,
+    myrc,
+)
 
 
-
-def main(
-    run_id: str, ymax=None, xmax=None, logscale=False
-):
+def main(run_id: str, ymax=None, xmax=None, logscale=False):
     # https://github.com/wandb/wandb/issues/3966
 
     api = wandb.Api()
@@ -23,7 +30,7 @@ def main(
     n_fsolver_steps_test = run.summary["n_fsolver_steps_test"]
     n_fsolver_steps_test_fpreuse = run.summary["n_fsolver_steps_test_fpreuse"]
 
-    print('Plotting run:', run.name)
+    print("Plotting run:", run.name)
 
     for fpreuse in [True, False]:
         if fpreuse:
@@ -42,7 +49,7 @@ def main(
         # nstep_counts.sort_values(by="nstep", inplace=True)
         # nstep_counts.reset_index(drop=True, inplace=True)
         # print('\nnstep_counts:\n', nstep_counts)
-        
+
         # sns.scatterplot(data=nstep_counts, x="nstep", y="count")
         # sns.displot(data=nstep_counts, x="nstep", y="count", binwidth=1)
         # sns.displot(data=nstep_counts, x="nstep", y="count", kind="kde", fill=True)
@@ -54,12 +61,14 @@ def main(
         df["nstep"] = df["nstep"].round(0).astype(int)
 
         # plot: x=solver_step, y=error_type, hue=train_step
-        # A special case for the bar plot is when you want to show the number of observations in each category 
-        # rather than computing a statistic for a second variable. 
-        # This is similar to a histogram over a categorical, rather than quantitative, variable. 
+        # A special case for the bar plot is when you want to show the number of observations in each category
+        # rather than computing a statistic for a second variable.
+        # This is similar to a histogram over a categorical, rather than quantitative, variable.
         # In seaborn, it’s easy to do so with the countplot()
         sns.countplot(
-            data=df, x="nstep", dodge=False,
+            data=df,
+            x="nstep",
+            dodge=False,
             # hue="nstep", palette="viridis",
         )
 
@@ -78,10 +87,14 @@ def main(
 
         plt.tight_layout()
 
-        mname = run.name # wandb.run.name # args.checkpoint_wandb_name
+        mname = run.name  # wandb.run.name # args.checkpoint_wandb_name
         # remove special characters
-        mname = ''.join(e for e in mname if e.isalnum())
-        fname = f"{plotfolder}/nsteps_traj" + f"{'_fpreuse' if fpreuse else ''}" + f"_{mname}.png"
+        mname = "".join(e for e in mname if e.isalnum())
+        fname = (
+            f"{plotfolder}/nsteps_traj"
+            + f"{'_fpreuse' if fpreuse else ''}"
+            + f"_{mname}.png"
+        )
         plt.savefig(fname)
         print(f"Saved plot to \n {fname}")
 
@@ -100,18 +113,19 @@ def main(
     df["class"] = "No fixed-point reuse"
     df_fp["class"] = "Fixed-point reuse"
 
-    
     # concatenate the two dataframes
     _df = pd.concat([df, df_fp], ignore_index=True)
-    
+
     _df["nstep"] = _df["nstep"].round(0).astype(int)
 
     set_seaborn_style()
 
     g = sns.catplot(
-        data=_df, x="nstep", hue="class", 
+        data=_df,
+        x="nstep",
+        hue="class",
         kind="count",
-        # palette="pastel", 
+        # palette="pastel",
         palette="muted",
         # figsize = (8, 6), # Width, height
         # height=6, aspect=1.,
@@ -137,14 +151,16 @@ def main(
 
     # turn of grid
     plt.grid(False)
-    plt.grid(which='major', axis='y', linestyle='-', linewidth='1.0', color='lightgray')
+    plt.grid(which="major", axis="y", linestyle="-", linewidth="1.0", color="lightgray")
 
     # set_style_after(ax)
     # set runtime configuration (rc) parameters
     g.figure.set_linewidth(myrc["lines.linewidth"])
 
     # set font size of labels
-    g.set_axis_labels("Fixed-point solver steps", "Number of occurences", fontsize=myrc["font.size"])
+    g.set_axis_labels(
+        "Fixed-point solver steps", "Number of occurences", fontsize=myrc["font.size"]
+    )
     # g.set_titles("Solver steps with and without fixed-point reuse", fontsize=myrc["font.size"])
     g.set_xticklabels(fontsize=myrc["font.size"])
     g.set_yticklabels(fontsize=myrc["font.size"])
@@ -173,9 +189,9 @@ def main(
 
     plt.tight_layout(pad=0.1)
 
-    mname = run.name # wandb.run.name # args.checkpoint_wandb_name
+    mname = run.name  # wandb.run.name # args.checkpoint_wandb_name
     # remove special characters
-    mname = ''.join(e for e in mname if e.isalnum())
+    mname = "".join(e for e in mname if e.isalnum())
     if logscale:
         mname += "_logscale"
     fname = f"{plotfolder}/nsteps_wo_fpreuse_{mname}.png"
@@ -187,41 +203,43 @@ def main(
     plt.close()
 
 
-
-
 if __name__ == "__main__":
 
     # get all runs with tag 'inference_speed'
     api = wandb.Api()
     runs = api.runs(
-        project, 
+        project,
         {
-            "tags": "inference", 
+            "tags": "inference",
             # "$or": [{"tags": "md17"}, {"tags": "md22"}, {"tags": "main2"}],
             # "state": "finished",
             # $or": [{"tags": "md17"}, {"tags": "main2"}, {"tags": "inference"}],
             # "$or": [{"state": "finished"}, {"state": "crashed"}],
-        }
+        },
     )
     run_ids = [run.id for run in runs]
     print(f"Found {len(run_ids)} runs:")
 
-    time_metrics = ["time_test", "time_forward_per_batch_test", "time_forward_total_test"]
+    time_metrics = [
+        "time_test",
+        "time_forward_per_batch_test",
+        "time_forward_total_test",
+    ]
     acc_metrics = ["test_f_mae", "test_e_mae"]
 
     infos = []
     for run in runs:
         try:
-            # # model.drop_path_rate=0.05
+            # # model.path_drop=0.05
             # if runs_with_dropout:
-            #     if run.config["model"]["drop_path_rate"] != 0.05:
+            #     if run.config["model"]["path_drop"] != 0.05:
             #         continue
             # else:
-            #     if run.config["model"]["drop_path_rate"] != 0.0:
+            #     if run.config["model"]["path_drop"] != 0.0:
             #         continue
             # if run.summary["epoch"] < 995:
             #     continue
-            print(' ', run.name, '| run_id:', run.id, '| epoch:', run.summary["epoch"])
+            print(" ", run.name, "| run_id:", run.id, "| epoch:", run.summary["epoch"])
             info = {
                 "run_id": run.id,
                 "run_name": run.name,
@@ -230,18 +248,22 @@ if __name__ == "__main__":
                 "model_is_deq": run.config["model_is_deq"],
                 "Target": run.config["target"],
                 "Params": run.summary["Model Parameters"],
-                "PathDrop": run.config["model"]["drop_path_rate"],
+                "PathDrop": run.config["model"]["path_drop"],
                 "Alpha": run.config["model"]["alpha_drop"],
                 # "epoch": run.summary["epoch"],
                 "n_fsolver_steps_test": run.summary["n_fsolver_steps_test"],
-                "n_fsolver_steps_test_fpreuse": run.summary["n_fsolver_steps_test_fpreuse"],
+                "n_fsolver_steps_test_fpreuse": run.summary[
+                    "n_fsolver_steps_test_fpreuse"
+                ],
             }
             # Plots: pick the smaller of test_fpreuse_f_mae and test_f_mae
             for _m in acc_metrics + time_metrics:
                 if _m in run.summary:
                     info[_m] = run.summary[_m]
                 if _m.replace("test", "test_fpreuse") in run.summary:
-                    info[_m] = min(run.summary[_m], run.summary[_m.replace("test", "test_fpreuse")])
+                    info[_m] = min(
+                        run.summary[_m], run.summary[_m.replace("test", "test_fpreuse")]
+                    )
             # if 'test_fpreuse_f_mae' in run.summary:
             #     info["test_f_mae"] = min(run.summary["test_f_mae"], run.summary["test_fpreuse_f_mae"])
             #     info["test_e_mae"] = min(run.summary["test_e_mae"], run.summary["test_fpreuse_e_mae"])
@@ -254,7 +276,7 @@ if __name__ == "__main__":
             continue
         infos.append(info)
 
-    # 
+    #
     # run_id = "xpz4crad"
     run_id = "o732ps0t"
     main(run_id, logscale=False, xmax=15)

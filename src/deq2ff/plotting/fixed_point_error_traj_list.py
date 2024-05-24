@@ -11,8 +11,14 @@ abs_trace over forward-solver-iteration-steps
 https://colab.research.google.com/drive/12HiUnde7qLadeZGGtt7FITnSnbUmJr-I?usp=sharing#scrollTo=V5Zff4FHqR5d
 """
 
-from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, set_style_after
-
+from deq2ff.plotting.style import (
+    set_seaborn_style,
+    PALETTE,
+    entity,
+    project,
+    plotfolder,
+    set_style_after,
+)
 
 
 # columns = ['abs', 'rel', 'solver_step', 'train_step']
@@ -29,8 +35,8 @@ def main(
     api = wandb.Api()
     run = api.run(project + "/" + run_id)
     run_name = run.name
-    print('\nrun_id:', run_id)
-    print('name:', run.name)
+    print("\nrun_id:", run_id)
+    print("name:", run.name)
 
     # artifact = run.logged_artifacts()
     # print(f"len(artifact): {len(artifact)}")
@@ -46,7 +52,7 @@ def main(
     # wandb.finish()
 
     # metrics_dataframe = run.history()
-    mname = ''.join(e for e in run_name if e.isalnum())
+    mname = "".join(e for e in run_name if e.isalnum())
     csvname = f"{run.id}_{error_type}_fixed_point_error_traj_{datasplit}.csv"
     # try to load from csv
     try:
@@ -66,7 +72,9 @@ def main(
 
         print(f"Filtering out None values...")
         losses_nonone = [[r, s] for r, s in losses if r is not None]
-        print(f" Rows that were None: {len(losses) - len(losses_nonone)} / {len(losses)}")
+        print(
+            f" Rows that were None: {len(losses) - len(losses_nonone)} / {len(losses)}"
+        )
         losses = losses_nonone
 
         print(f"Combining data into dataframe...")
@@ -97,7 +105,11 @@ def main(
 
     # plot: x=solver_step, y=error_type, hue=train_step
     sns.lineplot(
-        data=df, x="solver_step", y=error_type, hue="train_step", ax=ax,
+        data=df,
+        x="solver_step",
+        y=error_type,
+        hue="train_step",
+        ax=ax,
         # palette="viridis",
         # paleette="tab10",
     )
@@ -112,7 +124,7 @@ def main(
     # legend title
     # plt.title(f"{run_name}")
     plt.title(f"Fixed-Point Trace over Training")
-    
+
     set_style_after(ax, fs=10)
 
     # legend outside the plot on the right

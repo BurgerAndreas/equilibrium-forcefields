@@ -99,6 +99,7 @@ def final_logging(args):
         else:
             print(f"Could not find {slurm_file}.")
 
+
 # allows to load checkpoint with the same name
 IGNORE_OVERRIDES = [
     "resume_from_checkpoint",
@@ -220,7 +221,9 @@ def name_from_config(args: omegaconf.DictConfig, is_checkpoint_name=False) -> st
                 if np.any([ignore in arg for ignore in IGNORE_OVERRIDES]):
                     continue
                 if is_checkpoint_name:
-                    if np.any([ignore in arg for ignore in IGNORE_OVERRIDES_CHECKPOINT]):
+                    if np.any(
+                        [ignore in arg for ignore in IGNORE_OVERRIDES_CHECKPOINT]
+                    ):
                         continue
                 override = arg.replace("+", "").replace("_", "")
                 override = override.replace("=", "-").replace(".", "")

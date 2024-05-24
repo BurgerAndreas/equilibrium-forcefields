@@ -59,7 +59,7 @@ from equiformer.nets.fast_activation import Activation, Gate
 from equiformer.nets.drop import (
     EquivariantDropout,
     EquivariantScalarsDropout,
-    GraphDropPath,
+    GraphPathDrop,
 )
 
 from equiformer.nets.gaussian_rbf import GaussianRadialBasisLayer
@@ -256,7 +256,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17_noforce(
     alpha_drop=0.0,
     proj_drop=0.0,
     out_drop=0.0,
-    drop_path_rate=0.0,
+    path_drop=0.0,
     scale=None,
     deq_kwargs={},
     torchdeq_norm=True,
@@ -289,7 +289,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17_noforce(
         alpha_drop=alpha_drop,
         proj_drop=proj_drop,
         out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
+        path_drop=path_drop,
         mean=task_mean,
         std=task_std,
         scale=scale,

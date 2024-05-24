@@ -99,7 +99,6 @@ def myround(x):
     return round(x)
 
 
-
 def main(args):
 
     # pretty print args
@@ -235,19 +234,27 @@ def main(args):
         # print('fps.shape', fp_added.shape)
 
         # test that reshape is correct
-        print('fixedpoints[0] == 1?', torch.allclose(fixedpoints[0], torch.ones_like(fixedpoints[0])))
-        print('fixedpoints[1] != 1?', not torch.allclose(fixedpoints[1], torch.ones_like(fixedpoints[1])))
+        print(
+            "fixedpoints[0] == 1?",
+            torch.allclose(fixedpoints[0], torch.ones_like(fixedpoints[0])),
+        )
+        print(
+            "fixedpoints[1] != 1?",
+            not torch.allclose(fixedpoints[1], torch.ones_like(fixedpoints[1])),
+        )
 
         # compute pairwise distances between fixed points
         # [batch_size, batch_size]
         # similarity = torch.cdist(fp_reshaped, fp_reshaped, p=2) # BxPxM, BxRxM -> BxPxR
         distances = _pairwise_distances(fixedpoints)
-        print('distances', distances.shape)
-        print('distances', distances)
+        print("distances", distances.shape)
+        print("distances", distances)
 
         """ Similarity matrix """
         # for the contrastive loss we construct a matrix of positive and negative relations
-        similarity = torch.zeros(batch_size, batch_size, device=fixedpoints.device, dtype=fixedpoints.dtype)
+        similarity = torch.zeros(
+            batch_size, batch_size, device=fixedpoints.device, dtype=fixedpoints.dtype
+        )
         print(similarity)
         # |FP(x_t) - FP(x_t+/-1)| -> diagonal shifted right-up by 1
         similarity = torch.diag(torch.ones(batch_size), diagonal=1)
@@ -256,8 +263,10 @@ def main(args):
         """ Indices are consecutive """
         # data.idx contains the timestep index
         # assert that indices are consecutive via torch.roll
-        assert data.idx[1] - data.idx[0] == 1, f"Indices are not consecutive: {data.idx}"
-        print('data.idx', data.idx)
+        assert (
+            data.idx[1] - data.idx[0] == 1
+        ), f"Indices are not consecutive: {data.idx}"
+        print("data.idx", data.idx)
 
         exit()
 
@@ -307,7 +316,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
     init_wandb(args)
 
-    args.datasplit = 'fpreuse_ordered'
+    args.datasplit = "fpreuse_ordered"
 
     # args.model.weight_init = weight_init
     # args.model.num_layers = num_layers

@@ -93,7 +93,7 @@ model:
   # use_sep_s2_act (bool):      If `True`, use separable S2 activation when `use_gate_act` is False.
 
   # alpha_drop (float):         Dropout rate for attention weights
-  # drop_path_rate (float):     Drop path rate
+  # path_drop (float):     Drop path rate
   # proj_drop (float):          Dropout rate for outputs of attention and FFN in Transformer blocks
 
   # weight_init (str):          ['normal', 'uniform'] initialization of weights of linear layers except those in radial functions
@@ -106,7 +106,7 @@ model:
   use_sep_s2_act:           True        # Separable S2 activation. Used for ablation study.
 
   alpha_drop:               0.1         # [0.0, 0.1]
-  drop_path_rate:           0.05        # [0.0, 0.05, 0.1] 
+  path_drop:           0.05        # [0.0, 0.05, 0.1] 
   proj_drop:                0.0
 
   weight_init:              'uniform'    # ['uniform', 'normal']

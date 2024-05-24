@@ -84,7 +84,7 @@ class DEQBase(nn.Module):
         b_stop_mode="abs",
         eval_factor=1.0,
         eval_f_max_iter=0,
-        **kwargs
+        **kwargs,
     ):
         super(DEQBase, self).__init__()
 
@@ -161,7 +161,7 @@ class DEQBase(nn.Module):
         solver_kwargs=None,
         sradius_mode=False,
         backward_writer=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Defines the computation graph and gradients of DEQ. Must be overridden in subclasses.
@@ -241,10 +241,12 @@ class DEQIndexing(DEQBase):
         sup_loc=None,
         n_states=1,
         indexing=None,
-        **kwargs
+        **kwargs,
     ):
         super(DEQIndexing, self).__init__(args=args, **kwargs)
-        print(f'{self.__class__.__name__} args: \n{yaml.dump(args.config)} ift: {ift}, hook_ift: {hook_ift}, grad: {grad}, tau: {tau}, sup_gap: {sup_gap}, sup_loc: {sup_loc}, n_states: {n_states}, indexing: {indexing}')
+        print(
+            f"{self.__class__.__name__} args: \n{yaml.dump(args.config)} ift: {ift}, hook_ift: {hook_ift}, grad: {grad}, tau: {tau}, sup_gap: {sup_gap}, sup_loc: {sup_loc}, n_states: {n_states}, indexing: {indexing}"
+        )
 
         # Preprocess arguments.
         grad = self.args.get("grad", grad)
@@ -332,7 +334,7 @@ class DEQIndexing(DEQBase):
         f_max_iter=None,
         indexing=None,
         solver_kwargs=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Solves for the fixed point using the DEQ solver.
@@ -366,7 +368,7 @@ class DEQIndexing(DEQBase):
                 tol=f_tol,
                 stop_mode=self.f_stop_mode,
                 indexing=indexing,
-                **solver_kwargs
+                **solver_kwargs,
             )
 
         return z_star, trajectory, info
@@ -378,7 +380,7 @@ class DEQIndexing(DEQBase):
         solver_kwargs=None,
         sradius_mode=False,
         backward_writer=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Defines the computation graph and gradients of DEQ.
@@ -417,10 +419,15 @@ class DEQIndexing(DEQBase):
         # print(f'{self.__class__.__name__}.forward solver_kwargs: {solver_kwargs}')
 
         if self.training:
-            _recompute_f_iter = type(solver_kwargs.get("f_max_iter", None)) in [int, float] or type(solver_kwargs.get("n_states", None)) in [int, float] or type(solver_kwargs.get("indexing", None)) is list
+            _recompute_f_iter = (
+                type(solver_kwargs.get("f_max_iter", None)) in [int, float]
+                or type(solver_kwargs.get("n_states", None)) in [int, float]
+                or type(solver_kwargs.get("indexing", None)) is list
+            )
             if _recompute_f_iter:
                 indexing = self._compute_f_iter(
-                    solver_kwargs.get("f_max_iter", self.f_max_iter), solver_kwargs=solver_kwargs
+                    solver_kwargs.get("f_max_iter", self.f_max_iter),
+                    solver_kwargs=solver_kwargs,
                 )
             else:
                 indexing = self.indexing
@@ -521,10 +528,12 @@ class DEQSliced(DEQBase):
         sup_loc=None,
         n_states=1,
         indexing=None,
-        **kwargs
+        **kwargs,
     ):
         super(DEQSliced, self).__init__(args, **kwargs)
-        print(f'{self.__class__.__name__} args: {yaml.dump(args.config)} ift: {ift}, hook_ift: {hook_ift}, grad: {grad}, tau: {tau}, sup_gap: {sup_gap}, sup_loc: {sup_loc}, n_states: {n_states}, indexing: {indexing}')
+        print(
+            f"{self.__class__.__name__} args: {yaml.dump(args.config)} ift: {ift}, hook_ift: {hook_ift}, grad: {grad}, tau: {tau}, sup_gap: {sup_gap}, sup_loc: {sup_loc}, n_states: {n_states}, indexing: {indexing}"
+        )
 
         # Preprocess arguments.
         grad = self.args.get("grad", grad)
@@ -628,7 +637,7 @@ class DEQSliced(DEQBase):
                 max_iter=f_max_iter,  # To reuse the previous fixed point
                 tol=f_tol,
                 stop_mode=self.f_stop_mode,
-                **solver_kwargs
+                **solver_kwargs,
             )
 
         return z_star, info
@@ -640,7 +649,7 @@ class DEQSliced(DEQBase):
         solver_kwargs=None,
         sradius_mode=False,
         backward_writer=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Defines the computation graph and gradients of DEQ.
@@ -673,10 +682,15 @@ class DEQSliced(DEQBase):
             solver_kwargs = dict()
 
         if self.training:
-            _recompute_f_iter = type(solver_kwargs.get("f_max_iter", None)) in [int, float] or type(solver_kwargs.get("n_states", None)) in [int, float] or type(solver_kwargs.get("indexing", None)) is list
+            _recompute_f_iter = (
+                type(solver_kwargs.get("f_max_iter", None)) in [int, float]
+                or type(solver_kwargs.get("n_states", None)) in [int, float]
+                or type(solver_kwargs.get("indexing", None)) is list
+            )
             if _recompute_f_iter:
                 indexing = self._compute_f_iter(
-                    solver_kwargs.get("f_max_iter", self.f_max_iter), solver_kwargs=solver_kwargs
+                    solver_kwargs.get("f_max_iter", self.f_max_iter),
+                    solver_kwargs=solver_kwargs,
                 )
             else:
                 indexing = self.indexing
@@ -686,15 +700,13 @@ class DEQSliced(DEQBase):
                 z_star, info = self._solve_fixed_point(
                     deq_func, z_star, f_max_iter=f_max_iter, solver_kwargs=solver_kwargs
                 )
-                
+
                 # remove all gradients that were tracked during the forward solver
                 z_star = deq_func.detach(z_star)
 
                 # Calc gradients. See torchdeq.grad for implementations
-                z_out += produce_grad(
-                    self, deq_func, z_star, writer=backward_writer
-                )  
-                
+                z_out += produce_grad(self, deq_func, z_star, writer=backward_writer)
+
                 # z_out is of len=1 unless indexing or n_states is specified
                 z_star = z_out[-1]  # Add the gradient chain to the solver.
 

@@ -7,7 +7,16 @@ import os, sys, pathlib
 import yaml
 import numpy as np
 
-from deq2ff.plotting.style import set_seaborn_style, PALETTE, entity, project, plotfolder, acclabels, timelabels
+from deq2ff.plotting.style import (
+    set_seaborn_style,
+    PALETTE,
+    entity,
+    project,
+    plotfolder,
+    acclabels,
+    timelabels,
+)
+
 
 def plot_acc_all_mols(_df, _targets, _x, _y, runs_with_dropout):
     # new column that combines Model and Layers
@@ -18,8 +27,16 @@ def plot_acc_all_mols(_df, _targets, _x, _y, runs_with_dropout):
         # filter by molecule
         if mol == "all":
             # average over all Target column
-            df_mol = _df.groupby(["Model", "Layers", "type"]).mean(numeric_only=True).reset_index()
-            std = _df.groupby(["Model", "Layers", "type"]).std(numeric_only=True).reset_index()
+            df_mol = (
+                _df.groupby(["Model", "Layers", "type"])
+                .mean(numeric_only=True)
+                .reset_index()
+            )
+            std = (
+                _df.groupby(["Model", "Layers", "type"])
+                .std(numeric_only=True)
+                .reset_index()
+            )
             df_mol["Target"] = "all"
         else:
             df_mol = _df[_df["Target"] == mol]
@@ -31,34 +48,72 @@ def plot_acc_all_mols(_df, _targets, _x, _y, runs_with_dropout):
         # fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 
         # left: plot f_mae
-        sns.barplot(data=df_mol, x=_x, y="test_f_mae", hue="Model", ax=ax[0][0], legend=legend)
+        sns.barplot(
+            data=df_mol, x=_x, y="test_f_mae", hue="Model", ax=ax[0][0], legend=legend
+        )
         if std is not None:
             ax[0][0].errorbar(
-                x=df_mol[_x], y=df_mol["test_f_mae"], yerr=std["test_f_mae"], fmt='none', ecolor='black', capsize=5
+                x=df_mol[_x],
+                y=df_mol["test_f_mae"],
+                yerr=std["test_f_mae"],
+                fmt="none",
+                ecolor="black",
+                capsize=5,
             )
         ax[0][0].set_title(f"Test f_mae for {mol}")
 
         # right: plot best_f_mae
-        sns.barplot(data=df_mol, x=_x, y="best_test_f_mae", hue="Model", ax=ax[0][1], legend=legend)
+        sns.barplot(
+            data=df_mol,
+            x=_x,
+            y="best_test_f_mae",
+            hue="Model",
+            ax=ax[0][1],
+            legend=legend,
+        )
         if std is not None:
             ax[0][1].errorbar(
-                x=df_mol[_x], y=df_mol["best_test_f_mae"], yerr=std["best_test_f_mae"], fmt='none', ecolor='black', capsize=5
+                x=df_mol[_x],
+                y=df_mol["best_test_f_mae"],
+                yerr=std["best_test_f_mae"],
+                fmt="none",
+                ecolor="black",
+                capsize=5,
             )
         ax[0][1].set_title(f"Best Test f_mae for {mol}")
 
         # bottom left: plot e_mae
-        sns.barplot(data=df_mol, x=_x, y="test_e_mae", hue="Model", ax=ax[1][0], legend=legend)
+        sns.barplot(
+            data=df_mol, x=_x, y="test_e_mae", hue="Model", ax=ax[1][0], legend=legend
+        )
         if std is not None:
             ax[1][0].errorbar(
-                x=df_mol[_x], y=df_mol["test_e_mae"], yerr=std["test_e_mae"], fmt='none', ecolor='black', capsize=5
+                x=df_mol[_x],
+                y=df_mol["test_e_mae"],
+                yerr=std["test_e_mae"],
+                fmt="none",
+                ecolor="black",
+                capsize=5,
             )
         ax[1][0].set_title(f"Test e_mae for {mol}")
 
         # bottom right: plot best_e_mae
-        sns.barplot(data=df_mol, x=_x, y="best_test_e_mae", hue="Model", ax=ax[1][1], legend=legend)
+        sns.barplot(
+            data=df_mol,
+            x=_x,
+            y="best_test_e_mae",
+            hue="Model",
+            ax=ax[1][1],
+            legend=legend,
+        )
         if std is not None:
             ax[1][1].errorbar(
-                x=df_mol[_x], y=df_mol["best_test_e_mae"], yerr=std["best_test_e_mae"], fmt='none', ecolor='black', capsize=5
+                x=df_mol[_x],
+                y=df_mol["best_test_e_mae"],
+                yerr=std["best_test_e_mae"],
+                fmt="none",
+                ecolor="black",
+                capsize=5,
             )
         ax[1][1].set_title(f"Best Test e_mae for {mol}")
 
@@ -73,17 +128,22 @@ def plot_acc_all_mols(_df, _targets, _x, _y, runs_with_dropout):
                     if p.get_height() == 0.00:
                         continue
                     _ax.annotate(
-                        f"{p.get_height():.2f}", 
-                        (p.get_x() + p.get_width() / 2., p.get_height()), 
-                        ha='center', va='center', xytext=(0, 5), 
-                        textcoords='offset points', fontsize=8
+                        f"{p.get_height():.2f}",
+                        (p.get_x() + p.get_width() / 2.0, p.get_height()),
+                        ha="center",
+                        va="center",
+                        xytext=(0, 5),
+                        textcoords="offset points",
+                        fontsize=8,
                     )
 
             # make labels vertical
             # plt.xticks(rotation=90)
             loc, labels = plt.xticks()
             _ax.set_xticks(loc)
-            _ax.set_xticklabels(labels, rotation=45, horizontalalignment='right', fontsize=8)
+            _ax.set_xticklabels(
+                labels, rotation=45, horizontalalignment="right", fontsize=8
+            )
 
             # no legend
             # _ax.legend().set_visible(False)
@@ -99,7 +159,6 @@ def plot_acc_all_mols(_df, _targets, _x, _y, runs_with_dropout):
         plt.savefig(f"{plotfolder}/{name}.png")
         print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
-
         """ Simple barchart of a single metric """
         set_seaborn_style(figsize=(20, 5))
         fig, ax = plt.subplots()
@@ -107,7 +166,12 @@ def plot_acc_all_mols(_df, _targets, _x, _y, runs_with_dropout):
         sns.barplot(data=df_mol, x=_x, y=acc_metric, hue="Model", ax=ax, legend=False)
         if std is not None:
             ax.errorbar(
-                x=df_mol[_x], y=df_mol[acc_metric], yerr=std[acc_metric], fmt='none', ecolor='black', capsize=5
+                x=df_mol[_x],
+                y=df_mol[acc_metric],
+                yerr=std[acc_metric],
+                fmt="none",
+                ecolor="black",
+                capsize=5,
             )
         ax.set_title(f"Test f_mae for {mol}")
 
@@ -117,7 +181,7 @@ def plot_acc_all_mols(_df, _targets, _x, _y, runs_with_dropout):
         ax.set_title(f"Accuracy scaling with molecule size")
 
         # move legend outside
-        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
 
         plt.tight_layout()
 
@@ -131,26 +195,25 @@ def plot_acc_all_mols(_df, _targets, _x, _y, runs_with_dropout):
         print(f"\nSaved plot to \n {plotfolder}/{name}.png")
 
 
-
 def plot_acc_over_size(_df, _y="test_f_mae", runs_with_dropout=True):
-    """ Plot accuracy over molecule size """
+    """Plot accuracy over molecule size"""
 
     molecule_sizes = {
-        'aspirin': 21,
-        'benzene': 12,
-        'ethanol': 9,
-        'malonaldehyde': 9,
-        'naphthalene': 18,
-        'salicylic_acid': 16,
-        'toluene': 15,
-        'uracil': 12,
-        'AT_AT_CG_CG': 118,
-        'AT_AT': 60,
-        'Ac_Ala3_NHMe': 42,
-        'DHA': 56,
-        'buckyball_catcher': 148,
-        'dw_nanotube': 370,
-        'stachyose': 87
+        "aspirin": 21,
+        "benzene": 12,
+        "ethanol": 9,
+        "malonaldehyde": 9,
+        "naphthalene": 18,
+        "salicylic_acid": 16,
+        "toluene": 15,
+        "uracil": 12,
+        "AT_AT_CG_CG": 118,
+        "AT_AT": 60,
+        "Ac_Ala3_NHMe": 42,
+        "DHA": 56,
+        "buckyball_catcher": 148,
+        "dw_nanotube": 370,
+        "stachyose": 87,
     }
 
     _df["molecule_size"] = _df["Target"].apply(lambda x: molecule_sizes[x])
@@ -160,14 +223,16 @@ def plot_acc_over_size(_df, _y="test_f_mae", runs_with_dropout=True):
     # buckyball_catcher: DEQ NaN?
     _df = _df[~_df["Target"].isin(["dw_nanotube", "buckyball_catcher"])]
 
-    styletype = "Target" # "Layers" Target
+    styletype = "Target"  # "Layers" Target
 
     # for y in ["test_f_mae", "best_test_f_mae", "test_e_mae", "best_test_e_mae"]:
     for _y in ["test_f_mae", "test_e_mae"]:
         # plot
         set_seaborn_style(figsize=(20, 5))
-        fig, ax = plt.subplots(figsize=(10,5))
-        sns.scatterplot(data=_df, x="molecule_size", y=_y, hue="Model", style=styletype, ax=ax)
+        fig, ax = plt.subplots(figsize=(10, 5))
+        sns.scatterplot(
+            data=_df, x="molecule_size", y=_y, hue="Model", style=styletype, ax=ax
+        )
 
         # put in molecule names
         _texts = []
@@ -175,7 +240,9 @@ def plot_acc_over_size(_df, _y="test_f_mae", runs_with_dropout=True):
             # only if not already in plot
             if txt not in _texts:
                 # move text a bit to the right: +1
-                ax.annotate(txt, (_df["molecule_size"].iloc[i]+1, _df[_y].iloc[i]), fontsize=8)
+                ax.annotate(
+                    txt, (_df["molecule_size"].iloc[i] + 1, _df[_y].iloc[i]), fontsize=8
+                )
                 _texts.append(txt)
 
         # labels
@@ -184,7 +251,7 @@ def plot_acc_over_size(_df, _y="test_f_mae", runs_with_dropout=True):
         ax.set_title(f"Accuracy scaling with molecule size")
 
         # move legend outside
-        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
 
         plt.tight_layout()
 
@@ -196,11 +263,12 @@ def plot_acc_over_size(_df, _y="test_f_mae", runs_with_dropout=True):
             name += "-nodropout"
         plt.savefig(f"{plotfolder}/{name}.png")
         print(f"\nSaved plot to \n {plotfolder}/{name}.png")
-    
+
+
 def print_acc_energiesforces(_df, runs_with_dropout):
     # filter for target=aspirin
     # _df = _df[_df["Target"] == "aspirin"]
-    
+
     # format
     # cols: Aspirin & Benzene & Ethanol & Malonaldehyde & Naphthalene & Salicylic acid & Toluene & Uracil
     # cols: energy & forces
@@ -215,13 +283,18 @@ def print_acc_energiesforces(_df, runs_with_dropout):
     _df["test_e_mae"] = _df["test_e_mae"].astype(float)
 
     # for row in ["test_f_mae", "test_e_mae"]:
-        # print(_df.pivot(index="type", columns="Target", values=row).to_latex(float_format="%.2f"))
-    
-    _df = _df.sort_values(by=["Target", "Model", "Layers"], ascending=[True, False, True])
+    # print(_df.pivot(index="type", columns="Target", values=row).to_latex(float_format="%.2f"))
 
-    print('\nResult df:\n', _df[["type", "Model", "Layers", "Target", "seed", "test_f_mae", "test_e_mae"]])
+    _df = _df.sort_values(
+        by=["Target", "Model", "Layers"], ascending=[True, False, True]
+    )
 
-    print('\nResult table:')
+    print(
+        "\nResult df:\n",
+        _df[["type", "Model", "Layers", "Target", "seed", "test_f_mae", "test_e_mae"]],
+    )
+
+    print("\nResult table:")
     first_deq = True
     for row in list(_df["type"].unique()):
         line = row + " & "
@@ -242,12 +315,13 @@ def print_acc_energiesforces(_df, runs_with_dropout):
                     mean = val[0]
                     line += f"${mean:.3f}$ & "
         line = line[:-2] + "\\\\"
-        line = line.replace('Equiformer', "\equiformer{}")
+        line = line.replace("Equiformer", "\equiformer{}")
         if "DEQ" in row and first_deq:
             # print("\hline")
             print("\midrule[0.6pt]")
             first_deq = False
         print(line)
+
 
 def print_acc(_df, runs_with_dropout, energies=False):
     # filter for target=aspirin
@@ -267,14 +341,21 @@ def print_acc(_df, runs_with_dropout, energies=False):
     _df["test_e_mae"] = _df["test_e_mae"].astype(float)
 
     # for row in ["test_f_mae", "test_e_mae"]:
-        # print(_df.pivot(index="type", columns="Target", values=row).to_latex(float_format="%.2f"))
-    
-    _df = _df.sort_values(by=["Target", "Model", "Layers"], ascending=[True, False, True])
-    _df = _df.sort_values(by=["Model", "Target", "Layers"], ascending=[False, True, True])
+    # print(_df.pivot(index="type", columns="Target", values=row).to_latex(float_format="%.2f"))
 
-    print('\nResult df:\n', _df[["type", "Model", "Layers", "Target", "seed", "test_f_mae", "test_e_mae"]])
+    _df = _df.sort_values(
+        by=["Target", "Model", "Layers"], ascending=[True, False, True]
+    )
+    _df = _df.sort_values(
+        by=["Model", "Target", "Layers"], ascending=[False, True, True]
+    )
 
-    print('\nResult table:')
+    print(
+        "\nResult df:\n",
+        _df[["type", "Model", "Layers", "Target", "seed", "test_f_mae", "test_e_mae"]],
+    )
+
+    print("\nResult table:")
     first_deq = True
     lines = []
     mean_values = np.zeros((len(_df["type"].unique()), len(_df["Target"].unique())))
@@ -318,7 +399,7 @@ def print_acc(_df, runs_with_dropout, energies=False):
                 line += [f"${mean:.3f}$ & "]
             mean_values[_r, _c] = mean
         line[-1] = line[-1][:-2] + "\\\\"
-        line[0] = line[0].replace('Equiformer', "\equiformer{}")
+        line[0] = line[0].replace("Equiformer", "\equiformer{}")
         if "DEQ" in row and first_deq == True:
             # print("\hline")
             first_deq = _r
@@ -328,24 +409,30 @@ def print_acc(_df, runs_with_dropout, energies=False):
     for _c in range(mean_values.shape[1]):
         best_row = np.argmin(mean_values[:, _c])
         # lines first column is the row name
-        lines[best_row][_c+1] = "$ \\mathbf{" + lines[best_row][_c+1].replace('$', '').replace(' &', '').replace('\\\\', '') + "} $"
+        lines[best_row][_c + 1] = (
+            "$ \\mathbf{"
+            + lines[best_row][_c + 1]
+            .replace("$", "")
+            .replace(" &", "")
+            .replace("\\\\", "")
+            + "} $"
+        )
         if _c == mean_values.shape[1] - 1:
-            lines[best_row][_c+1] += '\\\\'
+            lines[best_row][_c + 1] += "\\\\"
         else:
-            lines[best_row][_c+1] += ' &'
-    
-    print('\nResult table:')
+            lines[best_row][_c + 1] += " &"
+
+    print("\nResult table:")
     for _l, line in enumerate(lines):
         if _l == first_deq:
             print("\midrule[0.6pt]")
         print("".join(line))
 
 
-
 if __name__ == "__main__":
-    """ Options """
+    """Options"""
     acc_metric = "test_f_mae"
-    x = "type" # "Model" run_name
+    x = "type"  # "Model" run_name
     runs_with_dropout = False
 
     layers_deq = [1, 2]
@@ -354,37 +441,41 @@ if __name__ == "__main__":
     # get all runs with tag 'inference_speed'
     api = wandb.Api()
     runs = api.runs(
-        project, 
+        project,
         {
-            # "tags": "inference", 
+            # "tags": "inference",
             # "$or": [{"tags": "md17"}, {"tags": "md22"}, {"tags": "main2"}],
             "$or": [{"tags": "md17"}],
             # "state": "finished",
             # $or": [{"tags": "md17"}, {"tags": "main2"}, {"tags": "inference"}],
             # "state": "finished",
             # "$or": [{"state": "finished"}, {"state": "crashed"}],
-        }
+        },
     )
     run_ids = [run.id for run in runs]
     print(f"Found {len(run_ids)} runs:")
 
-    time_metrics = ["time_test", "time_forward_per_batch_test", "time_forward_total_test"]
+    time_metrics = [
+        "time_test",
+        "time_forward_per_batch_test",
+        "time_forward_total_test",
+    ]
     acc_metrics = ["test_f_mae", "test_e_mae"]
 
     infos = []
     # TODO: replace by plot_acc_over_speed loading inference values
     for run in runs:
         try:
-            # model.drop_path_rate=0.05
+            # model.path_drop=0.05
             if runs_with_dropout:
-                if run.config["model"]["drop_path_rate"] != 0.05:
+                if run.config["model"]["path_drop"] != 0.05:
                     continue
             else:
-                if run.config["model"]["drop_path_rate"] != 0.0:
+                if run.config["model"]["path_drop"] != 0.0:
                     continue
             if run.summary["epoch"] < 995:
                 continue
-            print(' ', run.name)
+            print(" ", run.name)
             info = {
                 "run_id": run.id,
                 "run_name": run.name,
@@ -393,7 +484,7 @@ if __name__ == "__main__":
                 "model_is_deq": run.config["model_is_deq"],
                 "Target": run.config["target"],
                 "Params": run.summary["Model Parameters"],
-                "PathDrop": run.config["model"]["drop_path_rate"],
+                "PathDrop": run.config["model"]["path_drop"],
                 "Alpha": run.config["model"]["alpha_drop"],
                 # "epoch": run.summary["epoch"],
             }
@@ -404,7 +495,9 @@ if __name__ == "__main__":
                     info[_m] = run.summary[_m]
                 elif _m in run.summary and _mfp in run.summary:
                     info[_mfp] = run.summary[_mfp]
-                    info[_m] = min(run.summary[_m], run.summary[_m.replace("test", "test_fpreuse")])
+                    info[_m] = min(
+                        run.summary[_m], run.summary[_m.replace("test", "test_fpreuse")]
+                    )
                 elif _mfp in run.summary:
                     info[_m] = run.summary[_mfp]
                     info[_mfp] = run.summary[_mfp]
@@ -426,7 +519,9 @@ if __name__ == "__main__":
     """Rename columns"""
     # rename 'model_is_deq' to 'Model'
     # true -> DEQ, false -> Equiformer
-    df["model_is_deq"] = df["model_is_deq"].apply(lambda x: "DEQ" if x else "Equiformer")
+    df["model_is_deq"] = df["model_is_deq"].apply(
+        lambda x: "DEQ" if x else "Equiformer"
+    )
     # rename 'model_is_deq' to 'Model'
     df = df.rename(columns={"model_is_deq": "Model"})
 
@@ -439,20 +534,34 @@ if __name__ == "__main__":
 
     # only keep some layers
     df = df[
-        (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ")) | (df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer"))
+        (df["Layers"].isin(layers_deq) & (df["Model"] == "DEQ"))
+        | (df["Layers"].isin(layers_equi) & (df["Model"] == "Equiformer"))
     ]
 
     # sort by Target, Model, Layers
     df = df.sort_values(by=["Target", "Model", "Layers"], ascending=[True, False, True])
 
-    print('\nAfter filtering:\n', df[["Model", "Layers", "Target", "seed", "epoch", "PathDrop", acc_metric, "run_id"]])
-
+    print(
+        "\nAfter filtering:\n",
+        df[
+            [
+                "Model",
+                "Layers",
+                "Target",
+                "seed",
+                "epoch",
+                "PathDrop",
+                acc_metric,
+                "run_id",
+            ]
+        ],
+    )
 
     # ValueError: Unable to parse string "NaN"
     # convert string 'NaN' to np.nan
     df = df.replace("NaN", float("nan"))
     # delete rows with NaN
-    df = df.dropna(subset=['test_f_mae', 'test_e_mae'])
+    df = df.dropna(subset=["test_f_mae", "test_e_mae"])
     # df = df.fillna(0)
 
     # compute mean and std over 'seed'

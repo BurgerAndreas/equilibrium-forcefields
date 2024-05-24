@@ -51,7 +51,7 @@ model:
   alpha_drop: 0.2
   proj_drop: 0.0
   out_drop: 0.0
-  drop_path_rate: 0.05
+  path_drop: 0.05
   otf_graph: True
   use_pbc: True
   max_neighbors: 500

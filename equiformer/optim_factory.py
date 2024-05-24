@@ -25,6 +25,7 @@ from timm.optim.rmsprop_tf import RMSpropTF
 from timm.optim.sgdp import SGDP
 from timm.optim.adabelief import AdaBelief
 
+
 def scale_batchsize_lr(args, k=None):
     """
     when multiplying the batch size by k, one should multiply the learning rate by sqrt(k) to keep the variance in the gradient expectation constant
@@ -33,14 +34,15 @@ def scale_batchsize_lr(args, k=None):
     """
     if k is not None:
         args.batch_size = round(args.batch_size * k)
-        args.lr  = args.lr * sqrt(k)
-        betas = args.get('opt_betas', None)
+        args.lr = args.lr * sqrt(k)
+        betas = args.get("opt_betas", None)
         if betas is None:
             betas = [0.9, 0.999]
-        args.opt_betas = [1 - k*(1 - betas[0]), 1 - k* (1 - betas[1])]
-        opt_eps = args.get('opt_eps', 1e-8)
+        args.opt_betas = [1 - k * (1 - betas[0]), 1 - k * (1 - betas[1])]
+        opt_eps = args.get("opt_eps", 1e-8)
         args.opt_eps = opt_eps / sqrt(k)
     return args
+
 
 def add_weight_decay(model, weight_decay=1e-5, skip_list=()):
     decay = []

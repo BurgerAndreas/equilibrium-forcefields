@@ -24,7 +24,7 @@ from .tensor_product_rescale import (
     irreps2gate,
 )
 from .fast_activation import Activation, Gate
-from .drop import EquivariantDropout, EquivariantScalarsDropout, GraphDropPath
+from .drop import EquivariantDropout, EquivariantScalarsDropout, GraphPathDrop
 
 from .gaussian_rbf import GaussianRadialBasisLayer
 
@@ -89,7 +89,7 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
         alpha_drop=0.2,
         proj_drop=0.0,
         out_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         # MD17 specific
         task_mean=None,
         task_std=None,
@@ -108,7 +108,7 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
         self.alpha_drop = alpha_drop
         self.proj_drop = proj_drop
         self.out_drop = out_drop
-        self.drop_path_rate = drop_path_rate
+        self.path_drop = path_drop
         self.norm_layer = norm_layer
         self.task_mean = task_mean
         self.task_std = task_std
@@ -249,7 +249,7 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
                 # added
                 bias=self.bias,
                 # only DPTransBlock, not GraphAttention
-                drop_path_rate=self.drop_path_rate,
+                path_drop=self.path_drop,
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
                 tp_path_norm=self.outhead_tp_path_norm,
@@ -293,7 +293,7 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
                 nonlinear_message=self.nonlinear_message,
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
-                drop_path_rate=self.drop_path_rate,
+                path_drop=self.path_drop,
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
             )
@@ -397,7 +397,7 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
                 edge_dst=edge_dst,
                 edge_attr=edge_sh,
                 edge_scalars=edge_length_embedding,
-                # drop_path = GraphDropPath(drop_path_rate) uses batch
+                # path_drop = GraphPathDrop(path_drop) uses batch
                 batch=batch,
             )
 
@@ -508,7 +508,7 @@ def dot_product_attention_transformer_exp_l2_md17(
     alpha_drop=0.0,
     proj_drop=0.0,
     out_drop=0.0,
-    drop_path_rate=0.0,
+    path_drop=0.0,
     scale=None,
     **kwargs,
 ):
@@ -533,7 +533,7 @@ def dot_product_attention_transformer_exp_l2_md17(
         alpha_drop=alpha_drop,
         proj_drop=proj_drop,
         out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
+        path_drop=path_drop,
         task_mean=task_mean,
         task_std=task_std,
         scale=scale,
@@ -568,7 +568,7 @@ def dot_product_attention_transformer_exp_l3_md17(
     alpha_drop=0.0,
     proj_drop=0.0,
     out_drop=0.0,
-    drop_path_rate=0.0,
+    path_drop=0.0,
     scale=None,
     **kwargs,
 ):
@@ -593,7 +593,7 @@ def dot_product_attention_transformer_exp_l3_md17(
         alpha_drop=alpha_drop,
         proj_drop=proj_drop,
         out_drop=out_drop,
-        drop_path_rate=drop_path_rate,
+        path_drop=path_drop,
         task_mean=task_mean,
         task_std=task_std,
         scale=scale,

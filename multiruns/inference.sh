@@ -2,18 +2,18 @@
 
 
 # run this on a machine with the checkpointed models from multiruns/md17.sh
-# launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05
-# launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 seed=2
-# launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 seed=3
-# launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 model.num_layers=2
-# launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 model.num_layers=2 seed=2
-# launchrun +use=deq +cfg=fpc_of model.drop_path_rate=0.05 model.num_layers=2 seed=3
-# launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 model.num_layers=1
-# launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 model.num_layers=1 seed=2
-# launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 model.num_layers=1 seed=3
-# launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 model.num_layers=2 
-# launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 model.num_layers=2 seed=2
-# launchrun model.alpha_drop=0.1 model.drop_path_rate=0.05 model.num_layers=2 seed=3
+# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05
+# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 seed=2
+# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 seed=3
+# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 model.num_layers=2
+# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 model.num_layers=2 seed=2
+# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 model.num_layers=2 seed=3
+# launchrun model.alpha_drop=0.1 model.path_drop=0.05 model.num_layers=1
+# launchrun model.alpha_drop=0.1 model.path_drop=0.05 model.num_layers=1 seed=2
+# launchrun model.alpha_drop=0.1 model.path_drop=0.05 model.num_layers=1 seed=3
+# launchrun model.alpha_drop=0.1 model.path_drop=0.05 model.num_layers=2 
+# launchrun model.alpha_drop=0.1 model.path_drop=0.05 model.num_layers=2 seed=2
+# launchrun model.alpha_drop=0.1 model.path_drop=0.05 model.num_layers=2 seed=3
 
 # for speed table and accuracy table
 
@@ -30,7 +30,7 @@
 #     #     launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=$fpreuse_f_tol target=$target
 #     #     launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 deq_kwargs_test.fpreuse_f_tol=$fpreuse_f_tol target=$target
 #     #     # with dropout
-#     #     # launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.drop_path_rate=0.05 model.num_layers=2 deq_kwargs_test.fpreuse_f_tol=$fpreuse_f_tol target=$target
+#     #     # launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.path_drop=0.05 model.num_layers=2 deq_kwargs_test.fpreuse_f_tol=$fpreuse_f_tol target=$target
 #     # done
 
 #     # DEQ most important run

@@ -25,7 +25,12 @@ from .layer_norm import (
 from .so2_ops import SO2_Convolution, SO2_Linear
 from .so3 import SO3_Embedding, SO3_Linear, SO3_LinearV2
 from .radial_function import RadialFunction
-from .drop import GraphDropPath, EquivariantDropoutArraySphericalHarmonics
+from .drop import (
+    GraphPathDrop,
+    VariationalGraphPathDrop,
+    VariationalDropout,
+    EquivariantDropoutArraySphericalHarmonics,
+)
 
 
 class SO2EquivariantGraphAttention(torch.nn.Module):
@@ -86,6 +91,8 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
         use_gate_act=False,
         use_sep_s2_act=True,
         alpha_drop=0.0,
+        # added
+        use_variational_alpha_drop=False,
         **kwargs,
     ):
         super(SO2EquivariantGraphAttention, self).__init__()
@@ -195,10 +202,13 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
 
         self.alpha_dropout = None
         if alpha_drop != 0.0:
-            self.alpha_dropout = torch.nn.Dropout(alpha_drop)
+            if use_variational_alpha_drop:
+                self.alpha_dropout = VariationalDropout(alpha_drop)
+            else:
+                self.alpha_dropout = torch.nn.Dropout(alpha_drop)
 
         if self.use_gate_act:  # False by default
-            self.gate_act = GateActivation(
+            self.graph_attentionte_act = GateActivation(
                 lmax=max(self.lmax_list),
                 mmax=max(self.mmax_list),
                 num_channels=self.hidden_channels,
@@ -304,15 +314,17 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
             x_0_alpha = x_0_extra.narrow(
                 1, 0, x_alpha_num_channels
             )  # for attention weights
-            x_message.embedding = self.gate_act(x_0_gating, x_message.embedding)
+            x_message.embedding = self.graph_attentionte_act(
+                x_0_gating, x_message.embedding
+            )
         else:
             if self.use_sep_s2_act:
+                # for activation
                 x_0_gating = x_0_extra.narrow(
                     1, x_alpha_num_channels, x_0_extra.shape[1] - x_alpha_num_channels
-                )  # for activation
-                x_0_alpha = x_0_extra.narrow(
-                    1, 0, x_alpha_num_channels
-                )  # for attention weights
+                )
+                # for attention weights
+                x_0_alpha = x_0_extra.narrow(1, 0, x_alpha_num_channels)
                 x_message.embedding = self.s2_act(
                     x_0_gating, x_message.embedding, self.SO3_grid
                 )
@@ -335,8 +347,12 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
             x_0_alpha = self.alpha_norm(x_0_alpha)
             x_0_alpha = self.alpha_act(x_0_alpha)
             alpha = torch.einsum("bik, ik -> bi", x_0_alpha, self.alpha_dot)
+        # x.shape: torch.Size([84, 16, 64]) = [batch_size*num_atoms, irrep_dim, channels]
+        # alpha: torch.Size([1206, 1, 8, 1]) = [num_edges, 1, num_heads, 1]
+        # num_edges = x_0_alpha.shape[0] # = x_0_extra.shape[0]
         alpha = torch_geometric.utils.softmax(alpha, edge_index[1])
         alpha = alpha.reshape(alpha.shape[0], 1, self.num_heads, 1)
+        # alpha dropout
         if self.alpha_dropout is not None:
             alpha = self.alpha_dropout(alpha)
 
@@ -438,10 +454,10 @@ class FeedForwardNetwork(torch.nn.Module):
             )
         else:
             if self.use_gate_act:
-                self.gating_linear = torch.nn.Linear(
+                self.graph_attentionting_linear = torch.nn.Linear(
                     self.sphere_channels_all, self.max_lmax * self.hidden_channels
                 )
-                self.gate_act = GateActivation(
+                self.graph_attentionte_act = GateActivation(
                     self.max_lmax,
                     self.max_lmax,
                     self.hidden_channels,
@@ -450,14 +466,14 @@ class FeedForwardNetwork(torch.nn.Module):
                 )
             else:
                 if self.use_sep_s2_act:
-                    self.gating_linear = torch.nn.Linear(
+                    self.graph_attentionting_linear = torch.nn.Linear(
                         self.sphere_channels_all, self.hidden_channels
                     )
                     self.s2_act = SeparableS2Activation(
                         self.max_lmax, self.max_lmax, activation=activation
                     )
                 else:
-                    self.gating_linear = None
+                    self.graph_attentionting_linear = None
                     self.s2_act = S2Activation(
                         self.max_lmax, self.max_lmax, activation=activation
                     )
@@ -474,8 +490,8 @@ class FeedForwardNetwork(torch.nn.Module):
                     input_embedding.embedding.narrow(1, 0, 1)
                 )
         else:
-            if self.gating_linear is not None:
-                gating_scalars = self.gating_linear(
+            if self.graph_attentionting_linear is not None:
+                gating_scalars = self.graph_attentionting_linear(
                     input_embedding.embedding.narrow(1, 0, 1)
                 )
 
@@ -505,7 +521,7 @@ class FeedForwardNetwork(torch.nn.Module):
                 )
         else:
             if self.use_gate_act:
-                input_embedding.embedding = self.gate_act(
+                input_embedding.embedding = self.graph_attentionte_act(
                     gating_scalars, input_embedding.embedding
                 )
             else:
@@ -559,8 +575,11 @@ class TransBlockV2(torch.nn.Module):
         norm_type (str):            Type of normalization layer (['layer_norm', 'layer_norm_sh'])
 
         alpha_drop (float):         Dropout rate for attention weights
-        drop_path_rate (float):     Drop path rate
+        path_drop (float):     Drop path rate
         proj_drop (float):          Dropout rate for outputs of attention and FFN
+
+        use_variational_alpha_drop (bool): If `True`, use variational dropout for attention weights (applies the same mask at every solver step)
+        use_variational_proj_drop (bool): If `True`, use variational dropout for outputs of attention and FFN (applies the same mask at every solver step)
     """
 
     def __init__(
@@ -590,9 +609,11 @@ class TransBlockV2(torch.nn.Module):
         use_sep_s2_act=True,
         norm_type="rms_norm_sh",
         alpha_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         proj_drop=0.0,
         # added
+        use_variational_alpha_drop=False,
+        use_variational_path_drop=False,
         normlayer_norm="component",
         normlayer_affine=True,
     ):
@@ -607,7 +628,7 @@ class TransBlockV2(torch.nn.Module):
             affine=normlayer_affine,
         )
 
-        self.ga = SO2EquivariantGraphAttention(
+        self.graph_attention = SO2EquivariantGraphAttention(
             sphere_channels=sphere_channels,
             hidden_channels=attn_hidden_channels,
             num_heads=num_heads,
@@ -629,9 +650,18 @@ class TransBlockV2(torch.nn.Module):
             use_gate_act=use_gate_act,
             use_sep_s2_act=use_sep_s2_act,
             alpha_drop=alpha_drop,
+            # added
+            use_variational_alpha_drop=use_variational_alpha_drop,
         )
 
-        self.drop_path = GraphDropPath(drop_path_rate) if drop_path_rate > 0.0 else None
+        if use_variational_path_drop:
+            self.path_drop = (
+                VariationalGraphPathDrop(path_drop) if path_drop > 0.0 else None
+            )
+        else:
+            self.path_drop = GraphPathDrop(path_drop) if path_drop > 0.0 else None
+
+        # TODO: what does this do?
         self.proj_drop = (
             EquivariantDropoutArraySphericalHarmonics(proj_drop, drop_graph=False)
             if proj_drop > 0.0
@@ -673,42 +703,57 @@ class TransBlockV2(torch.nn.Module):
         atomic_numbers,
         edge_distance,
         edge_index,
-        batch,  # for GraphDropPath
+        batch,  # for GraphPathDrop
         **kwargs,
     ):
+        """Norm, GraphAttention, PathDrop, ProjDrop, Norm, FFN, PathDrop, ProjDrop"""
 
         output_embedding = x
 
+        # Open residual connection
         x_res = output_embedding.embedding
+
+        # Norm
         output_embedding.embedding = self.norm_1(output_embedding.embedding)
-        output_embedding = self.ga(
+        # GraphAttention
+        output_embedding = self.graph_attention(
             output_embedding, atomic_numbers, edge_distance, edge_index
         )
 
-        if self.drop_path is not None:
-            output_embedding.embedding = self.drop_path(
+        # PathDrop
+        if self.path_drop is not None:
+            output_embedding.embedding = self.path_drop(
                 output_embedding.embedding, batch
             )
+        # ProjDrop
         if self.proj_drop is not None:
             output_embedding.embedding = self.proj_drop(
                 output_embedding.embedding, batch
             )
 
+        # Merge residual connection
         output_embedding.embedding = output_embedding.embedding + x_res
 
+        # Open residual connection
         x_res = output_embedding.embedding
+
+        # Norm
         output_embedding.embedding = self.norm_2(output_embedding.embedding)
+        # FeedForwardNetwork
         output_embedding = self.ffn(output_embedding)
 
-        if self.drop_path is not None:
-            output_embedding.embedding = self.drop_path(
+        # PathDrop
+        if self.path_drop is not None:
+            output_embedding.embedding = self.path_drop(
                 output_embedding.embedding, batch
             )
+        # ProjDrop
         if self.proj_drop is not None:
             output_embedding.embedding = self.proj_drop(
                 output_embedding.embedding, batch
             )
 
+        # Shortcut: in =/= out -> reduce dimension of residual connection
         if self.ffn_shortcut is not None:
             shortcut_embedding = SO3_Embedding(
                 0,
@@ -724,6 +769,7 @@ class TransBlockV2(torch.nn.Module):
             shortcut_embedding = self.ffn_shortcut(shortcut_embedding)
             x_res = shortcut_embedding.embedding
 
+        # Merge residual connection
         output_embedding.embedding = output_embedding.embedding + x_res
 
         return output_embedding

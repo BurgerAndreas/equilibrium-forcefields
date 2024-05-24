@@ -43,7 +43,7 @@ model_ema_decay: 0.9999
 #      (float)
 model_ema_force_cpu: False
 # (float)
-drop_path: 0.0
+path_drop: 0.0
 # 'Optimizer (default: adamw' (str)
 opt: "adamw"
 # Optimizer Epsilon (default: 1e-8 (float)

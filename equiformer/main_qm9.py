@@ -269,7 +269,7 @@ def main(args):
         task_mean=task_mean,
         task_std=task_std,
         atomref=None,  # train_dataset.atomref(args.target),
-        drop_path=args.drop_path,
+        path_drop=args.path_drop,
     )
     _log.info(model)
     model = model.to(device)

@@ -104,6 +104,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 def myround(x):
     return round(x)
 
+
 """
 What happens if we set f_max_iter=0?
 All steps are done with autograd?
@@ -116,19 +117,20 @@ def run_deq(deq, f, theta, name=""):
     z0 = torch.tensor(0.0)
     z_out, info = deq(f, z0)
 
-    print(f'nstep', info['nstep'])
+    print(f"nstep", info["nstep"])
 
     tgt = torch.tensor(0.5)
     loss = (z_out[-1] - tgt).abs().mean()
     loss.backward()
 
-    print(f'Loss & Grad {name}:', loss.item(), theta.grad)
+    print(f"Loss & Grad {name}:", loss.item(), theta.grad)
+
 
 def test_if_broyden_is_differentiable():
     # set everything to GPU
     torch.set_default_tensor_type(torch.cuda.FloatTensor)
     torch.set_default_dtype(torch.float32)
-    torch.set_default_device('cuda')
+    torch.set_default_device("cuda")
 
     # """ Define function """
     # # Input Injection & Equilibrium function
@@ -136,25 +138,21 @@ def test_if_broyden_is_differentiable():
     # theta = torch.tensor(0.0, requires_grad=True)
     # f = lambda z: torch.cos(z) + theta
 
-
     # """ 1-step grad """
     # print("\n1-step grad")
     # # broyden, fixed_point_iter
     # deq = get_deq(f_solver='fixed_point_iter', f_max_iter=20)
     # run_deq(deq, f, theta)
 
-
     # """ BPTT, 10 steps """
     # print("\nBPTT, 10 steps")
     # deq = get_deq(grad=10, f_max_iter=0)
     # run_deq(deq, f, theta)
 
-
     # """ BPTT, 100 steps """
     # print("\nBPTT, 100 steps")
     # deq = get_deq(grad=100, f_max_iter=0)
     # run_deq(deq, f, theta)
-
 
     """ Broyden with gradients """
     print("\nBroyden with gradients")
@@ -168,15 +166,17 @@ def test_if_broyden_is_differentiable():
     z0 = torch.tensor(0.0)
     z0.requires_grad = True
     # This will only work for max_iter=1
-    z_out, _, info = broyden_solver_grad(f, z0, max_iter=4, tol=1e-3, return_final=False)
+    z_out, _, info = broyden_solver_grad(
+        f, z0, max_iter=4, tol=1e-3, return_final=False
+    )
     # z_out = [z_out]
 
     tgt = torch.tensor(0.5)
     loss = (z_out - tgt).abs().mean()
     loss.backward()
 
-    print(f'Loss & Grad:', loss.item(), theta.grad)
-    print(f'nstep', info['nstep'])
+    print(f"Loss & Grad:", loss.item(), theta.grad)
+    print(f"nstep", info["nstep"])
 
 
 def test_if_differentiable_broyden_same_as_before(args):
@@ -276,7 +276,7 @@ def test_if_differentiable_broyden_same_as_before(args):
 
         with torch.no_grad():
             # energy, force
-            
+
             # copy model "encoder"
             self = model
             fixedpoint = None
@@ -342,19 +342,25 @@ def test_if_differentiable_broyden_same_as_before(args):
             # Initialize the l = 0, m = 0 coefficients for each resolution
             for i in range(self.num_resolutions):
                 if self.num_resolutions == 1:
-                    x.embedding[:, offset_res, :] = self.sphere_embedding(atomic_numbers)
+                    x.embedding[:, offset_res, :] = self.sphere_embedding(
+                        atomic_numbers
+                    )
                 else:
-                    x.embedding[:, offset_res, :] = self.sphere_embedding(atomic_numbers)[
-                        :, offset : offset + self.sphere_channels
-                    ]
+                    x.embedding[:, offset_res, :] = self.sphere_embedding(
+                        atomic_numbers
+                    )[:, offset : offset + self.sphere_channels]
                 offset = offset + self.sphere_channels
                 offset_res = offset_res + int((self.lmax_list[i] + 1) ** 2)
 
             # Edge encoding (distance and atom edge)
             edge_distance = self.distance_expansion(edge_distance)
             if self.share_atom_edge_embedding and self.use_atom_edge_embedding:
-                source_element = atomic_numbers[edge_index[0]]  # Source atom atomic number
-                target_element = atomic_numbers[edge_index[1]]  # Target atom atomic number
+                source_element = atomic_numbers[
+                    edge_index[0]
+                ]  # Source atom atomic number
+                target_element = atomic_numbers[
+                    edge_index[1]
+                ]  # Target atom atomic number
                 source_embedding = self.source_embedding(source_element)
                 target_embedding = self.target_embedding(target_element)
                 edge_distance = torch.cat(
@@ -404,12 +410,9 @@ def test_if_differentiable_broyden_same_as_before(args):
 
             z_pred, _, info = test_broyden_solver_grad(f, x)
 
-
         exit()
 
-
     return
-
 
 
 @hydra.main(

@@ -1,5 +1,5 @@
 """
-    Add `extra_repr` into DropPath implemented by timm 
+    Add `extra_repr` into PathDrop implemented by timm 
     for displaying more info.
 """
 
@@ -10,7 +10,7 @@ from e3nn import o3
 import torch.nn.functional as F
 
 
-def drop_path(x, drop_prob: float = 0.0, training: bool = False):
+def path_drop(x, drop_prob: float = 0.0, training: bool = False):
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
     This is the same as the DropConnect impl I created for EfficientNet, etc networks, however,
     the original name is misleading as 'Drop Connect' is a different form of dropout in a separate paper...
@@ -32,21 +32,21 @@ def drop_path(x, drop_prob: float = 0.0, training: bool = False):
     return output
 
 
-class DropPath(nn.Module):
+class PathDrop(nn.Module):
     """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks)."""
 
     def __init__(self, drop_prob=None):
-        super(DropPath, self).__init__()
+        super(PathDrop, self).__init__()
         self.drop_prob = drop_prob
 
     def forward(self, x):
-        return drop_path(x, self.drop_prob, self.training)
+        return path_drop(x, self.drop_prob, self.training)
 
     def extra_repr(self):
         return "drop_prob={}".format(self.drop_prob)
 
 
-class GraphDropPath(nn.Module):
+class GraphPathDrop(nn.Module):
     """
     Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
     Sample-wise stochastic depth is a regularization technique for networks with residual connections that probabilistically drops samples after the transformation function in each residual block.
@@ -55,7 +55,7 @@ class GraphDropPath(nn.Module):
     """
 
     def __init__(self, drop_prob=None):
-        super(GraphDropPath, self).__init__()
+        super(GraphPathDrop, self).__init__()
         self.drop_prob = drop_prob
 
     def forward(self, x, batch):
@@ -64,7 +64,7 @@ class GraphDropPath(nn.Module):
             x.ndim - 1
         )  # work with diff dim tensors, not just 2D ConvNets
         ones = torch.ones(shape, dtype=x.dtype, device=x.device)
-        drop = drop_path(ones, self.drop_prob, self.training)
+        drop = path_drop(ones, self.drop_prob, self.training)
         out = x * drop[batch]
         return out
 

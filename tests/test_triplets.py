@@ -84,7 +84,14 @@ from typing import List
 
 from equiformer_v2.oc20.trainer.base_trainer_oc20 import Normalizer
 
-from deq2ff.losses import load_loss, L2MAELoss, _pairwise_distances, TripletLoss, calc_triplet_loss, TripletDataloader
+from deq2ff.losses import (
+    load_loss,
+    L2MAELoss,
+    _pairwise_distances,
+    TripletLoss,
+    calc_triplet_loss,
+    TripletDataloader,
+)
 
 # registers all models
 import deq2ff.register_all_models
@@ -98,9 +105,11 @@ warnings.filterwarnings("ignore", category=UserWarning)
 def myround(x):
     return round(x)
 
+
 class DummyClass:
     def __init__(self, natoms=2, batch_size=4):
         self.natoms = torch.full((batch_size,), fill_value=natoms)
+
 
 def fake_fixedpoints(batch_size, natoms, z=None):
     if z is None:
@@ -109,6 +118,7 @@ def fake_fixedpoints(batch_size, natoms, z=None):
     fixedpoints = fixedpoints.expand(-1, 3)
     # fixedpoints = fixedpoints.expand(args.batch_size*natoms, 3, 3)
     return fixedpoints
+
 
 def test_triplet_simple():
     args = omegaconf.OmegaConf.create()
@@ -124,18 +134,19 @@ def test_triplet_simple():
         print(f"Batch {i}: {data}")
         if i > 0:
             break
-    
+
         # fake fixedpoints
         natoms = 2
         fixedpoints = fake_fixedpoints(args.batch_size, natoms)
         # fake data
         data = DummyClass(natoms=natoms, batch_size=args.batch_size)
 
-        print('fixedpoints', fixedpoints.shape)
+        print("fixedpoints", fixedpoints.shape)
 
         triplet_lossfn = TripletLoss(margin=args.tripletloss_margin)
         loss = calc_triplet_loss(fixedpoints, data, triplet_lossfn)
         print("loss", loss)
+
 
 def main(args):
 
@@ -231,10 +242,11 @@ def main(args):
     for step, data in enumerate(data_loader):
         print()
         data = data.to(device)
-        
+
         exit()
-    
+
     # print("train_dataset", train_dataset)
+
 
 @hydra.main(
     config_name="md17", config_path="../equiformer_v2/config", version_base="1.3"
@@ -281,13 +293,13 @@ def hydra_wrapper(args: DictConfig) -> None:
     # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
     init_wandb(args)
 
-    args.datasplit = 'fpreuse_ordered'
+    args.datasplit = "fpreuse_ordered"
 
     main(args)
 
 
 if __name__ == "__main__":
-    
+
     test_triplet_simple()
-    
+
     # hydra_wrapper()

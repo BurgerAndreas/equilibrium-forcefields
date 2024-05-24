@@ -61,7 +61,7 @@ from equiformer.nets.fast_activation import Activation, Gate
 from equiformer.nets.drop import (
     EquivariantDropout,
     EquivariantScalarsDropout,
-    GraphDropPath,
+    GraphPathDrop,
 )
 
 from equiformer.nets.gaussian_rbf import GaussianRadialBasisLayer
@@ -169,7 +169,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         alpha_drop=0.2,
         proj_drop=0.0,
         out_drop=0.0,
-        drop_path_rate=0.0,
+        path_drop=0.0,
         task_mean=None,
         task_std=None,
         # scale the final output by this number
@@ -196,7 +196,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         self.alpha_drop = alpha_drop
         self.proj_drop = proj_drop
         self.out_drop = out_drop
-        self.drop_path_rate = drop_path_rate
+        self.path_drop = path_drop
         self.norm_layer = norm_layer
         self.task_mean = task_mean
         self.task_std = task_std
@@ -322,7 +322,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
                 # only DPTransBlock, not GraphAttention
-                drop_path_rate=self.drop_path_rate,
+                path_drop=self.path_drop,
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
                 # added
@@ -396,7 +396,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
                 nonlinear_message=self.nonlinear_message,
                 alpha_drop=self.alpha_drop,
                 proj_drop=self.proj_drop,
-                drop_path_rate=self.drop_path_rate,
+                path_drop=self.path_drop,
                 irreps_mlp_mid=self.irreps_mlp_mid,
                 norm_layer=self.norm_layer,
                 # added
@@ -974,7 +974,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         )
 
         # return outputs, z_pred[-1]
-        info['z_pred'] = z_pred
+        info["z_pred"] = z_pred
         if return_fixedpoint:
             # z_pred = sampled fixed point trajectory (tracked gradients)
             return energy, force, z_pred[-1].detach().clone(), info
@@ -1010,7 +1010,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     # alpha_drop=0.0,
     # proj_drop=0.0,
     # out_drop=0.0,
-    # drop_path_rate=0.0,
+    # path_drop=0.0,
     # scale=None,
     # # DEQ specific
     # deq_kwargs={},

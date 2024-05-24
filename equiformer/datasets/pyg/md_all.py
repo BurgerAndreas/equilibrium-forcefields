@@ -62,7 +62,7 @@ class MDAll(InMemoryDataset):
             "paracetamol": "paracetamol_dft.npz",
             "azobenzene": "azobenzene_dft.npz",
         },
-        "rmd17": { # revised
+        "rmd17": {  # revised
             "revised benzene": "rmd17_benzene.npz",
             "revised uracil": "rmd17_uracil.npz",
             "revised naphthalene": "rmd17_naphthalene.npz",
@@ -486,10 +486,16 @@ def get_md_datasets(
     # keys: ['z', 'pos', 'batch', 'y', 'dy']
     all_dataset = MDAll(root, dataset_arg, dname=dname)
 
-    assert order in [None, "rmd17", "equiformer", "consecutive_all", "consecutive_test"], f'Unknown order "{order}".'
+    assert order in [
+        None,
+        "rmd17",
+        "equiformer",
+        "consecutive_all",
+        "consecutive_test",
+    ], f'Unknown order "{order}".'
 
     load_splits = None
-    if order == 'rmd17': 
+    if order == "rmd17":
         if dname in ["md17", "rmd17"]:
             # datasets/rmd17/aspirin/raw/rmd17/splits/index_test_01.csv
             load_splits = {
@@ -497,7 +503,9 @@ def get_md_datasets(
                 "test": osp.join(root, "raw", "rmd17", "splits", "index_test_01.csv"),
             }
         else:
-            print(f"Warning: order={order} is set, but dname={dname} is not 'md17' or 'rmd17'. Ignoring order.")
+            print(
+                f"Warning: order={order} is set, but dname={dname} is not 'md17' or 'rmd17'. Ignoring order."
+            )
             order = None
 
     # different dataset lengths will lead to different permutations
@@ -562,12 +570,18 @@ def get_order(args):
     # if we use fp reuse, we need to make sure that the test set is consecutive across batches
     if args.fpreuse_test:
         if args.datasplit not in ["fpreuse_overlapping", "fpreuse_ordered"]:
-            print('Warning: fpreuse_test is set, but datasplit is not "fpreuse_overlapping" or "fpreuse_ordered". Setting datasplit to "fpreuse_overlapping"')
+            print(
+                'Warning: fpreuse_test is set, but datasplit is not "fpreuse_overlapping" or "fpreuse_ordered". Setting datasplit to "fpreuse_overlapping"'
+            )
             args.datasplit = "fpreuse_overlapping"
     # if we use contrastive loss, the train set needs to be consecutive within a batch
-    if isinstance(args.contrastive_loss, str) and args.contrastive_loss.endswith("ordered"):
+    if isinstance(args.contrastive_loss, str) and args.contrastive_loss.endswith(
+        "ordered"
+    ):
         if args.datasplit not in ["fpreuse_ordered"]:
-            print('Warning: contrastive_loss is set, but datasplit is not "fpreuse_ordered". Setting datasplit to "fpreuse_ordered"')
+            print(
+                'Warning: contrastive_loss is set, but datasplit is not "fpreuse_ordered". Setting datasplit to "fpreuse_ordered"'
+            )
             args.datasplit = "fpreuse_ordered"
     # rename datasplit to order
     if args.datasplit == "fpreuse_ordered":
@@ -575,6 +589,7 @@ def get_order(args):
     elif args.datasplit == "fpreuse_overlapping":
         order = "consecutive_test"
     return order
+
 
 if __name__ == "__main__":
 

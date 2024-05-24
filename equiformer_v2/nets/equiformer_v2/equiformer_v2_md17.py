@@ -65,7 +65,7 @@ from equiformer_v2.nets.equiformer_v2.equiformer_v2_oc20 import EquiformerV2_OC2
 class EquiformerV2_MD17(EquiformerV2_OC20):
     def __init__(self, **kwargs):
         super(EquiformerV2_MD17, self).__init__(**kwargs)
-    
+
     # @conditional_grad(torch.enable_grad())
     # def forward(self, data, step=None, datasplit=None, **kwargs):
     #     """The same as EquiformerV2_OC20.
@@ -190,7 +190,7 @@ class EquiformerV2_MD17(EquiformerV2_OC20):
     #                 atomic_numbers=atomic_numbers,
     #                 edge_distance=edge_distance,
     #                 edge_index=edge_index,
-    #                 batch=data.batch,  # for GraphDropPath
+    #                 batch=data.batch,  # for GraphPathDrop
     #             )
 
     #     # Final layer norm

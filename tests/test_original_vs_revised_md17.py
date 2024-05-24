@@ -46,7 +46,12 @@ def test_revised_dataset_creation(args):
 
     """ Dataset """
     # new dataloader, old dataset
-    train_dataset, val_dataset, test_dataset, all_dataset = rmd17_dataset.get_md_datasets(
+    (
+        train_dataset,
+        val_dataset,
+        test_dataset,
+        all_dataset,
+    ) = rmd17_dataset.get_md_datasets(
         root=args.data_path,
         dataset_arg=args.target,
         train_size=args.train_size,
@@ -174,7 +179,12 @@ def test_load_revised_split(args):
     print("\n", "-" * 80, "\n", inspect.currentframe().f_code.co_name)
 
     """ Dataset """
-    train_dataset, val_dataset, test_dataset, all_dataset = rmd17_dataset.get_md_datasets(
+    (
+        train_dataset,
+        val_dataset,
+        test_dataset,
+        all_dataset,
+    ) = rmd17_dataset.get_md_datasets(
         root=args.data_path,
         dataset_arg=args.target,
         train_size=args.train_size,
@@ -187,7 +197,12 @@ def test_load_revised_split(args):
         return_idx=True,
     )
 
-    train_dataset_loaded, val_dataset, test_dataset, all_dataset = rmd17_dataset.get_md_datasets(
+    (
+        train_dataset_loaded,
+        val_dataset,
+        test_dataset,
+        all_dataset,
+    ) = rmd17_dataset.get_md_datasets(
         root=args.data_path,
         dataset_arg=args.target,
         train_size=args.train_size,
@@ -223,7 +238,12 @@ from deq2ff.data_utils import reorder_dataset
 def test_consecutive_order(args):
     print("\n", "-" * 80, "\n", inspect.currentframe().f_code.co_name)
     """ Dataset """
-    train_dataset, val_dataset, test_dataset, all_dataset = rmd17_dataset.get_md_datasets(
+    (
+        train_dataset,
+        val_dataset,
+        test_dataset,
+        all_dataset,
+    ) = rmd17_dataset.get_md_datasets(
         root=args.data_path,
         dataset_arg=args.target,
         train_size=args.train_size,

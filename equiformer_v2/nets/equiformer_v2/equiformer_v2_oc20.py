@@ -616,6 +616,7 @@ class EquiformerV2_OC20(BaseModel):
     def reset_dropout(self, x, batch):
         # set dropout mask
         for i in range(self.num_layers):
+            # torch.nn.Dropout won't have .update_mask
             if callable(
                 getattr(
                     self.blocks[i].graph_attention.alpha_dropout, "update_mask", None

@@ -203,6 +203,7 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
         self.alpha_dropout = None
         if alpha_drop != 0.0:
             if use_variational_alpha_drop:
+                print(f'{self.__class__.__name__}: Using VariationalDropout (Alpha).')
                 self.alpha_dropout = VariationalDropout(alpha_drop)
             else:
                 self.alpha_dropout = torch.nn.Dropout(alpha_drop)
@@ -655,13 +656,14 @@ class TransBlockV2(torch.nn.Module):
         )
 
         if use_variational_path_drop:
+            print(f'{self.__class__.__name__}: Using VariationalGraphPathDrop.')
             self.path_drop = (
                 VariationalGraphPathDrop(path_drop) if path_drop > 0.0 else None
             )
         else:
             self.path_drop = GraphPathDrop(path_drop) if path_drop > 0.0 else None
 
-        # TODO: what does this do?
+        # TODO: what does this do? It's set to 0 in every config
         self.proj_drop = (
             EquivariantDropoutArraySphericalHarmonics(proj_drop, drop_graph=False)
             if proj_drop > 0.0

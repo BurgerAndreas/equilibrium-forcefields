@@ -102,6 +102,7 @@ class VariationalGraphPathDrop(nn.Module):
     def __init__(self, drop_prob=None):
         super().__init__()
         self.drop_prob = drop_prob
+        self.mask = None
 
         # self.update_mask()
         # self.register_buffer("mask", self.mask)

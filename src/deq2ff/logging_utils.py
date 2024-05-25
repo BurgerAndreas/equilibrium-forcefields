@@ -197,8 +197,8 @@ REPLACE = {
     "DEQ  dp use-DEQ": "DEQ E1",
     "torchDEQnorm": "",
     "  ": " ",
-    "alphadrop": "ad",
-    "pathdrop": "pd",
+    # "alphadrop": "ad",
+    # "pathdrop": "pd",
     # ignore defaults
     "targetaspirin": "",
     "seed1": "",

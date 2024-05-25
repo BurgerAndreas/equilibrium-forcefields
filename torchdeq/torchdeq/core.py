@@ -266,6 +266,7 @@ class DEQIndexing(DEQBase):
 
         # First compute the f_max_iter indexing where we add corrections.
         self.indexing = self._compute_f_iter(self.f_max_iter)
+        print(f'{self.__class__.__name__} indexing set to: {self.indexing}')
 
         # By default, we use the same phantom grad for all correction losses.
         # You can also set different grad steps a, b, and c for different terms by ``args.grad a b c ...``.
@@ -553,6 +554,7 @@ class DEQSliced(DEQBase):
 
         # First compute the f_max_iter indexing where we add corrections.
         self.indexing = self._compute_f_iter(self.f_max_iter)
+        print(f'{self.__class__.__name__} indexing set to: {self.indexing}')
 
         # By default, we use the same phantom grad for all correction losses.
         # You can also set different grad steps a, b, and c for different terms by ``args.grad a b c ...``.

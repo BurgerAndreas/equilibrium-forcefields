@@ -89,6 +89,9 @@ deq_kwargs:
   # to represent different gradient steps in the sampled trajectory states. 
   # Default 1.
   grad: 1
+  # Uniformly samples trajectory states from the solver. The backward passes of sampled states will be automactically tracked.
+  n_states: 1 
+  indexing: null
 
   # regularization
   # jac_reg: False

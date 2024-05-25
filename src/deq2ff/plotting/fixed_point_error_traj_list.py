@@ -53,7 +53,7 @@ def main(
 
     # metrics_dataframe = run.history()
     mname = "".join(e for e in run_name if e.isalnum())
-    csvname = f"{run.id}_{error_type}_fixed_point_error_traj_{datasplit}.csv"
+    csvname = f"{plotfolder}/{run.id}_{error_type}_fixed_point_error_traj_{datasplit}.csv"
     # try to load from csv
     try:
         df = pd.read_csv(csvname)

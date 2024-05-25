@@ -197,6 +197,8 @@ REPLACE = {
     "DEQ  dp use-DEQ": "DEQ E1",
     "torchDEQnorm": "",
     "  ": " ",
+    "alphadrop": "ad",
+    "pathdrop": "pd",
     # ignore defaults
     "targetaspirin": "",
     "seed1": "",
@@ -230,6 +232,13 @@ def name_from_config(args: omegaconf.DictConfig, is_checkpoint_name=False) -> st
                 override = override.replace("deqkwargstest", "")
                 override = override.replace("deqkwargs", "").replace("model", "")
                 override_names += " " + override
+        # alphadrop-01 pathdrop-005 usevariationalalphadrop usevariationalpathdrop
+        if "alphadrop" in args and "usevariationalalphadrop" in args:
+            override_names.replace("alphadrop", f"varalphadrop")
+            override_names.replace("usevariationalalphadrop", f"")
+        if "pathdrop" in args and "usevariationalpathdrop" in args:
+            override_names.replace("pathdrop", f"varpathdrop")
+            override_names.replace("usevariationalpathdrop", f"")
     except Exception as error:
         print("\nname_from_config() failed:", error)
         print("args:", args)

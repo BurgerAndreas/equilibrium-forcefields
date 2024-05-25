@@ -232,13 +232,6 @@ def name_from_config(args: omegaconf.DictConfig, is_checkpoint_name=False) -> st
                 override = override.replace("deqkwargstest", "")
                 override = override.replace("deqkwargs", "").replace("model", "")
                 override_names += " " + override
-        # alphadrop-01 pathdrop-005 usevariationalalphadrop usevariationalpathdrop
-        if "alphadrop" in args and "usevariationalalphadrop" in args:
-            override_names.replace("alphadrop", f"varalphadrop")
-            override_names.replace("usevariationalalphadrop", f"")
-        if "pathdrop" in args and "usevariationalpathdrop" in args:
-            override_names.replace("pathdrop", f"varpathdrop")
-            override_names.replace("usevariationalpathdrop", f"")
     except Exception as error:
         print("\nname_from_config() failed:", error)
         print("args:", args)
@@ -247,6 +240,15 @@ def name_from_config(args: omegaconf.DictConfig, is_checkpoint_name=False) -> st
     _name = mname + override_names
     for key, value in REPLACE.items():
         _name = _name.replace(key, value)
+    # more complex replacements
+    # alphadrop-01 pathdrop-005 usevariationalalphadrop usevariationalpathdrop
+    if "alphadrop" in _name and "usevariationalalphadrop" in _name:
+        _name = _name.replace(" usevariationalalphadrop", f"")
+        _name = _name.replace("alphadrop", f"varalphadrop")
+    if "pathdrop" in _name and "usevariationalpathdrop" in _name:
+        _name = _name.replace(" usevariationalpathdrop", f"")
+        _name = _name.replace("pathdrop", f"varpathdrop")
+    # done
     print(f"Name{' checkpoint' if is_checkpoint_name else ''}: {_name}")
     return _name
 

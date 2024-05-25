@@ -189,10 +189,10 @@ class EquiformerV2_OC20(BaseModel):
 
         self.batchify_for_torchdeq = batchify_for_torchdeq
 
-        print(
-            "Number of trainable params:",
-            sum(p.numel() for p in self.parameters() if p.requires_grad),
-        )
+        # print(
+        #     "Number of trainable params:",
+        #     sum(p.numel() for p in self.parameters() if p.requires_grad),
+        # )
         # shape: B x irrep_dim x channels -> 1 x 1 x sphere_channels
         _shape = (1, 1, sphere_channels)
         if learn_scale_after_encoder:
@@ -241,10 +241,10 @@ class EquiformerV2_OC20(BaseModel):
         else:
             self.learn_scale_after_energy_block = 1.0
             self.learn_scale_after_force_block = 1.0
-        print(
-            "Number of trainable params:",
-            sum(p.numel() for p in self.parameters() if p.requires_grad),
-        )
+        # print(
+        #     "Number of trainable params:",
+        #     sum(p.numel() for p in self.parameters() if p.requires_grad),
+        # )
 
         self.use_pbc = use_pbc
         self.regress_forces = regress_forces

@@ -194,9 +194,9 @@ def main(args):
     wandb.run.config.update({"output_dir": args.output_dir}, allow_val_change=True)
 
     _log = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
-    _log.info(
-        f"Args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}"
-    )
+    # _log.info(
+    #     f"Args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}"
+    # )
 
     # since dataset needs random
     torch.manual_seed(args.seed)
@@ -239,7 +239,7 @@ def main(args):
     _log.info("")
     _log.info("Training set size:   {}".format(len(train_dataset)))
     _log.info("Validation set size: {}".format(len(val_dataset)))
-    _log.info("Testing set size:    {}\n".format(len(test_dataset)))
+    _log.info("Testing set size:    {}".format(len(test_dataset)))
 
     # statistics
     y = torch.cat([batch.y for batch in train_dataset], dim=0)
@@ -460,9 +460,20 @@ def main(args):
         _log.info("Number of FinalBlock params: {}".format(n_parameters))
         wandb.run.summary["FinalBlock Parameters"] = n_parameters
     except:
-        print(
-            f"AttributeError: '{model.__class__.__name__}' object has no attribute 'final_block'"
+        n_parameters = sum(
+            p.numel() for p in model.energy_block.parameters() if p.requires_grad
         )
+        _log.info("Number of EnergyBlock params: {}".format(n_parameters))
+        wandb.run.summary["EnergyBlock Parameters"] = n_parameters
+        # force prediction
+        n_parameters = sum(
+            p.numel() for p in model.force_block.parameters() if p.requires_grad
+        )
+        _log.info("Number of ForceBlock params: {}".format(n_parameters))
+        wandb.run.summary["ForceBlock Parameters"] = n_parameters
+        # print(
+        #     f"AttributeError: '{model.__class__.__name__}' object has no attribute 'final_block'"
+        # )
 
     """ Load dataset stats """
     # Overwrite _AVG_NUM_NODES and _AVG_DEGREE with the dataset statistics

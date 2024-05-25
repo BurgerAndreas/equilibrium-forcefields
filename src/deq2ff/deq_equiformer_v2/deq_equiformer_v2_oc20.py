@@ -108,8 +108,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         # DEQ
         kwargs = self._init_deq(**kwargs)
-        if len(kwargs) > 0:
-            print(f"\nIgnoring kwargs in {self.__class__.__name__}:", kwargs)
+        # if len(kwargs) > 0:
+        #     print(f"\nIgnoring kwargs in {self.__class__.__name__}:", kwargs)
 
     def build_blocks(self):
         # Initialize the blocks for each layer of EquiformerV2

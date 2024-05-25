@@ -600,12 +600,14 @@ class DEQSliced(DEQBase):
         if "n_states" in solver_kwargs:
             arg_n_states = solver_kwargs["n_states"]
 
+        indexing = self.args.get("indexing", self.arg_indexing)
+        if "indexing" in solver_kwargs:
+            indexing = solver_kwargs["indexing"]
+        
+        # n_states was passed, override indexing
         if arg_n_states > 1:
             return [int(f_max_iter // arg_n_states) for _ in range(arg_n_states)]
         else:
-            indexing = self.args.get("indexing", self.arg_indexing)
-            if "indexing" in solver_kwargs:
-                indexing = solver_kwargs["indexing"]
             return np.diff([0, *indexing, f_max_iter]).tolist()
 
     def _solve_fixed_point(
@@ -684,16 +686,23 @@ class DEQSliced(DEQBase):
             solver_kwargs = dict()
 
         if self.training:
+            _f_max_iter = solver_kwargs.get("f_max_iter", None)
+            _n_states = solver_kwargs.get("n_states", None)
+            _indexing = solver_kwargs.get("indexing", None)
             _recompute_f_iter = (
-                type(solver_kwargs.get("f_max_iter", None)) in [int, float]
-                or type(solver_kwargs.get("n_states", None)) in [int, float]
-                or type(solver_kwargs.get("indexing", None)) is list
+                type(_f_max_iter) in [int, float]
+                or type(_n_states) in [int, float]
+                or type(_indexing) is list
             )
             if _recompute_f_iter:
                 indexing = self._compute_f_iter(
-                    solver_kwargs.get("f_max_iter", self.f_max_iter),
+                    f_max_iter=solver_kwargs.get("f_max_iter", self.f_max_iter),
                     solver_kwargs=solver_kwargs,
                 )
+                # print('Indexing set to: ', indexing) # REMOVE
+                # print(' f_max_iter: ', _f_max_iter) # REMOVE
+                # print(' n_states: ', _n_states) # REMOVE
+                # print(' indexing: ', _indexing)
             else:
                 indexing = self.indexing
 

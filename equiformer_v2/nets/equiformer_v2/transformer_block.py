@@ -206,6 +206,7 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
                 print(f'{self.__class__.__name__}: Using VariationalDropout (Alpha).')
                 self.alpha_dropout = VariationalDropout(alpha_drop)
             else:
+                print(f'{self.__class__.__name__}: Not using VariationalDropout (Alpha).')
                 self.alpha_dropout = torch.nn.Dropout(alpha_drop)
 
         if self.use_gate_act:  # False by default
@@ -661,6 +662,7 @@ class TransBlockV2(torch.nn.Module):
                 VariationalGraphPathDrop(path_drop) if path_drop > 0.0 else None
             )
         else:
+            print(f'{self.__class__.__name__}: Not using VariationalGraphPathDrop.')
             self.path_drop = GraphPathDrop(path_drop) if path_drop > 0.0 else None
 
         # TODO: what does this do? It's set to 0 in every config

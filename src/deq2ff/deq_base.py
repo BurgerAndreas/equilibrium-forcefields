@@ -19,7 +19,7 @@ def _init_deq(
     """Initializes TorchDEQ solver and normalization."""
 
     self.deq_mode = deq_mode
-    print(f"Passed deq_kwargs: {deq_kwargs}")
+    # print(f"Passed deq_kwargs: {deq_kwargs}")
     # self.deq = get_deq(f_solver='broyden', f_max_iter=20, f_tol=1e-6)
     self.deq = get_deq(**deq_kwargs)
     # self.register_buffer('z_aux', self._init_z())

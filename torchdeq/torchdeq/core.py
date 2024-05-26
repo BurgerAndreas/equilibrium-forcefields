@@ -558,7 +558,7 @@ class DEQSliced(DEQBase):
     ):
         super(DEQSliced, self).__init__(args, **kwargs)
         print(
-            f"{self.__class__.__name__} args: {yaml.dump(args.config)} ift: {ift}, hook_ift: {hook_ift}, grad: {grad}, tau: {tau}, sup_gap: {sup_gap}, sup_loc: {sup_loc}, n_states: {n_states}, indexing: {indexing}"
+            f"{self.__class__.__name__} args:\n{yaml.dump(args.config)} ift: {ift}, hook_ift: {hook_ift}, grad: {grad}, tau: {tau}, sup_gap: {sup_gap}, sup_loc: {sup_loc}, n_states: {n_states}, indexing: {indexing}"
         )
 
         # Preprocess arguments.

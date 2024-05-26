@@ -104,7 +104,11 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         if self.cat_injection:
             assert self.sphere_channels_fixedpoint == sphere_channels
 
-        super().__init__(sphere_channels=sphere_channels, **kwargs)
+        non_deq_kwargs = copy.deepcopy(kwargs)
+        non_deq_kwargs.pop("deq_kwargs", None)
+        non_deq_kwargs.pop("deq_mode", None)
+        non_deq_kwargs.pop("torchdeq_norm", None)
+        super().__init__(sphere_channels=sphere_channels, **non_deq_kwargs)
 
         # DEQ
         kwargs = self._init_deq(**kwargs)
@@ -153,6 +157,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 path_drop=self.path_drop,
                 proj_drop=self.proj_drop,
                 # added
+                use_variational_alpha_drop=self.use_variational_alpha_drop,
+                use_variational_path_drop=self.use_variational_path_drop,
+                # use_variational_proj_drop=self.use_variational_proj_drop,
                 normlayer_norm=self.normlayer_norm,
                 normlayer_affine=self.normlayer_affine,
             )

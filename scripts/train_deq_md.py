@@ -333,7 +333,7 @@ def main(args):
     else:
         model = create_model(task_mean=task_mean, task_std=task_std, **args.model)
     _log.info(
-        f"model {args.model.name} created with kwargs \n{omegaconf.OmegaConf.to_yaml(args.model)}"
+        f"\nModel {args.model.name} created with kwargs:\n{omegaconf.OmegaConf.to_yaml(args.model)}"
     )
     # _log.info(f"Model: \n{model}")
 
@@ -656,6 +656,9 @@ def main(args):
         )
         # empty tensor to store fixed-points across epochs
         # fixed_points = torch.zeros(args.train_size, 3, device=device)
+    else:
+        fixed_points = None
+        fpdevice = None
     _log.info("\nStart training!\n")
     start_time = time.perf_counter()
     final_epoch = 0

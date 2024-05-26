@@ -124,7 +124,7 @@ class VariationalGraphPathDrop(nn.Module):
         out = x * drop[batch]
         return out
 
-    def path_drop(self, x):
+    def path_drop(self, x, drop_prob: float = 0.0, training: bool = False):
         """Same as the path_drop function above but with persistent mask."""
         if self.drop_prob == 0.0 or not self.training:
             return x
@@ -181,7 +181,7 @@ class VariationalDropout(nn.Module):
         self.mask = None
         self.length_first = length_first
 
-    def update_mask(self, shape, set_to_none=False):
+    def update_mask(self, shape, dtype, device, set_to_none=False):
         if set_to_none:
             # if we don't yet know the shape, we can set the mask to None
             self.mask = None
@@ -189,7 +189,7 @@ class VariationalDropout(nn.Module):
         else:
             # Dimension (N, C, L)
             # m = torch.zeros(bsz, d, 1).bernoulli_(1 - self.drop_prob)
-            m = torch.zeros(shape).bernoulli_(1 - self.drop_prob)
+            m = torch.zeros(shape, dtype=dtype, device=device).bernoulli_(1 - self.drop_prob)
             mask = m.requires_grad_(False) / (1 - self.drop_prob)
             self.mask = mask
             return mask
@@ -199,7 +199,7 @@ class VariationalDropout(nn.Module):
             return x
         # generate mask on the fly and save it
         if self.mask is None:
-            self.update_mask(x.shape, set_to_none=False)
+            self.update_mask(x.shape, x.device, set_to_none=False)
         mask = self.mask.expand_as(x)  # Make sure the dimension matches
         return mask * x
 

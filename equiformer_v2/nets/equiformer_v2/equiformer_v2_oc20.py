@@ -623,7 +623,9 @@ class EquiformerV2_OC20(BaseModel):
                 )
             ):
                 self.blocks[i].graph_attention.alpha_dropout.update_mask(
-                    shape=[self.num_edges, 1, self.num_heads, 1]
+                    shape=[self.num_edges, 1, self.num_heads, 1],
+                    dtype=x.dtype,
+                    device=x.device,
                 )
             if self.blocks[i].path_drop is not None:
                 self.blocks[i].path_drop.update_mask(x=x, batch=batch)

@@ -1309,21 +1309,30 @@ def train_one_epoch(
             # for superior performance and training stability
             # https://arxiv.org/abs/2204.08442
             if args.fpc_freq > 0:
-                if len(info) > 0 and "z_pred" in info and len(info["z_pred"]) > 1:
+                # fpc_min_steps = args.deq_kwargs.f_max_iter
+                # if "core" in args.deq_kwargs and args.deq_kwargs.core == "indexing":
+                #     fpc_min_steps = (args.deq_kwargs.f_max_iter / args.fpc_freq)
+                # and "z_pred" in info 
+                # len(info) > 0 and
+                if len(info["z_pred"]) > 1:
                     # last z is fixed point
                     z_pred = info["z_pred"]
-                    losses_fpc = fp_correction(
+                    losses_fpc_sum, losses_fpc = fp_correction(
                         criterion_fpc,
                         (z_pred[:-1], z_pred[-1]),
                         return_loss_values=True,
                     )
-                    loss_fpc += args.fpc_weight * losses_fpc.mean()
+                    loss_fpc = args.fpc_weight * np.mean(losses_fpc)
                     loss += loss_fpc
                     if wandb.run is not None:
                         wandb.log(
                             {"fpc_loss_scaled": loss_fpc.item()},
                             step=global_step,
                         )
+                elif info["nstep"].mean().item() > min(model.deq.last_indexing):
+                    print(
+                        f"Warning: Fixed-point correction not performed: nstep={info['nstep'].mean().item():.1f}. deq.last_indexing={model.deq.last_indexing}. z_pred={len(info['z_pred'])}"
+                    )
                 # else:
                 # # For example if we would index step 5, but only four forward solver steps were performed
                 #     print('Warning: Couldnt perform fixed-point correction:', 'info', len(info), 'z_pred', len(info["z_pred"]))

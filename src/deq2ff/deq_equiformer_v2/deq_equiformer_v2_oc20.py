@@ -328,12 +328,14 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             x = x.view(self.shape_unbatched)
 
         # find fixed-point
-        # | During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
-        # | During inference, returns a list containing the fixed point solution only.
+        # During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
+        # During inference, returns a list containing the fixed point solution only.
         # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
         z_pred, info = self.deq(
             f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
         )
+        assert len(z_pred) == len(self.deq.last_indexing) or len(z_pred) <= max(info["nstep"]), \
+            f"z_pred: {len(z_pred)}. last_indexing={len(self.deq.last_indexing)}. nstep<={max(info['nstep'])}" 
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             z_pred = [z.view(self.shape_batched) for z in z_pred]

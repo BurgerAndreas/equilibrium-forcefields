@@ -261,16 +261,32 @@ class DEQIndexing(DEQBase):
 
         self.arg_n_states = n_states
         self.arg_indexing = indexing
+        self.last_indexing = None
 
-        """Define gradient functions through the backward factory."""
+        self.grad_args = dict(grad=grad, tau=tau, sup_gap=sup_gap, sup_loc=sup_loc, ift=ift, hook_ift=hook_ift)
 
         # First compute the f_max_iter indexing where we add corrections.
         self.indexing = self._compute_f_iter(self.f_max_iter)
         print(f'{self.__class__.__name__} indexing set to: {self.indexing}')
 
+        self.set_grad(self.grad_args)
+
+    def set_grad(self, grad_args={}):
+        """Define gradient functions through the backward factory.
+        grad_args: grad, tau, sup_gap, sup_loc, ift, hook_ift
+        """
+        grad = grad_args.get("grad", self.grad_args["grad"])
+        tau = grad_args.get("tau", self.grad_args["tau"])
+        sup_gap = grad_args.get("sup_gap", self.grad_args["sup_gap"])
+        sup_loc = grad_args.get("sup_loc", self.grad_args["sup_loc"])
+        ift = grad_args.get("ift", self.grad_args["ift"])
+        hook_ift = grad_args.get("hook_ift", self.grad_args["hook_ift"])
+        #
+        indexing = grad_args.get("indexing", self.indexing)
+
         # By default, we use the same phantom grad for all correction losses.
         # You can also set different grad steps a, b, and c for different terms by ``args.grad a b c ...``.
-        indexing_pg = make_pair(self.indexing, grad)
+        indexing_pg = make_pair(indexing, grad)
         produce_grad = [
             backward_factory(
                 grad_type=pg,
@@ -438,6 +454,10 @@ class DEQIndexing(DEQBase):
             else:
                 indexing = self.indexing
 
+            self.last_indexing = indexing
+            # TODO: if we want to overwrite indexing/n_states, we need to update the grad functions
+            self.set_grad({"indexing": indexing})
+
             _, trajectory, info = self._solve_fixed_point(
                 deq_func,
                 z_init,
@@ -554,16 +574,32 @@ class DEQSliced(DEQBase):
 
         self.arg_n_states = n_states
         self.arg_indexing = indexing
+        self.last_indexing = None
 
-        """Define gradient functions through the backward factory."""
+        self.grad_args = dict(grad=grad, tau=tau, sup_gap=sup_gap, sup_loc=sup_loc, ift=ift, hook_ift=hook_ift)
 
         # First compute the f_max_iter indexing where we add corrections.
         self.indexing = self._compute_f_iter(self.f_max_iter)
         print(f'{self.__class__.__name__} indexing set to: {self.indexing}')
 
+        self.set_grad(self.grad_args)
+
+    def set_grad(self, grad_args={}):
+        """Define gradient functions through the backward factory.
+        grad_args: grad, tau, sup_gap, sup_loc, ift, hook_ift
+        """
+        grad = grad_args.get("grad", self.grad_args["grad"])
+        tau = grad_args.get("tau", self.grad_args["tau"])
+        sup_gap = grad_args.get("sup_gap", self.grad_args["sup_gap"])
+        sup_loc = grad_args.get("sup_loc", self.grad_args["sup_loc"])
+        ift = grad_args.get("ift", self.grad_args["ift"])
+        hook_ift = grad_args.get("hook_ift", self.grad_args["hook_ift"])
+        #
+        indexing = grad_args.get("indexing", self.indexing)
+
         # By default, we use the same phantom grad for all correction losses.
         # You can also set different grad steps a, b, and c for different terms by ``args.grad a b c ...``.
-        indexing_pg = make_pair(self.indexing, grad)
+        indexing_pg = make_pair(indexing, grad)
         produce_grad = [
             backward_factory(
                 grad_type=pg,
@@ -715,6 +751,10 @@ class DEQSliced(DEQBase):
                 # print(' indexing: ', _indexing)
             else:
                 indexing = self.indexing
+            
+            self.last_indexing = indexing
+            # If we want to overwrite indexing/n_states, we need to update the grad functions
+            self.set_grad({"indexing": indexing})
 
             z_out = []
             for f_max_iter, produce_grad in zip(indexing, self.produce_grad):

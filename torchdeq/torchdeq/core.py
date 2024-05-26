@@ -323,10 +323,14 @@ class DEQIndexing(DEQBase):
                     f_max_iter - (n_states - k - 1) * delta for k in range(n_states)
                 ]
         else:
-            indexing = self.args.get("indexing", self.arg_indexing)
+            indexing = self.args.get("indexing", None)
+            if indexing is None:
+                indexing = self.arg_indexing
             if "indexing" in solver_kwargs and solver_kwargs["indexing"] is not None:
                 indexing = solver_kwargs["indexing"]
-            assert indexing is not None, "Indexing must be specified."
+            assert indexing is not None, f"Indexing must be specified. indexing: {indexing} self.arg_indexing: {self.arg_indexing}"
+            assert f_max_iter is not None, "f_max_iter must be specified."
+            # print('Using indexing: ', indexing) # REMOVE
             return [*indexing, f_max_iter]
 
     def _solve_fixed_point(
@@ -601,7 +605,9 @@ class DEQSliced(DEQBase):
         if "n_states" in solver_kwargs:
             arg_n_states = solver_kwargs["n_states"]
 
-        indexing = self.args.get("indexing", self.arg_indexing)
+        indexing = self.args.get("indexing", None)
+        if indexing is None:
+            indexing = self.arg_indexing
         if "indexing" in solver_kwargs and solver_kwargs["indexing"] is not None:
             indexing = solver_kwargs["indexing"]
         
@@ -609,7 +615,9 @@ class DEQSliced(DEQBase):
         if arg_n_states > 1:
             return [int(f_max_iter // arg_n_states) for _ in range(arg_n_states)]
         else:
-            assert indexing is not None, "Indexing must be specified."
+            assert indexing is not None, f"Indexing must be specified. indexing: {indexing} self.arg_indexing: {self.arg_indexing}"
+            assert f_max_iter is not None, "f_max_iter must be specified."
+            # print('Using indexing: ', indexing) # REMOVE
             return np.diff([0, *indexing, f_max_iter]).tolist()
 
     def _solve_fixed_point(

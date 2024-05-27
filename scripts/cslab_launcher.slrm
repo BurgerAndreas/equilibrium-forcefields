@@ -11,6 +11,7 @@
 # errslurm-%j.err
 
 # # srun --partition gpunodes -c 4 --mem=8G --gres=gpu:rtx_a2000:1 -t 60 --pty bash --login
+#
 
 # module load python pytorch
 # module load miniforge3 # miniconda3 miniforge3

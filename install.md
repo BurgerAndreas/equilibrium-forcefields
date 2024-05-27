@@ -135,6 +135,11 @@ pip install -e .
 
 wandb login
 
+# add an alias for easy run launching
+echo 'alias launchrun="u/andreasb/miniforge3/envs/deq/bin/python u/andreasb/equilibrium-forcefields/scripts/train_deq_md_v2.py"' >> ~/.bashrc
+# or on a cluster
+echo 'alias launchrun="u/andreasb/equilibrium-forcefields/scripts/cslab_cluster.slrm train_deq_md_v2.py"' >> ~/.bashrc
+
 # mamba env export > environment_slurm.yml
 ```
 

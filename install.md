@@ -4,6 +4,20 @@ Get miniforge (mamba)
 ```bash
 curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
 bash Miniforge3-$(uname)-$(uname -m).sh
+source ~/.bashrc
+```
+
+Get a terminal based editor
+```bash
+curl https://getmic.ro | bash
+# add to bashrc
+echo 'alias micro="~/micro"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+acces to cluster via ssh
+```bash
+ssh-copy-id username@remote_host
 ```
 
 ```bash
@@ -13,7 +27,7 @@ mamba create -n deq python=3.10
 mamba activate deq
 
 # get the Open Catalyst Project (required for Equiformerv2)
-git clone git@github.com:Open-Catalyst-Project/ocp.git
+# git clone git@github.com:Open-Catalyst-Project/ocp.git
 cd ocp
 # no longer necessary
 # git checkout v0.1.0
@@ -69,7 +83,7 @@ pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torc
 pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
 pip install --no-index pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu121.html
 # OCP requires torch-geometric<=2.0.4
-pip install torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
+pip install torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-2.2.0+cu121.html
 # pip install torch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1 --index-url https://data.pyg.org/whl/torch-1.11.0+cu115.html
 # pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu118
 # pip install torch_geometric pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
@@ -117,14 +131,14 @@ pip install hydra-core wandb omegaconf black
 
 pip install numba sphinx nbsphinx sphinx-rtd-theme pandoc ase==3.21.* pre-commit==2.10.* tensorboard
 
-wandb login
-
 pip install -e .
+
+wandb login
 
 # mamba env export > environment_slurm.yml
 ```
 
-### Slurm Cluster
+### Vector Slurm Cluster
 
 Note: our slurm cluster has 
 ```ldd --version -> ldd (Ubuntu GLIBC 2.27-3ubuntu1.6) 2.27```

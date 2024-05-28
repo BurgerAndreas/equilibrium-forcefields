@@ -38,6 +38,8 @@ import torch.nn as nn
 from torch_cluster import radius_graph
 from torch_scatter import scatter
 
+from torch.profiler import profile, record_function, ProfilerActivity
+
 from torchdeq import get_deq
 from torchdeq.norm import apply_norm, reset_norm
 from torchdeq.loss import fp_correction
@@ -90,6 +92,9 @@ from deq2ff.deq_equiformer.deq_dp_md17_noforce import (
 # )
 
 ModelEma = ModelEmaV2
+
+file_dir = os.path.dirname(os.path.realpath(__file__))
+parent_dir = os.path.dirname(file_dir)
 
 # silence:
 # UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`.
@@ -1218,6 +1223,24 @@ def train_one_epoch(
     # params like the batchnorm layers in the model will be updated.
     # Even without optimizing parameters, validation outputs will change after a forward pass.
 
+    if args.torch_profile:
+        # In this example with wait=1, warmup=1, active=2, repeat=1,
+        # profiler will skip the first step/iteration,
+        # start warming up on the second, record
+        # the third and the forth iterations,
+        # after which the trace will become available
+        # and on_trace_ready (when set) is called;
+        # the cycle repeats starting with the next step
+        prof = torch.profiler.profile(
+            schedule=torch.profiler.schedule(wait=1, warmup=1, active=2, repeat=1),
+            # on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/resnet18'),
+            activities=[ProfilerActivity.CPU,ProfilerActivity.CUDA],
+            record_shapes=True,
+            with_stack=True
+        )
+        prof.start()
+
+
     max_steps = len(data_loader)
     for rep in range(args.epochs_per_epochs):
         for step, data in enumerate(data_loader):
@@ -1552,7 +1575,21 @@ def train_one_epoch(
 
             global_step += 1
 
+            if args.torch_profile:
+                prof.step()
+
         # end of epoch
+        if args.torch_profile:
+            prof.stop()
+            print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+            print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
+            # print location of the trace file
+            mname = args.checkpoint_wandb_name  # wandb.run.name
+            # remove special characters
+            mname = "".join(e for e in mname if e.isalnum())
+            prof.export_chrome_trace(f"{parent_dir}/traces/{mname}.json")
+            print('Saved trace to:', f"{parent_dir}/traces/{mname}.json")
+            exit()
 
         # log fixed-point statistics
         if len(abs_fixed_point_error) > 0:

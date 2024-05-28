@@ -70,11 +70,11 @@ def line_search(update, x0, g0, g, nstep=0, on=True):
     Code adapted from scipy.
 
     Returns:
-        x_est = x0 + s * update. New estimate of root.
-        gx = g0_new = g(x_est). Error at new estimate.
-        delta_x = x_est - x0. Distance from initial root estimate.
-        delta_gx = g0_new - g0. Change in error at new estimate.
-        ite
+        - x_est = x0 + s * update. New estimate of root.
+        - gx = g0_new = g(x_est). Error at new estimate.
+        - delta_x = x_est - x0. Distance from initial root estimate.
+        - delta_gx = g0_new - g0. Change in error at new estimate.
+        - ite
     """
     tmp_s = [0]
     tmp_g0 = [g0]
@@ -138,6 +138,18 @@ def matvec(part_Us, part_VTs, x):
     _a = torch.einsum("bdl, bl -> bd", part_Us, VTx)  # (B, D)
     _b = -x + _a
     return _b
+
+
+def check_values(a, name):
+    # check for infinite values
+    if not torch.isfinite(a).all():
+        print(f"{name} has infinite values")
+        return False
+    # check for nan values
+    if torch.isnan(a).any():
+        print(f"{name} has nan values")
+        return False
+    return True
 
 
 def broyden_solver(
@@ -228,6 +240,9 @@ def broyden_solver(
         nstep += 1
         tnstep += ite + 1
 
+        check_values(x_est, "x_est")
+        check_values(gx, "gx")
+
         # Calculate the absolute and relative differences
         # assumes x.shape()=(B, D) since we use flatten
         abs_diff = gx.norm(dim=1)
@@ -264,10 +279,13 @@ def broyden_solver(
             with_grad,
         )
 
+        check_values(lowest_xest, "lowest_xest")
+
         # Store the solution at the specified index
         if indexing and (nstep + 1) in indexing:
             indexing_list.append(lowest_xest)
 
+        # stopping criterion
         new_objective = trace_dict[stop_mode][-1].max()
         if return_final == False and new_objective < tol:
             break
@@ -288,11 +306,18 @@ def broyden_solver(
         u = (delta_x - matvec(part_Us, part_VTs, delta_gx)) / torch.einsum(
             "bd,bd->b", vT, delta_gx
         )[:, None]
+        # replace nan with 0
         vT[vT != vT] = 0
         u[u != u] = 0
         VTs[:, (nstep - 1) % LBFGS_thres] = vT
         Us[:, :, (nstep - 1) % LBFGS_thres] = u
         update = -matvec(Us[:, :, :nstep], VTs[:, :nstep], gx)
+
+        check_values(vT, "vT")
+        check_values(u, "u")
+        check_values(VTs, "VTs")
+        check_values(Us, "Us")
+        check_values(update, "update")
 
     # Fill everything up to the max_iter length
     for _ in range(max_iter + 1 - len(trace_dict[stop_mode])):

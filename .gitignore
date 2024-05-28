@@ -8,6 +8,8 @@ equiformer/datasets/oc20
 models/*
 models1
 
+traces/*
+
 wandb
 outputs
 

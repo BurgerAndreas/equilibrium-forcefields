@@ -30,6 +30,7 @@ use_dataset_avg_stats: False
 # fpreuse_ordered # dataset is split into train, val, test without any shuffling. Testset is reordered to be consecutive across batches
 # rmd17 # datasplit indices delivered with the revised MD17 dataset, only works with md17 or rmd17
 datasplit: "equiformer"
+shuffle: True
 
 # (int)
 epochs: 1000

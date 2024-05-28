@@ -218,7 +218,7 @@ class MDAll(InMemoryDataset):
 
     def download(self):
         for file_name in self.raw_file_names:
-            if self.dname == "rmd17":
+            if self.dname in ["rmd17", "rmd17og"]:
                 path = download_url(self.revised_url, self.raw_dir)
                 extract_tar(path, self.raw_dir, mode="r:bz2")
                 os.unlink(path)
@@ -231,21 +231,25 @@ class MDAll(InMemoryDataset):
                     os.unlink(path)
 
     def process(self):
+        """After downloading the raw data, we process it and save it.
+        After changes, run:
+        rm -r -f datasets/**/processed
+        """
         # rm -r -f datasets/md17/**/processed
 
         print(
             "Saving processed data to",
             self.processed_dir,
-            f"processed_file_names={self.processed_file_names}",
+            f"\n processed_file_names={self.processed_file_names}",
         )
-        print(f"self.pre_filter: {self.pre_filter}")
-        print(f"self.pre_transform: {self.pre_transform}")
+        print(f" self.pre_filter: {self.pre_filter}")
+        print(f" self.pre_transform: {self.pre_transform}")
 
         it = zip(self.raw_paths, self.processed_paths)
         old_indices = None
         for raw_path, processed_path in it:
             raw_data = np.load(raw_path)
-            print(f"keys in raw_data: {raw_data.keys()}")
+            print(f" keys in raw_data: {raw_data.keys()}")
             if self.dname == "rmd17og":
                 z = torch.from_numpy(raw_data["nuclear_charges"]).long()
                 pos = torch.from_numpy(raw_data["coords"]).float()
@@ -261,6 +265,7 @@ class MDAll(InMemoryDataset):
                 pos = torch.from_numpy(raw_data["coords"]).float()
                 energy = torch.from_numpy(raw_data["energies"]).float()  # [100000]
                 force = torch.from_numpy(raw_data["forces"]).float()  # [100000, 21, 3]
+                old_indices = torch.from_numpy(raw_data["old_indices"]).long()
             else:
                 # md17, md22, ccsd
                 z = torch.from_numpy(raw_data["z"]).long()
@@ -269,7 +274,7 @@ class MDAll(InMemoryDataset):
                 force = torch.from_numpy(raw_data["F"]).float()
 
             data_list = []
-            print("Dataset size:", pos.size(0))
+            print(" Dataset size:", pos.size(0))
             for i in range(pos.size(0)):
                 # old: ['z', 'pos', 'batch', 'y', 'dy']
                 # new: ['z', 'pos', 'energy', 'force']
@@ -295,6 +300,14 @@ class MDAll(InMemoryDataset):
                 if self.pre_transform is not None:
                     data = self.pre_transform(data)
                 data_list.append(data)
+            
+            if hasattr(data_list[0], "old_idx"):
+                # reorder data_list based on old_idx
+                print(" Reordering data_list based on old_idx.")
+                data_list = sorted(data_list, key=lambda x: x.old_idx)
+                # assign new idx
+                for i, data in enumerate(data_list):
+                    data.idx = i
 
             # self.save(data_list, processed_path)
             data, slices = self.collate(data_list)
@@ -561,6 +574,7 @@ def get_md_datasets(
     return train_dataset, val_dataset, test_dataset, all_dataset
 
 
+# TODO: move this to fix_args()
 def get_order(args):
     # if ("fpreuse_test" in args and args.fpreuse_test) or (
     #     "fpreuse_datasplit" in args and args.fpreuse_datasplit

@@ -20,6 +20,24 @@ acces to cluster via ssh
 ssh-copy-id username@remote_host
 ```
 
+authenticate with github
+```bash
+# generate ssh key
+ssh-keygen -t ed25519 -C "your_email@example.com"
+# add ssh key to ssh-agent
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+# add ssh key permanently
+micro ~/.ssh/config
+# paste this
+Host github.com
+    IdentityFile ~/.ssh/id_ed25519
+# stop paste
+# add ssh key to github
+cat ~/.ssh/id_ed25519.pub
+# https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account
+```
+
 ```bash
 git clone git@github.com:BurgerAndreas/equilibrium-forcefields.git
 cd equilibrium-forcefields

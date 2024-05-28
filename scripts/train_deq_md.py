@@ -1315,7 +1315,7 @@ def train_one_epoch(
                 # fpc_min_steps = args.deq_kwargs.f_max_iter
                 # if "core" in args.deq_kwargs and args.deq_kwargs.core == "indexing":
                 #     fpc_min_steps = (args.deq_kwargs.f_max_iter / args.fpc_freq)
-                # and "z_pred" in info 
+                # and "z_pred" in info
                 # len(info) > 0 and
                 if len(info["z_pred"]) > 1:
                     # last z is fixed point

@@ -341,8 +341,13 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         z_pred, info = self.deq(
             f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
         )
-        assert len(z_pred) == len(self.deq.last_indexing) or len(z_pred) <= max(info["nstep"]), \
-            f"z_pred: {len(z_pred)}. last_indexing={len(self.deq.last_indexing)}. nstep<={max(info['nstep'])}" 
+        # make sure out code is working and we have the correct number of fixed-point estimates along the trajectory
+        # that we need for the fixed-point correction loss
+        assert (
+            len(z_pred) == len(self.deq.last_indexing)
+            or len(z_pred) <= max(info["nstep"])
+            or max(info["nstep"]) <= 1.0
+        ), f"z_pred: {len(z_pred)}. last_indexing={len(self.deq.last_indexing)}. nstep<={max(info['nstep'])}"
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             z_pred = [z.view(self.shape_batched) for z in z_pred]

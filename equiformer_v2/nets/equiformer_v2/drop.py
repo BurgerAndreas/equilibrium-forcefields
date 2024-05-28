@@ -189,7 +189,9 @@ class VariationalDropout(nn.Module):
         else:
             # Dimension (N, C, L)
             # m = torch.zeros(bsz, d, 1).bernoulli_(1 - self.drop_prob)
-            m = torch.zeros(shape, dtype=dtype, device=device).bernoulli_(1 - self.drop_prob)
+            m = torch.zeros(shape, dtype=dtype, device=device).bernoulli_(
+                1 - self.drop_prob
+            )
             mask = m.requires_grad_(False) / (1 - self.drop_prob)
             self.mask = mask
             return mask

@@ -263,11 +263,18 @@ class DEQIndexing(DEQBase):
         self.arg_indexing = indexing
         self.last_indexing = None
 
-        self.grad_args = dict(grad=grad, tau=tau, sup_gap=sup_gap, sup_loc=sup_loc, ift=ift, hook_ift=hook_ift)
+        self.grad_args = dict(
+            grad=grad,
+            tau=tau,
+            sup_gap=sup_gap,
+            sup_loc=sup_loc,
+            ift=ift,
+            hook_ift=hook_ift,
+        )
 
         # First compute the f_max_iter indexing where we add corrections.
         self.indexing = self._compute_f_iter(self.f_max_iter)
-        print(f'{self.__class__.__name__} indexing set to: {self.indexing}')
+        print(f"{self.__class__.__name__} indexing set to: {self.indexing}")
 
         self.set_grad(self.grad_args)
 
@@ -344,7 +351,9 @@ class DEQIndexing(DEQBase):
                 indexing = self.arg_indexing
             if "indexing" in solver_kwargs and solver_kwargs["indexing"] is not None:
                 indexing = solver_kwargs["indexing"]
-            assert indexing is not None, f"Indexing must be specified. indexing: {indexing} self.arg_indexing: {self.arg_indexing}"
+            assert (
+                indexing is not None
+            ), f"Indexing must be specified. indexing: {indexing} self.arg_indexing: {self.arg_indexing}"
             assert f_max_iter is not None, "f_max_iter must be specified."
             # print('Using indexing: ', indexing) # REMOVE
             return [*indexing, f_max_iter]
@@ -576,11 +585,18 @@ class DEQSliced(DEQBase):
         self.arg_indexing = indexing
         self.last_indexing = None
 
-        self.grad_args = dict(grad=grad, tau=tau, sup_gap=sup_gap, sup_loc=sup_loc, ift=ift, hook_ift=hook_ift)
+        self.grad_args = dict(
+            grad=grad,
+            tau=tau,
+            sup_gap=sup_gap,
+            sup_loc=sup_loc,
+            ift=ift,
+            hook_ift=hook_ift,
+        )
 
         # First compute the f_max_iter indexing where we add corrections.
         self.indexing = self._compute_f_iter(self.f_max_iter)
-        print(f'{self.__class__.__name__} indexing set to: {self.indexing}')
+        print(f"{self.__class__.__name__} indexing set to: {self.indexing}")
 
         self.set_grad(self.grad_args)
 
@@ -646,12 +662,14 @@ class DEQSliced(DEQBase):
             indexing = self.arg_indexing
         if "indexing" in solver_kwargs and solver_kwargs["indexing"] is not None:
             indexing = solver_kwargs["indexing"]
-        
+
         # n_states was passed, override indexing
         if arg_n_states > 1:
             return [int(f_max_iter // arg_n_states) for _ in range(arg_n_states)]
         else:
-            assert indexing is not None, f"Indexing must be specified. indexing: {indexing} self.arg_indexing: {self.arg_indexing}"
+            assert (
+                indexing is not None
+            ), f"Indexing must be specified. indexing: {indexing} self.arg_indexing: {self.arg_indexing}"
             assert f_max_iter is not None, "f_max_iter must be specified."
             # print('Using indexing: ', indexing) # REMOVE
             return np.diff([0, *indexing, f_max_iter]).tolist()
@@ -751,7 +769,7 @@ class DEQSliced(DEQBase):
                 # print(' indexing: ', _indexing)
             else:
                 indexing = self.indexing
-            
+
             self.last_indexing = indexing
             # If we want to overwrite indexing/n_states, we need to update the grad functions
             self.set_grad({"indexing": indexing})

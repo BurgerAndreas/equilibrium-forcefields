@@ -305,7 +305,7 @@ def main(args):
         test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
         _log.info(f"Reordered test dataset to be consecutive for fixed-point reuse.")
     test_loader = DataLoader(
-        test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
+        test_dataset, batch_size=args.eval_batch_size, shuffle=args.shuffle_test, drop_last=True
     )
 
     """ Compute stats """
@@ -1357,7 +1357,9 @@ def train_one_epoch(
                         )
                 elif info["nstep"].mean().item() > min(model.deq.last_indexing):
                     print(
-                        f"Warning: Fixed-point correction not performed: nstep={info['nstep'].mean().item():.1f}. deq.last_indexing={model.deq.last_indexing}. z_pred={len(info['z_pred'])}"
+                        f"Warning: Fixed-point correction not performed: "
+                        f"nstep={info['nstep'].mean().item():.1f} (max={info['nstep'].max()} min={info['nstep'].min()})." 
+                        f"deq.last_indexing={model.deq.last_indexing}. z_pred={len(info['z_pred'])}"
                     )
                 # else:
                 # # For example if we would index step 5, but only four forward solver steps were performed
@@ -1716,7 +1718,7 @@ def evaluate(
                 if fpreuse_test == True:
                     # assert that idx is consecutive
                     if prev_idx is not None:
-                        assert torch.allclose(data.idx, prev_idx + 1)
+                        assert torch.allclose(data.idx, prev_idx + 1) or args.shuffle_test
                     prev_idx = data.idx
                     # call model and pass fixedpoint
                     pred_y, pred_dy, fixedpoint, info = model(

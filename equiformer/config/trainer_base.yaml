@@ -31,6 +31,7 @@ use_dataset_avg_stats: False
 # rmd17 # datasplit indices delivered with the revised MD17 dataset, only works with md17 or rmd17
 datasplit: "equiformer"
 shuffle: True
+shuffle_test: False
 
 # (int)
 epochs: 1000

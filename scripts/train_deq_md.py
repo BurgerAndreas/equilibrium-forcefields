@@ -1608,6 +1608,24 @@ def train_one_epoch(
         # if loss_metrics is all nan
         # probably because deq_kwargs.f_solver=broyden,anderson did not converge
         if isnan_cnt > max_steps // 2:
+            # save checkpoint as pathological example
+            torch.save(
+                {
+                    "state_dict": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    # "lr_scheduler": lr_scheduler.state_dict(),
+                    "epoch": epoch,
+                    "global_step": global_step,
+                    # "best_metrics": best_metrics,
+                    # "best_ema_metrics": best_ema_metrics,
+                },
+                os.path.join(
+                    args.output_dir,
+                    "pathological_ep@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
+                        epoch, mae_metrics["energy"].avg, mae_metrics["force"].avg
+                    ),
+                ),
+            )
             raise ValueError(
                 f"Most energy predictions are nan ({isnan_cnt}/{max_steps}). Try deq_kwargs.f_solver=fixed_point_iter"
             )

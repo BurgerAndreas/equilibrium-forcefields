@@ -178,6 +178,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         return_fixedpoint=False,
         solver_kwargs={},
         fpr_loss=False,
+        reset_dropout=True,
         **kwargs,
     ):
         """
@@ -314,7 +315,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             x = fixedpoint.to(emb.device)
 
         reset_norm(self.blocks)
-        self.reset_dropout(x, data.batch)
+        if reset_dropout:
+            self.reset_dropout(x, data.batch)
 
         # Transformer blocks
         # f = lambda z: self.mfn_forward(z, u)

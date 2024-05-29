@@ -200,8 +200,9 @@ class VariationalDropout(nn.Module):
         if not self.training or self.drop_prob == 0:
             return x
         # generate mask on the fly and save it
-        if self.mask is None:
-            self.update_mask(x.shape, x.device, set_to_none=False)
+        # if self.mask is None:
+        #     self.update_mask(x.shape, x.device, set_to_none=False)
+        assert self.mask is not None, "Mask is not initialized"
         mask = self.mask.expand_as(x)  # Make sure the dimension matches
         return mask * x
 

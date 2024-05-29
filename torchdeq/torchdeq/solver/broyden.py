@@ -109,6 +109,18 @@ def line_search(update, x0, g0, g, nstep=0, on=True):
         g0_new = tmp_g0[0]
     else:
         g0_new = g(x_est)
+    
+    # added
+    if check_values(x_est, f"x_est (nstep={nstep})") == False:
+        print(f"s (nstep={nstep})", s)
+        print(f"update (nstep={nstep})", update.norm(), update.max())
+    
+    # clip the norm of the update
+    # if update.norm() > 1e2:
+    #     update = update / update.norm() * 1e2
+
+    # replace inf values wih 0
+    # g0_new[~torch.isfinite(g0_new)] = 0
 
     # x_est, gx, delta_x, delta_gx, ite = line_search
     return x_est, g0_new, x_est - x0, g0_new - g0, ite
@@ -222,6 +234,12 @@ def broyden_solver(
     VTs = torch.zeros(bsz, LBFGS_thres, dim, dtype=x0.dtype, device=x0.device)
     # Formally should be -torch.matmul(inv_jacobian (-I), gx)
     update = -matvec(Us[:, :, :nstep], VTs[:, :nstep], gx)
+    
+    a = check_values(gx, f"gx initial (nstep={nstep})")
+    b = check_values(update, f"update initial (nstep={nstep})")
+    if a == False or b == False:
+        print(f"gx (nstep={nstep})", gx.norm(), gx.max())
+        print(f"update (nstep={nstep})", update.norm(), update.max())
 
     new_objective = 1e8
 
@@ -240,8 +258,8 @@ def broyden_solver(
         nstep += 1
         tnstep += ite + 1
 
-        check_values(x_est, "x_est")
-        check_values(gx, "gx")
+        check_values(x_est, f"x_est (nstep={nstep})")
+        check_values(gx, f"gx (nstep={nstep})")
 
         # Calculate the absolute and relative differences
         # assumes x.shape()=(B, D) since we use flatten
@@ -279,7 +297,7 @@ def broyden_solver(
             with_grad,
         )
 
-        check_values(lowest_xest, "lowest_xest")
+        check_values(lowest_xest, f"lowest_xest (nstep={nstep})")
 
         # Store the solution at the specified index
         if indexing and (nstep + 1) in indexing:
@@ -313,11 +331,11 @@ def broyden_solver(
         Us[:, :, (nstep - 1) % LBFGS_thres] = u
         update = -matvec(Us[:, :, :nstep], VTs[:, :nstep], gx)
 
-        check_values(vT, "vT")
-        check_values(u, "u")
-        check_values(VTs, "VTs")
-        check_values(Us, "Us")
-        check_values(update, "update")
+        check_values(vT, f"vT (nstep={nstep})")
+        check_values(u, f"u (nstep={nstep})")
+        check_values(VTs, f"VTs (nstep={nstep})")
+        check_values(Us, f"Us (nstep={nstep})")
+        check_values(update, f"update (nstep={nstep})")
 
     # Fill everything up to the max_iter length
     for _ in range(max_iter + 1 - len(trace_dict[stop_mode])):

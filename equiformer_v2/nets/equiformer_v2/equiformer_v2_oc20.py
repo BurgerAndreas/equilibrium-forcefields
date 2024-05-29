@@ -615,7 +615,6 @@ class EquiformerV2_OC20(BaseModel):
 
     def reset_dropout(self, x, batch):
         # set dropout mask
-        print("Resetting dropout masks")  # REMOVE
         for i in range(self.num_layers):
             # torch.nn.Dropout won't have .update_mask
             if callable(
@@ -626,13 +625,14 @@ class EquiformerV2_OC20(BaseModel):
                 # shape will vary with each batch, since it depends on the number of edges
                 # which depends on the molecule configuration
                 # mask_before = self.blocks[i].graph_attention.alpha_dropout.mask
-                mask = self.blocks[i].graph_attention.alpha_dropout.update_mask(
+                alpha_mask = self.blocks[i].graph_attention.alpha_dropout.update_mask(
                     shape=[self.num_edges, 1, self.num_heads, 1],
                     dtype=x.dtype,
                     device=x.device,
                 )
             if self.blocks[i].path_drop is not None:
-                self.blocks[i].path_drop.update_mask(x=x, batch=batch)
+                # mask_before = self.blocks[i].path_drop.mask
+                path_mask = self.blocks[i].path_drop.update_mask(x=x, batch=batch)
             if self.blocks[i].proj_drop is not None:
                 self.blocks[i].proj_drop.update_mask(x=x, batch=batch)
 

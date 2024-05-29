@@ -219,6 +219,7 @@ def broyden_solver(
     # Define the function g of (B, D) -> (B, D) for root solving
     # g(x) = f(x) - x
     # Defines the fixed-point error
+    # f = lambda x: func(x.view_as(x0)).reshape_as(x) # anderson_solver
     g = lambda y: func(y.view_as(x0)).reshape_as(y) - y
 
     alternative_mode = "rel" if stop_mode == "abs" else "abs"
@@ -238,8 +239,12 @@ def broyden_solver(
     a = check_values(gx, f"gx initial (nstep={nstep})")
     b = check_values(update, f"update initial (nstep={nstep})")
     if a == False or b == False:
-        print(f"gx (nstep={nstep})", gx.norm(), gx.max())
-        print(f"update (nstep={nstep})", update.norm(), update.max())
+        print(f" gx (nstep={nstep})", gx.norm(), gx.max())
+        print(f'x0 (nstep={nstep})', x0.norm(), x0.max(), x0.shape)
+        fx = func(x0)
+        print(f'func(x0) (nstep={nstep})', fx.norm(), fx.max(), fx.shape) # is it a shape error?
+        print(f'x_est (nstep={nstep})', x_est.norm(), x_est.max(), x_est.shape)
+        print(f" update (nstep={nstep})", update.norm(), update.max())
 
     new_objective = 1e8
 

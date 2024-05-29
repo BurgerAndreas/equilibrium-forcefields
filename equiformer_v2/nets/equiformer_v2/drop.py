@@ -118,11 +118,34 @@ class VariationalGraphPathDrop(nn.Module):
         batch_size = batch.max() + 1
         shape = (batch_size,) + (1,) * (x.ndim - 1)
         ones = torch.ones(shape, dtype=x.dtype, device=x.device)
-        drop = self.path_drop(ones, self.drop_prob, self.training)
+        # drop = self.path_drop(ones, self.drop_prob, self.training)
+        if self.drop_prob == 0.0 or not self.training:
+            drop = ones
+        else:
+            keep_prob = 1 - self.drop_prob
+            # div: rescale to 1/ 1-probability
+            drop = ones.div(keep_prob) * self.mask
         # drop: [batch_size, 1, 1]. some batches are 0, other are 1/1-p
         # drop[batch]: [batch_size*num_atoms, 1, 1]. some batches are 0, other are 1/1-p
         out = x * drop[batch]
         return out
+    
+    # def forward(self, x, batch):
+    #     """Sets some batches (all atoms in a molecule) to zero and rescales the others to 1/1-p."""
+    #     # for batch_size=4, 21 atoms per molecule
+    #     # batch: tensor([
+    #     # 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
+    #     # 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2,
+    #     # 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+    #     # 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3])
+    #     batch_size = batch.max() + 1
+    #     shape = (batch_size,) + (1,) * (x.ndim - 1)
+    #     ones = torch.ones(shape, dtype=x.dtype, device=x.device)
+    #     drop = self.path_drop(ones, self.drop_prob, self.training)
+    #     # drop: [batch_size, 1, 1]. some batches are 0, other are 1/1-p
+    #     # drop[batch]: [batch_size*num_atoms, 1, 1]. some batches are 0, other are 1/1-p
+    #     out = x * drop[batch]
+    #     return out
 
     def path_drop(self, x, drop_prob: float = 0.0, training: bool = False):
         """Same as the path_drop function above but with persistent mask."""
@@ -146,6 +169,7 @@ class VariationalGraphPathDrop(nn.Module):
         )
         mask.floor_()  # binarize
         self.mask = mask
+        return mask
 
     def extra_repr(self):
         return "drop_prob={}".format(self.drop_prob)
@@ -189,10 +213,12 @@ class VariationalDropout(nn.Module):
         else:
             # Dimension (N, C, L)
             # m = torch.zeros(bsz, d, 1).bernoulli_(1 - self.drop_prob)
-            m = torch.zeros(shape, dtype=dtype, device=device).bernoulli_(
+            m = torch.zeros(shape, dtype=dtype, device=device, requires_grad=False).bernoulli_(
                 1 - self.drop_prob
             )
-            mask = m.requires_grad_(False) / (1 - self.drop_prob)
+            # rescale to 1/ 1-probability
+            mask = m / (1 - self.drop_prob)
+            mask.requires_grad = False
             self.mask = mask
             return mask
 

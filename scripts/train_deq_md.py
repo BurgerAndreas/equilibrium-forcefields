@@ -296,6 +296,7 @@ def main(args):
     normalizers = {"energy": normalizer_e, "force": normalizer_f}
 
     """ Data Loader """
+    _log.info("Loading data...")
     # We don't need to shuffle because either the indices are already randomized
     # or we want to keep the order
     # we just keep the shuffle option for the sake of consistency with equiformer
@@ -351,6 +352,7 @@ def main(args):
         }
 
     """ Instantiate Model """
+    _log.info("Creating model...")
     create_model = model_entrypoint(args.model.name)
     if "deq_kwargs" in args:
         model = create_model(
@@ -379,6 +381,7 @@ def main(args):
     model = model.to(device)
 
     """ Instantiate everything else """
+    _log.info("Creating optimizer & co...")
     optimizer = create_optimizer(args, model)
     lr_scheduler, _ = create_scheduler(args, optimizer)
     # record the best validation and testing errors and corresponding epochs
@@ -1353,6 +1356,13 @@ def train_one_epoch(
             # https://arxiv.org/abs/2204.08442
             if args.fpc_freq > 0:
                 # I think this is never invoked if DEQSliced is used
+
+                # If you use trajectory sampling, fp_correction automatically
+                # aligns the tensors and applies your loss function.
+                # loss_fn = lambda y_gt, y: ((y_gt - y) ** 2).mean()
+                # train_loss = fp_correction(loss_fn, (y_train, y_pred))
+
+                # do it manually instead
                 if len(info["z_pred"]) > 1:
                     z_preds = info["z_pred"]
                     # last z is fixed point that is in the main loss
@@ -1466,37 +1476,6 @@ def train_one_epoch(
                     step=global_step,
                 )
 
-            if wandb.run is not None:
-                wandb.log(
-                    {
-                        "energy_pred_mean": pred_y.mean().item(),
-                        "energy_pred_std": pred_y.std().item(),
-                        "energy_pred_min": pred_y.min().item(),
-                        "energy_pred_max": pred_y.max().item(),
-                        "energy_target_mean": target_y.mean().item(),
-                        "energy_target_std": target_y.std().item(),
-                        "energy_target_min": target_y.min().item(),
-                        "energy_target_max": target_y.max().item(),
-                        "scaled_energy_loss": (args.energy_weight * loss_e).item(),
-                        # force
-                        "force_pred_mean": pred_dy.mean().item(),
-                        "force_pred_std": pred_dy.std().item(),
-                        "force_pred_min": pred_dy.min().item(),
-                        "force_pred_max": pred_dy.max().item(),
-                        "force_target_mean": target_dy.mean().item(),
-                        "force_target_std": target_dy.std().item(),
-                        "force_target_min": target_dy.min().item(),
-                        "force_target_max": target_dy.max().item(),
-                        "scaled_force_loss": (args.force_weight * loss_f).item(),
-                    },
-                    step=global_step,
-                    # split="train",
-                )
-
-            # If you use trajectory sampling, fp_correction automatically
-            # aligns the tensors and applies your loss function.
-            # loss_fn = lambda y_gt, y: ((y_gt - y) ** 2).mean()
-            # train_loss = fp_correction(loss_fn, (y_train, y_pred))
 
             if torch.isnan(pred_y).any():
                 isnan_cnt += 1
@@ -1509,9 +1488,6 @@ def train_one_epoch(
                     model.parameters(),
                     max_norm=args.clip_grad_norm,
                 )
-                # if args.global_step % args.log_every_step_minor == 0:
-                wandb.log({"grad_norm": grad_norm}, step=global_step)
-                # .log({"grad_norm": grad_norm}, step=self.step, split="train")
             else:
                 # grad_norm = 0
                 # for p in model.parameters():
@@ -1524,7 +1500,6 @@ def train_one_epoch(
                     if param.grad is not None
                 ]
                 grad_norm = torch.cat(grads).norm()
-                wandb.log({"grad_norm": grad_norm}, step=global_step)
 
             # if args.lr > 0:
             optimizer.step()
@@ -1581,18 +1556,33 @@ def train_one_epoch(
                 logger.info(info_str)
 
             if step % args.log_every_step_minor == 0:
-                # log to wandb
-                wandb.log(
-                    {
-                        "train_loss": loss.item(),
-                        # "train_e_mae": mae_metrics["energy"].avg,
-                        # "train_f_mae": mae_metrics["force"].avg,
-                        # "train_loss_e": loss_metrics["energy"].avg,
-                        # "train_loss_f": loss_metrics["force"].avg,
-                        # "lr": optimizer.param_groups[0]["lr"],
-                    },
-                    step=global_step,
-                )
+                logs = {
+                    "train_loss": loss.item(),
+                    "grad_norm": grad_norm.item(),
+                    # energy
+                    "energy_pred_mean": pred_y.mean().item(),
+                    "energy_pred_std": pred_y.std().item(),
+                    "energy_pred_min": pred_y.min().item(),
+                    "energy_pred_max": pred_y.max().item(),
+                    "energy_target_mean": target_y.mean().item(),
+                    "energy_target_std": target_y.std().item(),
+                    "energy_target_min": target_y.min().item(),
+                    "energy_target_max": target_y.max().item(),
+                    "scaled_energy_loss": (args.energy_weight * loss_e).item(),
+                    # force
+                    "force_pred_mean": pred_dy.mean().item(),
+                    "force_pred_std": pred_dy.std().item(),
+                    "force_pred_min": pred_dy.min().item(),
+                    "force_pred_max": pred_dy.max().item(),
+                    "force_target_mean": target_dy.mean().item(),
+                    "force_target_std": target_dy.std().item(),
+                    "force_target_min": target_dy.min().item(),
+                    "force_target_max": target_dy.max().item(),
+                    "scaled_force_loss": (args.force_weight * loss_f).item(),
+                }
+                if "z_pred" in info:
+                    logs["len_z_pred"] = len(info["z_pred"])
+                wandb.log(logs, step=global_step)
 
             global_step += 1
 

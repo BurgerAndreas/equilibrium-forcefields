@@ -307,10 +307,6 @@ def broyden_solver(
         # Store the solution at the specified index
         if indexing and (nstep + 1) in indexing:
             indexing_list.append(lowest_xest)
-            print(f'step {nstep} (indexing={indexing}). Adding.')
-        else:
-            print(f'step {nstep} (indexing={indexing})')
-            pass
 
         # stopping criterion
         new_objective = trace_dict[stop_mode][-1].max()

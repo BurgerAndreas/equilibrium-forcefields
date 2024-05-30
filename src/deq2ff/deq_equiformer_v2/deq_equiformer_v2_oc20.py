@@ -379,7 +379,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         self.edge_distance = edge_distance
         self.edge_index = edge_index
 
-        self.decode(
+        return self.decode(
             data=data,
             z=z_pred[-1], # last fixed-point estimate
             info=info,

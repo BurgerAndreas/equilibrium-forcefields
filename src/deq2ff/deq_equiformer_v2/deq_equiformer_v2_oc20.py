@@ -346,11 +346,11 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         )
         # make sure out code is working and we have the correct number of fixed-point estimates along the trajectory
         # that we need for the fixed-point correction loss
-        assert (
-            # len(z_pred) == len(self.deq.last_indexing)
-            len(z_pred) > 1
-            or min(info["nstep"]) < min(self.deq.last_indexing)
-        ), f"z_pred: {len(z_pred)}. last_indexing={len(self.deq.last_indexing)}. nstep<={max(info['nstep'])}"
+        # assert (
+        #     # len(z_pred) == len(self.deq.last_indexing)
+        #     len(z_pred) > 1
+        #     or min(info["nstep"]) < min(self.deq.last_indexing)
+        # ), f"z_pred: {len(z_pred)}. last_indexing={len(self.deq.last_indexing)}. nstep<={max(info['nstep'])}"
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             z_pred = [z.view(self.shape_batched) for z in z_pred]

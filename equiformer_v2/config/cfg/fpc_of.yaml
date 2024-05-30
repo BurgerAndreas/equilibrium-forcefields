@@ -4,6 +4,7 @@
 # Fixed-Point correction settings from DEQ Optical Flow paper
 
 deq_kwargs:
+  # core: sliced
   f_max_iter: 24
   f_solver: 'broyden'
 

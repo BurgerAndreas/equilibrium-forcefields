@@ -57,7 +57,7 @@ opt_eps: 1e-8
 # Optimizer Betas (default: None (float)
 opt_betas: null
 # Clip gradient norm (default: None (float)
-clip_grad: null
+# clip_grad: null
 # SGD momentum (default: 0.9 (float)
 momentum: 0.9
 # weight decay (default: 5e-3 (float) # 1e-6 for paper
@@ -96,8 +96,10 @@ val_size: 50
 compute_stats: False
 # epoch interval to evaluate on the testing set (int)
 test_interval: 10
-# max iteration to evaluate on the testing set (int)
+# max iteration (num batches) to evaluate on the testing set (int)
 test_max_iter: 1000
+# max samples to evaluate on the testing set (int)
+test_size: null
 do_final_test: False
 # after training is done (-1 means whole test set ~ 100-200k) (int)
 test_max_iter_final: -1

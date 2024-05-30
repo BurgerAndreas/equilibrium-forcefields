@@ -23,7 +23,33 @@ myrc = {
     "text.usetex": True,
 }
 
-PALETTE = "muted"
+pkmn_type_colors = [
+    '#6890F0',  # Water
+    '#F08030',  # Fire
+    '#78C850',  # Grass
+    '#A8B820',  # Bug
+    '#A8A878',  # Normal
+    '#A040A0',  # Poison
+    '#F8D030',  # Electric
+    '#E0C068',  # Ground
+    '#EE99AC',  # Fairy
+    '#C03028',  # Fighting
+    '#F85888',  # Psychic
+    '#B8A038',  # Rock
+    '#705898',  # Ghost
+    '#98D8D8',  # Ice
+    '#7038F8',  # Dragon
+]
+
+# dark, muterd, deep
+PALETTE = "dark"
+# sns.color_palette("Set3", 10)
+
+# sns.color_palette("crest", as_cmap=True)
+# sns.color_palette("dark:b", as_cmap=True)
+# sns.color_palette("dark:#5A9_r", as_cmap=True)
+# https://content.codecademy.com/programs/dataviz-python/unit-5/seaborn-design-2/article2_image9.png
+# https://colorbrewer2.org/#type=sequential&scheme=Oranges&n=4
 
 
 def set_seaborn_style(

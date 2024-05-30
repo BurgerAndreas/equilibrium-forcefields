@@ -76,6 +76,7 @@ from deq2ff.losses import (
     TripletLoss,
     calc_triplet_loss,
 )
+from deq2ff.data_utils import reorder_dataset
 from deq2ff.deq_equiformer.deq_dp_md17 import (
     deq_dot_product_attention_transformer_exp_l2_md17,
 )
@@ -220,16 +221,18 @@ def main(args):
             seed=args.seed,
             # order="consecutive_test" if args.fpreuse_test else None,
         )
+        test_dataset_full = test_dataset
     else:
         import equiformer.datasets.pyg.md_all as md_all
 
-        train_dataset, val_dataset, test_dataset, all_dataset = md_all.get_md_datasets(
+        train_dataset, val_dataset, test_dataset, test_dataset_full, all_dataset = md_all.get_md_datasets(
             root=args.data_path,
             dataset_arg=args.target,
             dname=args.dname,
             train_size=args.train_size,
             val_size=args.val_size,
             test_size=None,
+            test_size_select=args.test_size, # doesn't influence data splitting
             seed=args.seed,
             order=md_all.get_order(args),
         )
@@ -300,12 +303,14 @@ def main(args):
     )
     if args.datasplit.startswith("fpreuse"):
         # reorder test dataset to be consecutive
-        from deq2ff.data_utils import reorder_dataset
-
         test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
         _log.info(f"Reordered test dataset to be consecutive for fixed-point reuse.")
     test_loader = DataLoader(
         test_dataset, batch_size=args.eval_batch_size, shuffle=args.shuffle_test, drop_last=True
+    )
+    # full dataset for final evaluation
+    test_loader_full = DataLoader(
+        test_dataset_full, batch_size=args.eval_batch_size, shuffle=args.shuffle_test, drop_last=True
     )
 
     """ Compute stats """
@@ -437,6 +442,7 @@ def main(args):
     if args.watch_model:
         wandb.watch(model, log="all", log_freq=args.log_every_step_major)
 
+    # TODO
     model_ema = None
     if args.model_ema:
         # Important to create EMA model after cuda(), DP wrapper, and AMP but before SyncBN and DDP wrapper
@@ -1072,7 +1078,7 @@ def main(args):
             # criterion=criterion,
             criterion_energy=criterion_energy,
             criterion_force=criterion_force,
-            data_loader=test_loader,
+            data_loader=test_loader_full, # test_loader
             optimizer=optimizer,
             device=device,
             print_freq=args.print_freq,
@@ -1611,6 +1617,9 @@ def train_one_epoch(
         # probably because deq_kwargs.f_solver=broyden,anderson did not converge
         if isnan_cnt > max_steps // 2:
             # save checkpoint as pathological example
+            _cname = "pathological_ep@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
+                epoch, mae_metrics["energy"].avg, mae_metrics["force"].avg
+            )
             torch.save(
                 {
                     "state_dict": model.state_dict(),
@@ -1621,13 +1630,9 @@ def train_one_epoch(
                     # "best_metrics": best_metrics,
                     # "best_ema_metrics": best_ema_metrics,
                 },
-                os.path.join(
-                    args.output_dir,
-                    "pathological_ep@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-                        epoch, mae_metrics["energy"].avg, mae_metrics["force"].avg
-                    ),
-                ),
+                os.path.join(args.output_dir, _cname),
             )
+            print(f"Saved pathological example at epoch {epoch} to {args.output_dir}/{_cname}")
             raise ValueError(
                 f"Most energy predictions are nan ({isnan_cnt}/{max_steps}). Try deq_kwargs.f_solver=fixed_point_iter"
             )
@@ -1667,6 +1672,10 @@ def evaluate(
         # criterion.eval()
         criterion_energy.eval()
         criterion_force.eval()
+    
+    loss_per_idx = False
+    if args.eval_batch_size == 1:
+        loss_per_idx = True
 
     task_mean = model.task_mean
     task_std = model.task_std
@@ -1696,6 +1705,9 @@ def evaluate(
             f_steps_to_fixed_point = []
             model_forward_time = []
             n_fsolver_steps = []
+            if loss_per_idx:
+                # wandb table with columns: idx, e_mae, f_mae, nstep
+                idx_table = wandb.Table(columns=["idx", "e_mae", "f_mae", "nstep"])
 
             fixedpoint = None
             prev_idx = None
@@ -1732,6 +1744,9 @@ def evaluate(
                         fixedpoint=fixedpoint,
                         solver_kwargs=solver_kwargs,
                     )
+                    # REMOVE
+                    print(f'step: {step}. idx: {data.idx}.') 
+                    print(f' pred_y: {pred_y.shape}, pred_dy: {pred_dy.shape}, fixedpoint: {fixedpoint.shape}')
                 else:
                     # energy, force
                     pred_y, pred_dy, info = model(
@@ -1780,6 +1795,10 @@ def evaluate(
                     torch.abs(force_err)
                 ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
+                
+                # Remove
+                print(f' loss_e: {loss_e}, loss_f: {loss_f}')
+                print(f' enery_err: {energy_err}, force_err: {force_err}')
 
                 # --- logging ---
                 if len(info) > 0:
@@ -1814,6 +1833,10 @@ def evaluate(
                         time_per_step=(1e3 * w / e / max_steps)
                     )
                     logger.info(info_str)
+                
+                if loss_per_idx:
+                    # "idx", "e_mae", "f_mae", "nstep"
+                    idx_table.add_data(data.idx.item(), energy_err, force_err, info["nstep"].mean().item())
 
                 if (step + 1) >= max_steps:
                     break
@@ -1838,6 +1861,10 @@ def evaluate(
                 },
                 step=global_step,
             )
+
+            # log the table
+            if loss_per_idx:
+                wandb.log({f"idx_table_{_datasplit}": idx_table}, step=global_step)
 
             # log fixed-point statistics
             if len(abs_fixed_point_error) > 0:

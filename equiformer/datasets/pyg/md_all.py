@@ -480,6 +480,7 @@ def get_md_datasets(
     max_samples: int = -1,
     return_idx=False,
     order=None,
+    test_size_select=None,
 ):
     """
     Return training, validation and testing sets of MD17 with the same data partition as TorchMD-NET.
@@ -554,6 +555,9 @@ def get_md_datasets(
     if return_idx:
         return idx_train, idx_val, idx_test
 
+    if test_size_select is None:
+        test_size_select = test_size
+
     # log split to wandb
     if wandb.run is not None:
         max_num = 1000
@@ -563,15 +567,17 @@ def get_md_datasets(
                 "idx_train": idx_train[:max_num],
                 "idx_val": idx_val[:max_num],
                 "idx_test": idx_test[:max_num],
+                "idx_test_selected": idx_test[:test_size_select],
             },
             step=0,
         )
 
     train_dataset = Subset(all_dataset, idx_train)
     val_dataset = Subset(all_dataset, idx_val)
-    test_dataset = Subset(all_dataset, idx_test)
+    test_dataset_full = Subset(all_dataset, idx_test)
+    test_dataset = Subset(all_dataset, idx_test[:test_size_select])
 
-    return train_dataset, val_dataset, test_dataset, all_dataset
+    return train_dataset, val_dataset, test_dataset, test_dataset_full, all_dataset
 
 
 # TODO: move this to fix_args()

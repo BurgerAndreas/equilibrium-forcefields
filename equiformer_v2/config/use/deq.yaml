@@ -48,6 +48,7 @@ deq_kwargs_test:
   # on test set
   f_max_iter: _default
   f_tol: _default
+  f_stop_mode: _default
 
 # passed to torchdeq
 deq_kwargs:

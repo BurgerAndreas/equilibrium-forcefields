@@ -137,6 +137,8 @@ IGNORE_OVERRIDES_CHECKPOINT = [
     "evaluate",
     "test_w_eval_mode",
     "testwevalmode",
+    "test_max_iter",
+    "test_size",
     # target is defined in the path
     # "target",
     "inf",

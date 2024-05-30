@@ -9,6 +9,7 @@ models/*
 models1
 
 traces/*
+scrap
 
 wandb
 outputs

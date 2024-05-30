@@ -464,10 +464,18 @@ class DEQIndexing(DEQBase):
                 indexing = self.indexing
 
             self.last_indexing = indexing
-            # TODO: if we want to overwrite indexing/n_states, we need to update the grad functions
+            # if we want to overwrite indexing/n_states, we need to update the grad functions
             self.set_grad({"indexing": indexing})
 
-            _, trajectory, info = self._solve_fixed_point(
+            # TODO 
+            # indexing defaults to indexing=[f_max_iter] if not specified otherwise
+            # if nstep > indexing, fp_estimate is added to trajectory
+            # if nothing else is added to the trajectory, the final fp_estimate is added
+            # which means that the trajectory sometimes contains the final fp_estimate and sometimes not?!
+            # e.g.: indexing=[8], nstep=5 -> trajectory contains fp_5
+            # e.g.: indexing=[8], nstep=10 -> trajectory contains fp_8
+            #       shouldn't it contain [fp_5, fp_8]?!
+            _fp, trajectory, info = self._solve_fixed_point(
                 deq_func,
                 z_init,
                 f_max_iter=solver_kwargs.get("f_max_iter", self.f_max_iter),

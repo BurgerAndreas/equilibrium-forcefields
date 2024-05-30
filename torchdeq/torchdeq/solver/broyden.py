@@ -307,6 +307,10 @@ def broyden_solver(
         # Store the solution at the specified index
         if indexing and (nstep + 1) in indexing:
             indexing_list.append(lowest_xest)
+            print(f'step {nstep} (indexing={indexing}). Adding.')
+        else:
+            print(f'step {nstep} (indexing={indexing})')
+            pass
 
         # stopping criterion
         new_objective = trace_dict[stop_mode][-1].max()
@@ -354,6 +358,8 @@ def broyden_solver(
     info = solver_stat_from_info(stop_mode, lowest_dict, trace_dict, lowest_step_dict)
     # if return_xest:
     #     return x_est.view_as(x0), indexing_list, info
+
+    # z_star, trajectory, info
     return lowest_xest, indexing_list, info
 
 

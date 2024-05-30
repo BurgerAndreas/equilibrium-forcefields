@@ -216,6 +216,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         # molecules in batch can be of different sizes
         num_atoms = len(atomic_numbers)
+        self.num_atoms = num_atoms
         pos = data.pos
 
         # basically the same as edge_src, edge_dst, edge_vec, edge_length in V1
@@ -346,23 +347,14 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # make sure out code is working and we have the correct number of fixed-point estimates along the trajectory
         # that we need for the fixed-point correction loss
         assert (
-            len(z_pred) == len(self.deq.last_indexing)
-            or len(z_pred) <= max(info["nstep"])
-            or max(info["nstep"]) <= 1.0
+            # len(z_pred) == len(self.deq.last_indexing)
+            len(z_pred) > 1
+            or min(info["nstep"]) < min(self.deq.last_indexing)
         ), f"z_pred: {len(z_pred)}. last_indexing={len(self.deq.last_indexing)}. nstep<={max(info['nstep'])}"
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             z_pred = [z.view(self.shape_batched) for z in z_pred]
         info["z_pred"] = z_pred
-
-        x = SO3_Embedding(
-            length=num_atoms,
-            lmax_list=self.lmax_list,
-            num_channels=self.sphere_channels_fixedpoint,
-            device=self.device,
-            dtype=self.dtype,
-            embedding=z_pred[-1],
-        )
 
         ######################################################
         # Fixed-point reuse loss
@@ -378,6 +370,34 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             )
             info["z_next"] = z_next
 
+        ###############################################################
+        # Decode the fixed-point estimate
+        ###############################################################
+        # save atomic_numbers, edge_distance, edge_index to self
+        # so we can use them in the decode function
+        self.atomic_numbers = atomic_numbers
+        self.edge_distance = edge_distance
+        self.edge_index = edge_index
+
+        self.decode(
+            data=data,
+            z=z_pred[-1], # last fixed-point estimate
+            info=info,
+            return_fixedpoint=return_fixedpoint,
+        )
+
+
+    def decode(self, data, z, info, return_fixedpoint=False):
+
+        x = SO3_Embedding(
+            length=self.num_atoms,
+            lmax_list=self.lmax_list,
+            num_channels=self.sphere_channels_fixedpoint,
+            device=self.device,
+            dtype=self.dtype,
+            embedding=z,
+        )
+
         ######################################################
         # Logging
         ######################################################
@@ -389,10 +409,6 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         # Final layer norm
         x.embedding = self.norm(x.embedding)
-
-        # if self.learn_scale_after_encoder:
-        x.embedding = x.embedding * self.learn_scale_before_decoder
-        # print(f'x.is_leaf()', x.embedding.is_leaf) # TODO: False?
 
         ###############################################################
         # Energy estimation
@@ -415,7 +431,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         if self.regress_forces:
             # atom-wise forces using a block of equivariant graph attention
             # and treating the output of degree 1 as the predictions
-            forces = self.force_block(x, atomic_numbers, edge_distance, edge_index)
+            forces = self.force_block(x, self.atomic_numbers, self.edge_distance, self.edge_index)
             # if self.learn_scale_after_force_block:
             x.embedding = x.embedding * self.learn_scale_after_force_block
             forces = forces.embedding.narrow(1, 1, 3)
@@ -424,12 +440,12 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         if self.regress_forces:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)
-                return energy, forces, z_pred[-1].detach().clone(), info
+                return energy, forces, z.detach().clone(), info
             return energy, forces, info
         else:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)
-                return energy, z_pred[-1].detach().clone(), info
+                return energy, z.detach().clone(), info
             return energy, info
 
     def inject_input(self, z, u):

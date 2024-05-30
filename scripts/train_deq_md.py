@@ -179,6 +179,25 @@ def get_force_placeholder(dy, loss_e):
     loss_f = torch.full_like(loss_e, float("nan"))
     return pred_dy, loss_f
 
+def compute_loss(args, y, dy, target_y, target_dy, criterion_energy, criterion_force):
+    """Fix output shapes and compute loss."""
+    # reshape model output [B] (OC20) -> [B,1] (MD17)
+    if args.unsqueeze_e_dim and y.dim() == 1:
+        y = y.unsqueeze(-1)
+
+    # reshape data [B,1] (MD17) -> [B] (OC20)
+    if args.squeeze_e_dim and target_y.dim() == 2:
+        target_y = target_y.squeeze(1)
+
+    loss_e = criterion_energy(y, target_y)
+    loss = args.energy_weight * loss_e
+    if args.meas_force == True:
+        loss_f = criterion_force(dy, target_dy)
+        loss += args.force_weight * loss_f
+    else:
+        dy, loss_f = get_force_placeholder(target_dy, loss_e)
+    return loss, loss_e, loss_f
+
 
 def main(args):
 
@@ -697,7 +716,6 @@ def main(args):
             model_ema=model_ema,
             print_freq=args.print_freq,
             logger=_log,
-            meas_force=args.meas_force,
             normalizers=normalizers,
             fixed_points=fixed_points,
             indices_to_idx=indices_to_idx,
@@ -1181,7 +1199,6 @@ def train_one_epoch(
     model_ema: Optional[ModelEma] = None,
     print_freq: int = 100,
     logger=None,
-    meas_force=True,
     normalizers={"energy": None, "force": None},
     # fixed-point reuse
     fixed_points=None,
@@ -1257,7 +1274,7 @@ def train_one_epoch(
             if args.fpc_freq > 0:
                 if args.fpc_rand:
                     # randomly uniform sample indices
-                    solver_kwargs["indexing"] = torch.randperm(len(losses_fpc))[
+                    solver_kwargs["indexing"] = torch.randperm(range(model.deq.f_max_iter))[
                         : args.fpc_freq
                     ]
                 else:
@@ -1312,12 +1329,6 @@ def train_one_epoch(
                     fpr_loss=args.fpr_loss,
                 )
 
-            # _AVG_NUM_NODES: 18.03065905448718
-            # _AVG_DEGREE: 15.57930850982666
-
-            # if out_energy.shape[-1] == 1:
-            #     out_energy = out_energy.view(-1)
-
             target_y = normalizers["energy"](data.y)
             target_dy = normalizers["force"](data.dy)
 
@@ -1331,7 +1342,7 @@ def train_one_epoch(
 
             loss_e = criterion_energy(pred_y, target_y)
             loss = args.energy_weight * loss_e
-            if meas_force == True:
+            if args.meas_force == True:
                 loss_f = criterion_force(pred_dy, target_dy)
                 loss += args.force_weight * loss_f
             else:
@@ -1341,35 +1352,37 @@ def train_one_epoch(
             # for superior performance and training stability
             # https://arxiv.org/abs/2204.08442
             if args.fpc_freq > 0:
-                # fpc_min_steps = args.deq_kwargs.f_max_iter
-                # if "core" in args.deq_kwargs and args.deq_kwargs.core == "indexing":
-                #     fpc_min_steps = (args.deq_kwargs.f_max_iter / args.fpc_freq)
-                # and "z_pred" in info
-                # len(info) > 0 and
+                # I think this is never invoked if DEQSliced is used
                 if len(info["z_pred"]) > 1:
-                    # last z is fixed point
-                    z_pred = info["z_pred"]
-                    losses_fpc_sum, losses_fpc = fp_correction(
-                        criterion_fpc,
-                        (z_pred[:-1], z_pred[-1]),
-                        return_loss_values=True,
-                    )
-                    loss_fpc = args.fpc_weight * np.mean(losses_fpc)
+                    z_preds = info["z_pred"]
+                    # last z is fixed point that is in the main loss
+                    loss_fpc = 0
+                    for z_pred in z_preds[:-1]:
+                        _y, _dy, _ = model.decode(
+                            data = data,
+                            z = z_pred,
+                            info={},
+                        )
+
+                        _loss_fpc, _, _ = compute_loss(
+                            args=args,
+                            y=_y,
+                            dy=_dy,
+                            target_y=target_y,
+                            target_dy=target_dy,
+                            criterion_energy=criterion_energy,
+                            criterion_force=criterion_force,
+                        )
+                        loss_fpc += _loss_fpc
+
+                    # reweight the loss
+                    loss_fpc *= args.fpc_weight
                     loss += loss_fpc
                     if wandb.run is not None:
                         wandb.log(
                             {"fpc_loss_scaled": loss_fpc.item()},
                             step=global_step,
                         )
-                elif info["nstep"].mean().item() > min(model.deq.last_indexing):
-                    print(
-                        f"Warning: Fixed-point correction not performed: "
-                        f"nstep={info['nstep'].mean().item():.1f} (max={info['nstep'].max()} min={info['nstep'].min()})." 
-                        f"deq.last_indexing={model.deq.last_indexing}. z_pred={len(info['z_pred'])}"
-                    )
-                # else:
-                # # For example if we would index step 5, but only four forward solver steps were performed
-                #     print('Warning: Couldnt perform fixed-point correction:', 'info', len(info), 'z_pred', len(info["z_pred"]))
 
             # Contrastive loss
             if args.contrastive_loss not in [False, None]:
@@ -1745,8 +1758,8 @@ def evaluate(
                         solver_kwargs=solver_kwargs,
                     )
                     # REMOVE
-                    print(f'step: {step}. idx: {data.idx}.') 
-                    print(f' pred_y: {pred_y.shape}, pred_dy: {pred_dy.shape}, fixedpoint: {fixedpoint.shape}')
+                    # print(f'step: {step}. idx: {data.idx}.') 
+                    # print(f' pred_y: {pred_y.shape}, pred_dy: {pred_dy.shape}, fixedpoint: {fixedpoint.shape}')
                 else:
                     # energy, force
                     pred_y, pred_dy, info = model(
@@ -1797,8 +1810,8 @@ def evaluate(
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
                 
                 # Remove
-                print(f' loss_e: {loss_e}, loss_f: {loss_f}')
-                print(f' enery_err: {energy_err}, force_err: {force_err}')
+                # print(f' loss_e: {loss_e}, loss_f: {loss_f}')
+                # print(f' enery_err: {energy_err}, force_err: {force_err}')
 
                 # --- logging ---
                 if len(info) > 0:

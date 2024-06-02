@@ -250,7 +250,7 @@ def main(args):
             dname=args.dname,
             train_size=args.train_size,
             val_size=args.val_size,
-            test_size=None,
+            test_size=None, # influences data splitting
             test_size_select=args.test_size, # doesn't influence data splitting
             seed=args.seed,
             order=md_all.get_order(args),
@@ -296,7 +296,7 @@ def main(args):
     normalizers = {"energy": normalizer_e, "force": normalizer_f}
 
     """ Data Loader """
-    _log.info("Loading data...")
+    _log.info("Creating dataloaders...")
     # We don't need to shuffle because either the indices are already randomized
     # or we want to keep the order
     # we just keep the shuffle option for the sake of consistency with equiformer
@@ -1555,34 +1555,34 @@ def train_one_epoch(
                 info_str += "lr={:.2e}".format(optimizer.param_groups[0]["lr"])
                 logger.info(info_str)
 
-            if step % args.log_every_step_minor == 0:
-                logs = {
-                    "train_loss": loss.item(),
-                    "grad_norm": grad_norm.item(),
-                    # energy
-                    "energy_pred_mean": pred_y.mean().item(),
-                    "energy_pred_std": pred_y.std().item(),
-                    "energy_pred_min": pred_y.min().item(),
-                    "energy_pred_max": pred_y.max().item(),
-                    "energy_target_mean": target_y.mean().item(),
-                    "energy_target_std": target_y.std().item(),
-                    "energy_target_min": target_y.min().item(),
-                    "energy_target_max": target_y.max().item(),
-                    "scaled_energy_loss": (args.energy_weight * loss_e).item(),
-                    # force
-                    "force_pred_mean": pred_dy.mean().item(),
-                    "force_pred_std": pred_dy.std().item(),
-                    "force_pred_min": pred_dy.min().item(),
-                    "force_pred_max": pred_dy.max().item(),
-                    "force_target_mean": target_dy.mean().item(),
-                    "force_target_std": target_dy.std().item(),
-                    "force_target_min": target_dy.min().item(),
-                    "force_target_max": target_dy.max().item(),
-                    "scaled_force_loss": (args.force_weight * loss_f).item(),
-                }
-                if "z_pred" in info:
-                    logs["len_z_pred"] = len(info["z_pred"])
-                wandb.log(logs, step=global_step)
+            # if step % args.log_every_step_minor == 0:
+            logs = {
+                "train_loss": loss.item(),
+                "grad_norm": grad_norm.item(),
+                # energy
+                "energy_pred_mean": pred_y.mean().item(),
+                "energy_pred_std": pred_y.std().item(),
+                "energy_pred_min": pred_y.min().item(),
+                "energy_pred_max": pred_y.max().item(),
+                "energy_target_mean": target_y.mean().item(),
+                "energy_target_std": target_y.std().item(),
+                "energy_target_min": target_y.min().item(),
+                "energy_target_max": target_y.max().item(),
+                "scaled_energy_loss": (args.energy_weight * loss_e).item(),
+                # force
+                "force_pred_mean": pred_dy.mean().item(),
+                "force_pred_std": pred_dy.std().item(),
+                "force_pred_min": pred_dy.min().item(),
+                "force_pred_max": pred_dy.max().item(),
+                "force_target_mean": target_dy.mean().item(),
+                "force_target_std": target_dy.std().item(),
+                "force_target_min": target_dy.min().item(),
+                "force_target_max": target_dy.max().item(),
+                "scaled_force_loss": (args.force_weight * loss_f).item(),
+            }
+            if "z_pred" in info:
+                logs["len_z_pred"] = len(info["z_pred"])
+            wandb.log(logs, step=global_step)
 
             global_step += 1
 

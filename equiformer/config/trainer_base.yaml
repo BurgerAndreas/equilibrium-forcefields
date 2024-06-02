@@ -199,7 +199,7 @@ log_fixed_point_trace_train: False
 log_trace_freq: null
 
 # wandb.watch gradients, activations, model parameters (bool)
-watch_model: False
+watch_model: True
 torch_profile: False
 
 # log memory usage

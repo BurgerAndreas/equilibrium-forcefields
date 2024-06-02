@@ -236,7 +236,7 @@ def broyden_solver(
     # Formally should be -torch.matmul(inv_jacobian (-I), gx)
     update = -matvec(Us[:, :, :nstep], VTs[:, :nstep], gx)
     
-    a = check_values(gx, f"gx initial (nstep={nstep})")
+    a = check_values(gx, f"\ngx initial (nstep={nstep})")
     b = check_values(update, f"update initial (nstep={nstep})")
     if a == False or b == False:
         print(f" gx (nstep={nstep})", gx.norm(), gx.max())

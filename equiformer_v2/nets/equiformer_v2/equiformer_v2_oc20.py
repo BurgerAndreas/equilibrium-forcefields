@@ -170,6 +170,7 @@ class EquiformerV2_OC20(BaseModel):
         learn_scale_after_decoder=False,
         batchify_for_torchdeq=False,
         edge_emb_st_max_norm=None,
+        post_layernorm=False,
         **kwargs,
     ):
         super().__init__()
@@ -387,9 +388,12 @@ class EquiformerV2_OC20(BaseModel):
             st_max_norm=edge_emb_st_max_norm,
         )
 
+        self.post_layernorm = post_layernorm
+
         self.build_blocks()
 
         # Output blocks for energy and forces
+        # normalization before output blocks
         self.norm = get_normalization_layer(
             self.norm_type, lmax=max(self.lmax_list), num_channels=self.sphere_channels
         )
@@ -506,6 +510,7 @@ class EquiformerV2_OC20(BaseModel):
                 use_variational_path_drop=self.use_variational_path_drop,
                 normlayer_norm=self.normlayer_norm,
                 normlayer_affine=self.normlayer_affine,
+                post_layernorm=self.post_layernorm,
             )
             self.blocks.append(block)
 

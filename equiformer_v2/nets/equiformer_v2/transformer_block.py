@@ -621,6 +621,7 @@ class TransBlockV2(torch.nn.Module):
         use_variational_path_drop=False,
         normlayer_norm="component",
         normlayer_affine=True,
+        post_layernorm=False,
     ):
         super(TransBlockV2, self).__init__()
 
@@ -682,6 +683,17 @@ class TransBlockV2(torch.nn.Module):
             normalization=normlayer_norm,
             affine=normlayer_affine,
         )
+
+        if post_layernorm:
+            self.norm_post = get_normalization_layer(
+                norm_type,
+                lmax=max_lmax,
+                num_channels=sphere_channels,
+                normalization=normlayer_norm,
+                affine=normlayer_affine,
+            )
+        else:
+            self.norm_post = None
 
         self.ffn = FeedForwardNetwork(
             sphere_channels=sphere_channels,
@@ -751,7 +763,7 @@ class TransBlockV2(torch.nn.Module):
 
         # Norm
         output_embedding.embedding = self.norm_2(output_embedding.embedding)
-        print_values(a=output_embedding.embedding, name="TansBlockPreFFN")
+        print_values(a=output_embedding.embedding, name="TansBlockPostNorm2")
         # FeedForwardNetwork
         output_embedding = self.ffn(output_embedding)
         print_values(a=output_embedding.embedding, name="TansBlockPostFFN")
@@ -786,5 +798,10 @@ class TransBlockV2(torch.nn.Module):
         # Merge residual connection
         output_embedding.embedding = output_embedding.embedding + x_res
         print_values(a=output_embedding.embedding, name="TansBlockPostMerge2")
+
+        # post layer norm
+        if self.norm_post is not None:
+            output_embedding.embedding = self.norm_post(output_embedding.embedding)
+            print_values(a=output_embedding.embedding, name="TansBlockPostNorm3")
 
         return output_embedding

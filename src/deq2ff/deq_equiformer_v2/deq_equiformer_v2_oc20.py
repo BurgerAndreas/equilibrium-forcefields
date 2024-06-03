@@ -157,6 +157,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 # use_variational_proj_drop=self.use_variational_proj_drop,
                 normlayer_norm=self.normlayer_norm,
                 normlayer_affine=self.normlayer_affine,
+                post_layernorm=self.post_layernorm,
             )
             self.blocks.append(block)
 

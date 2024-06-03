@@ -201,6 +201,8 @@ def compute_loss(args, y, dy, target_y, target_dy, criterion_energy, criterion_f
 
 def main(args):
 
+    torch.autograd.set_detect_anomaly(args.torch_detect_anomaly)
+
     # create output directory
     if args.output_dir == "auto":
         # args.output_dir = os.path.join('outputs', datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))

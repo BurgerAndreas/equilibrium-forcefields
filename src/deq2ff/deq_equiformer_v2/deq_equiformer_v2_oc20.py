@@ -226,6 +226,10 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         self.num_edges = edge_distance.shape[0]
 
+        print_values(edge_distance_vec, "edge_distance_vec", step=step, datasplit=datasplit, log=True, before='-'*100)
+        print_values(edge_index[0].float(), "edge_index0", log=True)
+        print_values(edge_index[1].float(), "edge_index1", log=True)
+
         ###############################################################
         # Initialize data structures
         ###############################################################
@@ -233,6 +237,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # Compute 3x3 rotation matrix per edge
         # data unused
         edge_rot_mat = self._init_edge_rot_mat(data, edge_index, edge_distance_vec)
+        print_values(edge_rot_mat.float(), "edge_rot_mat", log=True)
 
         # Initialize the WignerD matrices and other values for spherical harmonic calculations
         for i in range(self.num_resolutions):
@@ -279,6 +284,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             )
 
         # Edge-degree embedding
+        # first learnable layer?
         edge_degree = self.edge_degree_embedding(
             atomic_numbers, edge_distance, edge_index
         )
@@ -288,14 +294,15 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         x.embedding = x.embedding + edge_degree.embedding
 
         # if self.learn_scale_after_encoder:
-        x.embedding = x.embedding * self.learn_scale_after_encoder
+        # x.embedding = x.embedding * self.learn_scale_after_encoder
 
         ###############################################################
         # Update spherical node embeddings
         # "Replaced" by DEQ
         ###############################################################
 
-        print_values(x.embedding, "emb", step=step, datasplit=datasplit, log=True)
+        print_values(x.embedding, "emb", step=step, datasplit=datasplit, log=True, before='-'*80)
+        print_values(edge_degree.embedding, "edgedegreeemb", log=True)
 
         # if self.skip_blocks:
         #     pass

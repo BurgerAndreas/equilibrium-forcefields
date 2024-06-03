@@ -211,12 +211,16 @@ def check_values(a, name, step, datasplit=None):
         return False
     return True
 
-def print_values(a, name, step=None, datasplit=None, log=False):
+def print_values(a, name, step=None, datasplit=None, log=False, before=None):
     if os.environ.get('PRINT_VALUES', 0) == '1':
+        if before is not None:
+            print(before)
+        _s = f"Step {step}: " if step is not None else ""
+        _d = f" ({datasplit})" if datasplit is not None else ""
         print(
-            f"Step: {step}, {name} (split: {datasplit}):"
+            f"{_s}{name}{_d}:"
             f" min: {a.min().item()}, max: {a.max().item()}, mean: {a.mean().item()}, norm: {a.norm().item()}"
-            f" isfinite: {torch.isfinite(a).all()}, isnan: {torch.isnan(a).any()}"
+            f" isinf: {torch.isinf(a).any()}, isnan: {torch.isnan(a).any()}"
         )
     # log to wandb
     if log and step is not None:

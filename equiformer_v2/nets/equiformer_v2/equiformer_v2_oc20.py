@@ -169,6 +169,7 @@ class EquiformerV2_OC20(BaseModel):
         learn_scale_before_decoder=False,
         learn_scale_after_decoder=False,
         batchify_for_torchdeq=False,
+        edge_emb_st_max_norm=None,
         **kwargs,
     ):
         super().__init__()
@@ -383,6 +384,7 @@ class EquiformerV2_OC20(BaseModel):
             self.edge_channels_list,
             self.block_use_atom_edge_embedding,
             rescale_factor=self._AVG_DEGREE,
+            st_max_norm=edge_emb_st_max_norm,
         )
 
         self.build_blocks()

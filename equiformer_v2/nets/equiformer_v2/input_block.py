@@ -5,6 +5,8 @@ import copy
 from .so3 import SO3_Embedding
 from .radial_function import RadialFunction
 
+from deq2ff.logging_utils_deq import print_values
+
 
 class EdgeDegreeEmbedding(torch.nn.Module):
     """
@@ -37,6 +39,7 @@ class EdgeDegreeEmbedding(torch.nn.Module):
         edge_channels_list,
         use_atom_edge_embedding,
         rescale_factor,
+        st_max_norm=None,
     ):
         super(EdgeDegreeEmbedding, self).__init__()
         self.sphere_channels = sphere_channels
@@ -57,10 +60,12 @@ class EdgeDegreeEmbedding(torch.nn.Module):
 
         if self.use_atom_edge_embedding:
             self.source_embedding = nn.Embedding(
-                self.max_num_elements, self.edge_channels_list[-1]
+                num_embeddings=self.max_num_elements, embedding_dim=self.edge_channels_list[-1],
+                max_norm=st_max_norm,
             )
             self.target_embedding = nn.Embedding(
-                self.max_num_elements, self.edge_channels_list[-1]
+                num_embeddings=self.max_num_elements, embedding_dim=self.edge_channels_list[-1],
+                max_norm=st_max_norm
             )
             nn.init.uniform_(self.source_embedding.weight.data, -0.001, 0.001)
             nn.init.uniform_(self.target_embedding.weight.data, -0.001, 0.001)
@@ -81,13 +86,21 @@ class EdgeDegreeEmbedding(torch.nn.Module):
         if self.use_atom_edge_embedding:
             source_element = atomic_numbers[edge_index[0]]  # Source atom atomic number
             target_element = atomic_numbers[edge_index[1]]  # Target atom atomic number
+            print_values(a=source_element.float(), name="source_element")
+            print_values(a=target_element.float(), name="target_element")
+            # TODO: sometimes produces NaNs with Broyden
             source_embedding = self.source_embedding(source_element)
             target_embedding = self.target_embedding(target_element)
+            print_values(a=source_embedding, name="source_embedding")
+            print_values(a=target_embedding, name="target_embedding")
+            print_values(a=self.source_embedding.weight, name="source_embedding.weight")
             x_edge = torch.cat(
                 (edge_distance, source_embedding, target_embedding), dim=1
             )
         else:
             x_edge = edge_distance
+        print_values(a=x_edge, name="xedge")
+        
 
         x_edge_m_0 = self.rad_func(x_edge)
         x_edge_m_0 = x_edge_m_0.reshape(
@@ -102,6 +115,7 @@ class EdgeDegreeEmbedding(torch.nn.Module):
             device=x_edge_m_0.device,
         )
         x_edge_m_all = torch.cat((x_edge_m_0, x_edge_m_pad), dim=1)
+        print_values(a=x_edge_m_all, name="xedgem")
 
         x_edge_embedding = SO3_Embedding(
             0,
@@ -123,4 +137,5 @@ class EdgeDegreeEmbedding(torch.nn.Module):
         x_edge_embedding._reduce_edge(edge_index[1], atomic_numbers.shape[0])
         x_edge_embedding.embedding = x_edge_embedding.embedding / self.rescale_factor
 
+        # print_values(a=x_edge_embedding, name="xedgeemb")
         return x_edge_embedding

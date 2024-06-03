@@ -154,7 +154,7 @@ def matvec(part_Us, part_VTs, x):
 
 def check_values(a, name):
     # check for infinite values
-    if not torch.isfinite(a).all():
+    if torch.isinf(a).any():
         print(f"{name} has infinite values")
         return False
     # check for nan values

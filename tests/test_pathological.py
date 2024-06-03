@@ -615,6 +615,9 @@ def hydra_wrapper(args: DictConfig) -> None:
     # args: omegaconf.dictconfig.DictConfig -> dict
     # args = OmegaConf.to_container(args, resolve=True)
 
+    # export PRINT_VALUES=1
+    os.environ["PRINT_VALUES"] = "1"
+
     main(args)
 
 

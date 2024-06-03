@@ -95,6 +95,9 @@ model:
   # weight_init (str): ['normal', 'uniform'] initialization of weights of linear layers except those in radial functions
   weight_init: 'uniform' # ['uniform', 'normal']
 
+  # EdgeDegreeEmbedding source target nn.Embedding(max_norm)
+  edge_emb_st_max_norm: null
+
 # Optimizer for OC20, ignored in MD17
 optim:
   batch_size:  4 # 4 6 8

@@ -32,6 +32,7 @@ from .drop import (
     EquivariantDropoutArraySphericalHarmonics,
 )
 
+from deq2ff.logging_utils_deq import print_values
 
 class SO2EquivariantGraphAttention(torch.nn.Module):
     """
@@ -719,12 +720,16 @@ class TransBlockV2(torch.nn.Module):
         # Open residual connection
         x_res = output_embedding.embedding
 
+        print_values(a=x_res, name="TansBlockIn")
+
         # Norm
         output_embedding.embedding = self.norm_1(output_embedding.embedding)
+        print_values(a=output_embedding.embedding, name="TansBlockPostNorm1")
         # GraphAttention
         output_embedding = self.graph_attention(
             output_embedding, atomic_numbers, edge_distance, edge_index
         )
+        print_values(a=output_embedding.embedding, name="TansBlockPostGraphAttention")
 
         # PathDrop
         if self.path_drop is not None:
@@ -739,14 +744,17 @@ class TransBlockV2(torch.nn.Module):
 
         # Merge residual connection
         output_embedding.embedding = output_embedding.embedding + x_res
+        print_values(a=x_res, name="TansBlockPostMerge1")
 
         # Open residual connection
         x_res = output_embedding.embedding
 
         # Norm
         output_embedding.embedding = self.norm_2(output_embedding.embedding)
+        print_values(a=output_embedding.embedding, name="TansBlockPreFFN")
         # FeedForwardNetwork
         output_embedding = self.ffn(output_embedding)
+        print_values(a=output_embedding.embedding, name="TansBlockPostFFN")
 
         # PathDrop
         if self.path_drop is not None:
@@ -777,5 +785,6 @@ class TransBlockV2(torch.nn.Module):
 
         # Merge residual connection
         output_embedding.embedding = output_embedding.embedding + x_res
+        print_values(a=output_embedding.embedding, name="TansBlockPostMerge2")
 
         return output_embedding

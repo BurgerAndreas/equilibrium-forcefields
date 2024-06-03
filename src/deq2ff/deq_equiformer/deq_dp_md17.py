@@ -121,6 +121,7 @@ from deq2ff.deq_equiformer.deq_dp_minimal import (
 )
 
 from deq2ff.deq_base import _init_deq, _process_solver_kwargs
+from deq2ff.logging_utils_deq import check_values
 
 
 class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):

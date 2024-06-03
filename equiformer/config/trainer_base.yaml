@@ -1,5 +1,5 @@
 # @package _global_
-# ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
+# this @package directive solves any nesting problem (if this file is included in another folder)
 
 model:
   # Statistics of QM9 with cutoff max_radius = 5
@@ -161,7 +161,7 @@ model_is_deq: False
 # reuse fixed-point of previous step
 # DEQ Optical Flow used FPR only during inference
 fpreuse_test: False
-fpreuse_test_only: True
+fpreuse_test_only: False
 
 # reuse fixed-points across epochs
 fpreuse_across_epochs: False

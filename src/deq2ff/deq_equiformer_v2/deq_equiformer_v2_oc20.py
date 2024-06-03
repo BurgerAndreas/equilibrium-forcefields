@@ -65,12 +65,7 @@ from torchdeq.solver.broyden import broyden_solver_grad
 from equiformer.nets.registry import register_model
 
 from deq2ff.deq_base import _init_deq, _process_solver_kwargs
-
-# Statistics of IS2RE 100K
-# from equiformer_v2.nets.equiformer_v2.equiformer_v2_oc20 import (
-#     _AVG_DEGREE,
-#     _AVG_NUM_NODES,
-# )
+from deq2ff.logging_utils_deq import check_values, print_values
 
 
 """
@@ -249,7 +244,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         # Init per node representations using an atomic number based embedding
         # shape: [num_atoms*batch_size, num_coefficients, num_channels]
-        x: SO3_Embedding = SO3_Embedding(
+        x = SO3_Embedding(
             num_atoms,
             self.lmax_list,
             self.sphere_channels,
@@ -299,6 +294,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # Update spherical node embeddings
         # "Replaced" by DEQ
         ###############################################################
+
+        print_values(x.embedding, "emb", step=step, datasplit=datasplit, log=True)
 
         # if self.skip_blocks:
         #     pass
@@ -488,6 +485,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             # norm_before = x.norm()
             norm_before = emb.norm()
             z = x + emb
+            print_values(z, "injprenorm", log=False)
             if self.norm_injection == "prev":
                 scale = z.norm() / norm_before
                 z = z / scale
@@ -501,6 +499,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 dtype=self.dtype,
                 embedding=z,
             )
+        print_values(x.embedding, "postinj", log=False)
         # layers
         for i in range(self.num_layers):
             x = self.blocks[i](

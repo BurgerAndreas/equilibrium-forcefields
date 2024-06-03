@@ -139,6 +139,7 @@ IGNORE_OVERRIDES_CHECKPOINT = [
     "testwevalmode",
     "test_max_iter",
     "test_size",
+    "datasplit",
     # target is defined in the path
     # "target",
     "inf",

@@ -5,8 +5,8 @@
 
 deq_kwargs:
   # core: sliced
-  f_max_iter: 24
   f_solver: 'broyden'
-
-fpc_freq: 2
-fpreuse_test: True
+  f_stop_mode: 'rel'
+  
+# fpc_freq: 2
+# fpreuse_test: True

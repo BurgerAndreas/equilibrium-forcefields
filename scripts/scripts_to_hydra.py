@@ -12,7 +12,7 @@ all_files = glob.glob("equiformer/scripts/train/md17/**/*.sh", recursive=True)
 
 # at the beginning of new file
 default_beginning = """# @package _global_
-# ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
+# this @package directive solves any nesting problem (if this file is included in another folder)
 """
 
 dest_dir = "equiformer/config/preset"

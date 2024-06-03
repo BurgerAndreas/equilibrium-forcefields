@@ -7,7 +7,7 @@ Automatically generate a hydra config file from an argparse function.
 
 default_beginning = """
 # @package _global_
-# ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
+# this @package directive solves any nesting problem (if this file is included in another folder)
 
 defaults:
   # if _self_ is the first entry, compositions will overwrite this config

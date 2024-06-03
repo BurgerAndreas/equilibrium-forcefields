@@ -1,5 +1,5 @@
 # @package _global_
-# ^^^ this @package directive solves any nesting problem (if this file is included in another folder)
+# this @package directive solves any nesting problem (if this file is included in another folder)
 
 # Fixed-Point correction settings, reweighted
 #  +use=deq +cfg=fpc_of deq_kwargs.core=indexing fpc_weight=1e4 fpc_freq=3 deq_kwargs.f_stop_mode=rel deq_kwargs.f_tol=1e-4

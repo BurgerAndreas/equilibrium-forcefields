@@ -432,9 +432,12 @@ def main(args):
                     ],
                     key=lambda x: int(x.split("@")[1].split("_")[0]),
                 )
+                # remove checkpoints
+                checkpoints = [_c for _c in checkpoints if "pathological" not in _c]
                 args.checkpoint_path = os.path.join(
                     args.checkpoint_path, checkpoints[-1]
                 )
+                print(f"Found checkpoints: {checkpoints}")
             state_dict = torch.load(args.checkpoint_path)
             # write state_dict
             model.load_state_dict(state_dict["state_dict"])
@@ -449,7 +452,7 @@ def main(args):
             loaded_checkpoint = True
         except Exception as e:
             # probably checkpoint not found
-            _log.info(f"Error loading checkpoint: {e}")
+            _log.info(f"Error loading checkpoint: {e}. \n List of files: {os.listdir(args.checkpoint_path)}")
     wandb.log({"start_epoch": start_epoch, "epoch": start_epoch}, step=global_step)
 
     # if we want to run inference only we want to make sure that the model is loaded
@@ -973,7 +976,15 @@ def main(args):
             if update_val_result and args.save_best_val_checkpoint:
                 _log.info(f"Saving best EMA val checkpoint")
                 torch.save(
-                    {"state_dict": get_state_dict(model_ema)},
+                    {
+                        "state_dict": get_state_dict(model_ema),
+                        "optimizer": optimizer.state_dict(),
+                        "lr_scheduler": lr_scheduler.state_dict(),
+                        "epoch": epoch,
+                        "global_step": global_step,
+                        "best_metrics": best_metrics,
+                        "best_ema_metrics": best_ema_metrics,
+                    },
                     os.path.join(
                         args.output_dir,
                         "best_ema_val_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
@@ -991,7 +1002,15 @@ def main(args):
             if update_test_result and args.save_best_test_checkpoint:
                 _log.info(f"Saving best EMA test checkpoint")
                 torch.save(
-                    {"state_dict": get_state_dict(model_ema)},
+                    {
+                        "state_dict": get_state_dict(model_ema),
+                        "optimizer": optimizer.state_dict(),
+                        "lr_scheduler": lr_scheduler.state_dict(),
+                        "epoch": epoch,
+                        "global_step": global_step,
+                        "best_metrics": best_metrics,
+                        "best_ema_metrics": best_ema_metrics,
+                    },
                     os.path.join(
                         args.output_dir,
                         "best_ema_test_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
@@ -1015,7 +1034,15 @@ def main(args):
             ):
                 _log.info(f"Saving EMA checkpoint")
                 torch.save(
-                    {"state_dict": get_state_dict(model_ema)},
+                    {
+                        "state_dict": get_state_dict(model_ema),
+                        "optimizer": optimizer.state_dict(),
+                        "lr_scheduler": lr_scheduler.state_dict(),
+                        "epoch": epoch,
+                        "global_step": global_step,
+                        "best_metrics": best_metrics,
+                        "best_ema_metrics": best_ema_metrics,
+                    },
                     os.path.join(
                         args.output_dir,
                         "ema_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(

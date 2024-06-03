@@ -330,8 +330,10 @@ def broyden_solver(
             "bd,bd->b", vT, delta_gx
         )[:, None]
         # replace nan with 0
-        vT[vT != vT] = 0
-        u[u != u] = 0
+        # vT[vT != vT] = 0
+        # u[u != u] = 0
+        vT = torch.nan_to_num(vT)
+        u = torch.nan_to_num(u)
         VTs[:, (nstep - 1) % LBFGS_thres] = vT
         Us[:, :, (nstep - 1) % LBFGS_thres] = u
         update = -matvec(Us[:, :, :nstep], VTs[:, :nstep], gx)

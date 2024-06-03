@@ -326,9 +326,14 @@ def broyden_solver(
         # Update the inverses Jacobian approximation using the Broyden's update formula
         part_Us, part_VTs = Us[:, :, : nstep - 1], VTs[:, : nstep - 1]
         vT = rmatvec(part_Us, part_VTs, delta_x)
-        u = (delta_x - matvec(part_Us, part_VTs, delta_gx)) / torch.einsum(
-            "bd,bd->b", vT, delta_gx
-        )[:, None]
+        u = (delta_x - matvec(part_Us, part_VTs, delta_gx)) 
+        check_values(u, f"u prediv (nstep={nstep})")
+        _div = torch.einsum("bd,bd->b", vT, delta_gx)[:, None]
+        check_values(_div, f"_div (nstep={nstep})")
+        u = u / _div
+        check_values(vT, f"vT pre nan_to_num (nstep={nstep})")
+        check_values(u, f"u pre nan_to_num (nstep={nstep})")
+
         # replace nan with 0
         # vT[vT != vT] = 0
         # u[u != u] = 0

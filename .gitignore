@@ -2,6 +2,8 @@
 datasets/*
 !datasets/statistics*
 
+src/deq2ff/plotting/datasets
+
 equiformer/datasets/oc20
 # ocp
 

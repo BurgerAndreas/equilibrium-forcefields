@@ -334,9 +334,7 @@ def broyden_solver(
         check_values(vT, f"vT pre nan_to_num (nstep={nstep})")
         check_values(u, f"u pre nan_to_num (nstep={nstep})")
 
-        # replace nan with 0
-        # vT[vT != vT] = 0
-        # u[u != u] = 0
+        # Replaces NaN, positive infinity, and negative infinity values by 0, max allowed value, min allowed value
         vT = torch.nan_to_num(vT)
         u = torch.nan_to_num(u)
         VTs[:, (nstep - 1) % LBFGS_thres] = vT
@@ -348,6 +346,8 @@ def broyden_solver(
         check_values(VTs, f"VTs (nstep={nstep})")
         check_values(Us, f"Us (nstep={nstep})")
         check_values(update, f"update (nstep={nstep})")
+        
+        update = torch.nan_to_num(update)
 
     # Fill everything up to the max_iter length
     for _ in range(max_iter + 1 - len(trace_dict[stop_mode])):

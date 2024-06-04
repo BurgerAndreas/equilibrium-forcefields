@@ -140,9 +140,12 @@ IGNORE_OVERRIDES_CHECKPOINT = [
     "test_max_iter",
     "test_size",
     "datasplit",
+    # "trial",
+    # "+trial",
     # target is defined in the path
     # "target",
     "inf",
+    "fulleval",
 ]
 
 REPLACE = {
@@ -283,3 +286,16 @@ def set_gpu_name(args):
 #         wandb.run.name = run_name
 #     except:
 #         pass
+
+# replace old keys with new keys (due to renaming parts of the model)
+old_to_new_keys = {
+    "blocks.0.ga": "blocks.0.graph_attention",
+    "blocks.1.ga": "blocks.1.graph_attention",
+    "blocks.2.ga": "blocks.2.graph_attention",
+    "blocks.3.ga": "blocks.3.graph_attention",
+    "blocks.4.ga": "blocks.4.graph_attention",
+    "blocks.5.ga": "blocks.5.graph_attention",
+    "blocks.6.ga": "blocks.6.graph_attention",
+    "blocks.7.ga": "blocks.7.graph_attention",
+    "blocks.8.ga": "blocks.8.graph_attention",
+}

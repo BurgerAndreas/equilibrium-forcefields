@@ -14,6 +14,7 @@ from torch_geometric.loader.dataloader import Collater
 import os
 import sys
 import yaml
+import re
 
 # add the root of the project to the path so it can find equiformer
 # root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -69,6 +70,7 @@ Adapted from equiformer/main_md17.py
 
 import deq2ff
 import deq2ff.logging_utils_deq as logging_utils_deq
+from deq2ff.logging_utils import old_to_new_keys
 from deq2ff.losses import (
     load_loss,
     L2MAELoss,
@@ -439,6 +441,12 @@ def main(args):
                 )
                 print(f"Found checkpoints: {checkpoints}")
             state_dict = torch.load(args.checkpoint_path)
+            # replace old keys with new keys (due to renaming parts of the model)
+            for key in list(state_dict.keys()):
+                new_key = key
+                for k, v in old_to_new_keys.items():
+                    new_key = new_key.replace(k, v)
+                state_dict[new_key] = state_dict.pop(key)
             # write state_dict
             model.load_state_dict(state_dict["state_dict"])
             optimizer.load_state_dict(state_dict["optimizer"])
@@ -708,29 +716,50 @@ def main(args):
         # print('lr:', optimizer.param_groups[0]["lr"])
         # print('lr:', lr_scheduler.get_last_lr())
 
-        train_err, train_loss, global_step, fixed_points = train_one_epoch(
-            args=args,
-            model=model,
-            # criterion=criterion,
-            criterion_energy=criterion_energy,
-            criterion_force=criterion_force,
-            data_loader=train_loader,
-            # all_loader=all_loader,
-            all_dataset=all_dataset,
-            optimizer=optimizer,
-            device=device,
-            epoch=epoch,
-            global_step=global_step,
-            model_ema=model_ema,
-            print_freq=args.print_freq,
-            logger=_log,
-            normalizers=normalizers,
-            fixed_points=fixed_points,
-            indices_to_idx=indices_to_idx,
-            idx_to_indices=idx_to_indices,
-            fpdevice=fpdevice,
-        )
-        epoch_train_time = time.perf_counter() - epoch_start_time
+        try:
+            train_err, train_loss, global_step, fixed_points = train_one_epoch(
+                args=args,
+                model=model,
+                # criterion=criterion,
+                criterion_energy=criterion_energy,
+                criterion_force=criterion_force,
+                data_loader=train_loader,
+                # all_loader=all_loader,
+                all_dataset=all_dataset,
+                optimizer=optimizer,
+                device=device,
+                epoch=epoch,
+                global_step=global_step,
+                model_ema=model_ema,
+                print_freq=args.print_freq,
+                logger=_log,
+                normalizers=normalizers,
+                fixed_points=fixed_points,
+                indices_to_idx=indices_to_idx,
+                idx_to_indices=idx_to_indices,
+                fpdevice=fpdevice,
+            )
+            epoch_train_time = time.perf_counter() - epoch_start_time
+        except Exception as e:
+            _log.error(f"Error in training: {e}")
+            # save checkpoint as example for further analysis
+            _cname = "pathological_ep@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
+                epoch, test_err["energy"].avg, test_err["force"].avg
+            )
+            torch.save(
+                {
+                    "state_dict": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "lr_scheduler": lr_scheduler.state_dict(),
+                    "epoch": epoch,
+                    "global_step": global_step,
+                    "best_metrics": best_metrics,
+                    "best_ema_metrics": best_ema_metrics,
+                },
+                os.path.join(args.output_dir, _cname),
+            )
+            print(f"Saved pathological example at epoch {epoch} to {args.output_dir}/{_cname}")
+            raise e
 
         if args.torch_record_memory:
             # Snapshots will save last `max_entries` number of memory events
@@ -1648,23 +1677,6 @@ def train_one_epoch(
         # if loss_metrics is all nan
         # probably because deq_kwargs.f_solver=broyden,anderson did not converge
         if isnan_cnt > max_steps // 2:
-            # save checkpoint as pathological example
-            _cname = "pathological_ep@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-                epoch, mae_metrics["energy"].avg, mae_metrics["force"].avg
-            )
-            torch.save(
-                {
-                    "state_dict": model.state_dict(),
-                    "optimizer": optimizer.state_dict(),
-                    # "lr_scheduler": lr_scheduler.state_dict(),
-                    "epoch": epoch,
-                    "global_step": global_step,
-                    # "best_metrics": best_metrics,
-                    # "best_ema_metrics": best_ema_metrics,
-                },
-                os.path.join(args.output_dir, _cname),
-            )
-            print(f"Saved pathological example at epoch {epoch} to {args.output_dir}/{_cname}")
             raise ValueError(
                 f"Most energy predictions are nan ({isnan_cnt}/{max_steps}). Try deq_kwargs.f_solver=fixed_point_iter"
             )

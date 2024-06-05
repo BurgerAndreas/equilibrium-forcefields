@@ -350,7 +350,7 @@ def broyden_solver(
         check_values(_div, f"_div (nstep={nstep})")
         # if _div is zero, we will have inf in u
         _div = torch.clamp(_div, min=1e-8)
-        if os.environ.get('FIX_BROYDEN', 0) == '1':
+        if os.environ.get('FIX_BROYDEN', 1) == '1':
             _div = torch.nan_to_num(_div)
 
         u = u / _div

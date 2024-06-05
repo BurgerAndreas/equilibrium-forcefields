@@ -5,6 +5,7 @@ References:
 """
 import torch
 import numpy as np
+import os
 
 from .utils import init_solver_info, batch_flatten, update_state, solver_stat_from_info
 
@@ -330,7 +331,8 @@ def broyden_solver(
         check_values(u, f"u prediv (nstep={nstep})")
         _div = torch.einsum("bd,bd->b", vT, delta_gx)[:, None]
         check_values(_div, f"_div (nstep={nstep})")
-        _div = torch.nan_to_num(_div)
+        if os.environ.get('FIX_BROYDEN', 1) == '1':
+            _div = torch.nan_to_num(_div)
         u = u / _div
         check_values(vT, f"vT pre nan_to_num (nstep={nstep})")
         check_values(u, f"u pre nan_to_num (nstep={nstep})")
@@ -348,7 +350,8 @@ def broyden_solver(
         check_values(Us, f"Us (nstep={nstep})")
         check_values(update, f"update (nstep={nstep})")
 
-        update = torch.nan_to_num(update)
+        if os.environ.get('FIX_BROYDEN', 1) == '1':
+            update = torch.nan_to_num(update)
 
     # Fill everything up to the max_iter length
     for _ in range(max_iter + 1 - len(trace_dict[stop_mode])):

@@ -203,7 +203,13 @@ def compute_loss(args, y, dy, target_y, target_dy, criterion_energy, criterion_f
 
 def main(args):
 
+    # set environment values if they are not None
+    # if args.broyden_print_values is not None:
+    #     os.environ["PRINT_VALUES"] = args.broyden_print_values
+    # if args.fix_broyden is not None:
+    #     os.environ["FIX_BROYDEN"] = args.fix_broyden
     torch.autograd.set_detect_anomaly(args.torch_detect_anomaly)
+
 
     # create output directory
     if args.output_dir == "auto":
@@ -741,7 +747,7 @@ def main(args):
             )
             epoch_train_time = time.perf_counter() - epoch_start_time
         except Exception as e:
-            _log.error(f"Error in training: {e}")
+            _log.info(f"Error in training: {e}")
             # save checkpoint as example for further analysis
             _cname = "pathological_ep@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
                 epoch, test_err["energy"].avg, test_err["force"].avg
@@ -1758,6 +1764,8 @@ def evaluate(
             max_steps = max_iter if max_iter != -1 else len(data_loader)
 
             start_time = time.perf_counter()
+
+            # TODO: eval_rounds multiple rounds of max_iter
             for step, data in enumerate(data_loader):
                 data = data.to(device)
 
@@ -1839,10 +1847,6 @@ def evaluate(
                     torch.abs(force_err)
                 ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
-                
-                # Remove
-                # print(f' loss_e: {loss_e}, loss_f: {loss_f}')
-                # print(f' enery_err: {energy_err}, force_err: {force_err}')
 
                 # --- logging ---
                 if len(info) > 0:

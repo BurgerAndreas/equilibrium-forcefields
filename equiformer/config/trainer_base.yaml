@@ -209,6 +209,10 @@ MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT: 100000
 # print stack trace on error instead of e.g. silent NaNs
 torch_detect_anomaly: True
 
+# set environment variables for torchdeq
+broyden_print_values: null
+fix_broyden: null
+
 # variables we can access in our code
 job_name: 'results'
 # job_name: ${hydra:job.name}

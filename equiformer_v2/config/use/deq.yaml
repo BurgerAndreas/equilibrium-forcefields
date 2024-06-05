@@ -50,6 +50,10 @@ deq_kwargs_test:
   f_tol: _default
   f_stop_mode: _default
 
+# if you want to specify a different solver for test set
+# only works if evaluate is True
+test_solver: null
+
 # passed to torchdeq
 deq_kwargs:
   # https://torchdeq.readthedocs.io/en/latest/torchdeq/core.html#torchdeq.core.get_deq

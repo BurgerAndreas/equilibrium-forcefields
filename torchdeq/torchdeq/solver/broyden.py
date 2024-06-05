@@ -6,6 +6,7 @@ References:
 import torch
 import numpy as np
 import os
+import time
 
 from .utils import init_solver_info, batch_flatten, update_state, solver_stat_from_info
 
@@ -176,6 +177,7 @@ def broyden_solver(
     ls=False,
     return_final=False,
     with_grad=False,
+    # div_with_double=False,
     # return_xest=False,
     **kwargs
 ):
@@ -329,17 +331,39 @@ def broyden_solver(
         vT = rmatvec(part_Us, part_VTs, delta_x)
         u = (delta_x - matvec(part_Us, part_VTs, delta_gx)) 
         check_values(u, f"u prediv (nstep={nstep})")
+
+        # if os.environ.get('DIV_WITH_DOUBLE', 0) == 1:
+        #     t_start = time.time()
+        #     _div = torch.einsum("bd,bd->b", vT, delta_gx)[:, None]
+        #     t_float = time.time() - t_start
+        #     if not torch.is_nonzero(_div):
+        #         print(f"_div is zero at nstep={nstep}. Using double precision.")
+        #         t_start = time.time()
+        #         _div = torch.einsum("bd,bd->b", vT.double(), delta_gx.double())[:, None]
+        #         _div = _div.to(x0.dtype)
+        #         t_double = time.time() - t_start
+        #         print(f" Time float: {t_float}, Time double: {t_double} [ms]")
+        # else:
+        #     _div = torch.einsum("bd,bd->b", vT, delta_gx)[:, None]
         _div = torch.einsum("bd,bd->b", vT, delta_gx)[:, None]
+
         check_values(_div, f"_div (nstep={nstep})")
-        if os.environ.get('FIX_BROYDEN', 1) == '1':
+        # if _div is zero, we will have inf in u
+        _div = torch.clamp(_div, min=1e-8)
+        if os.environ.get('FIX_BROYDEN', 0) == '1':
             _div = torch.nan_to_num(_div)
+
         u = u / _div
         check_values(vT, f"vT pre nan_to_num (nstep={nstep})")
         check_values(u, f"u pre nan_to_num (nstep={nstep})")
 
         # Replaces NaN, positive infinity, and negative infinity values by 0, max allowed value, min allowed value
-        vT = torch.nan_to_num(vT)
-        u = torch.nan_to_num(u)
+        if os.environ.get('FIX_BROYDEN', 1) == '1':
+            vT = torch.nan_to_num(vT)
+            u = torch.nan_to_num(u)
+        else:
+            vT[vT != vT] = 0
+            u[u != u] = 0
         VTs[:, (nstep - 1) % LBFGS_thres] = vT
         Us[:, :, (nstep - 1) % LBFGS_thres] = u
         update = -matvec(Us[:, :, :nstep], VTs[:, :nstep], gx)

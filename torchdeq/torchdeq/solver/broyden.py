@@ -351,7 +351,10 @@ def broyden_solver(
 
         # if _div is zero, we will have inf in u
         # empirically clamp often results in nan, not recommended
-        # _div = torch.clamp(_div, min=1e-8)
+        if os.environ.get('DIV_CLAMP', 0) == '1':
+            _div = torch.clamp(_div, min=1e-7)
+        if os.environ.get('DIV_FUDGE', 0) == '1':
+            _div += 1e-7
         if os.environ.get('FIX_BROYDEN', 1) == '1':
             _div = torch.nan_to_num(_div)
         u = u / _div

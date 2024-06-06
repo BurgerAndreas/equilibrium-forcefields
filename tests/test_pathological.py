@@ -565,15 +565,15 @@ def main(args):
         wandb.run.summary.update(shapes_to_log)
 
         # TODO: might not work with input injection as concat
-        NODE_EMBEDDING_BATCH_SHAPE = shapes_to_log["NodeEmbeddingShape"]
-        NODE_EMBEDDING_SHAPE = list(NODE_EMBEDDING_BATCH_SHAPE)
-        NODE_EMBEDDING_SHAPE[0] = NODE_EMBEDDING_SHAPE[0] // args.batch_size
-        print(f"NODE_EMBEDDING_SHAPE: {NODE_EMBEDDING_SHAPE}")
-        print(f"NODE_EMBEDDING_BATCH_SHAPE: {NODE_EMBEDDING_BATCH_SHAPE}")
+        node_embedding_batch_shape = shapes_to_log["NodeEmbeddingShape"]
+        node_embedding_shape = list(node_embedding_batch_shape)
+        node_embedding_shape[0] = node_embedding_shape[0] // args.batch_size
+        print(f"node_embedding_shape: {node_embedding_shape}")
+        print(f"node_embedding_batch_shape: {node_embedding_batch_shape}")
     except Exception as e:
         print(f"Failed to log shapes: {e}")
-        NODE_EMBEDDING_BATCH_SHAPE = None
-        NODE_EMBEDDING_SHAPE = None
+        node_embedding_batch_shape = None
+        node_embedding_shape = None
 
 
     """ Training Loop """

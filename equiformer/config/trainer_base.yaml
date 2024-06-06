@@ -204,7 +204,7 @@ torch_profile: False
 
 # log memory usage
 torch_record_memory: False
-MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT: 100000
+max_num_of_mem_events_per_snapshot: 100000
 
 # print stack trace on error instead of e.g. silent NaNs
 torch_detect_anomaly: True

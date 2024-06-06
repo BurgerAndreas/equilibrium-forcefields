@@ -632,15 +632,15 @@ def main(args):
         wandb.run.summary.update(shapes_to_log)
 
         # TODO: might not work with input injection as concat
-        NODE_EMBEDDING_BATCH_SHAPE = shapes_to_log["NodeEmbeddingShape"]
-        NODE_EMBEDDING_SHAPE = list(NODE_EMBEDDING_BATCH_SHAPE)
-        NODE_EMBEDDING_SHAPE[0] = NODE_EMBEDDING_SHAPE[0] // args.batch_size
-        print(f"NODE_EMBEDDING_SHAPE: {NODE_EMBEDDING_SHAPE}")
-        print(f"NODE_EMBEDDING_BATCH_SHAPE: {NODE_EMBEDDING_BATCH_SHAPE}")
+        node_embedding_batch_shape = shapes_to_log["NodeEmbeddingShape"]
+        node_embedding_shape = list(node_embedding_batch_shape)
+        node_embedding_shape[0] = node_embedding_shape[0] // args.batch_size
+        print(f"node_embedding_shape: {node_embedding_shape}")
+        print(f"node_embedding_batch_shape: {node_embedding_batch_shape}")
     except Exception as e:
         print(f"Failed to log shapes: {e}")
-        NODE_EMBEDDING_BATCH_SHAPE = None
-        NODE_EMBEDDING_SHAPE = None
+        node_embedding_batch_shape = None
+        node_embedding_shape = None
 
     """ Log memory usage """
     # Start recording memory snapshot history, initialized with a buffer
@@ -648,7 +648,7 @@ def main(args):
     if args.torch_record_memory:
         try:
             torch.cuda.memory._record_memory_history(
-                max_entries=args.MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT
+                max_entries=args.max_num_of_mem_events_per_snapshot
             )
         except Exception as e:
             _log.info(f"Failed to record memory history {e}")
@@ -698,13 +698,13 @@ def main(args):
         return True
 
     """ Train! """
-    if NODE_EMBEDDING_SHAPE is not None:
+    if node_embedding_shape is not None:
         # empty list to store fixed-points across epochs
         # fixed_points = [None] * args.train_size
         fpdevice = device if args.fp_on_gpu else torch.device("cpu")
-        # fixed_points = [torch.zeros(NODE_EMBEDDING_SHAPE, device=fpdevice)] * args.train_size
+        # fixed_points = [torch.zeros(node_embedding_shape, device=fpdevice)] * args.train_size
         fixed_points = torch.zeros(
-            args.train_size, *NODE_EMBEDDING_SHAPE, device=fpdevice, requires_grad=False
+            args.train_size, *node_embedding_shape, device=fpdevice, requires_grad=False
         )
         # empty tensor to store fixed-points across epochs
         # fixed_points = torch.zeros(args.train_size, 3, device=device)

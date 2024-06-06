@@ -213,6 +213,7 @@ REPLACE = {
     # ignore defaults
     "targetaspirin": "",
     "seed1": "",
+    "fstopmode-": "",
 }
 
 

@@ -330,8 +330,11 @@ def broyden_solver(
         part_Us, part_VTs = Us[:, :, : nstep - 1], VTs[:, : nstep - 1]
         vT = rmatvec(part_Us, part_VTs, delta_x)
         u = (delta_x - matvec(part_Us, part_VTs, delta_gx)) 
+        if os.environ.get('FIX_BROYDEN', 1) == '1':
+            u = torch.nan_to_num(u)
         check_values(u, f"u prediv (nstep={nstep})")
 
+        _div = torch.einsum("bd,bd->b", vT, delta_gx)[:, None]
         # if os.environ.get('DIV_WITH_DOUBLE', 0) == 1:
         #     t_start = time.time()
         #     _div = torch.einsum("bd,bd->b", vT, delta_gx)[:, None]
@@ -345,17 +348,13 @@ def broyden_solver(
         #         print(f" Time float: {t_float}, Time double: {t_double} [ms]")
         # else:
         #     _div = torch.einsum("bd,bd->b", vT, delta_gx)[:, None]
-        _div = torch.einsum("bd,bd->b", vT, delta_gx)[:, None]
 
-        check_values(_div, f"_div (nstep={nstep})")
         # if _div is zero, we will have inf in u
-        _div = torch.clamp(_div, min=1e-8)
+        # empirically clamp often results in nan, not recommended
+        # _div = torch.clamp(_div, min=1e-8)
         if os.environ.get('FIX_BROYDEN', 1) == '1':
             _div = torch.nan_to_num(_div)
-
         u = u / _div
-        check_values(vT, f"vT pre nan_to_num (nstep={nstep})")
-        check_values(u, f"u pre nan_to_num (nstep={nstep})")
 
         # Replaces NaN, positive infinity, and negative infinity values by 0, max allowed value, min allowed value
         if os.environ.get('FIX_BROYDEN', 1) == '1':
@@ -364,18 +363,22 @@ def broyden_solver(
         else:
             vT[vT != vT] = 0
             u[u != u] = 0
+
+        check_values(vT, f"vT pre nan_to_num (nstep={nstep})")
+        check_values(u, f"u pre nan_to_num (nstep={nstep})")
+
         VTs[:, (nstep - 1) % LBFGS_thres] = vT
         Us[:, :, (nstep - 1) % LBFGS_thres] = u
         update = -matvec(Us[:, :, :nstep], VTs[:, :nstep], gx)
+
+        if os.environ.get('FIX_BROYDEN', 1) == '1':
+            update = torch.nan_to_num(update)
 
         check_values(vT, f"vT (nstep={nstep})")
         check_values(u, f"u (nstep={nstep})")
         check_values(VTs, f"VTs (nstep={nstep})")
         check_values(Us, f"Us (nstep={nstep})")
         check_values(update, f"update (nstep={nstep})")
-
-        if os.environ.get('FIX_BROYDEN', 1) == '1':
-            update = torch.nan_to_num(update)
 
     # Fill everything up to the max_iter length
     for _ in range(max_iter + 1 - len(trace_dict[stop_mode])):

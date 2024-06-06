@@ -1331,7 +1331,7 @@ def train_one_epoch(
 
     max_steps = len(data_loader)
     for rep in range(args.epochs_per_epochs):
-        for step, data in enumerate(data_loader):
+        for batchstep, data in enumerate(data_loader):
             data = data.to(device)
 
             # for sparse fixed-point correction loss
@@ -1599,11 +1599,11 @@ def train_one_epoch(
             torch.cuda.synchronize()
 
             # logging
-            if step % print_freq == 0 or step == max_steps - 1:
+            if batchstep % print_freq == 0 or batchstep == max_steps - 1:
                 w = time.perf_counter() - start_time
-                e = (step + 1) / max_steps
+                e = (batchstep + 1) / max_steps
                 info_str = "Epoch: [{epoch}][{step}/{length}] \t".format(
-                    epoch=epoch, step=step, length=max_steps
+                    epoch=epoch, step=batchstep, length=max_steps
                 )
                 info_str += "loss_e: {loss_e:.5f}, loss_f: {loss_f:.5f}, e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
                     loss_e=loss_metrics["energy"].avg,

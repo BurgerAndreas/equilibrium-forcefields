@@ -170,6 +170,7 @@ class EquiformerV2_OC20(BaseModel):
         learn_scale_after_decoder=False,
         batchify_for_torchdeq=False,
         edge_emb_st_max_norm=None,
+        pre_layernorm=True,
         post_layernorm=False,
         **kwargs,
     ):
@@ -388,6 +389,7 @@ class EquiformerV2_OC20(BaseModel):
             st_max_norm=edge_emb_st_max_norm,
         )
 
+        self.pre_layernorm = pre_layernorm
         self.post_layernorm = post_layernorm
 
         self.build_blocks()
@@ -511,6 +513,7 @@ class EquiformerV2_OC20(BaseModel):
                 normlayer_norm=self.normlayer_norm,
                 normlayer_affine=self.normlayer_affine,
                 post_layernorm=self.post_layernorm,
+                pre_layernorm=self.pre_layernorm,
             )
             self.blocks.append(block)
 

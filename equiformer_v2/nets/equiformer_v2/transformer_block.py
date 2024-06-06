@@ -621,18 +621,23 @@ class TransBlockV2(torch.nn.Module):
         use_variational_path_drop=False,
         normlayer_norm="component",
         normlayer_affine=True,
+        pre_layernorm=True,
         post_layernorm=False,
     ):
         super(TransBlockV2, self).__init__()
 
         max_lmax = max(lmax_list)
-        self.norm_1 = get_normalization_layer(
-            norm_type,
-            lmax=max_lmax,
-            num_channels=sphere_channels,
-            normalization=normlayer_norm,
-            affine=normlayer_affine,
-        )
+
+        if pre_layernorm:
+            self.norm_1 = get_normalization_layer(
+                norm_type,
+                lmax=max_lmax,
+                num_channels=sphere_channels,
+                normalization=normlayer_norm,
+                affine=normlayer_affine,
+            )
+        else:
+            self.norm_1 = None
 
         self.graph_attention = SO2EquivariantGraphAttention(
             sphere_channels=sphere_channels,
@@ -735,7 +740,8 @@ class TransBlockV2(torch.nn.Module):
         print_values(a=x_res, name="TansBlockIn")
 
         # Norm
-        output_embedding.embedding = self.norm_1(output_embedding.embedding)
+        if self.norm_1 is not None:
+            output_embedding.embedding = self.norm_1(output_embedding.embedding)
         print_values(a=output_embedding.embedding, name="TansBlockPostNorm1")
         # GraphAttention
         output_embedding = self.graph_attention(

@@ -749,9 +749,7 @@ def main(args):
         except Exception as e:
             _log.info(f"Error in training: {e}")
             # save checkpoint as example for further analysis
-            _cname = "pathological_ep@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-                epoch, test_err["energy"].avg, test_err["force"].avg
-            )
+            _cname = f"pathological_ep@{epoch}_e@NaN_f@NaN.pth.tar"
             torch.save(
                 {
                     "state_dict": model.state_dict(),

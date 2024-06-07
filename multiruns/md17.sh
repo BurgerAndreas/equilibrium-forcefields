@@ -51,24 +51,24 @@ done
 ########################################################################################
 
 # # DEQ 1 layer
-# # launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 wandb_tags=["md17"] target=aspirin
-# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 wandb_tags=["md17"] target=benzene
-# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 wandb_tags=["md17"] target=ethanol
-# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 wandb_tags=["md17"] target=malonaldehyde
-# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 wandb_tags=["md17"] target=naphthalene
-# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 wandb_tags=["md17"] target=salicylic_acid
-# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 wandb_tags=["md17"] target=toluene
-# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 wandb_tags=["md17"] target=uracil
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] target=aspirin
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] target=benzene
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] target=ethanol
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] target=malonaldehyde
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] target=naphthalene
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] target=salicylic_acid
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] target=toluene
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] target=uracil
 
 # # DEQ 2 layers
-# # launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.path_drop=0.05 wandb_tags=["md17"] target=aspirin
-# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.path_drop=0.05 wandb_tags=["md17"] target=benzene
-# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.path_drop=0.05 wandb_tags=["md17"] target=ethanol
-# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.path_drop=0.05 wandb_tags=["md17"] target=malonaldehyde
-# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.path_drop=0.05 wandb_tags=["md17"] target=naphthalene
-# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.path_drop=0.05 wandb_tags=["md17"] target=salicylic_acid
-# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.path_drop=0.05 wandb_tags=["md17"] target=toluene
-# launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.path_drop=0.05 wandb_tags=["md17"] target=uracil
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] model.num_layers=2  target=aspirin
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] model.num_layers=2  target=benzene
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] model.num_layers=2  target=ethanol
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] model.num_layers=2  target=malonaldehyde
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] model.num_layers=2  target=naphthalene
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] model.num_layers=2  target=salicylic_acid
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] model.num_layers=2  target=toluene
+launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] model.num_layers=2  target=uracil
 
 # # Baseline Equiformer2 with one layer
 # launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md17"] target=aspirin

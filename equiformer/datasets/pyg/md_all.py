@@ -601,6 +601,7 @@ def get_md_datasets(
 
 def get_order(args):
     # rename datasplit to order
+    order = args.datasplit
     if args.datasplit == "fpreuse_ordered":
         order = "consecutive_all"
     elif args.datasplit == "fpreuse_overlapping":

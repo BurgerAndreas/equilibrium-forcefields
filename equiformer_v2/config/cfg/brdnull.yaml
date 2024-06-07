@@ -1,0 +1,19 @@
+# @package _global_
+# this @package directive solves any nesting problem (if this file is included in another folder)
+
+# Fixed-Point correction settings from DEQ Optical Flow paper
+
+deq_kwargs:
+  # core: sliced
+  f_solver: 'broyden'
+  f_stop_mode: 'rel'
+  f_tol: 1e-2
+  
+# fpc_freq: 2
+# fpreuse_test: True
+
+model:
+  torchdeq_norm:
+    norm_type: null
+  path_drop: 0.05
+  use_variational_path_drop: True

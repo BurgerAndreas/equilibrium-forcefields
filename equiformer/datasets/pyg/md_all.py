@@ -480,6 +480,7 @@ def get_md_datasets(
     max_samples: int = -1,
     return_idx=False,
     order=None,
+    test_patches=1,
     test_size_select=None,
 ):
     """
@@ -555,8 +556,26 @@ def get_md_datasets(
     if return_idx:
         return idx_train, idx_val, idx_test
 
-    if test_size_select is None:
-        test_size_select = test_size
+    test_size = len(idx_test)
+
+    if test_patches is not None and test_patches > 1:
+        # split the test set into test_patches of size test_size_select, evenly distributed
+        # test_size_select: number of samples to select from the test set
+        # test_size: total number of samples in the test set
+        if test_size_select is None:
+            test_size_select = 1000
+        if test_size_select > test_size:
+            print(
+                f"Warning: test_size_select ({test_size_select}) is greater than test_size ({test_size})."
+            )
+        start_idx = np.linspace(0, test_size - test_size_select, test_patches, dtype=int)
+        test_indices = np.hstack([np.arange(s, s + test_size_select) for s in start_idx])
+    else:
+        if test_size_select is None:
+            # full test set
+            test_size_select = test_size
+        # 0:test_size_select
+        test_indices = torch.arange(test_size_select)
 
     # log split to wandb
     if wandb.run is not None:
@@ -567,7 +586,7 @@ def get_md_datasets(
                 "idx_train": idx_train[:max_num],
                 "idx_val": idx_val[:max_num],
                 "idx_test": idx_test[:max_num],
-                "idx_test_selected": idx_test[:test_size_select],
+                "idx_test_selected": idx_test[test_indices],
             },
             step=0,
         )
@@ -580,29 +599,7 @@ def get_md_datasets(
     return train_dataset, val_dataset, test_dataset, test_dataset_full, all_dataset
 
 
-# TODO: move this to fix_args()
 def get_order(args):
-    # if ("fpreuse_test" in args and args.fpreuse_test) or (
-    #     "fpreuse_datasplit" in args and args.fpreuse_datasplit
-    # ):
-    #     order = "consecutive_test"
-    order = args.datasplit
-    # if we use fp reuse, we need to make sure that the test set is consecutive across batches
-    if args.fpreuse_test:
-        if args.datasplit not in ["fpreuse_overlapping", "fpreuse_ordered"]:
-            print(
-                'Warning: fpreuse_test is set, but datasplit is not "fpreuse_overlapping" or "fpreuse_ordered". Setting datasplit to "fpreuse_overlapping"'
-            )
-            args.datasplit = "fpreuse_overlapping"
-    # if we use contrastive loss, the train set needs to be consecutive within a batch
-    if isinstance(args.contrastive_loss, str) and args.contrastive_loss.endswith(
-        "ordered"
-    ):
-        if args.datasplit not in ["fpreuse_ordered"]:
-            print(
-                'Warning: contrastive_loss is set, but datasplit is not "fpreuse_ordered". Setting datasplit to "fpreuse_ordered"'
-            )
-            args.datasplit = "fpreuse_ordered"
     # rename datasplit to order
     if args.datasplit == "fpreuse_ordered":
         order = "consecutive_all"

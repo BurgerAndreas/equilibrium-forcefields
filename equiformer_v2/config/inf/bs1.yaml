@@ -1,0 +1,21 @@
+# @package _global_
+# this @package directive solves any nesting problem (if this file is included in another folder)
+
+# Only useful for evaluate=True (not training).
+# When evaluating fixed-point reuse in DEQs, it is better to use eval_batch_size=1.
+# test_patches will concat multiple consecutive streaks of idxs for the test set,
+# e.g. for test_size=200: idx=[42,...242,50042,...50242,100042,...100242,150042,...150242]
+# make sure that for post-processing you exclude the jumps in idxs every test_size
+
+# deq_kwargs:
+#   # core: sliced
+#   f_solver: 'anderson'
+#   f_stop_mode: 'rel'
+#   f_tol: 1e-2
+
+evaluate: True
+fpreuse_test: True
+datasplit: "fpreuse_overlapping"
+eval_batch_size: 1
+test_patches: 5
+test_size: 200

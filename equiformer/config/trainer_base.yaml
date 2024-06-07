@@ -32,6 +32,28 @@ use_dataset_avg_stats: False
 datasplit: "equiformer"
 shuffle: True
 shuffle_test: False
+# for fpreuse we might want multiple consecutive dataloaders
+test_patches: 1
+
+# It's a mess but this is the settings I suggest:
+# (1) default
+# train, test, and val are random indices, no overlap, non-consecutive.
+# the test size is limited by test_max_iter.
+# cannot be used for fixed-point reuse.
+# (2) fpreuse_test=True, eval_batch_size>=4, datasplit=fpreuse_overlapping
+# the test set is consecutive across batches, with overlap with the training set.
+# the overlap is minor since on MD17 the training set is ~0.5% of all data (~200k).
+# along the batch dimension the test set are evenly spaced across the dataset
+# if eval_batch_size is too small, we will test e.g. idx=[42,...1042], 
+# which is not representative of the whole dataset.
+# if eval_batch_size=4, test_max_iter=800 we will test 
+# e.g. idx=[[42,...242][50042,...50242][100042,...100242][150042,...150242]]
+# (3) fpreuse_test=True, eval_batch_size=1, test_patches>=4, test_size=1000//test_patches, datasplit=fpreuse_overlapping
+# Only useful for evaluate=True (not training).
+# When evaluating fixed-point reuse in DEQs, it is better to use eval_batch_size=1.
+# test_patches will concat multiple consecutive streaks of idxs for the test set,
+# e.g. for test_size=200: idx=[42,...242,50042,...50242,100042,...100242,150042,...150242]
+# make sure that for post-processing you exclude the jumps in idxs every test_size
 
 # (int)
 epochs: 1000

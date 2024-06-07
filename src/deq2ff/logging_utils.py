@@ -29,17 +29,41 @@ def fix_args(args: OmegaConf):
             args.wandb_tags = []
         args.wandb_tags.append("eval")
 
-    if "model_is_deq" in args:
-        if args.model_is_deq is True:
-            if args.model.name[:3] != "deq":
-                args.model.name = f"deq_{args.model.name}"
+    # rename model to include deq
+    if "model_is_deq" in args and args.model_is_deq is True:
+        if args.model.name[:3] != "deq":
+            args.model.name = f"deq_{args.model.name}"
+    
+    # regular Equiformer cannot use fpreuse_test
+    else:
+        if "fpreuse_test" in args:
+            args.fpreuse_test = False
+    
+    # if we use fpreuse, we need to make sure that the test set is consecutive across batches
+    if args.fpreuse_test:
+        if args.datasplit not in ["fpreuse_overlapping", "fpreuse_ordered"]:
+            print(
+                'Warning: fpreuse_test is set, but datasplit is not "fpreuse_overlapping" or "fpreuse_ordered". Setting datasplit to "fpreuse_overlapping"'
+            )
+            args.datasplit = "fpreuse_overlapping"
+    # if we use contrastive loss, the train set needs to be consecutive within a batch
+    # deprecated?
+    if isinstance(args.contrastive_loss, str) and args.contrastive_loss.endswith(
+        "ordered"
+    ):
+        if args.datasplit not in ["fpreuse_ordered"]:
+            print(
+                'Warning: contrastive_loss is set, but datasplit is not "fpreuse_ordered". Setting datasplit to "fpreuse_ordered"'
+            )
+            args.datasplit = "fpreuse_ordered"
 
-    if "noforcemodel" in args:
-        if args.noforcemodel is True:
-            if args.model.name[-7:] != "noforce":
-                args.model.name = f"{args.model.name}_noforce"
-            args.meas_force = False
+    # model with just energy prediction
+    if "noforcemodel" in args and args.noforcemodel is True:
+        if args.model.name[-7:] != "noforce":
+            args.model.name = f"{args.model.name}_noforce"
+        args.meas_force = False
 
+    # set names
     if args.wandb_run_name is None:
         args.wandb_run_name = args.model.name
     # for human readable names

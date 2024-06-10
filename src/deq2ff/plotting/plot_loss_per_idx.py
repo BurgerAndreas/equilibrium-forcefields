@@ -87,6 +87,18 @@ def main(run_id, datasplit="test_fpreuse"):
     collate = Collater(None, None)
     # data = collate([dataset[_idx] for _idx in idx])
 
+    # remove every patch_size row (because there is no fpreuse)
+    # df = df.iloc[1:]
+    test_size = run.config["test_size"]
+    test_patches = run.config["test_patches"]
+    patch_size = test_size // test_patches
+    print(f"patch_size: {patch_size}")
+    assert patch_size == 200
+    # remove every patch_size row (because there is no fpreuse)
+    print(f'len(df): {len(df)}')
+    df = df.iloc[patch_size-1::patch_size]
+    print(f'len(df): {len(df)}')
+
     # get idx of the minimum force mae
     # min_idx = df["f_mae"].idxmin()
     # min_idx = df["f_mae"].idxmax()
@@ -183,9 +195,14 @@ if __name__ == "__main__":
     # launchrun +use=deq target=ethanol fpreuse_test=True eval_batch_size=1 evaluate=True
     # https://wandb.ai/andreas-burger/EquilibriumEquiFormer/runs/0bi46nd6
     run_id = "0bi46nd6"
-    main(run_id)
+    # main(run_id)
 
     # launchrun +use=deq target=ethanol eval_batch_size=1 evaluate=True
     # https://wandb.ai/andreas-burger/EquilibriumEquiFormer/runs/me9p83tv
     run_id = "me9p83tv"
     # main(run_id)
+
+    # Aspirin
+    # https://wandb.ai/andreas-burger/EquilibriumEquiFormer/runs/vdx6knk5
+    run_id = "vdx6knk5"
+    main(run_id)

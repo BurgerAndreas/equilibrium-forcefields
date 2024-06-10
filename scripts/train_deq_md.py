@@ -1735,7 +1735,7 @@ def evaluate(
     if args.test_patches > 0:
         patch_size = len(data_loader) // args.test_patches
     else:
-        patch_size = max_steps
+        patch_size = max_steps + 10  # +10 to avoid accidents
 
     # remove because of torchdeq and force prediction via dE/dx
     # with torch.no_grad():
@@ -1781,15 +1781,22 @@ def evaluate(
                     pass_step = global_step
                 else:
                     pass_step = None
+                
+                # TODO
+                log_fp = True
+                if fpreuse_test and (step % patch_size == 0):
+                    # reset fixed-point
+                    fixedpoint = None
+                    prev_idx = None
+                    # for time and nsteps only keep samples where we used the fixed-point
+                    log_fp = False
 
                 forward_start_time = time.perf_counter()
                 # fixed-point reuse
                 if fpreuse_test == True:
                     # assert that idx is consecutive
                     if prev_idx is not None:
-                        assert torch.allclose(data.idx, prev_idx + 1) \
-                            or args.shuffle_test \
-                            or (step % patch_size == 0), \
+                        assert torch.allclose(data.idx, prev_idx + 1) or args.shuffle_test, \
                             f"Indices are not consecutive at step={step}: \n{data.idx}, \n prev_idx: \n{prev_idx}"
                     prev_idx = data.idx
                     # call model and pass fixedpoint
@@ -1819,7 +1826,8 @@ def evaluate(
                         fixedpoint=None,
                         solver_kwargs=solver_kwargs,
                     )
-                model_forward_time += [time.perf_counter() - forward_start_time]
+                if log_fp:
+                    model_forward_time += [time.perf_counter() - forward_start_time]
 
                 target_y = normalizers["energy"](data.y)
                 target_dy = normalizers["force"](data.dy)
@@ -1865,15 +1873,17 @@ def evaluate(
                             step=global_step,
                             datasplit=_datasplit,
                         )
+                    # log fixed-point error always
                     abs_fixed_point_error.append(
                         info["abs_trace"].mean(dim=0)[-1].item()
                     )
                     rel_fixed_point_error.append(
                         info["rel_trace"].mean(dim=0)[-1].item()
                     )
-                    # duplicates kept for legacy reasons
-                    f_steps_to_fixed_point.append(info["nstep"].mean().item())
-                    n_fsolver_steps.append(info["nstep"].mean().item())
+                    if log_fp:
+                        # duplicates kept for legacy reasons
+                        f_steps_to_fixed_point.append(info["nstep"].mean().item())
+                        n_fsolver_steps.append(info["nstep"].mean().item())
 
                 if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
                     w = time.perf_counter() - start_time
@@ -1890,9 +1900,10 @@ def evaluate(
                     )
                     logger.info(info_str)
                 
-                if loss_per_idx:
+                if loss_per_idx: # and log_fp:
                     # "idx", "e_mae", "f_mae", "nstep"
-                    idx_table.add_data(data.idx.item(), energy_err, force_err, info["nstep"].mean().item())
+                    nstep = info["nstep"].mean().item() if "nstep" in info else 0
+                    idx_table.add_data(data.idx.item(), energy_err, force_err, nstep)
 
                 if (step + 1) >= max_steps:
                     break

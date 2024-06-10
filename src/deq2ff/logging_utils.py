@@ -17,7 +17,7 @@ def fix_args(args: OmegaConf):
     args.slurm_job_id = os.environ.get("SLURM_JOB_ID", None)
     args = set_gpu_name(args)
 
-    if args.test_solver is not None:
+    if "test_solver" in args and args.test_solver is not None:
         print("Setting deq f_solver to", args.test_solver)
         args.deq_kwargs.f_solver = args.test_solver
 

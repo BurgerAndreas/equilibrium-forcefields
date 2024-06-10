@@ -168,6 +168,7 @@ IGNORE_OVERRIDES_CHECKPOINT = [
     "test_max_iter",
     "test_size",
     "datasplit",
+    "test_patches",
     # "trial",
     # "+trial",
     # target is defined in the path

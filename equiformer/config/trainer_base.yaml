@@ -35,7 +35,22 @@ shuffle_test: False
 # for fpreuse we might want multiple consecutive dataloaders
 test_patches: 1
 
-# It's a mess but this is the settings I suggest:
+# size of training dataset (int)
+train_size: 950
+# size of validation dataset (int)
+val_size: 50
+compute_stats: False
+# epoch interval to evaluate on the testing set (int)
+test_interval: 10
+# max iteration (num batches) to evaluate on the testing set (int)
+test_max_iter: 1000
+# max samples to evaluate on the testing set (int)
+test_size: null
+do_final_test: False
+# after training is done (-1 means whole test set ~ 100-200k) (int)
+test_max_iter_final: -1
+
+# It's a mess but this is the settings I suggest for the different datasplits:
 # (1) default
 # train, test, and val are random indices, no overlap, non-consecutive.
 # the test size is limited by test_max_iter.
@@ -111,20 +126,7 @@ cooldown_epochs: 10
 patience_epochs: 10
 # LR decay rate (default: 0.1 (float)
 decay_rate: 0.1
-# size of training dataset (int)
-train_size: 950
-# size of validation dataset (int)
-val_size: 50
-compute_stats: False
-# epoch interval to evaluate on the testing set (int)
-test_interval: 10
-# max iteration (num batches) to evaluate on the testing set (int)
-test_max_iter: 1000
-# max samples to evaluate on the testing set (int)
-test_size: null
-do_final_test: False
-# after training is done (-1 means whole test set ~ 100-200k) (int)
-test_max_iter_final: -1
+
 #
 loss_energy: l2mae
 loss_force: l2mae

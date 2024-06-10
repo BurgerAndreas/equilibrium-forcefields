@@ -579,13 +579,12 @@ def get_md_datasets(
 
     # log split to wandb
     if wandb.run is not None:
-        max_num = 1000
         # wandb.log({"idx_train": idx_train[:max_num].tolist(), "idx_val": idx_val[:max_num].tolist(), "idx_test": idx_test[:max_num].tolist()}, step=0)
         wandb.log(
             {
-                "idx_train": idx_train[:max_num],
-                "idx_val": idx_val[:max_num],
-                "idx_test": idx_test[:max_num],
+                "idx_train": idx_train,
+                "idx_val": idx_val,
+                "idx_test": idx_test,
                 "idx_test_selected": idx_test[test_indices],
             },
             step=0,
@@ -594,7 +593,7 @@ def get_md_datasets(
     train_dataset = Subset(all_dataset, idx_train)
     val_dataset = Subset(all_dataset, idx_val)
     test_dataset_full = Subset(all_dataset, idx_test)
-    test_dataset = Subset(all_dataset, idx_test[:test_size_select])
+    test_dataset = Subset(all_dataset, idx_test[test_indices])
 
     return train_dataset, val_dataset, test_dataset, test_dataset_full, all_dataset
 

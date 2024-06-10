@@ -1729,6 +1729,14 @@ def evaluate(
     task_mean = model.task_mean
     task_std = model.task_std
 
+    max_steps = max_iter if max_iter != -1 else len(data_loader)
+    # if we stitch together a series of samples that are consecutive within but not across patches
+    # e.g. [42,...,5042, 10042, ..., 15042, ..., 20042] -> patch_size=5000
+    if args.test_patches > 0:
+        patch_size = len(data_loader) // args.test_patches
+    else:
+        patch_size = max_steps
+
     # remove because of torchdeq and force prediction via dE/dx
     # with torch.no_grad():
     with torch.set_grad_enabled(args.test_w_grad):
@@ -1760,11 +1768,9 @@ def evaluate(
 
             fixedpoint = None
             prev_idx = None
-            max_steps = max_iter if max_iter != -1 else len(data_loader)
 
             start_time = time.perf_counter()
 
-            # TODO: eval_rounds multiple rounds of max_iter
             for step, data in enumerate(data_loader):
                 data = data.to(device)
 
@@ -1781,7 +1787,10 @@ def evaluate(
                 if fpreuse_test == True:
                     # assert that idx is consecutive
                     if prev_idx is not None:
-                        assert torch.allclose(data.idx, prev_idx + 1) or args.shuffle_test
+                        assert torch.allclose(data.idx, prev_idx + 1) \
+                            or args.shuffle_test \
+                            or (step % patch_size == 0), \
+                            f"Indices are not consecutive at step={step}: \n{data.idx}, \n prev_idx: \n{prev_idx}"
                     prev_idx = data.idx
                     # call model and pass fixedpoint
                     pred_y, pred_dy, fixedpoint, info = model(

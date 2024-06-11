@@ -560,14 +560,12 @@ def get_md_datasets(
 
     if test_patches is not None and test_patches > 1:
         # split the test set into test_patches of size test_size_select, evenly distributed
-        # test_size_select: number of samples to select from the test set
+        # test_size_select: number of samples of the test set that we are actually going to use
         # test_size: total number of samples in the test set
         if test_size_select is None:
             test_size_select = 1000
-        if test_size_select > test_size:
-            print(
-                f"Warning: test_size_select ({test_size_select}) is greater than test_size ({test_size})."
-            )
+        assert test_size_select <= test_size, \
+            f"Warning: test_size_select ({test_size_select}) is greater than test_size ({test_size})."
         start_idx = np.linspace(0, test_size - test_size_select, test_patches, dtype=int)
         test_indices = np.hstack([np.arange(s, s + test_size_select) for s in start_idx])
     else:

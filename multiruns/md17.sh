@@ -122,30 +122,30 @@ launchrun +use=deq +cfg=brdnull wandb_tags=["md173"] model.num_layers=2  target=
 # launchrun +use=deq +cfg=fpc_of model.num_layers=2 model.path_drop=0.05 wandb_tags=["md22"] target=stachyose
 
 # Baseline Equiformer2 with one layer
-launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=AT_AT_CG_CG
-launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=AT_AT
-launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=Ac_Ala3_NHMe
-launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=DHA
-launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=buckyball_catcher
-launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=dw_nanotube
-launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=stachyose
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=AT_AT_CG_CG
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=AT_AT
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=Ac_Ala3_NHMe
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=DHA
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=buckyball_catcher
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=dw_nanotube
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=stachyose
 
 # Baseline Equiformer2 with four layers
 # dw_nanotube might require batch_size=2
-launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=AT_AT_CG_CG
-launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=AT_AT
-launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=Ac_Ala3_NHMe
-launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=DHA
-launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=buckyball_catcher
-launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=dw_nanotube batch_size=2 lr=3e-4
-launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=stachyose
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=AT_AT_CG_CG
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=AT_AT
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=Ac_Ala3_NHMe
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=DHA
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=buckyball_catcher
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=dw_nanotube batch_size=2 lr=3e-4
+launchrun model.num_layers=4 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=stachyose
 
 # Baseline Equiformer2 with eight layers
 # dw_nanotube might require batch_size=1
-launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=AT_AT_CG_CG
-launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=AT_AT
-launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=Ac_Ala3_NHMe
-launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=DHA
-launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=buckyball_catcher
-launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=dw_nanotube
-launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] target=stachyose
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=AT_AT_CG_CG
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=AT_AT
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=Ac_Ala3_NHMe
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=DHA
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=buckyball_catcher
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=dw_nanotube
+launchrun model.num_layers=8 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=stachyose

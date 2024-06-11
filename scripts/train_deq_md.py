@@ -334,6 +334,8 @@ def main(args):
     )
     if args.datasplit.startswith("fpreuse"):
         # reorder test dataset to be consecutive
+        assert not (args.test_patches not in [None, 1] and args.eval_batch_size > 1), \
+            f'Warning: test_patches>1 ({args.test_patches}) can only be used with eval_batch_size=1 ({args.eval_batch_size}).'
         test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
         _log.info(f"Reordered test dataset to be consecutive for fixed-point reuse.")
     test_loader = DataLoader(

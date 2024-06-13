@@ -127,7 +127,7 @@ launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tag
 launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=Ac_Ala3_NHMe
 launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=DHA
 launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=buckyball_catcher
-launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=dw_nanotube
+launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=dw_nanotube batch_size=2
 launchrun model.num_layers=1 model.alpha_drop=0.1 model.path_drop=0.05 wandb_tags=["md22"] dname=md22 target=stachyose
 
 # Baseline Equiformer2 with four layers

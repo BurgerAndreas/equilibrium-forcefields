@@ -1765,8 +1765,10 @@ def evaluate(
             model_forward_time = []
             n_fsolver_steps = []
             if loss_per_idx:
-                # wandb table with columns: idx, e_mae, f_mae, nstep
-                idx_table = wandb.Table(columns=["idx", "e_mae", "f_mae", "nstep"])
+                # wandb table with columns: idx, e_mae, f_mae, nstep, nstep_max, nstep_min
+                idx_table = wandb.Table(
+                    columns=["idx", "e_mae", "f_mae", "nstep", "nstep_std", "nstep_max", "nstep_min"]
+                )
 
             fixedpoint = None
             prev_idx = None
@@ -1903,9 +1905,20 @@ def evaluate(
                     logger.info(info_str)
                 
                 if loss_per_idx: # and log_fp:
-                    # "idx", "e_mae", "f_mae", "nstep"
-                    nstep = info["nstep"].mean().item() if "nstep" in info else 0
-                    idx_table.add_data(data.idx.item(), energy_err, force_err, nstep)
+                    # "idx", "e_mae", "f_mae", "nstep", "nstep_std", "nstep_max", "nstep_min"
+                    if "nstep" in info:
+                        nstep = info["nstep"].mean().item() 
+                        nstep_std = info["nstep"].std().item()
+                        nstep_max = info["nstep"].max().item()
+                        nstep_min = info["nstep"].min().item()
+                    else: 
+                        nstep = 0
+                        nstep_max = 0
+                        nstep_min = 0
+                        nstep_std = 0
+                    idx_table.add_data(
+                        data.idx.item(), energy_err, force_err, nstep, nstep_std, nstep_max, nstep_min
+                    )
 
                 if (step + 1) >= max_steps:
                     break

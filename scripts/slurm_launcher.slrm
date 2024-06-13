@@ -75,4 +75,4 @@ echo `date`: "Job $SLURM_JOB_ID finished running, exit code: $?"
 # cp ./$SLURM_JOB_ID.err $archive/job.err
 
 # usage: 
-# sbatch scripts/slurm_launcher.slrm deq_equiformer.py +machine=vector batch_size=16
+# sbatch scripts/slurm_launcher.slrm train_deq_main_v2.py +machine=vector batch_size=16

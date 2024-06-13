@@ -441,6 +441,13 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             x.embedding = x.embedding * self.learn_scale_after_force_block
             forces = forces.embedding.narrow(1, 1, 3)
             forces = forces.view(-1, 3)
+            # multiply force on each node by a scalar
+            if self.force_scale_block is not None:
+                force_scale = self.force_scale_block(x)
+                # select scalars only # (B, 1, 1)
+                force_scale = force_scale.embedding.narrow(dim=1, start=0, length=1)
+                # view: [num_atoms*batch_size, 1]
+                forces = forces * force_scale.view(-1, 1)
 
         if self.regress_forces:
             if return_fixedpoint:

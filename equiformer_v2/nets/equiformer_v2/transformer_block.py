@@ -539,6 +539,7 @@ class FeedForwardNetwork(torch.nn.Module):
                         input_embedding.embedding, self.SO3_grid
                     )
 
+        # final linear layer without activation
         input_embedding = self.so3_linear_2(input_embedding)
 
         return input_embedding

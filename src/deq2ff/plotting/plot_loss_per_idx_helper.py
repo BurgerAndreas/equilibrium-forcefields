@@ -565,7 +565,7 @@ def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="nor
 
     if metric == "norm_mean":
         xlabel = r"$\frac{1}{N} \sum_{n \in atoms}^{N}|Force_t^{(n)} - Force_{t-1}^{(n)}|_2$"
-    elif metric == "norm":
+    elif metric == "norm":  
         xlabel = r"$|Force_t^{(1\cdots n)} - Force_{t-1}^{(1\cdots n)}|_2$"
     elif metric == "cos_mean":
         xlabel = r"$\frac{1}{N} \sum_{n \in atoms}^{N} \cos(Force_t^{(n)}, Force_{t-1}^{(n)})$"

@@ -164,6 +164,7 @@ class EquiformerV2_OC20(BaseModel):
         name=None,
         force_head="SO2EquivariantGraphAttention",
         energy_head="FeedForwardNetwork",
+        force_scale_head=None,
         skip_blocks=False,
         learn_scale_after_encoder=False,
         learn_scale_before_decoder=False,
@@ -185,8 +186,9 @@ class EquiformerV2_OC20(BaseModel):
         self.task_mean = task_mean
         self.task_std = task_std
 
-        self.force_head = force_head
         self.energy_head = energy_head
+        self.force_head = force_head
+        self.force_scale_head = force_scale_head
 
         self.skip_blocks = skip_blocks
 
@@ -468,6 +470,21 @@ class EquiformerV2_OC20(BaseModel):
                 # dropout
                 alpha_drop=self.head_alpha_drop,
             )
+        if self.force_scale_head not in [None, False]:
+            self.force_scale_block = FeedForwardNetwork(
+                sphere_channels=self.sphere_channels,
+                hidden_channels=self.ffn_hidden_channels,
+                output_channels=1,
+                lmax_list=self.lmax_list,
+                mmax_list=self.mmax_list,
+                SO3_grid=self.SO3_grid,
+                activation=self.ffn_activation,
+                use_gate_act=self.use_gate_act,
+                use_grid_mlp=self.use_grid_mlp,
+                use_sep_s2_act=self.use_sep_s2_act,
+            )
+        else:
+            self.force_scale_block = None
 
         self.apply(self._init_weights)
         self.apply(self._uniform_init_rad_func_linear_weights)
@@ -782,9 +799,7 @@ class EquiformerV2_OC20(BaseModel):
         # (B, num_coefficients, 1)
         node_energy = self.energy_block(x)
         # if self.learn_scale_after_energy_block:
-        node_energy.embedding = (
-            node_energy.embedding * self.learn_scale_after_energy_block
-        )
+        # node_energy.embedding *= self.learn_scale_after_energy_block
         # (B, 1, 1)
         node_energy = node_energy.embedding.narrow(dim=1, start=0, length=1)
         energy = torch.zeros(
@@ -806,11 +821,18 @@ class EquiformerV2_OC20(BaseModel):
             # forces: [num_atoms*batch_size, num_coefficients, 1]
             forces = self.force_block(x, atomic_numbers, edge_distance, edge_index)
             # if self.learn_scale_after_force_block:
-            forces.embedding = forces.embedding * self.learn_scale_after_force_block
+            # forces.embedding *= self.learn_scale_after_force_block
             # [num_atoms*batch_size, 3, 1]
             forces = forces.embedding.narrow(dim=1, start=1, length=3)
             # [num_atoms*batch_size, 3]
             forces = forces.view(-1, 3)
+            # multiply force on each node by a scalar
+            if self.force_scale_block is not None:
+                force_scale = self.force_scale_block(x)
+                # select scalars only # (B, 1, 1)
+                force_scale = force_scale.embedding.narrow(dim=1, start=0, length=1)
+                # view: [num_atoms*batch_size, 1]
+                forces = forces * force_scale.view(-1, 1)
 
         if not self.regress_forces:
             return energy, {}

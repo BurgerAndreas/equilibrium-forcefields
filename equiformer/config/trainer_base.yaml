@@ -164,6 +164,10 @@ test_w_eval_mode: True
 test_w_grad: False
 
 normalizer: md17 # md17 or oc20
+# default: energies are standardized by e = e - mean_e / std_e
+# default: forces are standardized by f = f / std_e
+std_forces: null # std, normstd, False
+# normalize by (E - E_min) / (E_max - E_min) ?
 
 # logging
 # (int)

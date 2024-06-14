@@ -470,7 +470,7 @@ class EquiformerV2_OC20(BaseModel):
                 # dropout
                 alpha_drop=self.head_alpha_drop,
             )
-        if self.force_scale_head not in [None, False]:
+        if self.force_scale_head == "FeedForwardNetwork":
             self.force_scale_block = FeedForwardNetwork(
                 sphere_channels=self.sphere_channels,
                 hidden_channels=self.ffn_hidden_channels,
@@ -482,6 +482,31 @@ class EquiformerV2_OC20(BaseModel):
                 use_gate_act=self.use_gate_act,
                 use_grid_mlp=self.use_grid_mlp,
                 use_sep_s2_act=self.use_sep_s2_act,
+            )
+        elif self.force_scale_head == "SO2EquivariantGraphAttention":
+            self.force_scale_block = SO2EquivariantGraphAttention(
+                sphere_channels=self.sphere_channels,
+                hidden_channels=self.attn_hidden_channels,
+                num_heads=self.num_heads,
+                attn_alpha_channels=self.attn_alpha_channels,
+                attn_value_channels=self.attn_value_channels,
+                output_channels=1,
+                lmax_list=self.lmax_list,
+                mmax_list=self.mmax_list,
+                SO3_rotation=self.SO3_rotation,
+                mappingReduced=self.mappingReduced,
+                SO3_grid=self.SO3_grid,
+                max_num_elements=self.max_num_elements,
+                edge_channels_list=self.edge_channels_list,
+                use_atom_edge_embedding=self.block_use_atom_edge_embedding,
+                use_m_share_rad=self.use_m_share_rad,
+                activation=self.attn_activation,
+                use_s2_act_attn=self.use_s2_act_attn,
+                use_attn_renorm=self.use_attn_renorm,
+                use_gate_act=self.use_gate_act,
+                use_sep_s2_act=self.use_sep_s2_act,
+                # dropout
+                alpha_drop=self.head_alpha_drop,
             )
         else:
             self.force_scale_block = None
@@ -828,11 +853,17 @@ class EquiformerV2_OC20(BaseModel):
             forces = forces.view(-1, 3)
             # multiply force on each node by a scalar
             if self.force_scale_block is not None:
-                force_scale = self.force_scale_block(x)
-                # select scalars only # (B, 1, 1)
+                if self.force_scale_head == "FeedForwardNetwork":
+                    force_scale = self.force_scale_block(x)
+                else: # SO2EquivariantGraphAttention
+                    force_scale = self.force_scale_block(x, atomic_numbers, edge_distance, edge_index)
+                # select scalars only, one per node # (B, 1, 1)
                 force_scale = force_scale.embedding.narrow(dim=1, start=0, length=1)
-                # view: [num_atoms*batch_size, 1]
-                forces = forces * force_scale.view(-1, 1)
+                # view: [B, 1]
+                force_scale = force_scale.view(-1, 1)
+                # [B, 3]
+                force_scale = force_scale.expand(-1, 3)
+                forces = forces * force_scale
 
         if not self.regress_forces:
             return energy, {}

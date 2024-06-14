@@ -73,7 +73,7 @@ def set_style_after(ax, fs=15, legend=True):
     ax.spines["right"].set_visible(False)
     ax.spines["top"].set_visible(False)
 
-    if legend:
+    if legend is True:
         # increase legend fontsize
         ax.legend(fontsize=fs)
 
@@ -81,6 +81,8 @@ def set_style_after(ax, fs=15, legend=True):
         # ax.legend(frameon=False)
         ax.get_legend().get_frame().set_linewidth(0.0)
         # plt.legend().get_frame().set_linewidth(0.0)
+    elif legend is None:
+        pass
     else:
         ax.get_legend().remove()
 

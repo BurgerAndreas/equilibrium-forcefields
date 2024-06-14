@@ -154,6 +154,7 @@ def get_data(run_id, datasplit="test_fpreuse"):
         order="consecutive_all",
     )
 
+    metrics = ["norm_mean", "norm", "cos_mean", "cos", "fnorm", "fnorm_mean", "fnorm_max", "max", "fnorm_std"]
     if os.path.exists(filename):
         print(f"Loading data from {filename}")
         with open(filename, "rb") as f:
@@ -186,9 +187,8 @@ def get_data(run_id, datasplit="test_fpreuse"):
         print(f"Calculating f_delta between steps...")
         # from forces get the force delta between consecutive steps
         # df["f_delta"] = df["forces"].diff().mean()
-        metrics = ["norm_mean", "norm", "cos_mean", "cos", "fnorm", "fnorm_mean", "fnorm_max", "max", "fnorm_std"]
         for metric in metrics:
-            df["f_delta_"+metric] = [None] * df.shape[0]
+            df["f_delta_"+metric] = [-1.] * df.shape[0]
         for i, row in df.iterrows():
             f = row["forces"]
             if i == 0:
@@ -239,13 +239,19 @@ def get_data(run_id, datasplit="test_fpreuse"):
                 else:
                     raise ValueError(f"metric {metric} not known.")
 
-                df.at[i, "f_delta_"+metric] = f_delta
+                df.at[i, "f_delta_"+metric] = float(f_delta)
                 assert np.allclose(df.at[i, "z"], df.at[i-1, "z"]), f"z not equal at idx {i} and {i-1}: {df.at[i, 'z']} and {df.at[i-1, 'z']}"
 
         # save the dataframe
         # create the folder if it doesn't exist
         with open(filename, "wb") as f:
             pickle.dump(df, f)
+    
+    # cast to float64
+    # for metric in metrics:
+    #     df["f_delta_"+metric].astype('float64', copy=False)
+    # df["nstep"].astype('float64', copy=False)
+    print('df dtypes', df.dtypes)
     
     print(f'Removing non-fpreuse rows...')
     # remove every patch_size row (because there is no fpreuse)
@@ -444,6 +450,9 @@ def plot_mol_plt(idx, dfall, dataset, datasplit, run_id, side_by_side = False):
 
     return fig
 
+
+line_kws = {"lw": 2}
+
 def plot_loss_per_idx(dffp, dfall, datasplit, run_id):
     """Only considers the fpreuse idxs."""
     
@@ -458,7 +467,7 @@ def plot_loss_per_idx(dffp, dfall, datasplit, run_id):
     ax.set_xlabel("Index")
     ax.set_ylabel("MAE")
     ax.legend()
-    set_style_after(ax)
+    set_style_after(ax, legend=None)
 
     plt.tight_layout()
 
@@ -482,7 +491,7 @@ def plot_step_count(dffp, dfall, dataset, datasplit, run_id, wofpreuse=False):
     ax.set_xlim(0, 20)
     ax.set_xlabel("Solver Steps")
     ax.set_ylabel("Count")
-    set_style_after(ax)
+    set_style_after(ax, legend=None)
 
     plt.tight_layout()
 
@@ -514,7 +523,7 @@ def plot_step_vs_force(dffp, dfall, dataset, datasplit, run_id, kde=True):
     ax.set_ylabel("Solver Steps")
     # ax.set_yscale("log")
     ax.legend()
-    set_style_after(ax)
+    set_style_after(ax, legend=None)
 
     plt.tight_layout()
 
@@ -542,7 +551,7 @@ def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="nor
             thresh=0.01, 
             # cmap="viridis",
             # cmap="crest",
-            palette="crest",
+            # palette="crest",
         )
     else:
         sns.scatterplot(
@@ -550,6 +559,34 @@ def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="nor
             # hue="z", palette="tab20", 
             alpha=0.1
         )
+    
+    # fit linear regression
+    sns.regplot(
+        data=dffp, x=x, y="nstep", ax=ax, scatter=False,
+        order=2,
+        line_kws=line_kws
+    )
+    sns.regplot(
+        data=dffp, x=x, y="nstep", ax=ax, scatter=False,
+        line_kws=line_kws
+        # order=2,
+    )
+
+    # exactly the same as above
+    # # fit linear regression with sklearn
+    # from sklearn.linear_model import LinearRegression
+    # X = dffp[x].values.reshape(-1, 1)
+    # y = dffp["nstep"].values
+    # reg = LinearRegression().fit(X, y)
+
+    # # print(f"R^2: {reg.score(X, y)}")
+    # # print(f"coef: {reg.coef_}")
+    # # print(f"intercept: {reg.intercept_}")
+
+    # # plot the line
+    # x = np.linspace(X.min(), X.max(), 100)
+    # y = reg.predict(x.reshape(-1, 1))
+    # ax.plot(x, y, color="red", linestyle="--", label="Linear Regression")
 
 
     # bucket and histplot
@@ -591,7 +628,7 @@ def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="nor
     ax.set_ylabel("Solver Steps")
     # ax.set_yscale("log")
     # ax.legend()
-    set_style_after(ax, legend=False)
+    set_style_after(ax, legend=None)
 
     plt.tight_layout()
 

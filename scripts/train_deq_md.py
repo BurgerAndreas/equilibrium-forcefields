@@ -288,9 +288,27 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Normalizers
+    if args.std_forces == "std":
+        # std_f = dy.std(dim=1, keepdim=True) # [num_atoms*samples, 1]
+        # std_f = dy.std(dim=0, keepdim=True) # [1, 3]
+        # std_f = dy.std(dim=0) # [3]
+        # [num_atoms*samples, 3]
+        dy = torch.cat([batch.dy for batch in train_dataset], dim=0)
+        std_f = dy.std() # [1]
+    elif args.std_forces == "normstd":
+        dy = torch.cat([batch.dy for batch in train_dataset], dim=0)
+        std_f = torch.linalg.norm(dy, dim=1).std() # [1]
+    elif args.std_forces is None:
+        # default
+        std_f = task_std
+    elif args.std_forces == False:
+        std_f = 1.0
+    else:
+        raise NotImplementedError(f"Unknown std_forces: {args.std_forces}")
     if args.normalizer == "md17":
         normalizer_e = lambda x: (x - task_mean) / task_std
-        normalizer_f = lambda x: x / task_std
+        normalizer_f = lambda x: x / std_f
+    # doesn't make a difference
     elif args.normalizer == "oc20":
         normalizer_e = Normalizer(
             mean=task_mean,
@@ -299,7 +317,7 @@ def main(args):
         )
         normalizer_f = Normalizer(
             mean=0,
-            std=task_std,
+            std=std_f,
             device=device,
         )
     else:

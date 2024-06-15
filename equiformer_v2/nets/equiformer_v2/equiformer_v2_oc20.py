@@ -166,6 +166,7 @@ class EquiformerV2_OC20(BaseModel):
         force_head="SO2EquivariantGraphAttention",
         energy_head="FeedForwardNetwork",
         force_scale_head=None,
+        fsbv=1, # TODO: temporary
         skip_blocks=False,
         learn_scale_after_encoder=False,
         learn_scale_before_decoder=False,
@@ -507,6 +508,7 @@ class EquiformerV2_OC20(BaseModel):
                 use_gate_act=self.use_gate_act,
                 use_grid_mlp=self.use_grid_mlp,
                 use_sep_s2_act=self.use_sep_s2_act,
+                version=fsbv,
             )
         elif self.force_scale_head == "SO2EquivariantGraphAttention":
             self.force_scale_block = SO2EquivariantGraphAttention(

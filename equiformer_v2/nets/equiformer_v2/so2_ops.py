@@ -131,6 +131,11 @@ class SO2_Convolution(torch.nn.Module):
             self.rad_func = RadialFunction(self.edge_channels_list)
 
     def forward(self, x, x_edge):
+        """
+        Args:
+            x (SO3_Embedding): Input SO3 embedding
+            x_edge (Tensor): Edge features
+        """
 
         num_edges = len(x_edge)
         out = []

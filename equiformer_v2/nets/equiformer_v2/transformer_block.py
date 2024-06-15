@@ -120,6 +120,7 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
         self.use_m_share_rad = use_m_share_rad
 
         if self.use_atom_edge_embedding:
+            # lookup table for atomic numbers
             self.source_embedding = nn.Embedding(
                 self.max_num_elements, self.edge_channels_list[-1]
             )
@@ -269,6 +270,7 @@ class SO2EquivariantGraphAttention(torch.nn.Module):
         if self.use_atom_edge_embedding: # True by default
             source_element = atomic_numbers[edge_index[0]]  # Source atom atomic number
             target_element = atomic_numbers[edge_index[1]]  # Target atom atomic number
+            # [E, C]
             source_embedding = self.source_embedding(source_element)
             target_embedding = self.target_embedding(target_element)
             x_edge = torch.cat(
@@ -607,11 +609,13 @@ class EmbFeedForwardNetwork(torch.nn.Module):
         use_gate_act=False,
         use_grid_mlp=False,
         use_sep_s2_act=True,
+        version=1,
         **kwargs,
     ):
         super().__init__()
         """ from SO2EquivariantGraphAttention """
         # use_atom_edge_embedding = True
+        # edge scalar features
         self.max_num_elements = max_num_elements
         self.edge_channels_list = copy.deepcopy(edge_channels_list)
         self.source_embedding = nn.Embedding(
@@ -628,6 +632,14 @@ class EmbFeedForwardNetwork(torch.nn.Module):
             self.edge_channels_list[0] + 2 * self.edge_channels_list[-1]
         )
 
+        """ My creation """
+        self.version = version
+        # node scalar features
+        self.atom_type_node_embedding = nn.Embedding(
+            num_embeddings=self.max_num_elements, 
+            embedding_dim=hidden_channels
+        ) # [B, C]
+
         """ from FeedForwardNetwork """
         self.sphere_channels = sphere_channels
         self.hidden_channels = hidden_channels
@@ -643,8 +655,12 @@ class EmbFeedForwardNetwork(torch.nn.Module):
 
         self.max_lmax = max(self.lmax_list)
 
+        # TODO
+        _in = self.sphere_channels_all
+        if self.version == 3:
+            _in = self.sphere_channels_all + hidden_channels
         self.so3_linear_1 = SO3_LinearV2(
-            in_features=self.sphere_channels_all, out_features=self.hidden_channels, lmax=self.max_lmax
+            in_features=_in, out_features=self.hidden_channels, lmax=self.max_lmax
         )
         if self.use_grid_mlp:
             if self.use_sep_s2_act:
@@ -692,8 +708,12 @@ class EmbFeedForwardNetwork(torch.nn.Module):
                     self.s2_act = S2Activation(
                         self.max_lmax, self.max_lmax, activation=activation
                     )
+        # TODO
+        hc = self.hidden_channels
+        if self.version == 2:
+            hc = 2*self.hidden_channels
         self.so3_linear_2 = SO3_LinearV2(
-            self.hidden_channels, self.output_channels, lmax=self.max_lmax
+            in_features=hc, out_features=self.output_channels, lmax=self.max_lmax
         )
 
     def forward(self, x, atomic_numbers, edge_distance, edge_index, **kwargs):
@@ -702,26 +722,32 @@ class EmbFeedForwardNetwork(torch.nn.Module):
         # edge_index: [2, E]
         # edge_distance: [E, edim]
 
-        # Compute edge scalar features (invariant to rotations)
-        # Uses atomic numbers and edge distance as inputs
-        # which atom types sit and the end of the edges. E := num_edges
-        source_element = atomic_numbers[edge_index[0]] # [E] 
-        target_element = atomic_numbers[edge_index[1]] # [E] 
-        source_embedding = self.source_embedding(source_element) # [E, C]
-        target_embedding = self.target_embedding(target_element) # [E, C]
-        # edge_distance: [E, edim]. x_edge: [E, edim+2*C]
-        x_edge = torch.cat(
-            (edge_distance, source_embedding, target_embedding), dim=1
-        )
+        if self.version == 1:
+            # Compute edge scalar features (invariant to rotations)
+            # Uses atomic numbers and edge distance as inputs
+            # which atom types sit and the end of the edges. E := num_edges
+            source_element = atomic_numbers[edge_index[0]] # [E] 
+            target_element = atomic_numbers[edge_index[1]] # [E] 
+            source_embedding = self.source_embedding(source_element) # [E, C]
+            target_embedding = self.target_embedding(target_element) # [E, C]
+            # edge_distance: [E, edim]. x_edge: [E, edim+2*C]
+            x_edge = torch.cat(
+                (edge_distance, source_embedding, target_embedding), dim=1
+            )
 
-        # concat edge scalar features with node embeddings
-        # x = SO3_Embedding(
-        #     0,
-        #     x.lmax_list.copy(),
-        #     x.num_channels + x_edge.shape[1],
-        #     device=x.device,
-        #     dtype=x.dtype,
-        # )
+            # concat edge scalar features with node embeddings
+            # x = SO3_Embedding(
+            #     0,
+            #     x.lmax_list.copy(),
+            #     x.num_channels + x_edge.shape[1],
+            #     device=x.device,
+            #     dtype=x.dtype,
+            # )
+        elif self.version == 2:
+            x_node = self.atom_type_node_embedding(atomic_numbers) # [B, H]
+        elif self.version == 3:
+            x_node = self.atom_type_node_embedding(atomic_numbers) # [B, H]
+
 
         # from FeedForwardNetwork
         # use_grid_mlp = True
@@ -732,6 +758,21 @@ class EmbFeedForwardNetwork(torch.nn.Module):
             gating_scalars = self.scalar_mlp(
                 x.embedding.narrow(dim=1, start=0, length=1)
             )
+        
+        if self.version == 3:
+            # [B, H] -> [B, D, H]
+            x_node = x_node.unsqueeze(1).expand(-1, x.embedding.shape[1], -1)
+            # [B, D, C], [B, D, H] -> [B, D, C+H]
+            x_data = torch.cat((x.embedding, x_node), dim=-1)
+            x = SO3_Embedding(
+                length=0, # B
+                lmax_list=x.lmax_list.copy(), # D
+                num_channels=x.num_channels + x_node.shape[-1], # C+H
+                device=x.device,
+                dtype=x.dtype,
+            )
+            x.set_embedding(x_data)
+            # [B, D, C+H] -> [B, D, H]
         
         # [B, D, C] -> [B, D, H]
         x = self.so3_linear_1(x)
@@ -763,18 +804,39 @@ class EmbFeedForwardNetwork(torch.nn.Module):
                 dim=1,
             )
         
-        # concat edge scalar features with node embeddings
-        # x = SO3_Embedding(
-        #     0,
-        #     x.lmax_list.copy(),
-        #     x.num_channels + x_edge.shape[1],
-        #     device=x.device,
-        #     dtype=x.dtype,
-        # )
+        if self.version == 1:
+            pass
+            # concat edge scalar features with node embeddings
+            # x = SO3_Embedding(
+            #     0,
+            #     x.lmax_list.copy(),
+            #     x.num_channels + x_edge.shape[1],
+            #     device=x.device,
+            #     dtype=x.dtype,
+            # )
+            x = self.so3_linear_2(x)
+        elif self.version == 2:
+            # concat node scalar features with node embeddings
+            # [B, H] -> [B, D, H]
+            x_node = x_node.unsqueeze(1).expand(-1, x.embedding.shape[1], -1)
+            # [B, D, H], [B, D, H] -> [B, D, 2*H]
+            x_data = torch.cat((x.embedding, x_node), dim=-1)
+            x = SO3_Embedding(
+                length=0, # B
+                lmax_list=x.lmax_list.copy(), # D
+                num_channels=x.num_channels + x_node.shape[-1], # 2*H
+                device=x.device,
+                dtype=x.dtype,
+            )
+            x.set_embedding(x_data)
+            # [B, D, 2*H] -> [B, D, O] # often O = C
+            x = self.so3_linear_2(x)  
+        elif self.version == 3:
+            x = self.so3_linear_2(x)  
         
         # final linear layer without activation
         # [B, D, H] -> [B, D, O] # often O = C
-        x = self.so3_linear_2(x)
+        # x = self.so3_linear_2(x)
 
         return x
 

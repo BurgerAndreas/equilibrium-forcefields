@@ -660,6 +660,10 @@ class SO3_LinearV2(torch.nn.Module):
         self.register_buffer("expand_index", expand_index)
 
     def forward(self, input_embedding):
+        """
+        Args:
+            input_embedding: SO3_Embedding
+        """
 
         weight = torch.index_select(
             self.weight, dim=0, index=self.expand_index

@@ -138,6 +138,7 @@ def get_next_batch(dataset, batch, collate):
 
 
 # def save_checkpoint():
+# os.makedirs(args.output_dir, exist_ok=True)
 #     torch.save(
 #         {
 #             "state_dict": model.state_dict(),
@@ -771,6 +772,7 @@ def main(args):
             _log.info(f"Error in training: {e}")
             # save checkpoint as example for further analysis
             _cname = f"pathological_ep@{epoch}_e@NaN_f@NaN.pth.tar"
+            os.makedirs(args.output_dir, exist_ok=True)
             torch.save(
                 {
                     "state_dict": model.state_dict(),
@@ -841,6 +843,7 @@ def main(args):
         saved_best_checkpoint = False
         if update_val_result and args.save_best_val_checkpoint:
             _log.info(f"Saving best val checkpoint.")
+            os.makedirs(args.output_dir, exist_ok=True)
             torch.save(
                 {
                     "state_dict": model.state_dict(),
@@ -865,6 +868,7 @@ def main(args):
 
         if update_test_result and args.save_best_test_checkpoint:
             _log.info(f"Saving best test checkpoint.")
+            os.makedirs(args.output_dir, exist_ok=True)
             torch.save(
                 {
                     "state_dict": model.state_dict(),
@@ -895,6 +899,7 @@ def main(args):
             and args.save_checkpoint_after_test
         ):
             _log.info(f"Saving checkpoint.")
+            os.makedirs(args.output_dir, exist_ok=True)
             torch.save(
                 {
                     "state_dict": model.state_dict(),
@@ -1029,6 +1034,7 @@ def main(args):
             saved_best_ema_checkpoint = False
             if update_val_result and args.save_best_val_checkpoint:
                 _log.info(f"Saving best EMA val checkpoint")
+                os.makedirs(args.output_dir, exist_ok=True)
                 torch.save(
                     {
                         "state_dict": get_state_dict(model_ema),
@@ -1055,6 +1061,7 @@ def main(args):
 
             if update_test_result and args.save_best_test_checkpoint:
                 _log.info(f"Saving best EMA test checkpoint")
+                os.makedirs(args.output_dir, exist_ok=True)
                 torch.save(
                     {
                         "state_dict": get_state_dict(model_ema),
@@ -1087,6 +1094,7 @@ def main(args):
                 and args.save_checkpoint_after_test
             ):
                 _log.info(f"Saving EMA checkpoint")
+                os.makedirs(args.output_dir, exist_ok=True)
                 torch.save(
                     {
                         "state_dict": get_state_dict(model_ema),
@@ -1198,6 +1206,7 @@ def main(args):
     # save the final model
     if args.save_final_checkpoint:
         _log.info(f"Saving final checkpoint")
+        os.makedirs(args.output_dir, exist_ok=True)
         torch.save(
             {
                 "state_dict": model.state_dict(),

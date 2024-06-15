@@ -16,7 +16,8 @@ model:
   # FeedForwardNetwork, SO2EquivariantGraphAttention
   energy_head: FeedForwardNetwork
   # Predict one scalar per node to multiply the force vectors with
-  force_scale_head: null
+  force_scale_head: null 
+  fsbv: 1 # TODO: temporary, remove this
 
   # skip implicit layer aka transformer blocks. for debugging
   skip_blocks: False

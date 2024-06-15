@@ -45,6 +45,7 @@ from .layer_norm import (
 from .transformer_block import (
     SO2EquivariantGraphAttention,
     FeedForwardNetwork,
+    EmbFeedForwardNetwork,
     TransBlockV2,
 )
 from .input_block import EdgeDegreeEmbedding
@@ -173,6 +174,7 @@ class EquiformerV2_OC20(BaseModel):
         edge_emb_st_max_norm=None,
         pre_layernorm=True,
         post_layernorm=False,
+        enc_layernorm=False,
         **kwargs,
     ):
         super().__init__()
@@ -396,6 +398,13 @@ class EquiformerV2_OC20(BaseModel):
 
         self.build_blocks()
 
+        if enc_layernorm:
+            self.norm_enc = get_normalization_layer(
+                self.norm_type, lmax=max(self.lmax_list), num_channels=self.sphere_channels
+            )
+        else:
+            self.norm_enc = None
+
         # Output blocks for energy and forces
         # normalization before output blocks
         self.norm = get_normalization_layer(
@@ -483,6 +492,22 @@ class EquiformerV2_OC20(BaseModel):
                 use_grid_mlp=self.use_grid_mlp,
                 use_sep_s2_act=self.use_sep_s2_act,
             )
+        elif self.force_scale_head == "EmbFeedForwardNetwork":
+            self.force_scale_block = EmbFeedForwardNetwork(
+                max_num_elements=self.max_num_elements,
+                edge_channels_list=self.edge_channels_list,
+                # FeedForwardNetwork
+                sphere_channels=self.sphere_channels,
+                hidden_channels=self.ffn_hidden_channels,
+                output_channels=1,
+                lmax_list=self.lmax_list,
+                mmax_list=self.mmax_list,
+                SO3_grid=self.SO3_grid,
+                activation=self.ffn_activation,
+                use_gate_act=self.use_gate_act,
+                use_grid_mlp=self.use_grid_mlp,
+                use_sep_s2_act=self.use_sep_s2_act,
+            )
         elif self.force_scale_head == "SO2EquivariantGraphAttention":
             self.force_scale_block = SO2EquivariantGraphAttention(
                 sphere_channels=self.sphere_channels,
@@ -508,8 +533,12 @@ class EquiformerV2_OC20(BaseModel):
                 # dropout
                 alpha_drop=self.head_alpha_drop,
             )
-        else:
+        elif self.force_scale_head in [False, None, "None"]:
             self.force_scale_block = None
+        else:
+            raise ValueError(
+                f"Unknown force_scale_head: {self.force_scale_head}. Try model.force_scale_head=FeedForwardNetwork"
+            )
 
         self.apply(self._init_weights)
         self.apply(self._uniform_init_rad_func_linear_weights)
@@ -778,6 +807,9 @@ class EquiformerV2_OC20(BaseModel):
 
         # if self.learn_scale_after_encoder:
         # x.embedding = x.embedding * self.learn_scale_after_encoder
+
+        if self.norm_enc is not None:
+            x.embedding = self.norm_enc(x.embedding)
 
         # logging
         if step is not None:

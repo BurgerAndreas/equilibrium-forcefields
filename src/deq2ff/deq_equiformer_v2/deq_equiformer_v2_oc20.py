@@ -296,6 +296,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         # if self.learn_scale_after_encoder:
         # x.embedding = x.embedding * self.learn_scale_after_encoder
+        if self.norm_enc is not None:
+            x.embedding = self.norm_enc(x.embedding)
 
         ###############################################################
         # Update spherical node embeddings

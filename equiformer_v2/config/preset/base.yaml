@@ -25,6 +25,7 @@ model:
   norm_type: 'layer_norm_sh' # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
   normlayer_norm: norm # component, norm
   normlayer_affine: True # [True, False] Whether to use affine (learned scaling params) in normalization layer
+  enc_layernorm: False # [True, False] Whether to use layer normalization after the encoder
   pre_layernorm: True # [True, False] Whether to use layer normalization before the graph attention
   post_layernorm: False # [True, False] Whether to use layer normalization after the feedforward network
 

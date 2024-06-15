@@ -204,6 +204,7 @@ class SO2_Convolution(torch.nn.Module):
         out_embedding._l_primary(self.mappingReduced)
 
         if self.extra_m0_output_channels is not None:
+            # extra m0 features
             return out_embedding, x_0_extra
         else:
             return out_embedding

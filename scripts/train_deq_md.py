@@ -507,21 +507,22 @@ def main(args):
                     args.checkpoint_path, checkpoints[-1]
                 )
                 print(f"Found checkpoints: {checkpoints}")
-            state_dict = torch.load(args.checkpoint_path)
+            saved_state = torch.load(args.checkpoint_path)
             # replace old keys with new keys (due to renaming parts of the model)
-            for key in list(state_dict.keys()):
+            state_dict = {}
+            for key in list(saved_state["state_dict"].keys()):
                 new_key = key
                 for k, v in old_to_new_keys.items():
                     new_key = new_key.replace(k, v)
-                state_dict[new_key] = state_dict.pop(key)
+                state_dict[new_key] = saved_state["state_dict"].pop(key)
             # write state_dict
-            model.load_state_dict(state_dict["state_dict"])
-            optimizer.load_state_dict(state_dict["optimizer"])
-            lr_scheduler.load_state_dict(state_dict["lr_scheduler"])
-            start_epoch = state_dict["epoch"]
-            global_step = state_dict["global_step"]
-            best_metrics = state_dict["best_metrics"]
-            best_ema_metrics = state_dict["best_ema_metrics"]
+            model.load_state_dict(state_dict)
+            optimizer.load_state_dict(saved_state["optimizer"])
+            lr_scheduler.load_state_dict(saved_state["lr_scheduler"])
+            start_epoch = saved_state["epoch"]
+            global_step = saved_state["global_step"]
+            best_metrics = saved_state["best_metrics"]
+            best_ema_metrics = saved_state["best_ema_metrics"]
             # log
             _log.info(f"Loaded model from {args.checkpoint_path}")
             loaded_checkpoint = True

@@ -10,9 +10,10 @@
 #SBATCH --partition=rtx6000
 #SBATCH --gres=gpu:1
 # sacctmgr list qos format=Name%15,Priority,MaxWall,MaxTRESPerUser normal,m,m2,m3,m4,m5,long
-# --account=deadline --qos=deadline --qos=normal
-#SBATCH --qos=normal
-#SBATCH --time=16:00:00
+# take either long (2 GPUS) or m (8 GPUs)
+# --account=deadline --qos=deadline --qos=long
+#SBATCH --qos=long
+#SBATCH --time=2-00:00:00
 #SBATCH --output=outslurm/slurm-%j.txt 
 #SBATCH --error=outslurm/slurm-%j.txt
 # errslurm-%j.err

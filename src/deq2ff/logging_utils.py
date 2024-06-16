@@ -176,6 +176,7 @@ IGNORE_OVERRIDES_CHECKPOINT = [
     "inf",
     "fulleval",
     "test_solver",
+    "deq_kwargs_test",
 ]
 
 REPLACE = {
@@ -240,6 +241,7 @@ REPLACE = {
     "seed1": "",
     "fstopmode-": "",
     "target-": "",
+    "test-": "t-",
 }
 
 
@@ -267,7 +269,7 @@ def name_from_config(args: omegaconf.DictConfig, is_checkpoint_name=False) -> st
                         continue
                 override = arg.replace("+", "").replace("_", "")
                 override = override.replace("=", "-").replace(".", "")
-                override = override.replace("deqkwargstest", "")
+                # override = override.replace("deqkwargstest", "")
                 override = override.replace("deqkwargs", "").replace("model", "")
                 override_names += " " + override
     except Exception as error:

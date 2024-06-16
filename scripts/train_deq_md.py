@@ -288,7 +288,7 @@ def main(args):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Normalizers
+    # More statistics for normalizing forces
     if args.std_forces == "std":
         # std_f = dy.std(dim=1, keepdim=True) # [num_atoms*samples, 1]
         # std_f = dy.std(dim=0, keepdim=True) # [1, 3]
@@ -306,9 +306,11 @@ def main(args):
         std_f = 1.0
     else:
         raise NotImplementedError(f"Unknown std_forces: {args.std_forces}")
+
+    # Normalizers
     if args.normalizer == "md17":
-        normalizer_e = lambda x: (x - task_mean) / task_std
-        normalizer_f = lambda x: x / std_f
+        normalizer_e = lambda x, z: (x - task_mean) / task_std
+        normalizer_f = lambda x, z: x / std_f
     # doesn't make a difference
     elif args.normalizer == "oc20":
         normalizer_e = Normalizer(
@@ -323,6 +325,43 @@ def main(args):
         )
     else:
         raise NotImplementedError(f"Unknown normalizer: {args.normalizer}")
+    
+    # normalize forces by each atom type separately
+    if args.norm_forces_by_atom in [False, None, "None"]:
+        pass
+    else: 
+        norm_mean_atom = torch.ones(args.model.max_num_elements) # [A]
+        norm_std_atom = torch.ones(args.model.max_num_elements)
+        mean_atom = torch.ones(args.model.max_num_elements)
+        std_atom = torch.ones(args.model.max_num_elements)
+        dy = torch.cat([batch.dy for batch in train_dataset], dim=0) # [N, 3]
+        dy_norm = torch.linalg.norm(dy, dim=1) # [N]
+        atoms = torch.cat([batch.z for batch in train_dataset], dim=0) # [N]
+        for i in range(args.model.max_num_elements):
+            mask = atoms == i
+            norm_mean_atom[i] = dy_norm[mask].mean()
+            norm_std_atom[i] = dy_norm[mask].std()
+            mean_atom[i] = dy[mask].mean()
+            std_atom[i] = dy[mask].std()
+        # Normalizer for forces
+        norm_mean_atom = norm_mean_atom.to(device)
+        norm_std_atom = norm_std_atom.to(device)
+        mean_atom = mean_atom.to(device)
+        std_atom = std_atom.to(device)
+        if args.norm_forces_by_atom == 'normmean':
+            def normalizer_f(x, z): 
+                # x: [N, 3], z: [N]
+                return x / norm_mean_atom[z].unsqueeze(1)
+        elif args.norm_forces_by_atom == 'normstd':
+            normalizer_f = lambda x, z: x / norm_std_atom[z].unsqueeze(1)
+        # not really sure how to interpret this
+        elif args.norm_forces_by_atom == 'mean':
+            normalizer_f = lambda x, z: x / mean_atom[z].unsqueeze(1)
+        elif args.norm_forces_by_atom == 'std':
+            normalizer_f = lambda x, z: x / std_atom[z].unsqueeze(1)
+        else:
+            raise NotImplementedError(f"Unknown norm_forces_by_atom: {args.norm_forces_by_atom}")
+        
     normalizers = {"energy": normalizer_e, "force": normalizer_f}
 
     """ Data Loader """
@@ -1424,8 +1463,8 @@ def train_one_epoch(
                     fpr_loss=args.fpr_loss,
                 )
 
-            target_y = normalizers["energy"](data.y)
-            target_dy = normalizers["force"](data.dy)
+            target_y = normalizers["energy"](data.y, data.z) # [NB], [NB]
+            target_dy = normalizers["force"](data.dy, data.z)
 
             # reshape model output [B] (OC20) -> [B,1] (MD17)
             if args.unsqueeze_e_dim and pred_y.dim() == 1:
@@ -1860,11 +1899,8 @@ def evaluate(
                 if log_fp:
                     model_forward_time += [time.perf_counter() - forward_start_time]
 
-                target_y = normalizers["energy"](data.y)
-                target_dy = normalizers["force"](data.dy)
-
-                target_y = normalizers["energy"](data.y)
-                target_dy = normalizers["force"](data.dy)
+                target_y = normalizers["energy"](data.y, data.z)
+                target_dy = normalizers["force"](data.dy, data.z)
 
                 # reshape model output [B] (OC20) -> [B,1] (MD17)
                 if args.unsqueeze_e_dim and pred_y.dim() == 1:

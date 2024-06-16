@@ -223,7 +223,7 @@ class VariationalDropout(nn.Module):
             return mask
 
     def forward(self, x):
-        if not self.training or self.drop_prob == 0:
+        if (not self.training) or (self.drop_prob == 0):
             return x
         # generate mask on the fly and save it
         # if self.mask is None:
@@ -279,6 +279,7 @@ class EquivariantScalarsDropout(nn.Module):
 
 
 class EquivariantDropoutArraySphericalHarmonics(nn.Module):
+    """ ? """
     def __init__(self, drop_prob, drop_graph=False):
         super(EquivariantDropoutArraySphericalHarmonics, self).__init__()
         self.drop_prob = drop_prob

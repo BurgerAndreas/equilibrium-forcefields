@@ -54,4 +54,4 @@ find . -type d -iname '*E2MD17*alphadrop01numlayers8pathdrop005*' -depth -exec b
 ' -- {} \;
 
 # mv -f md17/equiformer_v2_md17/ethanol/ethanolweightdecay00 md17/equiformer_v2_md17/ethanol/E2MD17alphadrop01numlayers4pathdrop005ethanolweightdecay00
-ls md17/equiformer_v2_md17/ethanol
+# ls models/md17/equiformer_v2_md17/ethanol

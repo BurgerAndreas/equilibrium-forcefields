@@ -23,4 +23,4 @@ assert_checkpoint: True
 test_max_iter: -1
 
 # will only apply to DEQs
-fpreuse_test: True
+fpreuse_test: TrueWWW

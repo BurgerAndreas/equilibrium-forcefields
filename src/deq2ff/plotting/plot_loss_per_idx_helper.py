@@ -453,7 +453,7 @@ def plot_mol_plt(idx, dfall, dataset, datasplit, run_id, side_by_side = False):
 
 line_kws = {"lw": 2}
 
-def plot_loss_per_idx(dffp, dfall, datasplit, run_id):
+def plot_loss_per_idx(dffp, dfall, datasplit, run_id, logy=False):
     """Only considers the fpreuse idxs."""
     
     # columns: "idx", "e_mae", "f_mae", "nstep"
@@ -462,12 +462,18 @@ def plot_loss_per_idx(dffp, dfall, datasplit, run_id):
 
     fig, ax = plt.subplots()
     # sns.lineplot(data=dffp, x="idx", y="e_mae", ax=ax, label="Energy MAE")
-    sns.lineplot(data=dffp, x="idx", y="f_mae", ax=ax, label="Force MAE")
+    sns.lineplot(
+        data=dffp, x="idx", y="f_mae", ax=ax, label="Force MAE",
+        lw=1,
+        )
     # ax.set_yscale("log")
     ax.set_xlabel("Index")
     ax.set_ylabel("MAE")
     ax.legend()
     set_style_after(ax, legend=None)
+
+    if logy:
+        ax.set_yscale("log")
 
     plt.tight_layout()
 
@@ -501,28 +507,51 @@ def plot_step_count(dffp, dfall, dataset, datasplit, run_id, wofpreuse=False):
     plt.savefig(plotpath)
     print(f"Saved plot to\n {plotpath}")
 
-def plot_step_vs_force(dffp, dfall, dataset, datasplit, run_id, kde=True):
+hex_joint_kws={
+    # "gridsize": 40, # A higher value results in smaller hexbins
+}
+def plot_step_vs_force(dffp, dfall, dataset, datasplit, run_id, style="hist", ymin=0, ymax=15):
     set_seaborn_style()
-    fig, ax = plt.subplots()
     x = "f_mae"
     y = "nstep"
 
-    if kde:
+    if style == "kde":
+        fig, ax = plt.subplots()
         # density plot
-        sns.kdeplot(data=dffp, x=x, y="nstep", ax=ax, label="Force Delta", fill=True)
-    else:
+        sns.kdeplot(
+            data=dffp, x=x, y="nstep", ax=ax, label="Force Delta", fill=True
+        )
+    elif style == "scatter":
+        fig, ax = plt.subplots()
         sns.scatterplot(
             data=dffp, x=x, y="nstep", ax=ax, label="Force Delta", 
             # hue="z", palette="tab20", 
             alpha=0.1
         )
+    elif style == "hex":
+        # df.plot(kind='hexbin'
+        jointgrid = sns.jointplot(
+            data=dffp, x=x, y="nstep", kind="hex", label="Force Delta",
+            # cmap="crest",
+            joint_kws=hex_joint_kws,
+        )
+        ax = jointgrid.ax_joint
+    elif style == "hist":
+        # df.plot(kind='hexbin'
+        jointgrid = sns.jointplot(
+            data=dffp, x=x, y="nstep", kind="hist", label="Force Delta",
+            # cmap="crest",
+        )
+        ax = jointgrid.ax_joint
+    else:
+        raise ValueError(f"style {style} not supported")
 
-    ax.set_ylim(0, 20)
+    plt.ylim(ymin, ymax)
 
-    ax.set_xlabel("Force MAE")
-    ax.set_ylabel("Solver Steps")
+    plt.xlabel("Force MAE")
+    plt.ylabel("Solver Steps")
     # ax.set_yscale("log")
-    ax.legend()
+    # ax.legend()
     set_style_after(ax, legend=None)
 
     plt.tight_layout()
@@ -532,18 +561,18 @@ def plot_step_vs_force(dffp, dfall, dataset, datasplit, run_id, kde=True):
     plotpath = os.path.join(plotfolder, plotname)
     plt.savefig(plotpath)
 
-def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="norm", kde=True):
+def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="norm", style="hist", ymin=0, ymax=10):
     # assert metric in ["norm_mean", "norm", "cos_mean", "cos"]
     # number of solver steps vs |force_t - force_{t+1}|
     set_seaborn_style()
 
     # print(metric)
-    fig, ax = plt.subplots()
 
     x = "f_delta_"+metric
 
     print(f'plot_step_vs_forcedelta: plotting {len(dffp)} points.')
-    if kde:
+    if style == "kde":
+        fig, ax = plt.subplots()
         # density plot
         sns.kdeplot(
             data=dffp, x=x, y="nstep", ax=ax, label="Force Delta", fill=True,
@@ -553,52 +582,45 @@ def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="nor
             # cmap="crest",
             # palette="crest",
         )
-    else:
+    elif style == "scatter":
+        fig, ax = plt.subplots()
         sns.scatterplot(
             data=dffp, x=x, y="nstep", ax=ax, label="Force Delta", 
             # hue="z", palette="tab20", 
             alpha=0.1
         )
+    elif style == "hex":
+        # df.plot(kind='hexbin'
+        jointgrid = sns.jointplot(
+            data=dffp, x=x, y="nstep", kind="hex", label="Force Delta",
+            # cmap="crest",
+            color="#4CB391",
+            joint_kws=hex_joint_kws,
+        )
+        ax = jointgrid.ax_joint
+    elif style == "hist":
+        # df.plot(kind='hexbin'
+        jointgrid = sns.jointplot(
+            data=dffp, x=x, y="nstep", kind="hist", label="Force Delta",
+            # cmap="crest",
+            color="#4CB391",
+        )        
+        ax = jointgrid.ax_joint
+    else:
+        raise ValueError(f"style {style} not supported")
     
     # fit linear regression
     sns.regplot(
         data=dffp, x=x, y="nstep", ax=ax, scatter=False,
         order=2,
-        line_kws=line_kws
+        line_kws=line_kws,
+        
     )
     sns.regplot(
         data=dffp, x=x, y="nstep", ax=ax, scatter=False,
         line_kws=line_kws
         # order=2,
     )
-
-    # exactly the same as above
-    # # fit linear regression with sklearn
-    # from sklearn.linear_model import LinearRegression
-    # X = dffp[x].values.reshape(-1, 1)
-    # y = dffp["nstep"].values
-    # reg = LinearRegression().fit(X, y)
-
-    # # print(f"R^2: {reg.score(X, y)}")
-    # # print(f"coef: {reg.coef_}")
-    # # print(f"intercept: {reg.intercept_}")
-
-    # # plot the line
-    # x = np.linspace(X.min(), X.max(), 100)
-    # y = reg.predict(x.reshape(-1, 1))
-    # ax.plot(x, y, color="red", linestyle="--", label="Linear Regression")
-
-
-    # bucket and histplot
-    # dffp["f_delta_bucket"] = pd.cut(dffp["f_delta"], bins=10)
-    # sns.histplot(
-    #     data=dffp, x="f_delta_bucket", y="nstep", ax=ax, label="Force Delta", 
-    #     cbar=True, cbar_kws={"label": "Count"}
-    # )
-
-    # bucket and heatmap
-    # dffp["f_delta_bucket"] = pd.cut(dffp["f_delta"], bins=10)
-    # dffp["nstep_bucket"] = dffp["nstep"].astype(int)
 
     if metric == "norm_mean":
         xlabel = r"$\frac{1}{N} \sum_{n \in atoms}^{N}|Force_t^{(n)} - Force_{t-1}^{(n)}|_2$"
@@ -622,10 +644,10 @@ def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="nor
     else:
         raise ValueError(f"metric {metric} not supported")
 
-    ax.set_ylim(0, 20)
+    plt.ylim(ymin, ymax)
 
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel("Solver Steps")
+    plt.xlabel(xlabel)
+    plt.ylabel("Solver Steps")
     # ax.set_yscale("log")
     # ax.legend()
     set_style_after(ax, legend=None)

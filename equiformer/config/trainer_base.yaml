@@ -72,7 +72,8 @@ test_max_iter_final: -1
 
 # (int)
 epochs: 1000
-# if you want to reduce the number of training epochs without affecting how the learning rate is decayed (int)
+# if you want to change the number of training epochs 
+# without affecting how the learning rate is decayed (int)
 max_epochs: ${epochs}
 # If you want multiple runs over the dataset per epoch, e.g. for overfitting a single batch (int)
 epochs_per_epochs: 1
@@ -242,6 +243,12 @@ torch_detect_anomaly: True
 # set environment variables for torchdeq
 broyden_print_values: null
 fix_broyden: null
+
+# grokfast https://github.com/ironjr/grokfast
+grokfast: False # False, ema, ma
+gf_alpha: null # 0.98
+gf_lambda: null # 2.0
+gf_ws: null # window size 0.1
 
 # variables we can access in our code
 job_name: 'results'

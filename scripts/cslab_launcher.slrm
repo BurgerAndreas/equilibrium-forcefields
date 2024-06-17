@@ -1,5 +1,6 @@
 #!/bin/bash
-#SBATCH --time=30:00:00
+# '-t 3-0' for three days
+#SBATCH --time=3-00:00:00
 #SBATCH --partition=gpunodes
 # gres=gpu:<>:1 rtx_4090 rtx_a4000 rtx_a4500 rtx_a2000 rtx_a6000 gtx_1070 gtx_1080_ti rtx_2060 rtx_2070 rtx_2080
 #SBATCH --gres=gpu:1 # any

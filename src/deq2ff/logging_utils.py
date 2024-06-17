@@ -288,6 +288,11 @@ def name_from_config(args: omegaconf.DictConfig, is_checkpoint_name=False) -> st
     if "pathdrop" in _name and "usevariationalpathdrop" in _name:
         _name = _name.replace(" usevariationalpathdrop", f"")
         _name = _name.replace("pathdrop", f"varpathdrop")
+    if "model_is_deq" in args and args.model_is_deq is False:
+        _name = _name.replace("numlayers-4", f"")
+        if "pathdrop-005" in _name and "alphadrop-01" in _name:
+            _name = _name.replace("pathdrop-005", f"")
+            _name = _name.replace("alphadrop-01", f"dd")
     # done
     print(f"Name{' checkpoint' if is_checkpoint_name else ''}: {_name}")
     return _name

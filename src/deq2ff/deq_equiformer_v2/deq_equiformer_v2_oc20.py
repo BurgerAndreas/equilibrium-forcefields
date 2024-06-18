@@ -298,6 +298,13 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # x.embedding = x.embedding * self.learn_scale_after_encoder
         if self.norm_enc is not None:
             x.embedding = self.norm_enc(x.embedding)
+        
+        # logging
+        if step is not None:
+            # log the input injection (output of encoder)
+            logging_utils_deq.log_fixed_point_norm(
+                x.embedding.clone().detach(), step, datasplit, name="emb"
+            )
 
         ###############################################################
         # Update spherical node embeddings
@@ -376,6 +383,15 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 # return_final=True,
             )
             info["z_next"] = z_next
+        
+
+        ######################################################
+        # Logging
+        ######################################################
+        if step is not None:
+            logging_utils_deq.log_fixed_point_norm(
+                z_pred[-1].clone().detach(), step, datasplit
+            )
 
         ###############################################################
         # Decode the fixed-point estimate

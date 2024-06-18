@@ -29,11 +29,11 @@ use_dataset_avg_stats: False
 # fpreuse_overlapping # consecutive across batches, test split overlaps with train split, train and val splits are the same as in Equiformer
 # fpreuse_ordered # dataset is split into train, val, test without any shuffling. Testset is reordered to be consecutive across batches
 # rmd17 # datasplit indices delivered with the revised MD17 dataset, only works with md17 or rmd17
-datasplit: "equiformer"
+datasplit: "fpreuse_overlapping" # ChangeS equiformer
 shuffle: True
 shuffle_test: False
 # for fpreuse we might want multiple consecutive dataloaders
-test_patches: 1
+test_patches: 1000 # ChangeS 1
 
 # size of training dataset (int)
 train_size: 950
@@ -43,9 +43,9 @@ compute_stats: False
 # epoch interval to evaluate on the testing set (int)
 test_interval: 10
 # max iteration (num batches) to evaluate on the testing set (int)
-test_max_iter: 1000
+test_max_iter: -1 # ChangeS 1000
 # max samples to evaluate on the testing set (int)
-test_size: null
+test_size: 2 # ChangeS null
 do_final_test: False
 # after training is done (-1 means whole test set ~ 100-200k) (int)
 test_max_iter_final: -1
@@ -71,16 +71,16 @@ test_max_iter_final: -1
 # the jumps are excluded in the nstep and time measurements
 
 # (int)
-epochs: 1000
+epochs: 500 # ChangeS 1000
 # if you want to change the number of training epochs 
 # without affecting how the learning rate is decayed (int)
 max_epochs: ${epochs}
 # If you want multiple runs over the dataset per epoch, e.g. for overfitting a single batch (int)
 epochs_per_epochs: 1
 # (int)
-batch_size: 8
+batch_size: 4
 # (int)
-eval_batch_size: 24
+eval_batch_size: 1 # ChangeS 24
 # (int)
 model_ema: False
 # (float)
@@ -191,7 +191,7 @@ model_is_deq: False
 
 # reuse fixed-point of previous step
 # DEQ Optical Flow used FPR only during inference
-fpreuse_test: False
+fpreuse_test: True # ChangeS False
 fpreuse_test_only: False
 
 # reuse fixed-points across epochs

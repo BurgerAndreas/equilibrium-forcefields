@@ -5,13 +5,13 @@ defaults:
   # if _self_ is the first entry, compositions will overwrite this config
   # if _self_ is the last entry, this config will overwrite compositions (default)
   # https://hydra.cc/docs/1.3/upgrades/1.0_to_1.1/default_composition_order/
-  - preset: tiny_l3
+  - preset: halftiny_l3 # ChangeS tiny_l3
   # - data: 200k
   - ../../equiformer/config/trainer_base
   - _self_
 
-batch_size: ${optim.batch_size}
-eval_batch_size: ${optim.eval_batch_size}
+# batch_size: ${optim.batch_size}
+# eval_batch_size: ${optim.eval_batch_size}
 
 unsqueeze_e_dim: True
 force_weight: 80

@@ -182,10 +182,10 @@ IGNORE_OVERRIDES_CHECKPOINT = [
 REPLACE = {
     "deq_dot_product_attention_transformer_exp_l2_md17": "DEQE1",
     "dot_product_attention_transformer_exp_l2_md17": "E1",
-    "deq_equiformer_v2_oc20": "DEQc",
-    "equiformer_v2_oc20": "E2 OC20",
-    "deq_equiformer_v2_md17": "DEQc",
-    "equiformer_v2_md17": "E2 MD17",
+    "deq_equiformer_v2_oc20": "DEQs", # ChangeS DEQc
+    "equiformer_v2_oc20": "Es", # ChangeS E2 OC20
+    "deq_equiformer_v2_md17": "DEQs", # ChangeS DEQc
+    "equiformer_v2_md17": "Es", # ChangeS E2 MD17
     # other stuff
     "dot_product": " dp",
     "use-deq": "",

@@ -45,6 +45,7 @@ def scale_batchsize_lr(args, k=None):
 
 
 def add_weight_decay(model, weight_decay=1e-5, skip_list=()):
+    # https://pytorch.org/docs/stable/optim.html#per-parameter-options
     decay = []
     no_decay = []
     for name, param in model.named_parameters():
@@ -177,6 +178,12 @@ def create_optimizer_v2(
         optimizer = NovoGrad(parameters, **opt_args)
     elif opt_lower == "nvnovograd":
         optimizer = NvNovoGrad(parameters, **opt_args)
+    elif opt_lower == "sps":
+        # Stochastic polyak step-size for SGD: An adaptive learning rate for fast convergence
+        # pip install git+https://github.com/IssamLaradji/sps.git
+        import sps
+        assert weight_decay == 0.0, "SPS does not support weight decay"
+        optimizer = sps.Sps(parameters)
     # elif opt_lower == 'fusedsgd':
     #    opt_args.pop('eps', None)
     #    optimizer = FusedSGD(parameters, momentum=momentum, nesterov=True, **opt_args)

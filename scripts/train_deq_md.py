@@ -140,25 +140,25 @@ def get_next_batch(dataset, batch, collate):
 
 
 # def save_checkpoint():
-    # os.makedirs(args.output_dir, exist_ok=True)
-    # torch.save(
-    #     {
-    #         "state_dict": model.state_dict(),
-    #         "grads": grads,
-    #         "optimizer": optimizer.state_dict(),
-    #         "lr_scheduler": lr_scheduler.state_dict(),
-    #         "epoch": epoch,
-    #         "global_step": global_step,
-    #         "best_metrics": best_metrics,
-    #         "best_ema_metrics": best_ema_metrics,
-    #     },
-    #     os.path.join(
-    #         args.output_dir,
-    #         "final_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-    #             epoch, test_err["energy"].avg, test_err["force"].avg
-    #         ),
-    #     ),
-    # )
+#     os.makedirs(args.output_dir, exist_ok=True)
+#     torch.save(
+#         {
+#             "state_dict": model.state_dict(),
+#             "grads": grads,
+#             "optimizer": optimizer.state_dict(),
+            # "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
+#             "epoch": epoch,
+#             "global_step": global_step,
+#             "best_metrics": best_metrics,
+#             "best_ema_metrics": best_ema_metrics,
+#         },
+#         os.path.join(
+#             args.output_dir,
+#             "final_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
+#                 epoch, test_err["energy"].avg, test_err["force"].avg
+#             ),
+#         ),
+#     )
 
 
 def remove_extra_checkpoints(output_dir, max_checkpoints, startswith="epochs@"):
@@ -457,7 +457,10 @@ def main(args):
     """ Instantiate everything else """
     _log.info("Creating optimizer & co...")
     optimizer = create_optimizer(args, model)
-    lr_scheduler, _ = create_scheduler(args, optimizer)
+    if args.opt in ["sps"]:
+        lr_scheduler = None
+    else:
+        lr_scheduler, _ = create_scheduler(args, optimizer)
     grads = None # grokfast
     # record the best validation and testing errors and corresponding epochs
     best_metrics = {
@@ -522,7 +525,8 @@ def main(args):
             # write state_dict
             model.load_state_dict(state_dict)
             optimizer.load_state_dict(saved_state["optimizer"])
-            lr_scheduler.load_state_dict(saved_state["lr_scheduler"])
+            if lr_scheduler is not None:
+                lr_scheduler.load_state_dict(saved_state["lr_scheduler"])
             start_epoch = saved_state["epoch"]
             global_step = saved_state["global_step"]
             best_metrics = saved_state["best_metrics"]
@@ -787,7 +791,8 @@ def main(args):
 
         epoch_start_time = time.perf_counter()
 
-        lr_scheduler.step(epoch)
+        if lr_scheduler is not None:
+            lr_scheduler.step(epoch)
         # print('lr:', optimizer.param_groups[0]["lr"])
         # print('lr:', lr_scheduler.get_last_lr())
 
@@ -826,7 +831,7 @@ def main(args):
                     "state_dict": model.state_dict(),
                     "grads": grads,
                     "optimizer": optimizer.state_dict(),
-                    "lr_scheduler": lr_scheduler.state_dict(),
+                    "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
                     "epoch": epoch,
                     "global_step": global_step,
                     "best_metrics": best_metrics,
@@ -898,7 +903,7 @@ def main(args):
                     "state_dict": model.state_dict(),
                     "grads": grads,
                     "optimizer": optimizer.state_dict(),
-                    "lr_scheduler": lr_scheduler.state_dict(),
+                    "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
                     "epoch": epoch,
                     "global_step": global_step,
                     "best_metrics": best_metrics,
@@ -924,7 +929,7 @@ def main(args):
                     "state_dict": model.state_dict(),
                     "grads": grads,
                     "optimizer": optimizer.state_dict(),
-                    "lr_scheduler": lr_scheduler.state_dict(),
+                    "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
                     "epoch": epoch,
                     "global_step": global_step,
                     "best_metrics": best_metrics,
@@ -956,7 +961,7 @@ def main(args):
                     "state_dict": model.state_dict(),
                     "grads": grads,
                     "optimizer": optimizer.state_dict(),
-                    "lr_scheduler": lr_scheduler.state_dict(),
+                    "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
                     "epoch": epoch,
                     "global_step": global_step,
                     "best_metrics": best_metrics,
@@ -1092,7 +1097,7 @@ def main(args):
                         "state_dict": get_state_dict(model_ema),
                         "grads": grads,
                         "optimizer": optimizer.state_dict(),
-                        "lr_scheduler": lr_scheduler.state_dict(),
+                        "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
                         "epoch": epoch,
                         "global_step": global_step,
                         "best_metrics": best_metrics,
@@ -1120,7 +1125,7 @@ def main(args):
                         "state_dict": get_state_dict(model_ema),
                         "grads": grads,
                         "optimizer": optimizer.state_dict(),
-                        "lr_scheduler": lr_scheduler.state_dict(),
+                        "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
                         "epoch": epoch,
                         "global_step": global_step,
                         "best_metrics": best_metrics,
@@ -1154,7 +1159,7 @@ def main(args):
                         "state_dict": get_state_dict(model_ema),
                         "grads": grads,
                         "optimizer": optimizer.state_dict(),
-                        "lr_scheduler": lr_scheduler.state_dict(),
+                        "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
                         "epoch": epoch,
                         "global_step": global_step,
                         "best_metrics": best_metrics,
@@ -1267,7 +1272,7 @@ def main(args):
                 "state_dict": model.state_dict(),
                 "grads": grads,
                 "optimizer": optimizer.state_dict(),
-                "lr_scheduler": lr_scheduler.state_dict(),
+                "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
                 "epoch": final_epoch,
                 "global_step": global_step,
                 "best_metrics": best_metrics,
@@ -1659,8 +1664,10 @@ def train_one_epoch(
                 if param.grad is not None
             ]).norm()
 
-        # if args.lr > 0:
-        optimizer.step()
+        if args.opt in ["sps"]:
+            optimizer.step(loss=loss)
+        else:
+            optimizer.step()
 
         if len(info) > 0:
             # log fixed-point trajectory
@@ -1710,7 +1717,8 @@ def train_one_epoch(
             info_str += "time/step={time_per_step:.0f}ms, ".format(
                 time_per_step=(1e3 * w / e / max_steps)
             )
-            info_str += "lr={:.2e}".format(optimizer.param_groups[0]["lr"])
+            if "lr" in optimizer.param_groups[0]:
+                info_str += "lr={:.2e}".format(optimizer.param_groups[0]["lr"])
             logger.info(info_str)
 
         # if step % args.log_every_step_minor == 0:

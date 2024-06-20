@@ -242,6 +242,7 @@ REPLACE = {
     "fstopmode-": "",
     "target-": "",
     "test-": "t-",
+    "layernorm": "ln",
 }
 
 

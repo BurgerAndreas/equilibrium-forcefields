@@ -268,7 +268,7 @@ def main(args):
             test_size_select=args.test_size, # doesn't influence data splitting
             seed=args.seed,
             order=md_all.get_order(args),
-            test_patches=args.test_patches,
+            num_test_patches=args.test_patches,
         )
         # assert that dataset is consecutive
         samples = Collater(follow_batch=None, exclude_keys=None)(

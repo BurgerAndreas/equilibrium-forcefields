@@ -184,6 +184,8 @@ def create_optimizer_v2(
         import sps
         assert weight_decay == 0.0, "SPS does not support weight decay"
         optimizer = sps.Sps(parameters)
+    elif opt_lower == "adagrad":
+        optimizer = optim.Adagrad(parameters, **opt_args)
     # elif opt_lower == 'fusedsgd':
     #    opt_args.pop('eps', None)
     #    optimizer = FusedSGD(parameters, momentum=momentum, nesterov=True, **opt_args)

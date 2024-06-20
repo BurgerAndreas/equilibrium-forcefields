@@ -918,23 +918,22 @@ class TransBlockV2(torch.nn.Module):
         use_variational_path_drop=False,
         normlayer_norm="component",
         normlayer_affine=True,
-        pre_layernorm=True,
-        post_layernorm=False,
+        layernorm="pre", # pre, post
     ):
         super(TransBlockV2, self).__init__()
 
         max_lmax = max(lmax_list)
 
-        if pre_layernorm:
-            self.norm_1 = get_normalization_layer(
-                norm_type,
-                lmax=max_lmax,
-                num_channels=sphere_channels,
-                normalization=normlayer_norm,
-                affine=normlayer_affine,
-            )
-        else:
-            self.norm_1 = None
+        assert layernorm in ["pre", "post"], "layernorm must be 'pre' or 'post' but got {}".format(layernorm)
+        self.layernorm = layernorm
+
+        self.norm_1 = get_normalization_layer(
+            norm_type,
+            lmax=max_lmax,
+            num_channels=sphere_channels,
+            normalization=normlayer_norm,
+            affine=normlayer_affine,
+        )
 
         self.graph_attention = SO2EquivariantGraphAttention(
             sphere_channels=sphere_channels,
@@ -986,17 +985,6 @@ class TransBlockV2(torch.nn.Module):
             affine=normlayer_affine,
         )
 
-        if post_layernorm:
-            self.norm_post = get_normalization_layer(
-                norm_type,
-                lmax=max_lmax,
-                num_channels=sphere_channels,
-                normalization=normlayer_norm,
-                affine=normlayer_affine,
-            )
-        else:
-            self.norm_post = None
-
         self.ffn = FeedForwardNetwork(
             sphere_channels=sphere_channels,
             hidden_channels=ffn_hidden_channels,
@@ -1037,14 +1025,12 @@ class TransBlockV2(torch.nn.Module):
         print_values(a=x_res, name="TansBlockIn")
 
         # Norm
-        if self.norm_1 is not None:
+        if self.layernorm == "pre":
             output_embedding.embedding = self.norm_1(output_embedding.embedding)
-        print_values(a=output_embedding.embedding, name="TansBlockPostNorm1")
         # GraphAttention
         output_embedding = self.graph_attention(
             output_embedding, atomic_numbers, edge_distance, edge_index
         )
-        print_values(a=output_embedding.embedding, name="TansBlockPostGraphAttention")
 
         # PathDrop
         if self.path_drop is not None:
@@ -1059,17 +1045,19 @@ class TransBlockV2(torch.nn.Module):
 
         # Merge residual connection
         output_embedding.embedding = output_embedding.embedding + x_res
-        print_values(a=x_res, name="TansBlockPostMerge1")
+
+        if self.layernorm == "post":
+            output_embedding.embedding = self.norm_1(output_embedding.embedding)
 
         # Open residual connection
         x_res = output_embedding.embedding
 
         # Norm
-        output_embedding.embedding = self.norm_2(output_embedding.embedding)
-        print_values(a=output_embedding.embedding, name="TansBlockPostNorm2")
+        if self.layernorm == "pre":
+            output_embedding.embedding = self.norm_2(output_embedding.embedding)
+
         # FeedForwardNetwork
         output_embedding = self.ffn(output_embedding)
-        print_values(a=output_embedding.embedding, name="TansBlockPostFFN")
 
         # PathDrop
         if self.path_drop is not None:
@@ -1100,11 +1088,9 @@ class TransBlockV2(torch.nn.Module):
 
         # Merge residual connection
         output_embedding.embedding = output_embedding.embedding + x_res
-        print_values(a=output_embedding.embedding, name="TansBlockPostMerge2")
 
         # post layer norm
-        if self.norm_post is not None:
-            output_embedding.embedding = self.norm_post(output_embedding.embedding)
-            print_values(a=output_embedding.embedding, name="TansBlockPostNorm3")
+        if self.layernorm == "post":
+            output_embedding.embedding = self.norm_2(output_embedding.embedding)
 
         return output_embedding

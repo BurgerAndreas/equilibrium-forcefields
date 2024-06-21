@@ -139,26 +139,26 @@ def get_next_batch(dataset, batch, collate):
     return next_data
 
 
-# def save_checkpoint():
-#     os.makedirs(args.output_dir, exist_ok=True)
-#     torch.save(
-#         {
-#             "state_dict": model.state_dict(),
-#             "grads": grads,
-#             "optimizer": optimizer.state_dict(),
-            # "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
-#             "epoch": epoch,
-#             "global_step": global_step,
-#             "best_metrics": best_metrics,
-#             "best_ema_metrics": best_ema_metrics,
-#         },
-#         os.path.join(
-#             args.output_dir,
-#             "final_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-#                 epoch, test_err["energy"].avg, test_err["force"].avg
-#             ),
-#         ),
-#     )
+def save_checkpoint(
+        args, model, grads, optimizer, lr_scheduler, epoch, global_step, test_err, 
+        best_metrics, best_ema_metrics, name=""):
+    os.makedirs(args.output_dir, exist_ok=True)
+    torch.save(
+        {
+            "state_dict": model.state_dict(),
+            "grads": grads,
+            "optimizer": optimizer.state_dict(),
+            "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
+            "epoch": epoch,
+            "global_step": global_step,
+            "best_metrics": best_metrics,
+            "best_ema_metrics": best_ema_metrics,
+        },
+        os.path.join(
+            args.output_dir,
+            f'{name}epochs@{epoch}_e@{test_err["energy"].avg:.4f}_f@{test_err["force"].avg:.4f}.pth.tar'
+        ),
+    )
 
 
 def remove_extra_checkpoints(output_dir, max_checkpoints, startswith="epochs@"):
@@ -531,7 +531,7 @@ def main(args):
             global_step = saved_state["global_step"]
             best_metrics = saved_state["best_metrics"]
             best_ema_metrics = saved_state["best_ema_metrics"]
-            if ["grads"] in saved_state:
+            if "grads" in saved_state:
                 grads = saved_state["grads"]
             # log
             _log.info(f"Loaded model from {args.checkpoint_path}")

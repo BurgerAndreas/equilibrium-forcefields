@@ -11,7 +11,7 @@ model:
   # sphere_channels (int): Number of spherical channels (one set per resolution)
   sphere_channels: 64 # 128 # half of tiny
   # attn_hidden_channels (int): Number of hidden channels used during SO(2) graph attention
-  attn_hidden_channels: 16 # [64, 96] This determines the hidden size of message passing. Do not necessarily use 96. 
+  attn_hidden_channels: 16 # [64, 96] hidden size of message passing. Do not necessarily use 96. # half of tiny
   # num_heads (int): Number of attention heads
   num_heads: 4 # 8 # half of tiny 
   # attn_alpha_head (int): Number of channels for alpha vector in each attention head
@@ -30,7 +30,7 @@ model:
   grid_resolution: 14 # [18, 16, 14, None] For `None`, simply comment this line. 
 
   # num_sphere_samples (int): Number of samples used to approximate the integration of the sphere in the output blocks
-  num_sphere_samples: 32 # 128 # half of tiny
+  num_sphere_samples: 32 # 128 # half of tiny # TODO: change to 128
 
   # edge_channels (int): Number of channels for the edge invariant features
   edge_channels: 32 # 128 # half of tiny

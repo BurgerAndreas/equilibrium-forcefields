@@ -138,7 +138,7 @@ force_weight: 0.8 # 80
 seed: 1
 # (int)
 workers: 4
-# Pin CPU memory in DataLoader for more efficient (sometimes (int)
+# Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU. (bool)
 pin_mem: True
 # (int)
 no_pin_mem: True
@@ -157,7 +157,7 @@ max_checkpoints: 2
 evaluate: False
 # Include force in loss calculation. (str2bool)
 meas_force: True
-clip_grad_norm: False # False, 5.0, 100
+clip_grad_norm: 1000 # False, 5.0, 100
 
 # use model.eval() during evaluation (bool)
 test_w_eval_mode: True

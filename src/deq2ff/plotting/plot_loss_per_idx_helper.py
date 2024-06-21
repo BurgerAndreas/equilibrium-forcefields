@@ -271,14 +271,38 @@ def get_data(run_id, datasplit="test_fpreuse"):
 
     return dffp, df, all_dataset
 
-def filter_z_score(_df, col="f_mae"):
+def filter_z_score(_df, col="f_mae", std=3, abs=False, return_outliers=False):
+    """_summary_
+
+    Args:
+        _df (_type_): _description_
+        col (str, optional): _description_. Defaults to "f_mae".
+        std (int, optional): How many standard deviations to keep. Defaults to 3.
+        abs (bool, optional): If both positive and negative outliers should be removed. Defaults to False.
+
+    Returns:
+        _type_: _description_
+    """
     before = len(_df)
     if col is None:
         # remove all rows that have outliers in at least one column
-        _df = _df[(np.abs(scipy.stats.zscore(_df)) < 3).all(axis=1)]
+        z = scipy.stats.zscore(_df)
+        if abs:
+            z = np.abs(z)
+        if return_outliers:
+            mask = (z > std).all(axis=1)
+        else:
+            mask = (z < std).all(axis=1)
     else:
         # remove outliers with high f_mae
-        _df = _df[np.abs(scipy.stats.zscore(_df[col])) < 3]
+        z = scipy.stats.zscore(_df[col])
+        if abs:
+            z = np.abs(z)
+        if return_outliers:
+            mask = z > std
+        else:
+            mask = z < std
+    _df = _df[mask]
     print(f"Removed {before - len(_df)} outliers.")
     return _df
 
@@ -469,7 +493,7 @@ def plot_loss_per_idx(dffp, dfall, datasplit, run_id, logy=False):
     # ax.set_yscale("log")
     ax.set_xlabel("Index")
     ax.set_ylabel("MAE")
-    ax.legend()
+    # ax.legend()
     set_style_after(ax, legend=None)
 
     if logy:
@@ -479,6 +503,35 @@ def plot_loss_per_idx(dffp, dfall, datasplit, run_id, logy=False):
 
     # save the plot
     plotname = f"loss_per_idx_{datasplit}-{run_id}.png"
+    plotpath = os.path.join(plotfolder, plotname)
+    plt.savefig(plotpath)
+    print(f"Saved plot to\n {plotpath}")
+
+def plot_fmae_count(dffp, dfall, dataset, datasplit, run_id, wofpreuse=False, logs=(10, None)):
+
+    _df = dffp
+    if wofpreuse:
+        _df = dfall
+
+    set_seaborn_style()
+
+    fig, ax = plt.subplots()
+    sns.histplot(
+        data=_df, x="f_mae", ax=ax, binwidth=.1, kde=True,
+        log_scale=logs,
+        stat="probability", # count percent density
+        line_kws={"lw": 1},
+    )
+    # set xrange to 0-20
+    # ax.set_xlim(0, 20)
+    ax.set_xlabel("F MAE")
+    ax.set_ylabel("Probability")
+    set_style_after(ax, legend=None)
+
+    plt.tight_layout()
+
+    # save the plot
+    plotname = f"fmae_count_{datasplit}-{run_id}.png"
     plotpath = os.path.join(plotfolder, plotname)
     plt.savefig(plotpath)
     print(f"Saved plot to\n {plotpath}")
@@ -510,28 +563,33 @@ def plot_step_count(dffp, dfall, dataset, datasplit, run_id, wofpreuse=False):
 hex_joint_kws={
     # "gridsize": 40, # A higher value results in smaller hexbins
 }
-def plot_step_vs_force(dffp, dfall, dataset, datasplit, run_id, style="hist", ymin=0, ymax=15):
+def plot_step_vs_force(dffp, dfall, dataset, datasplit, run_id, style="hist", ymin=0, ymax=15, logy=False, logx=True, wofpreuse=False):
     set_seaborn_style()
     x = "f_mae"
     y = "nstep"
+
+    _df = dffp
+    if wofpreuse:
+        _df = dfall
+
 
     if style == "kde":
         fig, ax = plt.subplots()
         # density plot
         sns.kdeplot(
-            data=dffp, x=x, y="nstep", ax=ax, label="Force Delta", fill=True
+            data=_df, x=x, y="nstep", ax=ax, label="Force Delta", fill=True
         )
     elif style == "scatter":
         fig, ax = plt.subplots()
         sns.scatterplot(
-            data=dffp, x=x, y="nstep", ax=ax, label="Force Delta", 
+            data=_df, x=x, y="nstep", ax=ax, label="Force Delta", 
             # hue="z", palette="tab20", 
             alpha=0.1
         )
     elif style == "hex":
         # df.plot(kind='hexbin'
         jointgrid = sns.jointplot(
-            data=dffp, x=x, y="nstep", kind="hex", label="Force Delta",
+            data=_df, x=x, y="nstep", kind="hex", label="Force Delta",
             # cmap="crest",
             joint_kws=hex_joint_kws,
         )
@@ -539,8 +597,9 @@ def plot_step_vs_force(dffp, dfall, dataset, datasplit, run_id, style="hist", ym
     elif style == "hist":
         # df.plot(kind='hexbin'
         jointgrid = sns.jointplot(
-            data=dffp, x=x, y="nstep", kind="hist", label="Force Delta",
+            data=_df, x=x, y="nstep", kind="hist", label="Force Delta",
             # cmap="crest",
+            # color="#4CB391",
         )
         ax = jointgrid.ax_joint
     else:
@@ -550,7 +609,12 @@ def plot_step_vs_force(dffp, dfall, dataset, datasplit, run_id, style="hist", ym
 
     plt.xlabel("Force MAE")
     plt.ylabel("Solver Steps")
-    # ax.set_yscale("log")
+    
+    if logy:
+        ax.set_yscale("log")
+    if logx:
+        ax.set_xscale("log")
+    
     # ax.legend()
     set_style_after(ax, legend=None)
 
@@ -632,7 +696,7 @@ def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="nor
         xlabel = r"$\cos(Force_t^{(1\cdots n)}, Force_{t-1}^{(1\cdots n)})$"
     elif metric == "max":
         xlabel = r"$\max_{n \in atoms}|Force_t^{(n)} - Force_{t-1}^{(n)}|_2$"
-    # not really delta
+    # not delta but force at time t
     elif metric == "fnorm":
         xlabel = r"$|Force_t^{(1\cdots n)}|_2$"
     elif metric == "fnorm_max":
@@ -641,6 +705,8 @@ def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="nor
         xlabel = r"$\frac{1}{N} \sum_{n \in atoms}^{N}|Force_t^{(n)}|_2$"
     elif metric == "fnorm_std":
         xlabel = r"$\sigma_{n \in atoms}|Force_t^{(n)}|_2$"
+    elif metric == "f_mae":
+        xlabel =r'F MAE'
     else:
         raise ValueError(f"metric {metric} not supported")
 

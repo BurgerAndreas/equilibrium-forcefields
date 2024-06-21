@@ -1881,7 +1881,7 @@ def evaluate(
         loss_per_idx = True
     # only if it is the last epoch or if we are evaluating
     # if (epoch + 1) % args.test_interval == 0
-    max_epochs = min(args.epochs, args.max_epoch)
+    max_epochs = min(args.epochs, args.max_epochs)
     last_test_epoch = max_epochs - (max_epochs % args.test_interval)
     if (epoch + 1 == last_test_epoch) or (args.evaluate == True):
         # not and not

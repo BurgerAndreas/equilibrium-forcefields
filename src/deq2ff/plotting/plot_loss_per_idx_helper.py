@@ -294,7 +294,7 @@ def get_data(run_id, datasplit="test_fpreuse"):
     # for metric in metrics:
     #     df["f_delta_"+metric].astype('float64', copy=False)
     # df["nstep"].astype('float64', copy=False)
-    print("df dtypes", df.dtypes)
+    # print("df dtypes", df.dtypes)
 
     print(f"Removing non-fpreuse rows...")
     # remove every patch_size row (because there is no fpreuse)

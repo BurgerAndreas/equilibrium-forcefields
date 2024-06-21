@@ -771,6 +771,7 @@ def main(args):
             print_progress=True,
             max_iter=args.test_max_iter,
             global_step=global_step,
+            epoch=epoch,
             datasplit="test",
             normalizers=normalizers,
         )
@@ -900,6 +901,7 @@ def main(args):
             print_progress=False,
             max_iter=-1,
             global_step=global_step,
+            epoch=epoch,
             datasplit="val",
             normalizers=normalizers,
         )
@@ -920,6 +922,7 @@ def main(args):
                 print_progress=True,
                 max_iter=args.test_max_iter,
                 global_step=global_step,
+                epoch=epoch,
                 datasplit="test",
                 normalizers=normalizers,
             )
@@ -1097,6 +1100,7 @@ def main(args):
                 logger=_log,
                 print_progress=False,
                 global_step=global_step,
+                epoch=epoch,
                 datasplit="ema_val",
                 normalizers=normalizers,
             )
@@ -1118,6 +1122,7 @@ def main(args):
                     print_progress=True,
                     max_iter=args.test_max_iter,
                     global_step=global_step,
+                    epoch=epoch,
                     datasplit="ema_test",
                     normalizers=normalizers,
                 )
@@ -1305,6 +1310,7 @@ def main(args):
             print_progress=True,
             max_iter=args.test_max_iter_final,  # -1 means evaluate the whole dataset
             global_step=global_step,
+            epoch=final_epoch,
             datasplit="test_final",
             normalizers=normalizers,
         )
@@ -1850,6 +1856,7 @@ def evaluate(
     print_progress=False,
     max_iter=-1,
     global_step=None,
+    epoch=None,
     datasplit=None,
     normalizers={"energy": None, "force": None},
 ):
@@ -1872,6 +1879,15 @@ def evaluate(
     loss_per_idx = False
     if args.eval_batch_size == 1:
         loss_per_idx = True
+    # only if it is the last epoch or if we are evaluating
+    # if (epoch + 1) % args.test_interval == 0
+    max_epochs = min(args.epochs, args.max_epoch)
+    last_test_epoch = max_epochs - (max_epochs % args.test_interval)
+    if (epoch + 1 == last_test_epoch) or (args.evaluate == True):
+        # not and not
+        pass
+    else:
+        loss_per_idx = False
 
     task_mean = model.task_mean
     task_std = model.task_std
@@ -1920,6 +1936,8 @@ def evaluate(
                         "nstep_std",
                         "nstep_max",
                         "nstep_min",
+                        "fpabs",
+                        "fprel",
                     ]
                 )
 
@@ -2067,6 +2085,9 @@ def evaluate(
                         nstep_max = 0
                         nstep_min = 0
                         nstep_std = 0
+                    if "abs_trace" in info:
+                        fpabs = info["abs_trace"][-1].mean().item()
+                        fprel = info["rel_trace"][-1].mean().item()
                     idx_table.add_data(
                         data.idx.item(),
                         energy_err,
@@ -2075,6 +2096,8 @@ def evaluate(
                         nstep_std,
                         nstep_max,
                         nstep_min,
+                        fpabs,
+                        fprel,
                     )
 
                 if (step + 1) >= max_steps:
@@ -2154,7 +2177,7 @@ def evaluate(
                 step=global_step,
             )
 
-            print(f"Finished {_datasplit} evaluation.")
+            print(f"Finished {_datasplit} evaluation (epoch {epoch}).")
             for k, v in _logs.items():
                 logger.info(f" {k}: {v}")
 

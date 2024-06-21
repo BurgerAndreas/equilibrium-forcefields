@@ -44,7 +44,7 @@ class Normalizer(object):
         self.mean = self.mean.to(device)
         self.std = self.std.to(device)
     
-    def __call__(self, *args: torch.Any, **kwds: torch.Any) -> torch.Any:
+    def __call__(self, *args, **kwds) -> torch.Any:
         return self.norm(*args, **kwds)
     
     def norm(self, tensor, z=None):

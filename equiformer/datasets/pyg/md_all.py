@@ -300,7 +300,7 @@ class MDAll(InMemoryDataset):
                 if self.pre_transform is not None:
                     data = self.pre_transform(data)
                 data_list.append(data)
-            
+
             if hasattr(data_list[0], "old_idx"):
                 # reorder data_list based on old_idx
                 print(" Reordering data_list based on old_idx.")
@@ -564,12 +564,15 @@ def get_md_datasets(
         # test_size: total number of samples in the test set
         if test_size_select is None:
             test_size_select = 1000
-        assert test_size_select <= test_size, \
-            f"Warning: test_size_select ({test_size_select}) is greater than test_size ({test_size})."
+        assert (
+            test_size_select <= test_size
+        ), f"Warning: test_size_select ({test_size_select}) is greater than test_size ({test_size})."
         start_idx = np.linspace(
             start=0, stop=test_size - test_size_select, num=num_test_patches, dtype=int
         )
-        test_indices = np.hstack([np.arange(s, s + test_size_select) for s in start_idx])
+        test_indices = np.hstack(
+            [np.arange(s, s + test_size_select) for s in start_idx]
+        )
     else:
         if test_size_select is None:
             # full test set

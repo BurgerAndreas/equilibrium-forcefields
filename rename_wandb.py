@@ -9,8 +9,8 @@ author = "andreas-burger"
 api = wandb.Api()
 # runs = api.runs(f"{author}/{project}", {"config.model_is_deq": True})
 runs = api.runs(
-    f"{author}/{project}", 
-    {"$or": [{"state": "finished"}, {"state": "crashed"}, {"state": "failed"}]}
+    f"{author}/{project}",
+    {"$or": [{"state": "finished"}, {"state": "crashed"}, {"state": "failed"}]},
 )
 
 
@@ -29,7 +29,7 @@ for run in tqdm(runs):
             new_name = new_name.replace("ardnull ", "ar2dnull ")
             new_name = new_name.replace("brd ", "br2d ")
             new_name = new_name.replace("brdnull ", "br2dnull ")
-        
+
     except KeyError:
         print(f"run {_name} has no f_tol.")
         continue

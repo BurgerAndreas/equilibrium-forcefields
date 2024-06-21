@@ -22,14 +22,35 @@ from src.deq2ff.plotting.style import set_seaborn_style, set_style_after
 plotfolder = "/ssd/gen/equilibrium-forcefields/src/deq2ff/plotting/"
 plotfolder = os.path.join(plotfolder, "plots")
 
-chemical_symbols = ['_', 'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K']
+chemical_symbols = [
+    "_",
+    "H",
+    "He",
+    "Li",
+    "Be",
+    "B",
+    "C",
+    "N",
+    "O",
+    "F",
+    "Ne",
+    "Na",
+    "Mg",
+    "Al",
+    "Si",
+    "P",
+    "S",
+    "Cl",
+    "Ar",
+    "K",
+]
 
 
 def plot_luca():
 
     # Function to parse the extended .xyz file
     def parse_xyz(file_content):
-        lines = file_content.strip().split('\n')
+        lines = file_content.strip().split("\n")
         energy = float(lines[1])
         atoms = []
         positions = []
@@ -73,7 +94,7 @@ def plot_luca():
 
     # Parse the .xyz file content
     energy, atoms, positions, forces = parse_xyz(xyz_content)
-    print('atoms', atoms)
+    print("atoms", atoms)
 
     # Generate XYZ string for py3Dmol
     xyz_str = f"{len(atoms)}\n\n"
@@ -88,23 +109,19 @@ def plot_luca():
     for pos, force in zip(positions, forces):
         # print('pos', pos)
         # print('force', force)
-        start = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
+        start = {"x": pos[0], "y": pos[1], "z": pos[2]}
         end = {
-            'x': pos[0] + force[0] * scaling_factor,
-            'y': pos[1] + force[1] * scaling_factor,
-            'z': pos[2] + force[2] * scaling_factor
+            "x": pos[0] + force[0] * scaling_factor,
+            "y": pos[1] + force[1] * scaling_factor,
+            "z": pos[2] + force[2] * scaling_factor,
         }
-        view.addArrow({
-            'start': start,
-            'end': end,
-            'radius': 0.08,
-            'color': 'orange'
-        })
+        view.addArrow({"start": start, "end": end, "radius": 0.08, "color": "orange"})
 
     style = {"stick": {"radius": 0.2}, "sphere": {"scale": 0.2}}
     view.setStyle({"model": -1}, style, viewer=None)
     view.zoomTo()
     view.show()
+
 
 # plot_luca()
 
@@ -142,24 +159,40 @@ def get_data(run_id, datasplit="test_fpreuse"):
     import equiformer.datasets.pyg.md_all as md_all
 
     print(f"Loading dataset...")
-    train_dataset, val_dataset, test_dataset, test_dataset_full, all_dataset = md_all.get_md_datasets(
+    (
+        train_dataset,
+        val_dataset,
+        test_dataset,
+        test_dataset_full,
+        all_dataset,
+    ) = md_all.get_md_datasets(
         root=data_path,
         dataset_arg=target,
         dname=dname,
         train_size=train_size,
         val_size=val_size,
-        test_size=None, # influences data splitting
-        test_size_select=test_size, # doesn't influence data splitting
+        test_size=None,  # influences data splitting
+        test_size_select=test_size,  # doesn't influence data splitting
         seed=seed,
         order="consecutive_all",
     )
 
-    metrics = ["norm_mean", "norm", "cos_mean", "cos", "fnorm", "fnorm_mean", "fnorm_max", "max", "fnorm_std"]
+    metrics = [
+        "norm_mean",
+        "norm",
+        "cos_mean",
+        "cos",
+        "fnorm",
+        "fnorm_mean",
+        "fnorm_max",
+        "max",
+        "fnorm_std",
+    ]
     if os.path.exists(filename):
         print(f"Loading data from {filename}")
         with open(filename, "rb") as f:
             df = pickle.load(f)
-    
+
     else:
         a = api.artifact(f"{project}/run-{run_id}-{table_key}:latest")
         # apath = a.download()
@@ -176,7 +209,7 @@ def get_data(run_id, datasplit="test_fpreuse"):
         for i, row in df.iterrows():
             idx = int(row["idx"])
             data = collate([dataset[idx]])
-            f = data.dy # torch.Tensor
+            f = data.dy  # torch.Tensor
             f = f.detach().cpu().numpy()
             df.at[i, "forces"] = f
             # add z to the dataframe
@@ -188,18 +221,18 @@ def get_data(run_id, datasplit="test_fpreuse"):
         # from forces get the force delta between consecutive steps
         # df["f_delta"] = df["forces"].diff().mean()
         for metric in metrics:
-            df["f_delta_"+metric] = [-1.] * df.shape[0]
+            df["f_delta_" + metric] = [-1.0] * df.shape[0]
         for i, row in df.iterrows():
             f = row["forces"]
             if i == 0:
                 continue
             try:
-                f_prev = df.at[i-1, "forces"] # num_atoms x 3
+                f_prev = df.at[i - 1, "forces"]  # num_atoms x 3
             except Exception as e:
                 print(f"Error at idx {i}.")
                 print(f"df:\n{df.iloc[i-1]}")
                 raise e
-            
+
             for metric in metrics:
                 # f: [num_atoms x 3]
                 # f - f_prev: [num_atoms x 3]
@@ -212,18 +245,26 @@ def get_data(run_id, datasplit="test_fpreuse"):
                     f_delta = np.linalg.norm(f - f_prev)
                     xlabel = r"$|Force_t^{(1\cdots n)} - Force_{t-1}^{(1\cdots n)}|_2$"
                 elif metric == "cos_mean":
+
                     def cosine_similarity(x, y):
-                        return np.sum(x * y, axis=1) / (np.linalg.norm(x, axis=1) * np.linalg.norm(y, axis=1))
+                        return np.sum(x * y, axis=1) / (
+                            np.linalg.norm(x, axis=1) * np.linalg.norm(y, axis=1)
+                        )
+
                     f_delta = np.mean(cosine_similarity(f, f_prev))
                     xlabel = r"$\frac{1}{N} \sum_{n \in atoms}^{N} \cos(Force_t^{(n)}, Force_{t-1}^{(n)})$"
                 elif metric == "cos":
+
                     def cosine_similarity(x, y):
                         return np.sum(x * y) / (np.linalg.norm(x) * np.linalg.norm(y))
+
                     f_delta = cosine_similarity(f, f_prev)
                     xlabel = r"$\cos(Force_t^{(1\cdots n)}, Force_{t-1}^{(1\cdots n)})$"
-                elif metric == "max":  
+                elif metric == "max":
                     f_delta = np.linalg.norm(f - f_prev, axis=1).max()
-                    xlabel = r"$\max_{n \in atoms}|Force_t^{(n)} - Force_{t-1}^{(n)}|_2$"
+                    xlabel = (
+                        r"$\max_{n \in atoms}|Force_t^{(n)} - Force_{t-1}^{(n)}|_2$"
+                    )
                 # not really delta
                 elif metric == "fnorm":
                     f_delta = np.linalg.norm(f)
@@ -239,21 +280,23 @@ def get_data(run_id, datasplit="test_fpreuse"):
                 else:
                     raise ValueError(f"metric {metric} not known.")
 
-                df.at[i, "f_delta_"+metric] = float(f_delta)
-                assert np.allclose(df.at[i, "z"], df.at[i-1, "z"]), f"z not equal at idx {i} and {i-1}: {df.at[i, 'z']} and {df.at[i-1, 'z']}"
+                df.at[i, "f_delta_" + metric] = float(f_delta)
+                assert np.allclose(
+                    df.at[i, "z"], df.at[i - 1, "z"]
+                ), f"z not equal at idx {i} and {i-1}: {df.at[i, 'z']} and {df.at[i-1, 'z']}"
 
         # save the dataframe
         # create the folder if it doesn't exist
         with open(filename, "wb") as f:
             pickle.dump(df, f)
-    
+
     # cast to float64
     # for metric in metrics:
     #     df["f_delta_"+metric].astype('float64', copy=False)
     # df["nstep"].astype('float64', copy=False)
-    print('df dtypes', df.dtypes)
-    
-    print(f'Removing non-fpreuse rows...')
+    print("df dtypes", df.dtypes)
+
+    print(f"Removing non-fpreuse rows...")
     # remove every patch_size row (because there is no fpreuse)
     # df = df.iloc[1:]
     test_size = int(run.config["test_size"])
@@ -264,12 +307,13 @@ def get_data(run_id, datasplit="test_fpreuse"):
 
     # remove every patch_size row (because there is no fpreuse)
     dffp = copy.deepcopy(df)
-    print(f'len(df) before filtering: {len(dffp)}')
-    dffp = dffp.iloc[patch_size-1::patch_size]
-    print(f'len(df) fpreuse only    : {len(dffp)}')
-    # print(dffp.head())     
+    print(f"len(df) before filtering: {len(dffp)}")
+    dffp = dffp.iloc[patch_size - 1 :: patch_size]
+    print(f"len(df) fpreuse only    : {len(dffp)}")
+    # print(dffp.head())
 
     return dffp, df, all_dataset
+
 
 def filter_z_score(_df, col="f_mae", std=3, abs=False, return_outliers=False):
     """_summary_
@@ -306,6 +350,7 @@ def filter_z_score(_df, col="f_mae", std=3, abs=False, return_outliers=False):
     print(f"Removed {before - len(_df)} outliers.")
     return _df
 
+
 def filter_quantile(_df, col="f_mae", q=0.99):
     # remove largest q% of the data
     before = len(_df)
@@ -314,14 +359,16 @@ def filter_quantile(_df, col="f_mae", q=0.99):
     print(f"Removed {before - len(_df)} outliers.")
     return _df
 
+
 def filter_quantile_lower_upper(_df, col="f_mae", q=0.99):
     # If one need to remove lower and upper outliers, combine condition with an AND statement:
     before = len(_df)
-    q_low = _df[col].quantile(1-q)
-    q_hi  = _df[col].quantile(q)
+    q_low = _df[col].quantile(1 - q)
+    q_hi = _df[col].quantile(q)
     _df = _df[(_df[col] < q_hi) & (_df[col] > q_low)]
     print(f"Removed {before - len(_df)} outliers.")
     return _df
+
 
 def plot_model_py3d(idx, dfall, dataset, datasplit, run_id, next=False):
     collate = Collater(None, None)
@@ -356,19 +403,14 @@ def plot_model_py3d(idx, dfall, dataset, datasplit, run_id, next=False):
     for pos, force in zip(positions, forces):
         # print('pos', pos)
         # print('force', force)
-        start = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
+        start = {"x": pos[0], "y": pos[1], "z": pos[2]}
         end = {
-            'x': pos[0] + force[0] * scaling_factor,
-            'y': pos[1] + force[1] * scaling_factor,
-            'z': pos[2] + force[2] * scaling_factor
+            "x": pos[0] + force[0] * scaling_factor,
+            "y": pos[1] + force[1] * scaling_factor,
+            "z": pos[2] + force[2] * scaling_factor,
         }
-        view.addArrow({
-            'start': start,
-            'end': end,
-            'radius': radius,
-            'color': 'orange'
-        })
-    
+        view.addArrow({"start": start, "end": end, "radius": radius, "color": "orange"})
+
     if next:
         idx = idx - 1
         data = collate([dataset[idx]])
@@ -387,18 +429,15 @@ def plot_model_py3d(idx, dfall, dataset, datasplit, run_id, next=False):
         view.addModel(xyz_str, "xyz")
 
         for pos, force in zip(pos2, force2):
-            start = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
+            start = {"x": pos[0], "y": pos[1], "z": pos[2]}
             end = {
-                'x': pos[0] + force[0] * scaling_factor,
-                'y': pos[1] + force[1] * scaling_factor,
-                'z': pos[2] + force[2] * scaling_factor
+                "x": pos[0] + force[0] * scaling_factor,
+                "y": pos[1] + force[1] * scaling_factor,
+                "z": pos[2] + force[2] * scaling_factor,
             }
-            view.addArrow({
-                'start': start,
-                'end': end,
-                'radius': radius,
-                'color': 'blue'
-            })
+            view.addArrow(
+                {"start": start, "end": end, "radius": radius, "color": "blue"}
+            )
 
     style = {"stick": {"radius": 0.1}, "sphere": {"scale": 0.2}}
     view.setStyle({"model": -1}, style, viewer=None)
@@ -406,7 +445,7 @@ def plot_model_py3d(idx, dfall, dataset, datasplit, run_id, next=False):
     view.show()
 
 
-def plot_mol_plt(idx, dfall, dataset, datasplit, run_id, side_by_side = False):
+def plot_mol_plt(idx, dfall, dataset, datasplit, run_id, side_by_side=False):
 
     collate = Collater(None, None)
 
@@ -429,14 +468,20 @@ def plot_mol_plt(idx, dfall, dataset, datasplit, run_id, side_by_side = False):
     # create a 3d plot of the molecule
     if side_by_side:
         fig = plt.figure(figsize=(12, 6))
-        ax = fig.add_subplot(121, projection='3d')
+        ax = fig.add_subplot(121, projection="3d")
     else:
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
+        ax = fig.add_subplot(111, projection="3d")
     ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], c="red", label="Atoms")
     ax.quiver(
-        pos[:, 0], pos[:, 1], pos[:, 2], f[:, 0], f[:, 1], f[:, 2], 
-        color="blue", label="Forces",
+        pos[:, 0],
+        pos[:, 1],
+        pos[:, 2],
+        f[:, 0],
+        f[:, 1],
+        f[:, 2],
+        color="blue",
+        label="Forces",
         **quiver_kwargs,
     )
     ax.set_xlabel("X")
@@ -452,13 +497,21 @@ def plot_mol_plt(idx, dfall, dataset, datasplit, run_id, side_by_side = False):
     e_prev = data.y
 
     if side_by_side:
-        ax2 = fig.add_subplot(122, projection='3d')
+        ax2 = fig.add_subplot(122, projection="3d")
     else:
         ax2 = ax
-    ax2.scatter(pos_prev[:, 0], pos_prev[:, 1], pos_prev[:, 2], c="green", label="Atoms (prev)")
+    ax2.scatter(
+        pos_prev[:, 0], pos_prev[:, 1], pos_prev[:, 2], c="green", label="Atoms (prev)"
+    )
     ax2.quiver(
-        pos_prev[:, 0], pos_prev[:, 1], pos_prev[:, 2], f_prev[:, 0], f_prev[:, 1], f_prev[:, 2], 
-        color="purple", label="Forces (prev)",
+        pos_prev[:, 0],
+        pos_prev[:, 1],
+        pos_prev[:, 2],
+        f_prev[:, 0],
+        f_prev[:, 1],
+        f_prev[:, 2],
+        color="purple",
+        label="Forces (prev)",
         **quiver_kwargs,
     )
 
@@ -477,9 +530,10 @@ def plot_mol_plt(idx, dfall, dataset, datasplit, run_id, side_by_side = False):
 
 line_kws = {"lw": 2}
 
+
 def plot_loss_per_idx(dffp, dfall, datasplit, run_id, logy=False):
     """Only considers the fpreuse idxs."""
-    
+
     # columns: "idx", "e_mae", "f_mae", "nstep"
     # plot the loss per idx
     set_seaborn_style()
@@ -487,9 +541,13 @@ def plot_loss_per_idx(dffp, dfall, datasplit, run_id, logy=False):
     fig, ax = plt.subplots()
     # sns.lineplot(data=dffp, x="idx", y="e_mae", ax=ax, label="Energy MAE")
     sns.lineplot(
-        data=dffp, x="idx", y="f_mae", ax=ax, label="Force MAE",
+        data=dffp,
+        x="idx",
+        y="f_mae",
+        ax=ax,
+        label="Force MAE",
         lw=1,
-        )
+    )
     # ax.set_yscale("log")
     ax.set_xlabel("Index")
     ax.set_ylabel("MAE")
@@ -507,7 +565,10 @@ def plot_loss_per_idx(dffp, dfall, datasplit, run_id, logy=False):
     plt.savefig(plotpath)
     print(f"Saved plot to\n {plotpath}")
 
-def plot_fmae_count(dffp, dfall, dataset, datasplit, run_id, wofpreuse=False, logs=(10, None)):
+
+def plot_fmae_count(
+    dffp, dfall, dataset, datasplit, run_id, wofpreuse=False, logs=(10, None)
+):
 
     _df = dffp
     if wofpreuse:
@@ -517,9 +578,13 @@ def plot_fmae_count(dffp, dfall, dataset, datasplit, run_id, wofpreuse=False, lo
 
     fig, ax = plt.subplots()
     sns.histplot(
-        data=_df, x="f_mae", ax=ax, binwidth=.1, kde=True,
+        data=_df,
+        x="f_mae",
+        ax=ax,
+        binwidth=0.1,
+        kde=True,
         log_scale=logs,
-        stat="probability", # count percent density
+        stat="probability",  # count percent density
         line_kws={"lw": 1},
     )
     # set xrange to 0-20
@@ -535,6 +600,7 @@ def plot_fmae_count(dffp, dfall, dataset, datasplit, run_id, wofpreuse=False, lo
     plotpath = os.path.join(plotfolder, plotname)
     plt.savefig(plotpath)
     print(f"Saved plot to\n {plotpath}")
+
 
 def plot_step_count(dffp, dfall, dataset, datasplit, run_id, wofpreuse=False):
 
@@ -560,10 +626,25 @@ def plot_step_count(dffp, dfall, dataset, datasplit, run_id, wofpreuse=False):
     plt.savefig(plotpath)
     print(f"Saved plot to\n {plotpath}")
 
-hex_joint_kws={
+
+hex_joint_kws = {
     # "gridsize": 40, # A higher value results in smaller hexbins
 }
-def plot_step_vs_force(dffp, dfall, dataset, datasplit, run_id, style="hist", ymin=0, ymax=15, logy=False, logx=True, wofpreuse=False):
+
+
+def plot_step_vs_force(
+    dffp,
+    dfall,
+    dataset,
+    datasplit,
+    run_id,
+    style="hist",
+    ymin=0,
+    ymax=15,
+    logy=False,
+    logx=True,
+    wofpreuse=False,
+):
     set_seaborn_style()
     x = "f_mae"
     y = "nstep"
@@ -572,24 +653,29 @@ def plot_step_vs_force(dffp, dfall, dataset, datasplit, run_id, style="hist", ym
     if wofpreuse:
         _df = dfall
 
-
     if style == "kde":
         fig, ax = plt.subplots()
         # density plot
-        sns.kdeplot(
-            data=_df, x=x, y="nstep", ax=ax, label="Force Delta", fill=True
-        )
+        sns.kdeplot(data=_df, x=x, y="nstep", ax=ax, label="Force Delta", fill=True)
     elif style == "scatter":
         fig, ax = plt.subplots()
         sns.scatterplot(
-            data=_df, x=x, y="nstep", ax=ax, label="Force Delta", 
-            # hue="z", palette="tab20", 
-            alpha=0.1
+            data=_df,
+            x=x,
+            y="nstep",
+            ax=ax,
+            label="Force Delta",
+            # hue="z", palette="tab20",
+            alpha=0.1,
         )
     elif style == "hex":
         # df.plot(kind='hexbin'
         jointgrid = sns.jointplot(
-            data=_df, x=x, y="nstep", kind="hex", label="Force Delta",
+            data=_df,
+            x=x,
+            y="nstep",
+            kind="hex",
+            label="Force Delta",
             # cmap="crest",
             joint_kws=hex_joint_kws,
         )
@@ -597,7 +683,11 @@ def plot_step_vs_force(dffp, dfall, dataset, datasplit, run_id, style="hist", ym
     elif style == "hist":
         # df.plot(kind='hexbin'
         jointgrid = sns.jointplot(
-            data=_df, x=x, y="nstep", kind="hist", label="Force Delta",
+            data=_df,
+            x=x,
+            y="nstep",
+            kind="hist",
+            label="Force Delta",
             # cmap="crest",
             # color="#4CB391",
         )
@@ -609,12 +699,12 @@ def plot_step_vs_force(dffp, dfall, dataset, datasplit, run_id, style="hist", ym
 
     plt.xlabel("Force MAE")
     plt.ylabel("Solver Steps")
-    
+
     if logy:
         ax.set_yscale("log")
     if logx:
         ax.set_xscale("log")
-    
+
     # ax.legend()
     set_style_after(ax, legend=None)
 
@@ -625,23 +715,39 @@ def plot_step_vs_force(dffp, dfall, dataset, datasplit, run_id, style="hist", ym
     plotpath = os.path.join(plotfolder, plotname)
     plt.savefig(plotpath)
 
-def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="norm", style="hist", ymin=0, ymax=10):
+
+def plot_step_vs_forcedelta(
+    dffp,
+    dfall,
+    dataset,
+    datasplit,
+    run_id,
+    metric="norm",
+    style="hist",
+    ymin=0,
+    ymax=10,
+):
     # assert metric in ["norm_mean", "norm", "cos_mean", "cos"]
     # number of solver steps vs |force_t - force_{t+1}|
     set_seaborn_style()
 
     # print(metric)
 
-    x = "f_delta_"+metric
+    x = "f_delta_" + metric
 
-    print(f'plot_step_vs_forcedelta: plotting {len(dffp)} points.')
+    print(f"plot_step_vs_forcedelta: plotting {len(dffp)} points.")
     if style == "kde":
         fig, ax = plt.subplots()
         # density plot
         sns.kdeplot(
-            data=dffp, x=x, y="nstep", ax=ax, label="Force Delta", fill=True,
+            data=dffp,
+            x=x,
+            y="nstep",
+            ax=ax,
+            label="Force Delta",
+            fill=True,
             # hue="z", palette="tab20"
-            thresh=0.01, 
+            thresh=0.01,
             # cmap="viridis",
             # cmap="crest",
             # palette="crest",
@@ -649,14 +755,22 @@ def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="nor
     elif style == "scatter":
         fig, ax = plt.subplots()
         sns.scatterplot(
-            data=dffp, x=x, y="nstep", ax=ax, label="Force Delta", 
-            # hue="z", palette="tab20", 
-            alpha=0.1
+            data=dffp,
+            x=x,
+            y="nstep",
+            ax=ax,
+            label="Force Delta",
+            # hue="z", palette="tab20",
+            alpha=0.1,
         )
     elif style == "hex":
         # df.plot(kind='hexbin'
         jointgrid = sns.jointplot(
-            data=dffp, x=x, y="nstep", kind="hex", label="Force Delta",
+            data=dffp,
+            x=x,
+            y="nstep",
+            kind="hex",
+            label="Force Delta",
             # cmap="crest",
             color="#4CB391",
             joint_kws=hex_joint_kws,
@@ -665,30 +779,43 @@ def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="nor
     elif style == "hist":
         # df.plot(kind='hexbin'
         jointgrid = sns.jointplot(
-            data=dffp, x=x, y="nstep", kind="hist", label="Force Delta",
+            data=dffp,
+            x=x,
+            y="nstep",
+            kind="hist",
+            label="Force Delta",
             # cmap="crest",
             color="#4CB391",
-        )        
+        )
         ax = jointgrid.ax_joint
     else:
         raise ValueError(f"style {style} not supported")
-    
+
     # fit linear regression
     sns.regplot(
-        data=dffp, x=x, y="nstep", ax=ax, scatter=False,
+        data=dffp,
+        x=x,
+        y="nstep",
+        ax=ax,
+        scatter=False,
         order=2,
         line_kws=line_kws,
-        
     )
     sns.regplot(
-        data=dffp, x=x, y="nstep", ax=ax, scatter=False,
+        data=dffp,
+        x=x,
+        y="nstep",
+        ax=ax,
+        scatter=False,
         line_kws=line_kws
         # order=2,
     )
 
     if metric == "norm_mean":
-        xlabel = r"$\frac{1}{N} \sum_{n \in atoms}^{N}|Force_t^{(n)} - Force_{t-1}^{(n)}|_2$"
-    elif metric == "norm":  
+        xlabel = (
+            r"$\frac{1}{N} \sum_{n \in atoms}^{N}|Force_t^{(n)} - Force_{t-1}^{(n)}|_2$"
+        )
+    elif metric == "norm":
         xlabel = r"$|Force_t^{(1\cdots n)} - Force_{t-1}^{(1\cdots n)}|_2$"
     elif metric == "cos_mean":
         xlabel = r"$\frac{1}{N} \sum_{n \in atoms}^{N} \cos(Force_t^{(n)}, Force_{t-1}^{(n)})$"
@@ -706,7 +833,7 @@ def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="nor
     elif metric == "fnorm_std":
         xlabel = r"$\sigma_{n \in atoms}|Force_t^{(n)}|_2$"
     elif metric == "f_mae":
-        xlabel =r'F MAE'
+        xlabel = r"F MAE"
     else:
         raise ValueError(f"metric {metric} not supported")
 
@@ -726,9 +853,9 @@ def plot_step_vs_forcedelta(dffp, dfall, dataset, datasplit, run_id, metric="nor
     plt.savefig(plotpath)
 
 
-# pickle.dump(fig, open('FigureObject.fig.pickle', 'wb')) 
+# pickle.dump(fig, open('FigureObject.fig.pickle', 'wb'))
 # figx = pickle.load(open('FigureObject.fig.pickle', 'rb'))
-# figx.show() 
+# figx.show()
 # data = figx.axes[0].lines[0].get_data()
 
 # # add pos, f, e columns to the dataframe

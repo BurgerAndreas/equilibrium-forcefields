@@ -140,15 +140,27 @@ def get_next_batch(dataset, batch, collate):
 
 
 def save_checkpoint(
-        args, model, grads, optimizer, lr_scheduler, epoch, global_step, test_err, 
-        best_metrics, best_ema_metrics, name=""):
+    args,
+    model,
+    grads,
+    optimizer,
+    lr_scheduler,
+    epoch,
+    global_step,
+    test_err,
+    best_metrics,
+    best_ema_metrics,
+    name="",
+):
     os.makedirs(args.output_dir, exist_ok=True)
     torch.save(
         {
             "state_dict": model.state_dict(),
             "grads": grads,
             "optimizer": optimizer.state_dict(),
-            "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
+            "lr_scheduler": lr_scheduler.state_dict()
+            if lr_scheduler is not None
+            else None,
             "epoch": epoch,
             "global_step": global_step,
             "best_metrics": best_metrics,
@@ -156,7 +168,7 @@ def save_checkpoint(
         },
         os.path.join(
             args.output_dir,
-            f'{name}epochs@{epoch}_e@{test_err["energy"].avg:.4f}_f@{test_err["force"].avg:.4f}.pth.tar'
+            f'{name}epochs@{epoch}_e@{test_err["energy"].avg:.4f}_f@{test_err["force"].avg:.4f}.pth.tar',
         ),
     )
 
@@ -184,6 +196,7 @@ def get_force_placeholder(dy, loss_e):
     # loss_f = torch.zeros_like(loss_e)
     loss_f = torch.full_like(loss_e, float("nan"))
     return pred_dy, loss_f
+
 
 def compute_loss(args, y, dy, target_y, target_dy, criterion_energy, criterion_force):
     """Fix output shapes and compute loss."""
@@ -213,7 +226,6 @@ def main(args):
     # if args.fix_broyden is not None:
     #     os.environ["FIX_BROYDEN"] = args.fix_broyden
     torch.autograd.set_detect_anomaly(args.torch_detect_anomaly)
-
 
     # create output directory
     if args.output_dir == "auto":
@@ -258,14 +270,20 @@ def main(args):
     else:
         import equiformer.datasets.pyg.md_all as md_all
 
-        train_dataset, val_dataset, test_dataset, test_dataset_full, all_dataset = md_all.get_md_datasets(
+        (
+            train_dataset,
+            val_dataset,
+            test_dataset,
+            test_dataset_full,
+            all_dataset,
+        ) = md_all.get_md_datasets(
             root=args.data_path,
             dataset_arg=args.target,
             dname=args.dname,
             train_size=args.train_size,
             val_size=args.val_size,
-            test_size=None, # influences data splitting
-            test_size_select=args.test_size, # doesn't influence data splitting
+            test_size=None,  # influences data splitting
+            test_size_select=args.test_size,  # doesn't influence data splitting
             seed=args.seed,
             order=md_all.get_order(args),
             num_test_patches=args.test_patches,
@@ -298,10 +316,10 @@ def main(args):
         # std_f = dy.std(dim=0) # [3]
         # [num_atoms*samples, 3]
         dy = torch.cat([batch.dy for batch in train_dataset], dim=0)
-        std_f = dy.std() # [1]
+        std_f = dy.std()  # [1]
     elif args.std_forces == "normstd":
         dy = torch.cat([batch.dy for batch in train_dataset], dim=0)
-        std_f = torch.linalg.norm(dy, dim=1).std() # [1]
+        std_f = torch.linalg.norm(dy, dim=1).std()  # [1]
     elif args.std_forces is None:
         # default
         std_f = task_std
@@ -328,18 +346,18 @@ def main(args):
         )
     else:
         raise NotImplementedError(f"Unknown normalizer: {args.normalizer}")
-    
+
     # normalize forces by each atom type separately
     if args.norm_forces_by_atom in [False, None, "None"]:
         pass
-    else: 
-        norm_mean_atom = torch.ones(args.model.max_num_elements) # [A]
+    else:
+        norm_mean_atom = torch.ones(args.model.max_num_elements)  # [A]
         norm_std_atom = torch.ones(args.model.max_num_elements)
         mean_atom = torch.ones(args.model.max_num_elements)
         std_atom = torch.ones(args.model.max_num_elements)
-        dy = torch.cat([batch.dy for batch in train_dataset], dim=0) # [N, 3]
-        dy_norm = torch.linalg.norm(dy, dim=1) # [N]
-        atoms = torch.cat([batch.z for batch in train_dataset], dim=0) # [N]
+        dy = torch.cat([batch.dy for batch in train_dataset], dim=0)  # [N, 3]
+        dy_norm = torch.linalg.norm(dy, dim=1)  # [N]
+        atoms = torch.cat([batch.z for batch in train_dataset], dim=0)  # [N]
         for i in range(args.model.max_num_elements):
             mask = atoms == i
             norm_mean_atom[i] = dy_norm[mask].mean()
@@ -351,20 +369,24 @@ def main(args):
         norm_std_atom = norm_std_atom.to(device)
         mean_atom = mean_atom.to(device)
         std_atom = std_atom.to(device)
-        if args.norm_forces_by_atom == 'normmean':
-            def normalizer_f(x, z): 
+        if args.norm_forces_by_atom == "normmean":
+
+            def normalizer_f(x, z):
                 # x: [N, 3], z: [N]
                 return x / norm_mean_atom[z].unsqueeze(1)
-        elif args.norm_forces_by_atom == 'normstd':
+
+        elif args.norm_forces_by_atom == "normstd":
             normalizer_f = lambda x, z: x / norm_std_atom[z].unsqueeze(1)
         # not really sure how to interpret this
-        elif args.norm_forces_by_atom == 'mean':
+        elif args.norm_forces_by_atom == "mean":
             normalizer_f = lambda x, z: x / mean_atom[z].unsqueeze(1)
-        elif args.norm_forces_by_atom == 'std':
+        elif args.norm_forces_by_atom == "std":
             normalizer_f = lambda x, z: x / std_atom[z].unsqueeze(1)
         else:
-            raise NotImplementedError(f"Unknown norm_forces_by_atom: {args.norm_forces_by_atom}")
-        
+            raise NotImplementedError(
+                f"Unknown norm_forces_by_atom: {args.norm_forces_by_atom}"
+            )
+
     normalizers = {"energy": normalizer_e, "force": normalizer_f}
 
     """ Data Loader """
@@ -395,16 +417,23 @@ def main(args):
     )
     if args.datasplit.startswith("fpreuse"):
         # reorder test dataset to be consecutive
-        assert not (args.test_patches not in [None, 1] and args.eval_batch_size > 1), \
-            f'Warning: test_patches>1 ({args.test_patches}) can only be used with eval_batch_size=1 ({args.eval_batch_size}).'
+        assert not (
+            args.test_patches not in [None, 1] and args.eval_batch_size > 1
+        ), f"Warning: test_patches>1 ({args.test_patches}) can only be used with eval_batch_size=1 ({args.eval_batch_size})."
         test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
         _log.info(f"Reordered test dataset to be consecutive for fixed-point reuse.")
     test_loader = DataLoader(
-        test_dataset, batch_size=args.eval_batch_size, shuffle=args.shuffle_test, drop_last=True
+        test_dataset,
+        batch_size=args.eval_batch_size,
+        shuffle=args.shuffle_test,
+        drop_last=True,
     )
     # full dataset for final evaluation
     test_loader_full = DataLoader(
-        test_dataset_full, batch_size=args.eval_batch_size, shuffle=args.shuffle_test, drop_last=True
+        test_dataset_full,
+        batch_size=args.eval_batch_size,
+        shuffle=args.shuffle_test,
+        drop_last=True,
     )
 
     """ Compute stats """
@@ -461,7 +490,7 @@ def main(args):
         lr_scheduler = None
     else:
         lr_scheduler, _ = create_scheduler(args, optimizer)
-    grads = None # grokfast
+    grads = None  # grokfast
     # record the best validation and testing errors and corresponding epochs
     best_metrics = {
         "val_epoch": 0,
@@ -538,7 +567,9 @@ def main(args):
             loaded_checkpoint = True
         except Exception as e:
             # probably checkpoint not found
-            _log.info(f"Error loading checkpoint: {e}. \n List of files: {os.listdir(args.checkpoint_path)}")
+            _log.info(
+                f"Error loading checkpoint: {e}. \n List of files: {os.listdir(args.checkpoint_path)}"
+            )
     wandb.log({"start_epoch": start_epoch, "epoch": start_epoch}, step=global_step)
 
     # if we want to run inference only we want to make sure that the model is loaded
@@ -831,7 +862,9 @@ def main(args):
                     "state_dict": model.state_dict(),
                     "grads": grads,
                     "optimizer": optimizer.state_dict(),
-                    "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
+                    "lr_scheduler": lr_scheduler.state_dict()
+                    if lr_scheduler is not None
+                    else None,
                     "epoch": epoch,
                     "global_step": global_step,
                     "best_metrics": best_metrics,
@@ -839,7 +872,9 @@ def main(args):
                 },
                 os.path.join(args.output_dir, _cname),
             )
-            print(f"Saved pathological example at epoch {epoch} to {args.output_dir}/{_cname}")
+            print(
+                f"Saved pathological example at epoch {epoch} to {args.output_dir}/{_cname}"
+            )
             raise e
 
         if args.torch_record_memory:
@@ -903,7 +938,9 @@ def main(args):
                     "state_dict": model.state_dict(),
                     "grads": grads,
                     "optimizer": optimizer.state_dict(),
-                    "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
+                    "lr_scheduler": lr_scheduler.state_dict()
+                    if lr_scheduler is not None
+                    else None,
                     "epoch": epoch,
                     "global_step": global_step,
                     "best_metrics": best_metrics,
@@ -929,7 +966,9 @@ def main(args):
                     "state_dict": model.state_dict(),
                     "grads": grads,
                     "optimizer": optimizer.state_dict(),
-                    "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
+                    "lr_scheduler": lr_scheduler.state_dict()
+                    if lr_scheduler is not None
+                    else None,
                     "epoch": epoch,
                     "global_step": global_step,
                     "best_metrics": best_metrics,
@@ -961,7 +1000,9 @@ def main(args):
                     "state_dict": model.state_dict(),
                     "grads": grads,
                     "optimizer": optimizer.state_dict(),
-                    "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
+                    "lr_scheduler": lr_scheduler.state_dict()
+                    if lr_scheduler is not None
+                    else None,
                     "epoch": epoch,
                     "global_step": global_step,
                     "best_metrics": best_metrics,
@@ -1097,7 +1138,9 @@ def main(args):
                         "state_dict": get_state_dict(model_ema),
                         "grads": grads,
                         "optimizer": optimizer.state_dict(),
-                        "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
+                        "lr_scheduler": lr_scheduler.state_dict()
+                        if lr_scheduler is not None
+                        else None,
                         "epoch": epoch,
                         "global_step": global_step,
                         "best_metrics": best_metrics,
@@ -1125,7 +1168,9 @@ def main(args):
                         "state_dict": get_state_dict(model_ema),
                         "grads": grads,
                         "optimizer": optimizer.state_dict(),
-                        "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
+                        "lr_scheduler": lr_scheduler.state_dict()
+                        if lr_scheduler is not None
+                        else None,
                         "epoch": epoch,
                         "global_step": global_step,
                         "best_metrics": best_metrics,
@@ -1159,7 +1204,9 @@ def main(args):
                         "state_dict": get_state_dict(model_ema),
                         "grads": grads,
                         "optimizer": optimizer.state_dict(),
-                        "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
+                        "lr_scheduler": lr_scheduler.state_dict()
+                        if lr_scheduler is not None
+                        else None,
                         "epoch": epoch,
                         "global_step": global_step,
                         "best_metrics": best_metrics,
@@ -1250,7 +1297,7 @@ def main(args):
             # criterion=criterion,
             criterion_energy=criterion_energy,
             criterion_force=criterion_force,
-            data_loader=test_loader_full, # test_loader
+            data_loader=test_loader_full,  # test_loader
             optimizer=optimizer,
             device=device,
             print_freq=args.print_freq,
@@ -1272,7 +1319,9 @@ def main(args):
                 "state_dict": model.state_dict(),
                 "grads": grads,
                 "optimizer": optimizer.state_dict(),
-                "lr_scheduler": lr_scheduler.state_dict() if lr_scheduler is not None else None,
+                "lr_scheduler": lr_scheduler.state_dict()
+                if lr_scheduler is not None
+                else None,
                 "epoch": final_epoch,
                 "global_step": global_step,
                 "best_metrics": best_metrics,
@@ -1414,9 +1463,9 @@ def train_one_epoch(
         prof = torch.profiler.profile(
             schedule=torch.profiler.schedule(wait=1, warmup=1, active=2, repeat=1),
             # on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/resnet18'),
-            activities=[ProfilerActivity.CPU,ProfilerActivity.CUDA],
+            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
             record_shapes=True,
-            with_stack=True
+            with_stack=True,
         )
         prof.start()
 
@@ -1484,7 +1533,7 @@ def train_one_epoch(
                 fpr_loss=args.fpr_loss,
             )
 
-        target_y = normalizers["energy"](data.y, data.z) # [NB], [NB]
+        target_y = normalizers["energy"](data.y, data.z)  # [NB], [NB]
         target_dy = normalizers["force"](data.dy, data.z)
 
         # reshape model output [B] (OC20) -> [B,1] (MD17)
@@ -1521,8 +1570,8 @@ def train_one_epoch(
                 loss_fpc = 0
                 for z_pred in z_preds[:-1]:
                     _y, _dy, _ = model.decode(
-                        data = data,
-                        z = z_pred,
+                        data=data,
+                        z=z_pred,
                         info={},
                     )
 
@@ -1556,9 +1605,7 @@ def train_one_epoch(
                     f"Contrastive loss requires consecutive indices {data.idx}"
                 )
                 if args.contrastive_loss.startswith("triplet"):
-                    closs = calc_triplet_loss(
-                        info["z_pred"][-1], data, triplet_lossfn
-                    )
+                    closs = calc_triplet_loss(info["z_pred"][-1], data, triplet_lossfn)
                 elif args.contrastive_loss.startswith("next"):
                     assert (
                         data.idx[0] - data.idx[1]
@@ -1600,14 +1647,10 @@ def train_one_epoch(
             closs = args.contrastive_weight * closs
             loss += closs
             if wandb.run is not None:
-                wandb.log(
-                    {"contrastive_loss_scaled": closs.item()}, step=global_step
-                )
+                wandb.log({"contrastive_loss_scaled": closs.item()}, step=global_step)
 
         if args.fpr_loss == True:
-            next_data = get_next_batch(
-                dataset=all_dataset, batch=data, collate=collate
-            )
+            next_data = get_next_batch(dataset=all_dataset, batch=data, collate=collate)
             next_data = next_data.to(device)
             # get correct fixed-point of next timestep
             with torch.set_grad_enabled(args.fpr_w_grad):
@@ -1628,14 +1671,13 @@ def train_one_epoch(
                 step=global_step,
             )
 
-
         if torch.isnan(pred_y).any():
             isnan_cnt += 1
 
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
 
-        if args.grokfast in [None, False, 'None']:
+        if args.grokfast in [None, False, "None"]:
             pass
         elif args.grokfast == "ema":
             ### Option 1: Grokfast (has argument alpha, lamb)
@@ -1658,11 +1700,13 @@ def train_one_epoch(
             #     param_norm = p.grad.detach().data.norm(2)
             #     grad_norm += param_norm.item() ** 2
             # grad_norm = grad_norm ** 0.5
-            grad_norm = torch.cat([
-                param.grad.detach().flatten()
-                for param in model.parameters()
-                if param.grad is not None
-            ]).norm()
+            grad_norm = torch.cat(
+                [
+                    param.grad.detach().flatten()
+                    for param in model.parameters()
+                    if param.grad is not None
+                ]
+            ).norm()
 
         if args.opt in ["sps"]:
             optimizer.step(loss=loss)
@@ -1765,7 +1809,7 @@ def train_one_epoch(
         # remove special characters
         mname = "".join(e for e in mname if e.isalnum())
         prof.export_chrome_trace(f"{parent_dir}/traces/{mname}.json")
-        print('Saved trace to:', f"{parent_dir}/traces/{mname}.json")
+        print("Saved trace to:", f"{parent_dir}/traces/{mname}.json")
         exit()
 
     # log fixed-point statistics
@@ -1824,7 +1868,7 @@ def evaluate(
         # criterion.eval()
         criterion_energy.eval()
         criterion_force.eval()
-    
+
     loss_per_idx = False
     if args.eval_batch_size == 1:
         loss_per_idx = True
@@ -1868,7 +1912,15 @@ def evaluate(
             if loss_per_idx:
                 # wandb table with columns: idx, e_mae, f_mae, nstep, nstep_max, nstep_min
                 idx_table = wandb.Table(
-                    columns=["idx", "e_mae", "f_mae", "nstep", "nstep_std", "nstep_max", "nstep_min"]
+                    columns=[
+                        "idx",
+                        "e_mae",
+                        "f_mae",
+                        "nstep",
+                        "nstep_std",
+                        "nstep_max",
+                        "nstep_min",
+                    ]
                 )
 
             fixedpoint = None
@@ -1886,7 +1938,7 @@ def evaluate(
                     pass_step = global_step
                 else:
                     pass_step = None
-                
+
                 # TODO
                 log_fp = True
                 if fpreuse_test and (step % patch_size == 0):
@@ -1901,8 +1953,9 @@ def evaluate(
                 if fpreuse_test == True:
                     # assert that idx is consecutive
                     if prev_idx is not None:
-                        assert torch.allclose(data.idx, prev_idx + 1) or args.shuffle_test, \
-                            f"Indices are not consecutive at step={step}: \n{data.idx}, \n prev_idx: \n{prev_idx}"
+                        assert (
+                            torch.allclose(data.idx, prev_idx + 1) or args.shuffle_test
+                        ), f"Indices are not consecutive at step={step}: \n{data.idx}, \n prev_idx: \n{prev_idx}"
                     prev_idx = data.idx
                     # call model and pass fixedpoint
                     pred_y, pred_dy, fixedpoint, info = model(
@@ -1917,7 +1970,7 @@ def evaluate(
                         solver_kwargs=solver_kwargs,
                     )
                     # REMOVE
-                    # print(f'step: {step}. idx: {data.idx}.') 
+                    # print(f'step: {step}. idx: {data.idx}.')
                     # print(f' pred_y: {pred_y.shape}, pred_dy: {pred_dy.shape}, fixedpoint: {fixedpoint.shape}')
                 else:
                     # energy, force
@@ -2001,21 +2054,27 @@ def evaluate(
                         time_per_step=(1e3 * w / e / max_steps)
                     )
                     logger.info(info_str)
-                
-                if loss_per_idx: # and log_fp:
+
+                if loss_per_idx:  # and log_fp:
                     # "idx", "e_mae", "f_mae", "nstep", "nstep_std", "nstep_max", "nstep_min"
                     if "nstep" in info:
-                        nstep = info["nstep"].mean().item() 
+                        nstep = info["nstep"].mean().item()
                         nstep_std = info["nstep"].std().item()
                         nstep_max = info["nstep"].max().item()
                         nstep_min = info["nstep"].min().item()
-                    else: 
+                    else:
                         nstep = 0
                         nstep_max = 0
                         nstep_min = 0
                         nstep_std = 0
                     idx_table.add_data(
-                        data.idx.item(), energy_err, force_err, nstep, nstep_std, nstep_max, nstep_min
+                        data.idx.item(),
+                        energy_err,
+                        force_err,
+                        nstep,
+                        nstep_std,
+                        nstep_max,
+                        nstep_min,
                     )
 
                 if (step + 1) >= max_steps:

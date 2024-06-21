@@ -200,6 +200,7 @@ def log_fixed_point_norm(z, step, datasplit=None, name="fixed_point"):
         wandb.log({f"{name}_std{n}": z[-1].std().item()}, step=step)
     return
 
+
 def check_values(a, name, step, datasplit=None):
     # check for infinite values
     if not torch.isfinite(a).all():
@@ -211,8 +212,9 @@ def check_values(a, name, step, datasplit=None):
         return False
     return True
 
+
 def print_values(a, name, step=None, datasplit=None, log=False, before=None):
-    if os.environ.get('PRINT_VALUES', 0) == '1':
+    if os.environ.get("PRINT_VALUES", 0) == "1":
         if before is not None:
             print(before)
         _s = f"Step {step}: " if step is not None else ""
@@ -225,12 +227,15 @@ def print_values(a, name, step=None, datasplit=None, log=False, before=None):
     # log to wandb
     if log and step is not None:
         _name = name + (f"_{datasplit}" if datasplit is not None else "")
-        wandb.log({
-            f"{_name}_min": a.min().item(),
-            f"{_name}_max": a.max().item(),
-            f"{_name}_mean": a.mean().item(),
-            f"{_name}_norm": a.norm().item(),
-            f"{_name}_isfinite": torch.isfinite(a).all().item(),
-            f"{_name}_isnan": torch.isnan(a).any().item()
-        }, step=step)
-    return 
+        wandb.log(
+            {
+                f"{_name}_min": a.min().item(),
+                f"{_name}_max": a.max().item(),
+                f"{_name}_mean": a.mean().item(),
+                f"{_name}_norm": a.norm().item(),
+                f"{_name}_isfinite": torch.isfinite(a).all().item(),
+                f"{_name}_isnan": torch.isnan(a).any().item(),
+            },
+            step=step,
+        )
+    return

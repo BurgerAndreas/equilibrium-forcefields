@@ -60,12 +60,14 @@ class EdgeDegreeEmbedding(torch.nn.Module):
 
         if self.use_atom_edge_embedding:
             self.source_embedding = nn.Embedding(
-                num_embeddings=self.max_num_elements, embedding_dim=self.edge_channels_list[-1],
+                num_embeddings=self.max_num_elements,
+                embedding_dim=self.edge_channels_list[-1],
                 max_norm=st_max_norm,
             )
             self.target_embedding = nn.Embedding(
-                num_embeddings=self.max_num_elements, embedding_dim=self.edge_channels_list[-1],
-                max_norm=st_max_norm
+                num_embeddings=self.max_num_elements,
+                embedding_dim=self.edge_channels_list[-1],
+                max_norm=st_max_norm,
             )
             nn.init.uniform_(self.source_embedding.weight.data, -0.001, 0.001)
             nn.init.uniform_(self.target_embedding.weight.data, -0.001, 0.001)
@@ -100,7 +102,6 @@ class EdgeDegreeEmbedding(torch.nn.Module):
         else:
             x_edge = edge_distance
         print_values(a=x_edge, name="xedge")
-        
 
         x_edge_m_0 = self.rad_func(x_edge)
         x_edge_m_0 = x_edge_m_0.reshape(

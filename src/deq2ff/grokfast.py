@@ -11,21 +11,26 @@ from typing import Dict, Optional, Literal
 import torch
 import torch.nn as nn
 
+
 def gradfilter_ma(
     m: nn.Module,
     grads: Optional[Dict[str, deque]] = None,
     window_size: int = 100,
     lamb: float = 5.0,
-    filter_type: Literal['mean', 'sum'] = 'mean',
+    filter_type: Literal["mean", "sum"] = "mean",
     warmup: bool = True,
-    trigger: bool = False, # For ablation study.
+    trigger: bool = False,  # For ablation study.
 ) -> Dict[str, deque]:
     if grads is None:
-        grads = {n: deque(maxlen=window_size) for n, p in m.named_parameters() if p.requires_grad}
+        grads = {
+            n: deque(maxlen=window_size)
+            for n, p in m.named_parameters()
+            if p.requires_grad
+        }
 
     for n, p in m.named_parameters():
         if p.requires_grad:
-            grads[n].append(p.grad.data.detach()) # .cpu())
+            grads[n].append(p.grad.data.detach())  # .cpu())
 
             # Modify the gradients.
             if not warmup or len(grads[n]) == window_size and not trigger:
@@ -47,7 +52,9 @@ def gradfilter_ema(
     lamb: float = 2.0,
 ) -> Dict[str, torch.Tensor]:
     if grads is None:
-        grads = {n: p.grad.data.detach() for n, p in m.named_parameters() if p.requires_grad}
+        grads = {
+            n: p.grad.data.detach() for n, p in m.named_parameters() if p.requires_grad
+        }
 
     for n, p in m.named_parameters():
         if p.requires_grad:

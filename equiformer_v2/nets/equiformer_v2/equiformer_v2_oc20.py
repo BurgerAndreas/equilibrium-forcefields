@@ -166,7 +166,7 @@ class EquiformerV2_OC20(BaseModel):
         force_head="SO2EquivariantGraphAttention",
         energy_head="FeedForwardNetwork",
         force_scale_head=None,
-        fsbv=1, # TODO: temporary
+        fsbv=1,  # TODO: temporary
         skip_blocks=False,
         learn_scale_after_encoder=False,
         learn_scale_before_decoder=False,
@@ -175,6 +175,7 @@ class EquiformerV2_OC20(BaseModel):
         edge_emb_st_max_norm=None,
         layernorm="pre",
         enc_layernorm=False,
+        final_ln=False,
         **kwargs,
     ):
         super().__init__()
@@ -394,12 +395,15 @@ class EquiformerV2_OC20(BaseModel):
         )
 
         self.layernorm = layernorm
+        self.final_ln = final_ln
 
         self.build_blocks()
 
         if enc_layernorm:
             self.norm_enc = get_normalization_layer(
-                self.norm_type, lmax=max(self.lmax_list), num_channels=self.sphere_channels
+                self.norm_type,
+                lmax=max(self.lmax_list),
+                num_channels=self.sphere_channels,
             )
         else:
             self.norm_enc = None
@@ -584,6 +588,7 @@ class EquiformerV2_OC20(BaseModel):
                 normlayer_norm=self.normlayer_norm,
                 normlayer_affine=self.normlayer_affine,
                 layernorm=self.layernorm,
+                final_ln=self.final_ln,
             )
             self.blocks.append(block)
 
@@ -886,8 +891,10 @@ class EquiformerV2_OC20(BaseModel):
             if self.force_scale_block is not None:
                 if self.force_scale_head == "FeedForwardNetwork":
                     force_scale = self.force_scale_block(x)
-                else: # SO2EquivariantGraphAttention
-                    force_scale = self.force_scale_block(x, atomic_numbers, edge_distance, edge_index)
+                else:  # SO2EquivariantGraphAttention
+                    force_scale = self.force_scale_block(
+                        x, atomic_numbers, edge_distance, edge_index
+                    )
                 # select scalars only, one per node # (B, 1, 1)
                 force_scale = force_scale.embedding.narrow(dim=1, start=0, length=1)
                 # view: [B, 1]

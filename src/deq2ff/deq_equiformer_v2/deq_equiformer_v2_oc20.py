@@ -158,6 +158,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 normlayer_norm=self.normlayer_norm,
                 normlayer_affine=self.normlayer_affine,
                 layernorm=self.layernorm,
+                final_ln=self.final_ln,
             )
             self.blocks.append(block)
 
@@ -227,7 +228,14 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         self.num_edges = edge_distance.shape[0]
 
-        print_values(edge_distance_vec, "edge_distance_vec", step=step, datasplit=datasplit, log=True, before='-'*100)
+        print_values(
+            edge_distance_vec,
+            "edge_distance_vec",
+            step=step,
+            datasplit=datasplit,
+            log=True,
+            before="-" * 100,
+        )
         print_values(edge_index[0].float(), "edge_index0", log=True)
         print_values(edge_index[1].float(), "edge_index1", log=True)
 
@@ -298,7 +306,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # x.embedding = x.embedding * self.learn_scale_after_encoder
         if self.norm_enc is not None:
             x.embedding = self.norm_enc(x.embedding)
-        
+
         # logging
         if step is not None:
             # log the input injection (output of encoder)
@@ -311,7 +319,14 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # "Replaced" by DEQ
         ###############################################################
 
-        print_values(x.embedding, "emb", step=step, datasplit=datasplit, log=True, before='-'*80)
+        print_values(
+            x.embedding,
+            "emb",
+            step=step,
+            datasplit=datasplit,
+            log=True,
+            before="-" * 80,
+        )
         print_values(edge_degree.embedding, "edgedegreeemb", log=True)
 
         # if self.skip_blocks:
@@ -383,7 +398,6 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 # return_final=True,
             )
             info["z_next"] = z_next
-        
 
         ######################################################
         # Logging
@@ -404,11 +418,10 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         return self.decode(
             data=data,
-            z=z_pred[-1], # last fixed-point estimate
+            z=z_pred[-1],  # last fixed-point estimate
             info=info,
             return_fixedpoint=return_fixedpoint,
         )
-
 
     def decode(self, data, z, info, return_fixedpoint=False):
 
@@ -454,7 +467,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         if self.regress_forces:
             # atom-wise forces using a block of equivariant graph attention
             # and treating the output of degree 1 as the predictions
-            forces = self.force_block(x, self.atomic_numbers, self.edge_distance, self.edge_index)
+            forces = self.force_block(
+                x, self.atomic_numbers, self.edge_distance, self.edge_index
+            )
             # if self.learn_scale_after_force_block:
             x.embedding = x.embedding * self.learn_scale_after_force_block
             forces = forces.embedding.narrow(1, 1, 3)
@@ -463,8 +478,10 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             if self.force_scale_block is not None:
                 if self.force_scale_head == "FeedForwardNetwork":
                     force_scale = self.force_scale_block(x)
-                else: # SO2EquivariantGraphAttention
-                    force_scale = self.force_scale_block(x, self.atomic_numbers, self.edge_distance, self.edge_index)
+                else:  # SO2EquivariantGraphAttention
+                    force_scale = self.force_scale_block(
+                        x, self.atomic_numbers, self.edge_distance, self.edge_index
+                    )
                 # select scalars only, one per node # (B, 1, 1)
                 force_scale = force_scale.embedding.narrow(dim=1, start=0, length=1)
                 # view: [B, 1]

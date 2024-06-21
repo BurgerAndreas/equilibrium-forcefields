@@ -129,7 +129,8 @@ class Logger:
 
 def train(args):
     import yaml
-    print(f'args: \n{yaml.dump(vars(args))}')
+
+    print(f"args: \n{yaml.dump(vars(args))}")
     stats = dict()
     for i in range(args.start_run, args.total_run + 1):
         if args.restore_name is not None:

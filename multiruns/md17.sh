@@ -137,7 +137,7 @@ launchrun model.num_layers=4 +cfg=dd wandb_tags=["md223"] dname=md22 target=AT_A
 launchrun model.num_layers=4 +cfg=dd wandb_tags=["md223"] dname=md22 target=Ac_Ala3_NHMe
 launchrun model.num_layers=4 +cfg=dd wandb_tags=["md223"] dname=md22 target=DHA
 launchrun model.num_layers=4 +cfg=dd wandb_tags=["md223"] dname=md22 target=buckyball_catcher
-launchrun model.num_layers=4 +cfg=dd wandb_tags=["md223"] dname=md22 target=dw_nanotube # batch_size=2 lr=3e-4
+launchrun model.num_layers=4 +cfg=dd wandb_tags=["md223"] dname=md22 target=dw_nanotube batch_size=1 # lr=3e-4
 launchrun model.num_layers=4 +cfg=dd wandb_tags=["md223"] dname=md22 target=stachyose
 
 # Baseline Equiformer2 with eight layers
@@ -147,5 +147,5 @@ launchrun model.num_layers=8 +cfg=dd wandb_tags=["md223"] dname=md22 target=AT_A
 launchrun model.num_layers=8 +cfg=dd wandb_tags=["md223"] dname=md22 target=Ac_Ala3_NHMe
 launchrun model.num_layers=8 +cfg=dd wandb_tags=["md223"] dname=md22 target=DHA
 launchrun model.num_layers=8 +cfg=dd wandb_tags=["md223"] dname=md22 target=buckyball_catcher
-launchrun model.num_layers=8 +cfg=dd wandb_tags=["md223"] dname=md22 target=dw_nanotube
+launchrun model.num_layers=8 +cfg=dd wandb_tags=["md223"] dname=md22 target=dw_nanotube batch_size=1
 launchrun model.num_layers=8 +cfg=dd wandb_tags=["md223"] dname=md22 target=stachyose

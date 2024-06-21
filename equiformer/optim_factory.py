@@ -182,6 +182,7 @@ def create_optimizer_v2(
         # Stochastic polyak step-size for SGD: An adaptive learning rate for fast convergence
         # pip install git+https://github.com/IssamLaradji/sps.git
         import sps
+
         assert weight_decay == 0.0, "SPS does not support weight decay"
         optimizer = sps.Sps(parameters)
     elif opt_lower == "adagrad":

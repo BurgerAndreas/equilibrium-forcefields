@@ -129,7 +129,7 @@ class VariationalGraphPathDrop(nn.Module):
         # drop[batch]: [batch_size*num_atoms, 1, 1]. some batches are 0, other are 1/1-p
         out = x * drop[batch]
         return out
-    
+
     # def forward(self, x, batch):
     #     """Sets some batches (all atoms in a molecule) to zero and rescales the others to 1/1-p."""
     #     # for batch_size=4, 21 atoms per molecule
@@ -213,9 +213,9 @@ class VariationalDropout(nn.Module):
         else:
             # Dimension (N, C, L)
             # m = torch.zeros(bsz, d, 1).bernoulli_(1 - self.drop_prob)
-            m = torch.zeros(shape, dtype=dtype, device=device, requires_grad=False).bernoulli_(
-                1 - self.drop_prob
-            )
+            m = torch.zeros(
+                shape, dtype=dtype, device=device, requires_grad=False
+            ).bernoulli_(1 - self.drop_prob)
             # rescale to 1/ 1-probability
             mask = m / (1 - self.drop_prob)
             mask.requires_grad = False
@@ -279,7 +279,8 @@ class EquivariantScalarsDropout(nn.Module):
 
 
 class EquivariantDropoutArraySphericalHarmonics(nn.Module):
-    """ ? """
+    """?"""
+
     def __init__(self, drop_prob, drop_graph=False):
         super(EquivariantDropoutArraySphericalHarmonics, self).__init__()
         self.drop_prob = drop_prob

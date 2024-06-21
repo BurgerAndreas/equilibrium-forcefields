@@ -111,12 +111,12 @@ def line_search(update, x0, g0, g, nstep=0, on=True):
         g0_new = tmp_g0[0]
     else:
         g0_new = g(x_est)
-    
+
     # added
     if check_values(x_est, f"x_est (nstep={nstep})") == False:
         print(f"s (nstep={nstep})", s)
         print(f"update (nstep={nstep})", update.norm(), update.max())
-    
+
     # clip the norm of the update
     # if update.norm() > 1e2:
     #     update = update / update.norm() * 1e2
@@ -179,7 +179,7 @@ def broyden_solver(
     with_grad=False,
     # div_with_double=False,
     # return_xest=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Implements the Broyden's method for solving a system of nonlinear equations.
@@ -238,15 +238,17 @@ def broyden_solver(
     VTs = torch.zeros(bsz, LBFGS_thres, dim, dtype=x0.dtype, device=x0.device)
     # Formally should be -torch.matmul(inv_jacobian (-I), gx)
     update = -matvec(Us[:, :, :nstep], VTs[:, :nstep], gx)
-    
+
     a = check_values(gx, f"\ngx initial (nstep={nstep})")
     b = check_values(update, f"update initial (nstep={nstep})")
     if a == False or b == False:
         print(f" gx (nstep={nstep})", gx.norm(), gx.max())
-        print(f'x0 (nstep={nstep})', x0.norm(), x0.max(), x0.shape)
+        print(f"x0 (nstep={nstep})", x0.norm(), x0.max(), x0.shape)
         fx = func(x0)
-        print(f'func(x0) (nstep={nstep})', fx.norm(), fx.max(), fx.shape) # is it a shape error?
-        print(f'x_est (nstep={nstep})', x_est.norm(), x_est.max(), x_est.shape)
+        print(
+            f"func(x0) (nstep={nstep})", fx.norm(), fx.max(), fx.shape
+        )  # is it a shape error?
+        print(f"x_est (nstep={nstep})", x_est.norm(), x_est.max(), x_est.shape)
         print(f" update (nstep={nstep})", update.norm(), update.max())
 
     new_objective = 1e8
@@ -329,8 +331,8 @@ def broyden_solver(
         # Update the inverses Jacobian approximation using the Broyden's update formula
         part_Us, part_VTs = Us[:, :, : nstep - 1], VTs[:, : nstep - 1]
         vT = rmatvec(part_Us, part_VTs, delta_x)
-        u = (delta_x - matvec(part_Us, part_VTs, delta_gx)) 
-        if os.environ.get('FIX_BROYDEN', 1) == '1':
+        u = delta_x - matvec(part_Us, part_VTs, delta_gx)
+        if os.environ.get("FIX_BROYDEN", 1) == "1":
             u = torch.nan_to_num(u)
         check_values(u, f"u prediv (nstep={nstep})")
 
@@ -351,16 +353,16 @@ def broyden_solver(
 
         # if _div is zero, we will have inf in u
         # empirically clamp often results in nan, not recommended
-        if os.environ.get('DIV_CLAMP', 0) == '1':
+        if os.environ.get("DIV_CLAMP", 0) == "1":
             _div = torch.clamp(_div, min=1e-7)
-        if os.environ.get('DIV_FUDGE', 0) == '1':
+        if os.environ.get("DIV_FUDGE", 0) == "1":
             _div += 1e-7
-        if os.environ.get('FIX_BROYDEN', 1) == '1':
+        if os.environ.get("FIX_BROYDEN", 1) == "1":
             _div = torch.nan_to_num(_div)
         u = u / _div
 
         # Replaces NaN, positive infinity, and negative infinity values by 0, max allowed value, min allowed value
-        if os.environ.get('FIX_BROYDEN', 1) == '1':
+        if os.environ.get("FIX_BROYDEN", 1) == "1":
             vT = torch.nan_to_num(vT)
             u = torch.nan_to_num(u)
         else:
@@ -374,7 +376,7 @@ def broyden_solver(
         Us[:, :, (nstep - 1) % LBFGS_thres] = u
         update = -matvec(Us[:, :, :nstep], VTs[:, :nstep], gx)
 
-        if os.environ.get('FIX_BROYDEN', 1) == '1':
+        if os.environ.get("FIX_BROYDEN", 1) == "1":
             update = torch.nan_to_num(update)
 
         check_values(vT, f"vT (nstep={nstep})")
@@ -412,7 +414,7 @@ def broyden_solver_grad(
     return_final=False,
     with_grad=True,
     # return_xest=False,
-    **kwargs
+    **kwargs,
 ):
     """Differentiable Broyden solver.
 
@@ -596,7 +598,7 @@ def test_broyden_solver_grad(
     return_final=False,
     with_grad=True,
     # return_xest=False,
-    **kwargs
+    **kwargs,
 ):
     """Differentiable Broyden solver.
     Examples:

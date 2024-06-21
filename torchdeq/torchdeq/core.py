@@ -467,7 +467,7 @@ class DEQIndexing(DEQBase):
             # if we want to overwrite indexing/n_states, we need to update the grad functions
             self.set_grad({"indexing": indexing})
 
-            # TODO 
+            # TODO
             # indexing defaults to indexing=[f_max_iter] if not specified otherwise
             # if nstep > indexing, fp_estimate is added to trajectory
             # if nothing else is added to the trajectory, the final fp_estimate is added

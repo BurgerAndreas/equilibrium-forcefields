@@ -18,6 +18,7 @@ from src.deq2ff.plotting.style import set_seaborn_style, set_style_after
 plotfolder = pathlib.Path(__file__).parent.absolute()
 plotfolder = os.path.join(plotfolder, "plots")
 
+
 def main(run_id, datasplit="test_fpreuse"):
     # idx_table
     table_key = f"idx_table_{datasplit}"
@@ -72,14 +73,20 @@ def main(run_id, datasplit="test_fpreuse"):
     # load the data
     import equiformer.datasets.pyg.md_all as md_all
 
-    train_dataset, val_dataset, test_dataset, test_dataset_full, all_dataset = md_all.get_md_datasets(
+    (
+        train_dataset,
+        val_dataset,
+        test_dataset,
+        test_dataset_full,
+        all_dataset,
+    ) = md_all.get_md_datasets(
         root=data_path,
         dataset_arg=target,
         dname=dname,
         train_size=train_size,
         val_size=val_size,
-        test_size=None, # influences data splitting
-        test_size_select=test_size, # doesn't influence data splitting
+        test_size=None,  # influences data splitting
+        test_size_select=test_size,  # doesn't influence data splitting
         seed=seed,
         order="consecutive_all",
     )
@@ -95,9 +102,9 @@ def main(run_id, datasplit="test_fpreuse"):
     print(f"patch_size: {patch_size}")
     assert patch_size == 200
     # remove every patch_size row (because there is no fpreuse)
-    print(f'len(df): {len(df)}')
-    df = df.iloc[patch_size-1::patch_size]
-    print(f'len(df): {len(df)}')
+    print(f"len(df): {len(df)}")
+    df = df.iloc[patch_size - 1 :: patch_size]
+    print(f"len(df): {len(df)}")
 
     # get idx of the minimum force mae
     # min_idx = df["f_mae"].idxmin()
@@ -121,14 +128,20 @@ def main(run_id, datasplit="test_fpreuse"):
     # create a 3d plot of the molecule
     if side_by_side:
         fig = plt.figure(figsize=(12, 6))
-        ax = fig.add_subplot(121, projection='3d')
+        ax = fig.add_subplot(121, projection="3d")
     else:
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
+        ax = fig.add_subplot(111, projection="3d")
     ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], c="red", label="Atoms")
     ax.quiver(
-        pos[:, 0], pos[:, 1], pos[:, 2], f[:, 0], f[:, 1], f[:, 2], 
-        color="blue", label="Forces",
+        pos[:, 0],
+        pos[:, 1],
+        pos[:, 2],
+        f[:, 0],
+        f[:, 1],
+        f[:, 2],
+        color="blue",
+        label="Forces",
         **quiver_kwargs,
     )
     ax.set_xlabel("X")
@@ -144,13 +157,21 @@ def main(run_id, datasplit="test_fpreuse"):
     e_prev = data.y
 
     if side_by_side:
-        ax2 = fig.add_subplot(122, projection='3d')
+        ax2 = fig.add_subplot(122, projection="3d")
     else:
         ax2 = ax
-    ax2.scatter(pos_prev[:, 0], pos_prev[:, 1], pos_prev[:, 2], c="green", label="Atoms (prev)")
+    ax2.scatter(
+        pos_prev[:, 0], pos_prev[:, 1], pos_prev[:, 2], c="green", label="Atoms (prev)"
+    )
     ax2.quiver(
-        pos_prev[:, 0], pos_prev[:, 1], pos_prev[:, 2], f_prev[:, 0], f_prev[:, 1], f_prev[:, 2], 
-        color="purple", label="Forces (prev)",
+        pos_prev[:, 0],
+        pos_prev[:, 1],
+        pos_prev[:, 2],
+        f_prev[:, 0],
+        f_prev[:, 1],
+        f_prev[:, 2],
+        color="purple",
+        label="Forces (prev)",
         **quiver_kwargs,
     )
 
@@ -164,9 +185,9 @@ def main(run_id, datasplit="test_fpreuse"):
     plt.savefig(plotpath)
     print(f"Saved plot to\n {plotpath}")
 
-    # pickle.dump(fig, open('FigureObject.fig.pickle', 'wb')) 
+    # pickle.dump(fig, open('FigureObject.fig.pickle', 'wb'))
     # figx = pickle.load(open('FigureObject.fig.pickle', 'rb'))
-    # figx.show() 
+    # figx.show()
     # data = figx.axes[0].lines[0].get_data()
 
     # # add pos, f, e columns to the dataframe
@@ -179,10 +200,6 @@ def main(run_id, datasplit="test_fpreuse"):
     #     df.at[i, "pos"] = pos
     #     df.at[i, "f"] = f
     #     df.at[i, "e"] = e
-
-
-
-
 
 
 if __name__ == "__main__":

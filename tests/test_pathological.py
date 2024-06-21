@@ -285,7 +285,10 @@ def main(args):
         test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
         _log.info(f"Reordered test dataset to be consecutive for fixed-point reuse.")
     test_loader = DataLoader(
-        test_dataset, batch_size=args.eval_batch_size, shuffle=args.shuffle_test, drop_last=True
+        test_dataset,
+        batch_size=args.eval_batch_size,
+        shuffle=args.shuffle_test,
+        drop_last=True,
     )
 
     """ Compute stats """
@@ -574,7 +577,6 @@ def main(args):
         print(f"Failed to log shapes: {e}")
         node_embedding_batch_shape = None
         node_embedding_shape = None
-
 
     """ Training Loop """
     data_loader = train_loader

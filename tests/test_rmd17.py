@@ -1,4 +1,3 @@
-
 import time
 import torch
 import numpy as np
@@ -96,9 +95,8 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-
 def main(args):
-        # since dataset needs random
+    # since dataset needs random
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
@@ -195,13 +193,12 @@ def main(args):
         test_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
     )
 
-
     """ Dryrun of forward pass for testing """
     first_batch = next(iter(train_loader))
 
     data = first_batch.to(device)
 
-    print('')
+    print("")
     print("data:", data.idx)
 
     try:
@@ -210,15 +207,14 @@ def main(args):
         pass
 
 
-
 @hydra.main(config_name="md17", config_path="../equiformer/config", version_base="1.3")
 def hydra_wrapper(args: DictConfig) -> None:
     """Run training loop."""
 
     from deq2ff.logging_utils import init_wandb
-    
+
     args.wandb = False
-    args.dname = "md17" # md17, rmd17, rmd17og
+    args.dname = "md17"  # md17, rmd17, rmd17og
     args.datasplit = "consecutive_all"
     args.shuffle = False
 

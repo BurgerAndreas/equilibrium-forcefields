@@ -14,7 +14,8 @@ from equiformer.optim_factory import scale_batchsize_lr
 
 
 def fix_args(args: OmegaConf):
-    args.slurm_job_id = os.environ.get("SLURM_JOB_ID", None)
+    slurm_job_id = os.environ.get("SLURM_JOB_ID", None)
+    args.slurm_job_id = int(slurm_job_id) if slurm_job_id is not None else None
     args = set_gpu_name(args)
 
     if "test_solver" in args and args.test_solver is not None:
@@ -33,12 +34,12 @@ def fix_args(args: OmegaConf):
     if "model_is_deq" in args and args.model_is_deq is True:
         if args.model.name[:3] != "deq":
             args.model.name = f"deq_{args.model.name}"
-    
+
     # regular Equiformer cannot use fpreuse_test
     else:
         if "fpreuse_test" in args:
             args.fpreuse_test = False
-    
+
     # if we use fpreuse, we need to make sure that the test set is consecutive across batches
     if args.fpreuse_test:
         if args.datasplit not in ["fpreuse_overlapping", "fpreuse_ordered"]:
@@ -182,10 +183,10 @@ IGNORE_OVERRIDES_CHECKPOINT = [
 REPLACE = {
     "deq_dot_product_attention_transformer_exp_l2_md17": "DEQE1",
     "dot_product_attention_transformer_exp_l2_md17": "E1",
-    "deq_equiformer_v2_oc20": "DEQs", # ChangeS DEQc
-    "equiformer_v2_oc20": "Es", # ChangeS E2 OC20
-    "deq_equiformer_v2_md17": "DEQs", # ChangeS DEQc
-    "equiformer_v2_md17": "Es", # ChangeS E2 MD17
+    "deq_equiformer_v2_oc20": "DEQs",  # ChangeS DEQc
+    "equiformer_v2_oc20": "Es",  # ChangeS E2 OC20
+    "deq_equiformer_v2_md17": "DEQs",  # ChangeS DEQc
+    "equiformer_v2_md17": "Es",  # ChangeS E2 MD17
     # other stuff
     "dot_product": " dp",
     "use-deq": "",

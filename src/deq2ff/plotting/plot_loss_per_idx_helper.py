@@ -154,6 +154,8 @@ def get_data(run_id, datasplit="test_fpreuse"):
     args_datasplit = run.config["datasplit"]
     fpreuse_test = run.config["fpreuse_test"]
     contrastive_loss = run.config["contrastive_loss"]
+    deq = run.config["model_is_deq"]
+
 
     # load the data
     import equiformer.datasets.pyg.md_all as md_all
@@ -216,6 +218,9 @@ def get_data(run_id, datasplit="test_fpreuse"):
             z = data.z
             z = [_z.item() for _z in z]
             df.at[i, "z"] = z
+        
+        # add DEQ or Equ to the dataframe in the "DEQ" column
+        df["Model"] = ["DEQ" if deq else "Equ"] * df.shape[0]
 
         print(f"Calculating f_delta between steps...")
         # from forces get the force delta between consecutive steps
@@ -531,22 +536,30 @@ def plot_mol_plt(idx, dfall, dataset, datasplit, run_id, side_by_side=False):
 line_kws = {"lw": 2}
 
 
-def plot_loss_per_idx(dffp, dfall, datasplit, run_id, logy=False):
+def plot_loss_per_idx(dffp, dfall, datasplit, run_id, logy=False, fig=None, alpha=1.):
     """Only considers the fpreuse idxs."""
 
     # columns: "idx", "e_mae", "f_mae", "nstep"
     # plot the loss per idx
     set_seaborn_style()
+    colors = sns.color_palette("dark")
 
-    fig, ax = plt.subplots()
+    if fig is None:
+        fig, ax = plt.subplots()
+    else:
+        ax = fig.gca()
     # sns.lineplot(data=dffp, x="idx", y="e_mae", ax=ax, label="Energy MAE")
     sns.lineplot(
         data=dffp,
         x="idx",
         y="f_mae",
         ax=ax,
-        label="Force MAE",
+        # label=f"Force MAE {label}",
         lw=1,
+        # c=colors[c],
+        palette="dark",
+        hue="Model",
+        alpha=alpha,
     )
     # ax.set_yscale("log")
     ax.set_xlabel("Index")
@@ -560,10 +573,12 @@ def plot_loss_per_idx(dffp, dfall, datasplit, run_id, logy=False):
     plt.tight_layout()
 
     # save the plot
-    plotname = f"loss_per_idx_{datasplit}-{run_id}.png"
-    plotpath = os.path.join(plotfolder, plotname)
-    plt.savefig(plotpath)
-    print(f"Saved plot to\n {plotpath}")
+    # plotname = f"loss_per_idx_{datasplit}-{run_id}.png"
+    # plotpath = os.path.join(plotfolder, plotname)
+    # plt.savefig(plotpath)
+    # print(f"Saved plot to\n {plotpath}")
+    # plt.show()
+    # return fig
 
 
 def plot_fmae_count(

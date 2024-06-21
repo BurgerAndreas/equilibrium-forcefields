@@ -62,7 +62,7 @@ import wandb
 from typing import List
 import tracemalloc
 
-from equiformer_v2.oc20.trainer.base_trainer_oc20 import Normalizer
+from ocpmodels.modules.normalizer import Normalizer, NormalizerByAtomtype
 
 """
 Adapted from equiformer/main_md17.py
@@ -329,27 +329,24 @@ def main(args):
         raise NotImplementedError(f"Unknown std_forces: {args.std_forces}")
 
     # Normalizers
-    if args.normalizer == "md17":
-        normalizer_e = lambda x, z: (x - task_mean) / task_std
-        normalizer_f = lambda x, z: x / std_f
-    # doesn't make a difference
-    elif args.normalizer == "oc20":
-        normalizer_e = Normalizer(
-            mean=task_mean,
-            std=task_std,
-            device=device,
-        )
-        normalizer_f = Normalizer(
+    # normalizer_e = lambda x, z: (x - task_mean) / task_std
+    # normalizer_f = lambda x, z: x / std_f
+    # same thing but as a class
+    normalizer_e = Normalizer(
+        mean=task_mean,
+        std=task_std,
+        device=device,
+    )
+
+    # normalize forces by each atom type separately
+    if args.norm_forces_by_atom in [False, None, "None"]:
+        # Default normalization that Equiformer used
+        normalizer_f = Normalizer( 
             mean=0,
             std=std_f,
             device=device,
         )
-    else:
-        raise NotImplementedError(f"Unknown normalizer: {args.normalizer}")
 
-    # normalize forces by each atom type separately
-    if args.norm_forces_by_atom in [False, None, "None"]:
-        pass
     else:
         norm_mean_atom = torch.ones(args.model.max_num_elements)  # [A]
         norm_std_atom = torch.ones(args.model.max_num_elements)
@@ -358,6 +355,7 @@ def main(args):
         dy = torch.cat([batch.dy for batch in train_dataset], dim=0)  # [N, 3]
         dy_norm = torch.linalg.norm(dy, dim=1)  # [N]
         atoms = torch.cat([batch.z for batch in train_dataset], dim=0)  # [N]
+        # Compute statistics
         for i in range(args.model.max_num_elements):
             mask = atoms == i
             norm_mean_atom[i] = dy_norm[mask].mean()
@@ -370,22 +368,20 @@ def main(args):
         mean_atom = mean_atom.to(device)
         std_atom = std_atom.to(device)
         if args.norm_forces_by_atom == "normmean":
-
-            def normalizer_f(x, z):
-                # x: [N, 3], z: [N]
-                return x / norm_mean_atom[z].unsqueeze(1)
-
+            # normalizer_f = lambda x, z: x / norm_mean_atom[z].unsqueeze(1)
+            divider = norm_mean_atom
         elif args.norm_forces_by_atom == "normstd":
-            normalizer_f = lambda x, z: x / norm_std_atom[z].unsqueeze(1)
+            divider = norm_std_atom
         # not really sure how to interpret this
         elif args.norm_forces_by_atom == "mean":
-            normalizer_f = lambda x, z: x / mean_atom[z].unsqueeze(1)
+            divider = mean_atom
         elif args.norm_forces_by_atom == "std":
-            normalizer_f = lambda x, z: x / std_atom[z].unsqueeze(1)
+            divider = std_atom
         else:
             raise NotImplementedError(
                 f"Unknown norm_forces_by_atom: {args.norm_forces_by_atom}"
             )
+        normalizer_f = NormalizerByAtomtype(mean=0, std=divider, device=device)
 
     normalizers = {"energy": normalizer_e, "force": normalizer_f}
 
@@ -771,7 +767,7 @@ def main(args):
             print_progress=True,
             max_iter=args.test_max_iter,
             global_step=global_step,
-            epoch=epoch,
+            epoch=start_epoch,
             datasplit="test",
             normalizers=normalizers,
         )
@@ -1655,6 +1651,7 @@ def train_one_epoch(
             if wandb.run is not None:
                 wandb.log({"contrastive_loss_scaled": closs.item()}, step=global_step)
 
+        # Fixed-point reuse loss
         if args.fpr_loss == True:
             next_data = get_next_batch(dataset=all_dataset, batch=data, collate=collate)
             next_data = next_data.to(device)
@@ -1736,14 +1733,15 @@ def train_one_epoch(
         loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
         # TODO: other losses
 
-        energy_err = pred_y.detach() * task_std + task_mean - data.y
+        # energy_err1 = pred_y.detach() * task_std + task_mean - data.y
+        energy_err = normalizers["energy"].denorm(pred_y.detach(), data.z) - data.y
         energy_err = torch.mean(torch.abs(energy_err)).item()
         mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
 
-        force_err = pred_dy.detach() * task_std - data.dy
-        force_err = torch.mean(
-            torch.abs(force_err)
-        ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
+        # force_err1 = pred_dy.detach() * task_std - data.dy
+        force_err = normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy 
+        # based on OC20 and TorchMD-Net, they average over x, y, z
+        force_err = torch.mean(torch.abs(force_err)).item()  
         mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
         if model_ema is not None:
@@ -2028,10 +2026,13 @@ def evaluate(
                 loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
                 loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
 
-                energy_err = pred_y.detach() * task_std + task_mean - data.y
+                # energy_err = pred_y.detach() * task_std + task_mean - data.y
+                energy_err = normalizers["energy"].denorm(pred_y.detach(), data.z) - data.y
                 energy_err = torch.mean(torch.abs(energy_err)).item()
                 mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
-                force_err = pred_dy.detach() * task_std - data.dy
+
+                # force_err = pred_dy.detach() * task_std - data.dy
+                force_err = normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy 
                 force_err = torch.mean(
                     torch.abs(force_err)
                 ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
@@ -2088,6 +2089,9 @@ def evaluate(
                     if "abs_trace" in info:
                         fpabs = info["abs_trace"][-1].mean().item()
                         fprel = info["rel_trace"][-1].mean().item()
+                    else:
+                        fpabs = 0
+                        fprel = 0
                     idx_table.add_data(
                         data.idx.item(),
                         energy_err,

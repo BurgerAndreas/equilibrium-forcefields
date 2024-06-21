@@ -164,7 +164,6 @@ test_w_eval_mode: True
 # use torch.no_grad() during evaluation (bool)
 test_w_grad: False
 
-normalizer: md17 # md17 or oc20
 # default: energies are standardized by e = e - mean_e / std_e
 # default: forces are standardized by f = f / std_e
 std_forces: null # std, normstd, False

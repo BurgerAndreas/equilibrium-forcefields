@@ -14,6 +14,6 @@ deq_kwargs:
 
 model:
   torchdeq_norm:
-    norm_type: null
+    ln_type: null
   path_drop: 0.05
   use_variational_path_drop: True

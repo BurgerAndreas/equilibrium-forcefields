@@ -1,6 +1,6 @@
 python main.py                  \
     --cfg ./configs/large.yaml  \
-    --norm_type weight_norm     \
+    --ln_type weight_norm     \
     --f_solver broyden          \
     --f_max_iter 18             \
     --grad 5                    \

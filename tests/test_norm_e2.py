@@ -121,8 +121,8 @@ def main(
     num_layers=2,
     cat_injection=False,
     norm_injection="prev",
-    normlayer_norm="component",
-    norm_type="rms_norm_sh",
+    ln_norm="component",
+    ln_type="rms_norm_sh",
 ):
 
     args.model.weight_init = weight_init
@@ -130,8 +130,8 @@ def main(
     args.model.cat_injection = cat_injection
     args.model.norm_injection = norm_injection  # None, prev
 
-    args.model.normlayer_norm = normlayer_norm  # component, norm
-    args.model.norm_type = norm_type  # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
+    args.model.ln_norm = ln_norm  # component, norm
+    args.model.ln_type = ln_type  # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
 
     # pretty print args
     # print(OmegaConf.to_yaml(args))
@@ -368,23 +368,23 @@ def plot_norms_layer(args):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
 
     i = 0
-    for norm_type in ["layer_norm_sh", "layer_norm", "rms_norm_sh"]:
-        for normlayer_norm in ["component", "norm"]:
+    for ln_type in ["layer_norm_sh", "layer_norm", "rms_norm_sh"]:
+        for ln_norm in ["component", "norm"]:
             norms = main(
                 args,
                 norm_injection="prev",
-                norm_type=norm_type,
-                normlayer_norm=normlayer_norm,
+                ln_type=ln_type,
+                ln_norm=ln_norm,
             )
             norms = np.array(norms)
 
             # plot
             ax1.plot(
-                norms[:, 0], label=f"{norm_type} {normlayer_norm}", color=colors[i]
+                norms[:, 0], label=f"{ln_type} {ln_norm}", color=colors[i]
             )
             ax2.plot(
                 norms[:, 1],
-                label=f"{norm_type} {normlayer_norm}",
+                label=f"{ln_type} {ln_norm}",
                 color=colors[i],
                 linestyle="--",
             )
@@ -395,7 +395,7 @@ def plot_norms_layer(args):
     plt.legend()
     plt.xlabel("forward passes through implicit layer")
     plt.ylabel("norm of node embedding")
-    fpath = "figs/layernorm_fsolver.png"
+    fpath = "figs/ln_fsolver.png"
     plt.savefig(fpath)
     print(f"{fpath} saved")
     return
@@ -416,8 +416,8 @@ def plot_input_inj(args):
                 args,
                 cat_injection=cat_injection,
                 norm_injection=norm_injection,
-                norm_type="rms_norm_sh",
-                normlayer_norm="norm",
+                ln_type="rms_norm_sh",
+                ln_norm="norm",
             )
             norms = np.array(norms)
 
@@ -489,7 +489,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
     init_wandb(args)
 
-    # norms = main(args, norm_injection='prev', norm_type='layer_norm_sh', normlayer_norm='component')
+    # norms = main(args, norm_injection='prev', ln_type='layer_norm_sh', ln_norm='component')
 
     # plot_norms_layer(args)
     plot_input_inj(args)

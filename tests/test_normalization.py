@@ -112,9 +112,9 @@ def test_normalization_layers(num_atoms, lmax_list, sphere_channels, device, dty
     i += 1
 
     # layer_norm_sh, layer_norm, rms_norm_sh
-    for norm_type in ["layer_norm_sh", "layer_norm", "rms_norm_sh"]:
-        for normlayer_norm in ["component", "norm"]:
-            for normlayer_affine in [True, False]:
+    for ln_type in ["layer_norm_sh", "layer_norm", "rms_norm_sh"]:
+        for ln_norm in ["component", "norm"]:
+            for ln_affine in [True, False]:
                 """layer_norm_sh:
                 Args:
                     affine=True
@@ -138,16 +138,16 @@ def test_normalization_layers(num_atoms, lmax_list, sphere_channels, device, dty
                     .affine_weight, .affine_bias, .balance_degree_weight
                     norm_1: layer_norm = norm_l0.weight, .bias
                 """
-                print(f"\nNormalization layer: {norm_type}")
+                print(f"\nNormalization layer: {ln_type}")
 
                 # TransBlockV2 style
                 max_lmax = max(lmax_list)
                 norm_1 = get_normalization_layer(
-                    norm_type,
+                    ln_type,
                     lmax=max_lmax,
                     num_channels=sphere_channels,
-                    normalization=normlayer_norm,
-                    affine=normlayer_affine,
+                    normalization=ln_norm,
+                    affine=ln_affine,
                 )
 
                 # forward
@@ -158,7 +158,7 @@ def test_normalization_layers(num_atoms, lmax_list, sphere_channels, device, dty
                 )
 
                 # plot
-                label = f'{norm_type} {normlayer_norm} {"affine" if normlayer_affine else ""}'
+                label = f'{ln_type} {ln_norm} {"affine" if ln_affine else ""}'
                 ax1.bar(
                     label, _x.embedding.norm(2).item(), label=label, color=colors[i]
                 )
@@ -202,7 +202,7 @@ def test_normalization_layers(num_atoms, lmax_list, sphere_channels, device, dty
     ax1.set_ylabel("norm of random tensor")
     plt.tight_layout()
 
-    fpath = "figs/layernorm.png"
+    fpath = "figs/ln.png"
     plt.savefig(fpath)
     print(f"{fpath} saved")
 
@@ -213,9 +213,9 @@ def test_multiple_passes_normalization_layers(
     num_atoms, lmax_list, sphere_channels, device, dtype
 ):
     """What do multiple applications of the same normalization layer do to a random tensor?"""
-    norm_type = "rms_norm_sh"
-    normlayer_norm = "norm"
-    normlayer_affine = True
+    ln_type = "rms_norm_sh"
+    ln_norm = "norm"
+    ln_affine = True
 
     sns.set_style("whitegrid")
     colors = sns.color_palette(palette=PALETTE, n_colors=20)
@@ -247,11 +247,11 @@ def test_multiple_passes_normalization_layers(
     i += 1
 
     norm_layer = get_normalization_layer(
-        norm_type,
+        ln_type,
         lmax=max(lmax_list),
         num_channels=sphere_channels,
-        normalization=normlayer_norm,
-        affine=normlayer_affine,
+        normalization=ln_norm,
+        affine=ln_affine,
     )
 
     f_passes = range(5)
@@ -274,7 +274,7 @@ def test_multiple_passes_normalization_layers(
     ax1.set_ylabel("norm of random tensor")
     plt.tight_layout()
 
-    fpath = "figs/layernorm.png"
+    fpath = "figs/ln.png"
     plt.savefig(fpath)
     print(f"{fpath} saved")
     return
@@ -297,7 +297,7 @@ def equiformerv2(
     attn_alpha_channels=32,
     attn_value_channels=16,
     ffn_hidden_channels=512,
-    norm_type="rms_norm_sh",
+    ln_type="rms_norm_sh",
     # num_coefficients = sum_i int((lmax_list[i] + 1) ** 2)
     # lmax_list=[3] -> num_coefficients = 16
     lmax_list=[6],
@@ -332,8 +332,8 @@ def equiformerv2(
     force_head="SO2EquivariantGraphAttention",
     energy_head="FeedForwardNetwork",
     # added
-    normlayer_norm="norm",
-    normlayer_affine=True,
+    ln_norm="norm",
+    ln_affine=True,
     **kwargs,
 ):
     # self.dtype = data.pos.dtype

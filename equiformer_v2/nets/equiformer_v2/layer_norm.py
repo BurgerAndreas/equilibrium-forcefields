@@ -12,14 +12,14 @@ import math
 
 
 def get_normalization_layer(
-    norm_type, lmax, num_channels, eps=1e-5, affine=True, normalization="component"
+    ln_type, lmax, num_channels, eps=1e-5, affine=True, normalization="component"
 ):
-    assert norm_type in ["layer_norm", "layer_norm_sh", "rms_norm_sh"]
-    if norm_type == "layer_norm":
+    assert ln_type in ["layer_norm", "layer_norm_sh", "rms_norm_sh"]
+    if ln_type == "layer_norm":
         norm_class = EquivariantLayerNormArray
-    elif norm_type == "layer_norm_sh":
+    elif ln_type == "layer_norm_sh":
         norm_class = EquivariantLayerNormArraySphericalHarmonics
-    elif norm_type == "rms_norm_sh":
+    elif ln_type == "rms_norm_sh":
         norm_class = EquivariantRMSNormArraySphericalHarmonicsV2
     else:
         raise ValueError

@@ -455,7 +455,7 @@ class PaiNNMessage(MessagePassing):
 
         self.inv_sqrt_3 = 1 / math.sqrt(3.0)
         self.inv_sqrt_h = 1 / math.sqrt(hidden_channels)
-        self.x_layernorm = nn.LayerNorm(hidden_channels)
+        self.x_ln = nn.LayerNorm(hidden_channels)
 
         self.reset_parameters()
 
@@ -466,10 +466,10 @@ class PaiNNMessage(MessagePassing):
         self.x_proj[2].bias.data.fill_(0)
         nn.init.xavier_uniform_(self.rbf_proj.weight)
         self.rbf_proj.bias.data.fill_(0)
-        self.x_layernorm.reset_parameters()
+        self.x_ln.reset_parameters()
 
     def forward(self, x, vec, edge_index, edge_rbf, edge_vector):
-        xh = self.x_proj(self.x_layernorm(x))
+        xh = self.x_proj(self.x_ln(x))
 
         # TODO(@abhshkdz): Nans out with AMP here during backprop. Debug / fix.
         rbfh = self.rbf_proj(edge_rbf)

@@ -14,7 +14,7 @@ class MFNLayer(nn.Module):
         filter_type="fourier",
         filter_options={},
         bias=True,
-        norm_type="none",
+        ln_type="none",
         init="default",
     ):
         super().__init__()
@@ -40,7 +40,7 @@ class MFN(nn.Module):
         n_layers,
         filter_type="fourier",
         filter_options={},
-        norm_type="none",
+        ln_type="none",
         init="default",
     ):
         super().__init__()
@@ -53,7 +53,7 @@ class MFN(nn.Module):
                     interm_channels=interm_channels,
                     filter_type=filter_type,
                     filter_options=filter_options,
-                    norm_type=norm_type,
+                    ln_type=ln_type,
                     init=init,
                 )
                 for _ in range(n_layers)

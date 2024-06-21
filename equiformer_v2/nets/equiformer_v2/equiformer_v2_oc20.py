@@ -78,7 +78,7 @@ class EquiformerV2_OC20(BaseModel):
         attn_alpha_head (int):      Number of channels for alpha vector in each attention head
         attn_value_head (int):      Number of channels for value vector in each attention head
         ffn_hidden_channels (int):  Number of hidden channels used during feedforward network
-        norm_type (str):            Type of normalization layer (['layer_norm', 'layer_norm_sh', 'rms_norm_sh'])
+        ln_type (str):            Type of normalization layer (['layer_norm', 'layer_norm_sh', 'rms_norm_sh'])
 
         lmax_list (int):              List of maximum degree of the spherical harmonics (1 to 10)
         mmax_list (int):              List of maximum order of the spherical harmonics (0 to lmax)
@@ -125,9 +125,9 @@ class EquiformerV2_OC20(BaseModel):
         attn_alpha_channels=32,
         attn_value_channels=16,
         ffn_hidden_channels=512,
-        norm_type="rms_norm_sh",
-        normlayer_norm="component",  # component, norm
-        normlayer_affine=True,
+        ln_type="rms_norm_sh",
+        ln_norm="component",  # component, norm
+        ln_affine=True,
         # num_coefficients = sum_i int((lmax_list[i] + 1) ** 2)
         # lmax_list=[3] -> num_coefficients = 16
         lmax_list=[6],
@@ -173,8 +173,8 @@ class EquiformerV2_OC20(BaseModel):
         learn_scale_after_decoder=False,
         batchify_for_torchdeq=False,
         edge_emb_st_max_norm=None,
-        layernorm="pre",
-        enc_layernorm=False,
+        ln="pre",
+        enc_ln=False,
         final_ln=False,
         **kwargs,
     ):
@@ -269,9 +269,9 @@ class EquiformerV2_OC20(BaseModel):
         self.attn_alpha_channels = attn_alpha_channels
         self.attn_value_channels = attn_value_channels
         self.ffn_hidden_channels = ffn_hidden_channels
-        self.norm_type = norm_type
-        self.normlayer_norm = normlayer_norm
-        self.normlayer_affine = normlayer_affine
+        self.ln_type = ln_type
+        self.ln_norm = ln_norm
+        self.ln_affine = ln_affine
 
         self.lmax_list = lmax_list
         self.mmax_list = mmax_list
@@ -394,14 +394,14 @@ class EquiformerV2_OC20(BaseModel):
             st_max_norm=edge_emb_st_max_norm,
         )
 
-        self.layernorm = layernorm
+        self.ln = ln
         self.final_ln = final_ln
 
         self.build_blocks()
 
-        if enc_layernorm:
+        if enc_ln:
             self.norm_enc = get_normalization_layer(
-                self.norm_type,
+                self.ln_type,
                 lmax=max(self.lmax_list),
                 num_channels=self.sphere_channels,
             )
@@ -411,7 +411,7 @@ class EquiformerV2_OC20(BaseModel):
         # Output blocks for energy and forces
         # normalization before output blocks
         self.norm = get_normalization_layer(
-            self.norm_type, lmax=max(self.lmax_list), num_channels=self.sphere_channels
+            self.ln_type, lmax=max(self.lmax_list), num_channels=self.sphere_channels
         )
         # FeedForwardNetwork, SO2EquivariantGraphAttention
         if self.energy_head == "FeedForwardNetwork":
@@ -577,7 +577,7 @@ class EquiformerV2_OC20(BaseModel):
                 use_gate_act=self.use_gate_act,
                 use_grid_mlp=self.use_grid_mlp,
                 use_sep_s2_act=self.use_sep_s2_act,
-                norm_type=self.norm_type,
+                ln_type=self.ln_type,
                 # dropout
                 alpha_drop=self.alpha_drop,
                 path_drop=self.path_drop,
@@ -585,9 +585,9 @@ class EquiformerV2_OC20(BaseModel):
                 # added
                 use_variational_alpha_drop=self.use_variational_alpha_drop,
                 use_variational_path_drop=self.use_variational_path_drop,
-                normlayer_norm=self.normlayer_norm,
-                normlayer_affine=self.normlayer_affine,
-                layernorm=self.layernorm,
+                ln_norm=self.ln_norm,
+                ln_affine=self.ln_affine,
+                ln=self.ln,
                 final_ln=self.final_ln,
             )
             self.blocks.append(block)

@@ -8,4 +8,4 @@ use_implicit: true
 input_scale: 25000.0
 experiment_id: DEQ-siren_like-1L512D
 grad: 3
-norm_type: weight_norm
+ln_type: weight_norm

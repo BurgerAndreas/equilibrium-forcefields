@@ -22,7 +22,7 @@ torchrun --nnodes=1 --nproc_per_node=$1 --rdzv_endpoint=localhost:$2 \
         --tgt_len 150 \
         --mem_len 150 \
         --eval_tgt_len 150 \
-        --norm_type weight_norm \
+        --ln_type weight_norm \
         --f_solver fixed_point_iter \
         --f_stop_mode rel \
         --f_tol 1e-3 \

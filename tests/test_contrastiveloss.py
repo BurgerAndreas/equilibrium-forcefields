@@ -323,8 +323,8 @@ def hydra_wrapper(args: DictConfig) -> None:
     # args.model.cat_injection = cat_injection
     # args.model.norm_injection = norm_injection  # None, prev
 
-    # args.model.normlayer_norm = normlayer_norm  # component, norm
-    # args.model.norm_type = norm_type  # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
+    # args.model.ln_norm = ln_norm  # component, norm
+    # args.model.ln_type = ln_type  # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
 
     main(args)
 

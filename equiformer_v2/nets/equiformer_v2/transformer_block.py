@@ -874,7 +874,7 @@ class TransBlockV2(torch.nn.Module):
         use_grid_mlp (bool):        If `True`, use projecting to grids and performing MLPs for FFN.
         use_sep_s2_act (bool):      If `True`, use separable S2 activation when `use_gate_act` is False.
 
-        norm_type (str):            Type of normalization layer (['layer_norm', 'layer_norm_sh'])
+        ln_type (str):            Type of normalization layer (['layer_norm', 'layer_norm_sh'])
 
         alpha_drop (float):         Dropout rate for attention weights
         path_drop (float):     Drop path rate
@@ -909,35 +909,35 @@ class TransBlockV2(torch.nn.Module):
         use_gate_act=False,
         use_grid_mlp=False,
         use_sep_s2_act=True,
-        norm_type="rms_norm_sh",
+        ln_type="rms_norm_sh",
         alpha_drop=0.0,
         path_drop=0.0,
         proj_drop=0.0,
         # added
         use_variational_alpha_drop=False,
         use_variational_path_drop=False,
-        normlayer_norm="component",
-        normlayer_affine=True,
-        layernorm="pre",  # pre, post
+        ln_norm="component",
+        ln_affine=True,
+        ln="pre",  # pre, post
         final_ln=False,
     ):
         super(TransBlockV2, self).__init__()
 
         max_lmax = max(lmax_list)
 
-        assert layernorm in [
+        assert ln in [
             "pre",
             "post",
-        ], "layernorm must be 'pre' or 'post' but got {}".format(layernorm)
-        self.layernorm = layernorm
+        ], "ln must be 'pre' or 'post' but got {}".format(ln)
+        self.ln = ln
         self.final_ln = final_ln
 
         self.norm_1 = get_normalization_layer(
-            norm_type,
+            ln_type,
             lmax=max_lmax,
             num_channels=sphere_channels,
-            normalization=normlayer_norm,
-            affine=normlayer_affine,
+            normalization=ln_norm,
+            affine=ln_affine,
         )
 
         self.graph_attention = SO2EquivariantGraphAttention(
@@ -983,19 +983,19 @@ class TransBlockV2(torch.nn.Module):
         )
 
         self.norm_2 = get_normalization_layer(
-            norm_type,
+            ln_type,
             lmax=max_lmax,
             num_channels=sphere_channels,
-            normalization=normlayer_norm,
-            affine=normlayer_affine,
+            normalization=ln_norm,
+            affine=ln_affine,
         )
         if self.final_ln:
             self.norm_final = get_normalization_layer(
-                norm_type,
+                ln_type,
                 lmax=max_lmax,
                 num_channels=sphere_channels,
-                normalization=normlayer_norm,
-                affine=normlayer_affine,
+                normalization=ln_norm,
+                affine=ln_affine,
             )
 
         self.ffn = FeedForwardNetwork(
@@ -1038,7 +1038,7 @@ class TransBlockV2(torch.nn.Module):
         print_values(a=x_res, name="TansBlockIn")
 
         # Norm
-        if self.layernorm == "pre":
+        if self.ln == "pre":
             output_embedding.embedding = self.norm_1(output_embedding.embedding)
         # GraphAttention
         output_embedding = self.graph_attention(
@@ -1059,14 +1059,14 @@ class TransBlockV2(torch.nn.Module):
         # Merge residual connection
         output_embedding.embedding = output_embedding.embedding + x_res
 
-        if self.layernorm == "post":
+        if self.ln == "post":
             output_embedding.embedding = self.norm_1(output_embedding.embedding)
 
         # Open residual connection
         x_res = output_embedding.embedding
 
         # Norm
-        if self.layernorm == "pre":
+        if self.ln == "pre":
             output_embedding.embedding = self.norm_2(output_embedding.embedding)
 
         # FeedForwardNetwork
@@ -1103,7 +1103,7 @@ class TransBlockV2(torch.nn.Module):
         output_embedding.embedding = output_embedding.embedding + x_res
 
         # post layer norm
-        if self.layernorm == "post":
+        if self.ln == "post":
             output_embedding.embedding = self.norm_2(output_embedding.embedding)
         if self.final_ln:
             output_embedding.embedding = self.norm_final(output_embedding.embedding)

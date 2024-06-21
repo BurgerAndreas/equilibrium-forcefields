@@ -1015,7 +1015,7 @@ def deq_dot_product_attention_transformer_exp_l2_md17(
     # scale=None,
     # # DEQ specific
     # deq_kwargs={},
-    # torchdeq_norm=omegaconf.OmegaConf.create({"norm_type": "weight_norm"}),
+    # torchdeq_norm=omegaconf.OmegaConf.create({"ln_type": "weight_norm"}),
     # input_injection="first_layer",
     # z0="zero",
     # log_fp_error_traj=False,

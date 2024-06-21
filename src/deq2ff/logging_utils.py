@@ -215,7 +215,7 @@ REPLACE = {
     "normtype-": "",
     "cfg-": "",
     "fsolver-": "",
-    "normlayernorm": "ln",
+    "normln": "ln",
     "_": " ",
     "preset-": "",
     "catinjection-False": "add-inj",
@@ -243,7 +243,7 @@ REPLACE = {
     "fstopmode-": "",
     "target-": "",
     "test-": "t-",
-    "layernorm": "ln",
+    "ln": "ln",
 }
 
 

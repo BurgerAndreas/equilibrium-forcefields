@@ -22,15 +22,15 @@ model:
   # skip implicit layer aka transformer blocks. for debugging
   skip_blocks: False
 
-  # norm_type (str):Type of normalization layer (['layer_norm', 'layer_norm_sh', 'rms_norm_sh'])
-  norm_type: 'layer_norm_sh' # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
-  normlayer_norm: norm # component, norm
-  normlayer_affine: True # [True, False] Whether to use affine (learned scaling params) in normalization layer
-  enc_layernorm: False # [True, False] Whether to use layer normalization after the encoder
+  # ln_type (str):Type of normalization layer (['layer_norm', 'layer_norm_sh', 'rms_norm_sh'])
+  ln_type: 'layer_norm_sh' # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
+  ln_norm: norm # component, norm
+  ln_affine: True # [True, False] Whether to use affine (learned scaling params) in normalization layer
+  enc_ln: False # [True, False] Whether to use layer normalization after the encoder
   # pre: residual, ln, attn, merge, residual, ln, ff, merge. 
   # post: residual, attn, merge, residual, ln, ff, merge
-  layernorm: pre # [pre,post] 
-  final_ln: False # [True, False] Whether to use layer normalization at the end of transformer blocks (same position as second norm in post layernorm)
+  ln: pre # [pre,post] 
+  final_ln: False # [True, False] Whether to use layer normalization at the end of transformer blocks (same position as second norm in post ln)
 
   alpha_drop: 0.0 # [0.0, 0.1] Dropout rate for attention weights
   path_drop: 0.0 # [0.0, 0.05, 0.1] Drop path rate

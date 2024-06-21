@@ -234,7 +234,7 @@ def main(args):
         use_implicit=args.use_implicit,
         filter_type=args.filter_type,
         filter_options={"alpha": args.gabor_alpha},
-        norm_type=args.norm_type,
+        ln_type=args.ln_type,
     )
     model = get_model(model_args)
     print(model)

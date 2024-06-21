@@ -13,4 +13,4 @@ deq_kwargs:
 
 model:
   torchdeq_norm:
-    norm_type: null
+    ln_type: null

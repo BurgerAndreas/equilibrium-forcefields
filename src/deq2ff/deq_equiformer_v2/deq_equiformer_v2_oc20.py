@@ -146,7 +146,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 use_gate_act=self.use_gate_act,
                 use_grid_mlp=self.use_grid_mlp,
                 use_sep_s2_act=self.use_sep_s2_act,
-                norm_type=self.norm_type,
+                ln_type=self.ln_type,
                 # dropout
                 alpha_drop=self.alpha_drop,
                 path_drop=self.path_drop,
@@ -155,9 +155,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 use_variational_alpha_drop=self.use_variational_alpha_drop,
                 use_variational_path_drop=self.use_variational_path_drop,
                 # use_variational_proj_drop=self.use_variational_proj_drop,
-                normlayer_norm=self.normlayer_norm,
-                normlayer_affine=self.normlayer_affine,
-                layernorm=self.layernorm,
+                ln_norm=self.ln_norm,
+                ln_affine=self.ln_affine,
+                ln=self.ln,
                 final_ln=self.final_ln,
             )
             self.blocks.append(block)

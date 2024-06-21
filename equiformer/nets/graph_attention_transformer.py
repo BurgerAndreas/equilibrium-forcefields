@@ -41,19 +41,19 @@ _AVG_NUM_NODES = 18.03065905448718
 _AVG_DEGREE = 15.57930850982666
 
 
-def get_norm_layer(norm_type):
-    if norm_type == "graph":
+def get_norm_layer(ln_type):
+    if ln_type == "graph":
         return EquivariantGraphNorm
-    elif norm_type == "instance":
+    elif ln_type == "instance":
         return EquivariantInstanceNorm
-    elif norm_type == "layer":
+    elif ln_type == "layer":
         return EquivariantLayerNormV2
-    elif norm_type == "fast_layer":
+    elif ln_type == "fast_layer":
         return EquivariantLayerNormFast
-    elif norm_type is None:
+    elif ln_type is None:
         return None
     else:
-        raise ValueError("Norm type {} not supported.".format(norm_type))
+        raise ValueError("Norm type {} not supported.".format(ln_type))
 
 
 class SmoothLeakyReLU(torch.nn.Module):

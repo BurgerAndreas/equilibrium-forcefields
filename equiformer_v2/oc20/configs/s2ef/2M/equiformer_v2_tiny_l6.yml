@@ -70,7 +70,7 @@ model:
   grid_resolution:          14              # [18, 16, 14, None] For `None`, simply comment this line. 
 
   # num_sphere_samples (int):     Number of samples used to approximate the integration of the sphere in the output blocks
-  num_sphere_samples:       64 # 128
+  num_sphere_samples:       128 # 128
 
   # edge_channels (int):                Number of channels for the edge invariant features
   edge_channels:              64 # 128

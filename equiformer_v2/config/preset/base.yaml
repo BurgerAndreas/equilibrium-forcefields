@@ -117,13 +117,13 @@ optim:
 
   optimizer: AdamW
   optimizer_params:
-  weight_decay: 0.001
-  scheduler: LambdaLR
-  scheduler_params:
-  lambda_type: cosine
-  warmup_factor: 0.2
-  warmup_epochs: 0.1
-  lr_min_factor: 0.01 
+    weight_decay: 0.001
+    scheduler: LambdaLR
+    scheduler_params:
+    lambda_type: cosine
+    warmup_factor: 0.2
+    warmup_epochs: 0.1
+    lr_min_factor: 0.01 
 
   # max_epochs: 30
   force_coefficient: 100

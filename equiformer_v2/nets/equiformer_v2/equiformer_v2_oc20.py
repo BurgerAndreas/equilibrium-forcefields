@@ -878,7 +878,7 @@ class EquiformerV2_OC20(BaseModel):
         # Force estimation
         ###############################################################
         if self.regress_forces:
-            # x: [num_atoms*batch_size, num_coefficients, sphere_channels/num_sphere_samples/edge_channels]
+            # x: [num_atoms*batch_size, num_coefficients, sphere_channels]
             # forces: [num_atoms*batch_size, num_coefficients, 1]
             forces = self.force_block(x, atomic_numbers, edge_distance, edge_index)
             # if self.learn_scale_after_force_block:

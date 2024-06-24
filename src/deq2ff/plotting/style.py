@@ -65,7 +65,8 @@ def set_seaborn_style(
     )
 
 
-def set_style_after(ax, fs=15, legend=True):
+def set_style_after(ax, fs=15, legend=True, loc='best'):
+    # loc: {'best', 'upper right', 'upper left', 'lower left', 'lower right', 'right', 'center left', 'center right', 'lower center', 'upper center', 'center'}
     plt.grid(False)
     plt.grid(which="major", axis="y", linestyle="-", linewidth="1.0", color="lightgray")
 
@@ -75,7 +76,7 @@ def set_style_after(ax, fs=15, legend=True):
 
     if legend is True:
         # increase legend fontsize
-        ax.legend(fontsize=fs)
+        ax.legend(fontsize=fs, loc=loc)
 
         # remove legend border
         # ax.legend(frameon=False)
@@ -172,6 +173,29 @@ custom_style = {
     "legend.frameon": True,  # Display legend frame
     "legend.loc": "upper right",  # Adjust legend position
 }
+
+chemical_symbols = [
+    "_",
+    "H",
+    "He",
+    "Li",
+    "Be",
+    "B",
+    "C",
+    "N",
+    "O",
+    "F",
+    "Ne",
+    "Na",
+    "Mg",
+    "Al",
+    "Si",
+    "P",
+    "S",
+    "Cl",
+    "Ar",
+    "K",
+]
 
 if __name__ == "__main__":
     # Apply the custom style

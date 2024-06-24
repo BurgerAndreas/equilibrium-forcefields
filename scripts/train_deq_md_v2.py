@@ -1,10 +1,12 @@
+# EquiformerV2 with MD17 training loop from EquiformerV1.
+
 import hydra
 import omegaconf
 from omegaconf import DictConfig, OmegaConf
 import wandb
 
-"""EquiformerV2 with training loop from EquiformerV1 for MD17."""
-
+from deq2ff.logging_utils import init_wandb
+from train_deq_md import train
 # register all models
 import deq2ff.register_all_models
 
@@ -22,14 +24,10 @@ def hydra_wrapper(args: DictConfig) -> None:
     # argsmd17.update(args)
     # args = argsmd17
 
-    from deq2ff.logging_utils import init_wandb
-
     # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
-    init_wandb(args)
+    run_id = init_wandb(args)
 
-    from train_deq_md import main
-
-    main(args)
+    train(args)
 
 
 if __name__ == "__main__":

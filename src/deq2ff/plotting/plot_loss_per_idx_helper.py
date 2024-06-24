@@ -45,6 +45,17 @@ chemical_symbols = [
     "K",
 ]
 
+# nstep, nstep_std, nstep_max, nstep_min, f_mae, fpabs, fprel
+labels_human = {
+    "f_mae": "Force MAE",
+    "nstep": "Solver Steps",
+    "nstep_min": r"$min_{n \in mol}\ SolverSteps_{n}$",
+    "nstep_max": r"$max_{n \in mol}\ SolverSteps_{n}$",
+    "nstep_std": r"$std_{n \in mol}\ SolverSteps_{n}$",
+    "fpabs": r"Abs FP Error $|f(z^*) - z^*|$",
+    "fprel": r"Rel FP Error $|f(z^*) - z^*| / |z^*|$",
+}
+
 
 def plot_luca():
 
@@ -647,39 +658,51 @@ hex_joint_kws = {
 }
 
 
-def plot_step_vs_force(
+def plot_x_vs_y(
     dffp,
     dfall,
     dataset,
     datasplit,
     run_id,
     style="hist",
-    ymin=0,
-    ymax=15,
+    ymin=None,
+    ymax=None,
     logy=False,
     logx=True,
     wofpreuse=False,
+    x="f_mae",
+    y="nstep",
 ):
     set_seaborn_style()
-    x = "f_mae"
-    y = "nstep"
+    # x = "f_mae"
+    # y = "nstep"
+
+    label = ""
 
     _df = dffp
     if wofpreuse:
         _df = dfall
+    
+    try:
+        _ = _df[x]
+        _ = _df[y]
+    except Exception as e:
+        print(f'Columns in df: {_df.columns}')
+        raise e
+
 
     if style == "kde":
         fig, ax = plt.subplots()
         # density plot
-        sns.kdeplot(data=_df, x=x, y="nstep", ax=ax, label="Force Delta", fill=True)
+        sns.kdeplot(data=_df, x=x, y="nstep", ax=ax, label=label, fill=True)
     elif style == "scatter":
         fig, ax = plt.subplots()
         sns.scatterplot(
             data=_df,
             x=x,
-            y="nstep",
+            y=y,
             ax=ax,
-            label="Force Delta",
+            label=label,
             # hue="z", palette="tab20",
             alpha=0.1,
         )
@@ -688,9 +711,9 @@ def plot_step_vs_force(
         jointgrid = sns.jointplot(
             data=_df,
             x=x,
-            y="nstep",
+            y=y,
             kind="hex",
-            label="Force Delta",
+            label=label,
             # cmap="crest",
             joint_kws=hex_joint_kws,
         )
@@ -700,9 +723,9 @@ def plot_step_vs_force(
         jointgrid = sns.jointplot(
             data=_df,
             x=x,
-            y="nstep",
+            y=y,
             kind="hist",
-            label="Force Delta",
+            label=label,
             # cmap="crest",
             # color="#4CB391",
         )
@@ -710,10 +733,13 @@ def plot_step_vs_force(
     else:
         raise ValueError(f"style {style} not supported")
 
-    plt.ylim(ymin, ymax)
+    if ymin is not None:
+        plt.ylim(bottom=ymin)
+    if ymax is not None:
+        plt.ylim(top=ymax)
 
-    plt.xlabel("Force MAE")
-    plt.ylabel("Solver Steps")
+    plt.xlabel(labels_human[x])
+    plt.ylabel(labels_human[y])
 
     if logy:
         ax.set_yscale("log")
@@ -726,9 +752,9 @@ def plot_step_vs_force(
     plt.tight_layout()
 
     # save the plot
-    plotname = f"step_vs_force_{datasplit}-{run_id}.png"
-    plotpath = os.path.join(plotfolder, plotname)
-    plt.savefig(plotpath)
+    # plotname = f"step_vs_force_{datasplit}-{run_id}.png"
+    # plotpath = os.path.join(plotfolder, plotname)
+    # plt.savefig(plotpath)
 
 
 def plot_step_vs_forcedelta(
@@ -739,8 +765,8 @@ def plot_step_vs_forcedelta(
     run_id,
     metric="norm",
     style="hist",
-    ymin=0,
-    ymax=10,
+    ymin=None,
+    ymax=None,
 ):
     # assert metric in ["norm_mean", "norm", "cos_mean", "cos"]
     # number of solver steps vs |force_t - force_{t+1}|
@@ -852,7 +878,10 @@ def plot_step_vs_forcedelta(
     else:
         raise ValueError(f"metric {metric} not supported")
 
-    plt.ylim(ymin, ymax)
+    if ymin is not None:
+        ax.set_ylim(bottom=ymin)
+    if ymax is not None:
+        ax.set_ylim(top=ymax)
 
     plt.xlabel(xlabel)
     plt.ylabel("Solver Steps")

@@ -62,7 +62,7 @@ import wandb
 from typing import List
 import tracemalloc
 
-from ocpmodels.modules.normalizer import Normalizer, NormalizerByAtomtype
+from ocpmodels.modules.normalizer import Normalizer, NormalizerByAtomtype, NormalizerByAtomtype3D
 
 """
 Adapted from equiformer/main_md17.py
@@ -218,7 +218,7 @@ def compute_loss(args, y, dy, target_y, target_dy, criterion_energy, criterion_f
     return loss, loss_e, loss_f
 
 
-def main(args):
+def train(args):
 
     # set environment values if they are not None
     # if args.broyden_print_values is not None:
@@ -352,6 +352,10 @@ def main(args):
         norm_std_atom = torch.ones(args.model.max_num_elements)
         mean_atom = torch.ones(args.model.max_num_elements)
         std_atom = torch.ones(args.model.max_num_elements)
+        # componentwise
+        mean3d_atom = torch.ones(args.model.max_num_elements, 3)
+        std3d_atom = torch.ones(args.model.max_num_elements, 3)
+        # concatenate all the forces
         dy = torch.cat([batch.dy for batch in train_dataset], dim=0)  # [N, 3]
         dy_norm = torch.linalg.norm(dy, dim=1)  # [N]
         atoms = torch.cat([batch.z for batch in train_dataset], dim=0)  # [N]
@@ -362,26 +366,53 @@ def main(args):
             norm_std_atom[i] = dy_norm[mask].std()
             mean_atom[i] = dy[mask].mean()
             std_atom[i] = dy[mask].std()
+            mean3d_atom[i] = dy[mask].mean(dim=0)
+            std3d_atom[i] = dy[mask].std(dim=0)
         # Normalizer for forces
         norm_mean_atom = norm_mean_atom.to(device)
         norm_std_atom = norm_std_atom.to(device)
         mean_atom = mean_atom.to(device)
         std_atom = std_atom.to(device)
+        args.norm_forces_by_atom = args.norm_forces_by_atom.replace("_", "").lower()
         if args.norm_forces_by_atom == "normmean":
             # normalizer_f = lambda x, z: x / norm_mean_atom[z].unsqueeze(1)
-            divider = norm_mean_atom
+            mean = torch.zeros(args.model.max_num_elements)
+            std = norm_mean_atom
         elif args.norm_forces_by_atom == "normstd":
-            divider = norm_std_atom
+            mean = torch.zeros(args.model.max_num_elements)
+            std = norm_std_atom
         # not really sure how to interpret this
         elif args.norm_forces_by_atom == "mean":
-            divider = mean_atom
+            mean = torch.zeros(args.model.max_num_elements)
+            std = mean_atom
         elif args.norm_forces_by_atom == "std":
-            divider = std_atom
+            mean = torch.zeros(args.model.max_num_elements)
+            std = std_atom
+        # componentwise
+        elif args.norm_forces_by_atom == "mean3d":
+            mean = torch.zeros(args.model.max_num_elements, 3)
+            std = mean3d_atom
+        elif args.norm_forces_by_atom == "std3d":
+            mean = torch.zeros(args.model.max_num_elements, 3)
+            std = std3d_atom
+        # non-zero mean
+        elif args.norm_forces_by_atom == "normmeanstd":
+            mean = norm_mean_atom
+            std = norm_std_atom
+        elif args.norm_forces_by_atom == "meanstd":
+            mean = mean_atom
+            std = std_atom
+        elif args.norm_forces_by_atom == "meanstd3d":
+            mean = mean3d_atom
+            std = std3d_atom
         else:
             raise NotImplementedError(
                 f"Unknown norm_forces_by_atom: {args.norm_forces_by_atom}"
             )
-        normalizer_f = NormalizerByAtomtype(mean=0, std=divider, device=device)
+        if "3d" in args.norm_forces_by_atom.lower():
+            normalizer_f = NormalizerByAtomtype3D(mean=mean, std=std, device=device)
+        else:
+            normalizer_f = NormalizerByAtomtype(mean=mean, std=std, device=device)
 
     normalizers = {"energy": normalizer_e, "force": normalizer_f}
 
@@ -431,6 +462,17 @@ def main(args):
         shuffle=args.shuffle_test,
         drop_last=True,
     )
+
+    if args.return_data:
+        return {
+            "train_dataset": train_dataset,
+            "val_dataset": val_dataset,
+            "test_dataset": test_dataset,
+            "test_dataset_full": test_dataset_full,
+            "normalizers": normalizers,
+            "idx_to_indices": idx_to_indices,
+            "indices_to_idx": indices_to_idx,
+        }
 
     """ Compute stats """
     # Compute _AVG_NUM_NODES, _AVG_DEGREE
@@ -2201,7 +2243,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     # args: omegaconf.dictconfig.DictConfig -> dict
     # args = OmegaConf.to_container(args, resolve=True)
 
-    main(args)
+    train(args)
 
 
 if __name__ == "__main__":

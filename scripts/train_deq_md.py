@@ -79,15 +79,7 @@ from deq2ff.losses import (
     calc_triplet_loss,
 )
 from deq2ff.data_utils import reorder_dataset
-from deq2ff.deq_equiformer.deq_dp_md17 import (
-    deq_dot_product_attention_transformer_exp_l2_md17,
-)
-from deq2ff.deq_equiformer.deq_graph_md17 import (
-    deq_graph_attention_transformer_nonlinear_l2_md17,
-)
-from deq2ff.deq_equiformer.deq_dp_md17_noforce import (
-    deq_dot_product_attention_transformer_exp_l2_md17_noforce,
-)
+import deq2ff.register_all_models
 from deq2ff.grokfast import gradfilter_ma, gradfilter_ema
 
 
@@ -623,6 +615,20 @@ def train(args):
     # https://docs.wandb.ai/ref/python/watch
     if args.watch_model:
         wandb.watch(model, log="all", log_freq=args.log_every_step_major)
+    
+    if args.return_model:
+        return model
+    if args.return_model_and_data:
+        return {
+            "model": model,
+            "train_dataset": train_dataset,
+            "val_dataset": val_dataset,
+            "test_dataset": test_dataset,
+            "test_dataset_full": test_dataset_full,
+            "normalizers": normalizers,
+            "idx_to_indices": idx_to_indices,
+            "indices_to_idx": indices_to_idx,
+        }
 
     # TODO
     model_ema = None

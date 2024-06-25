@@ -7,7 +7,6 @@ import wandb
 
 from deq2ff.logging_utils import init_wandb
 from train_deq_md import train
-# register all models
 import deq2ff.register_all_models
 
 

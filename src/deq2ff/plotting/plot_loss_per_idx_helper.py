@@ -232,6 +232,7 @@ def get_data(run_id, datasplit="test_fpreuse"):
         
         # add DEQ or Equ to the dataframe in the "DEQ" column
         df["Model"] = ["DEQ" if deq else "Equ"] * df.shape[0]
+        df["target"] = [target] * df.shape[0]
 
         print(f"Calculating f_delta between steps...")
         # from forces get the force delta between consecutive steps
@@ -547,7 +548,9 @@ def plot_mol_plt(idx, dfall, dataset, datasplit, run_id, side_by_side=False):
 line_kws = {"lw": 2}
 
 
-def plot_loss_per_idx(dffp, dfall, datasplit, run_id, logy=False, fig=None, alpha=1.):
+def plot_loss_per_idx(
+        dffp, dfall, datasplit, run_id, logy=False, fig=None, alpha=1., xmin=None, xmax=None, ymin=None, ymax=None, style="scatter"
+    ):
     """Only considers the fpreuse idxs."""
 
     # columns: "idx", "e_mae", "f_mae", "nstep"
@@ -560,28 +563,53 @@ def plot_loss_per_idx(dffp, dfall, datasplit, run_id, logy=False, fig=None, alph
     else:
         ax = fig.gca()
     # sns.lineplot(data=dffp, x="idx", y="e_mae", ax=ax, label="Energy MAE")
-    sns.lineplot(
-        data=dffp,
-        x="idx",
-        y="f_mae",
-        ax=ax,
-        # label=f"Force MAE {label}",
-        lw=1,
-        # c=colors[c],
-        palette="dark",
-        hue="Model",
-        alpha=alpha,
-    )
+    if style == "line":
+        sns.lineplot(
+            data=dffp,
+            x="idx",
+            y="f_mae",
+            ax=ax,
+            # label=f"Force MAE {label}",
+            lw=1,
+            # c=colors[c],
+            palette="dark",
+            hue="Model",
+            alpha=alpha,
+        )
+    elif style == "scatter":
+        sns.scatterplot(
+            data=dffp,
+            x="idx",
+            y="f_mae",
+            ax=ax,
+            # label=f"Force MAE {label}",
+            # lw=1,
+            # c=colors[c],
+            palette="dark",
+            hue="Model",
+            alpha=alpha,
+        )
     # ax.set_yscale("log")
     ax.set_xlabel("Index")
     ax.set_ylabel("MAE")
     # ax.legend()
-    set_style_after(ax, legend=None)
+    set_style_after(ax, legend=True)
+
+    if xmin is not None:
+        plt.xlim(left=xmin)
+    if xmax is not None:
+        plt.xlim(right=xmax)
+    if ymin is not None:
+        plt.ylim(bottom=ymin)
+    if ymax is not None:
+        plt.ylim(top=ymax)
 
     if logy:
         ax.set_yscale("log")
 
     plt.tight_layout()
+
+    plt.title(f"{dffp['target'].iloc[0].capitalize()} (FPreuse only)")
 
     # save the plot
     # plotname = f"loss_per_idx_{datasplit}-{run_id}.png"
@@ -593,10 +621,11 @@ def plot_loss_per_idx(dffp, dfall, datasplit, run_id, logy=False, fig=None, alph
 
 
 def plot_fmae_count(
-    dffp, dfall, dataset, datasplit, run_id, wofpreuse=False, logs=(10, None)
+    dffp, dfall, dataset, datasplit, run_id, wofpreuse=False, logs=(10, None), x="f_mae"
 ):
 
     _df = dffp
+    fpr_label = "FPreuse only" if wofpreuse else "w/o FPreuse"
     if wofpreuse:
         _df = dfall
 
@@ -605,7 +634,7 @@ def plot_fmae_count(
     fig, ax = plt.subplots()
     sns.histplot(
         data=_df,
-        x="f_mae",
+        x=x,
         ax=ax,
         binwidth=0.1,
         kde=True,
@@ -615,14 +644,15 @@ def plot_fmae_count(
     )
     # set xrange to 0-20
     # ax.set_xlim(0, 20)
-    ax.set_xlabel("F MAE")
+    ax.set_xlabel(labels_human[x])
     ax.set_ylabel("Probability")
     set_style_after(ax, legend=None)
 
+    plt.title(f"{dffp['target'].iloc[0].capitalize()} {dffp['Model'].iloc[0]} ({fpr_label})")
     plt.tight_layout()
 
     # save the plot
-    plotname = f"fmae_count_{datasplit}-{run_id}.png"
+    plotname = f"{x}_count_{datasplit}-{run_id}.png"
     plotpath = os.path.join(plotfolder, plotname)
     plt.savefig(plotpath)
     print(f"Saved plot to\n {plotpath}")
@@ -631,6 +661,7 @@ def plot_fmae_count(
 def plot_step_count(dffp, dfall, dataset, datasplit, run_id, wofpreuse=False):
 
     _df = dffp
+    fpr_label = "FPreuse only" if wofpreuse else "w/o FPreuse"
     if wofpreuse:
         _df = dfall
 
@@ -644,6 +675,7 @@ def plot_step_count(dffp, dfall, dataset, datasplit, run_id, wofpreuse=False):
     ax.set_ylabel("Count")
     set_style_after(ax, legend=None)
 
+    plt.title(f"{dffp['target'].iloc[0].capitalize()} {dffp['target'].iloc[0].capitalize()} ({fpr_label})")
     plt.tight_layout()
 
     # save the plot
@@ -680,6 +712,7 @@ def plot_x_vs_y(
     label = ""
 
     _df = dffp
+    fpr_label = "FPreuse only" if wofpreuse else "w/o FPreuse"
     if wofpreuse:
         _df = dfall
     
@@ -749,6 +782,7 @@ def plot_x_vs_y(
     # ax.legend()
     set_style_after(ax, legend=None)
 
+    plt.title(f"{dffp['target'].iloc[0].capitalize()} {dffp['Model'].iloc[0]} ({fpr_label})")
     plt.tight_layout()
 
     # save the plot
@@ -889,6 +923,7 @@ def plot_step_vs_forcedelta(
     # ax.legend()
     set_style_after(ax, legend=None)
 
+    plt.title(f"{dffp['target'].iloc[0].capitalize()} (FPreuse only)")
     plt.tight_layout()
 
     # save the plot

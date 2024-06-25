@@ -60,6 +60,8 @@ from torchdeq import get_deq
 from torchdeq.norm import apply_norm, reset_norm, register_norm, register_norm_module
 from torchdeq.loss import fp_correction
 from torchdeq.solver.broyden import broyden_solver_grad
+from torchdeq.solver.anderson import anderson_solver
+from torchdeq.solver.fp_iter import fixed_point_iter
 
 # register model to be used with EquiformerV1 training loop (MD17)
 from equiformer.nets.registry import register_model
@@ -389,14 +391,33 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # Fixed-point reuse loss
         if fpr_loss == True:
             # torchdeq batchify
-            z_next, _, _info = broyden_solver_grad(
-                func=f,
-                x0=z_pred[-1].clone(),
-                max_iter=1,
-                tol=solver_kwargs.get("f_tol", self.deq.f_tol),
-                stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
-                # return_final=True,
-            )
+            if self.deq.f_solver.__name__.startswith("broyden"):
+                z_next, _, _info = broyden_solver_grad(
+                    func=f,
+                    x0=z_pred[-1].clone(),
+                    max_iter=1,
+                    tol=solver_kwargs.get("f_tol", self.deq.f_tol),
+                    stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
+                    # return_final=True,
+                )
+            elif self.deq.f_solver.__name__.startswith("anderson"):
+                z_next, _, _info = anderson_solver(
+                    func=f,
+                    x0=z_pred[-1].clone(),
+                    max_iter=1,
+                    tol=solver_kwargs.get("f_tol", self.deq.f_tol),
+                    stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
+                )
+            elif self.deq.f_solver.__name__.startswith("fixed_point_iter"):
+                z_next, _, _info = fixed_point_iter(
+                    func=f,
+                    x0=z_pred[-1].clone(),
+                    max_iter=1,
+                    tol=solver_kwargs.get("f_tol", self.deq.f_tol),
+                    stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
+                )
+            else:
+                raise ValueError(f"Invalid f_solver: {self.deq.f_solver.__name__} with fpr_loss")
             info["z_next"] = z_next
 
         ######################################################

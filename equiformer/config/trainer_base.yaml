@@ -157,6 +157,9 @@ max_checkpoints: 2
 evaluate: False
 # Stop after the data is loaded and return the dataloaders (bool)
 return_data: False
+# Stop after the model is created and return the model (bool)
+return_model: False
+return_model_and_data: False
 # Include force in loss calculation. (str2bool)
 meas_force: True
 clip_grad_norm: 1000 # False, 5.0, 100

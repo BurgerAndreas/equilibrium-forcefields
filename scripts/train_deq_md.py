@@ -626,6 +626,8 @@ def train(args):
     if args.return_model_and_data:
         return {
             "model": model,
+            "optimizer": optimizer,
+            "lr_scheduler": lr_scheduler,
             "train_dataset": train_dataset,
             "val_dataset": val_dataset,
             "test_dataset": test_dataset,

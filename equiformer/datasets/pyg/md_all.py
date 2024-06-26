@@ -199,7 +199,10 @@ class MDAll(InMemoryDataset):
                 for mol in self.molecules
             ]
         elif self.dname == "ccsd":
-            return [MDAll.molecule_files[self.dname][mol + " CCSD"] for mol in self.molecules]
+            # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/datasets/md17.html#MD17
+            # name = self.file_names[self.name]
+            names = [MDAll.molecule_files[self.dname][mol + " CCSD"] for mol in self.molecules]
+            return [name[:-4] + '-train.npz' for name in names] + [name[:-4] + '-test.npz' for name in names]
         else:
             return [MDAll.molecule_files[self.dname][mol] for mol in self.molecules]
 
@@ -217,7 +220,7 @@ class MDAll(InMemoryDataset):
         elif self.dname == "md17":
             return [f"md17-{mol}.pt" for mol in self.molecules]
         elif self.dname == "ccsd":
-            return [f"ccsd-{mol}.pt" for mol in self.molecules]
+            return [f"ccsd-{mol}-train.pt" for mol in self.molecules] + [f"ccsd-{mol}-test.pt" for mol in self.molecules]
         else:
             raise ValueError(f"Unknown dataset name: {self.dname}")
 
@@ -257,6 +260,10 @@ class MDAll(InMemoryDataset):
         )
         print(f" self.pre_filter: {self.pre_filter}")
         print(f" self.pre_transform: {self.pre_transform}")
+        assert np.allclose(
+            ["test" in f for f in self.raw_paths],
+            ["test" in f for f in self.processed_paths],
+        ), f'Raw and processed paths do not match:\n {self.raw_paths}\n {self.processed_paths}'
 
         it = zip(self.raw_paths, self.processed_paths)
         old_indices = None
@@ -513,6 +520,7 @@ def get_md_datasets(
 
     # keys: ['z', 'pos', 'batch', 'y', 'dy']
     all_dataset = MDAll(root, dataset_arg, dname=dname)
+    print(f"Dataset size: {len(all_dataset)}")
 
     assert order in [
         None,

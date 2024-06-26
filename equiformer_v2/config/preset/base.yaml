@@ -10,7 +10,7 @@ model:
   # max_neighbors:            20
   # max_radius:               12.0
   # Maximum atomic number
-  max_num_elements: 10 # 90 
+  max_num_elements: 90 # 90 
 
   name: equiformer_v2_oc20
   # FeedForwardNetwork, SO2EquivariantGraphAttention

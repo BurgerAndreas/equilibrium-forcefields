@@ -38,7 +38,7 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     
     args.return_model_and_data = True
-    args.model.max_num_elements = 10
+    # args.model.max_num_elements = 10
 
     # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
     run_id = init_wandb(args)
@@ -52,51 +52,74 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     collate = Collater(follow_batch=None, exclude_keys=None)
 
-    sample = test_dataset_full[0]
-    sample = collate([sample])
-    sample = sample.to(device)
-    # ['y', 'pos', 'z', 'natoms', 'idx', 'batch', 'atomic_numbers', 'dy', 'ptr']
 
-    energy1, forces1, info = model(
-        data=sample,
-        node_atom=sample.z,
-        pos=sample.pos,
-        batch=sample.batch,
-    )
-    print('First sample done!')
+    # model in eval mode
+    model.eval()
+    print('Model in train mode:', model.training)
 
-    # rotate molecule
-    R = torch.tensor(o3.rand_matrix(), device=device)
-    rotated_pos = torch.matmul(sample.pos, R)
-    sample.pos = rotated_pos
-    energy_rot, forces_rot, info = model(
-        data=sample,
-        node_atom=sample.z,
-        pos=sample.pos,
-        batch=sample.batch,
-    )
+    # cast to float64
+    cast_to_float = True
+    for cast_to_float in [False, True]:
+        # ['y', 'pos', 'z', 'natoms', 'idx', 'batch', 'atomic_numbers', 'dy', 'ptr']
+        sample = test_dataset_full[0]
+        sample = collate([sample])
+        sample = sample.to(device)
+        if cast_to_float:
+            torch.set_default_dtype(torch.float64)
+            sample.y = sample.y.double()
+            sample.dy = sample.dy.double()
+            sample.pos = sample.pos.double()
+            model = model.double()
+        else:
+            torch.set_default_dtype(torch.float32)
+            sample.y = sample.y.float()
+            sample.dy = sample.dy.float()
+            sample.pos = sample.pos.float()
+            model = model.float()
 
-    modeltype = "DEQ" if args.model_is_deq else "Equi"
-    solver_type = args.deq_kwargs.f_solver if args.model_is_deq else ""
+        energy1, forces1, info = model(
+            data=sample,
+            node_atom=sample.z,
+            pos=sample.pos,
+            batch=sample.batch,
+        )
+        print('First sample done!')
 
-    print(
-        f"\nEquivariance result {modeltype} {solver_type}:",
-        # energy should be invariant
-        f"\nEnergy:", 
-        "\ne-7:", torch.allclose(energy1, energy_rot, atol=1.0e-7),
-        "\ne-5:", torch.allclose(energy1, energy_rot, atol=1.0e-5),
-        "\ne-3:", torch.allclose(energy1, energy_rot, atol=1.0e-3),
-        # (energy1 - energy_rot).item(),
-        # forces should be equivariant
-        # model(rot(f)) == rot(model(f))
-        "\nForces:", 
-        "\ne-7:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-7),
-        "\ne-5:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-5),
-        "\ne-3:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-3),
-        "\nmax off:", (torch.matmul(forces1, R) - forces_rot).abs().max().item(),
-        # (torch.matmul(forces1, R) - forces_rot).abs(),
-        # sep="\n",
-    )
+        # rotate molecule
+        R = torch.tensor(o3.rand_matrix(), device=device, dtype=sample.pos.dtype)
+        rotated_pos = torch.matmul(sample.pos, R)
+        sample.pos = rotated_pos
+        energy_rot, forces_rot, info = model(
+            data=sample,
+            node_atom=sample.z,
+            pos=sample.pos,
+            batch=sample.batch,
+        )
+
+        modeltype = "DEQ" if args.model_is_deq else "Equi"
+        solver_type = args.deq_kwargs.f_solver if args.model_is_deq else ""
+
+        print(
+            f"\nEquivariance result {modeltype} {solver_type} {sample.pos.dtype}:",
+            # energy should be invariant
+            f"\nEnergy:", 
+            "\ne-7:", torch.allclose(energy1, energy_rot, atol=1.0e-7),
+            "\ne-5:", torch.allclose(energy1, energy_rot, atol=1.0e-5),
+            "\ne-3:", torch.allclose(energy1, energy_rot, atol=1.0e-3),
+            "\nmax off:", (energy1 - energy_rot).abs().max().item(),
+            "\navg off:", (energy1 - energy_rot).abs().mean().item(),
+            # (energy1 - energy_rot).item(),
+            # forces should be equivariant
+            # model(rot(f)) == rot(model(f))
+            "\nForces:", 
+            "\ne-7:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-7),
+            "\ne-5:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-5),
+            "\ne-3:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-3),
+            "\nmax off:", (torch.matmul(forces1, R) - forces_rot).abs().max().item(),
+            "\navg off:", (torch.matmul(forces1, R) - forces_rot).abs().mean().item(),
+            # (torch.matmul(forces1, R) - forces_rot).abs(),
+            # sep="\n",
+        )
 
     print('\nDone!')
 

@@ -68,7 +68,7 @@ class GraphPathDrop(nn.Module):
         # 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2,
         # 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3,
         # 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3])
-        batch_size = batch.max() + 1
+        batch_size = int(batch.max() + 1)
         # work with diff dim tensors, not just 2D ConvNets
         shape = (batch_size,) + (1,) * (x.ndim - 1)
         ones = torch.ones(shape, dtype=x.dtype, device=x.device)

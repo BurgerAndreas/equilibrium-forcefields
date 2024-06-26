@@ -255,7 +255,7 @@ def train(args):
             dataset_arg=args.target,
             train_size=args.train_size,
             val_size=args.val_size,
-            test_size=None,
+            test_patch_size=None,
             seed=args.seed,
             # order="consecutive_test" if args.fpreuse_test else None,
         )
@@ -275,8 +275,8 @@ def train(args):
             dname=args.dname,
             train_size=args.train_size,
             val_size=args.val_size,
-            test_size=None,  # influences data splitting
-            test_size_select=args.test_size,  # doesn't influence data splitting
+            test_patch_size=None,  # influences data splitting
+            test_patch_size_select=args.test_patch_size,  # doesn't influence data splitting
             seed=args.seed,
             order=md_all.get_order(args),
             num_test_patches=args.test_patches,

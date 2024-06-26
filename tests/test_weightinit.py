@@ -195,7 +195,7 @@ def hydra_wrapper(args: DictConfig) -> None:
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
-        test_size=None,
+        test_patch_size=None,
         seed=args.seed,
         dname=args.dname,
         order=md_all.get_order(args),

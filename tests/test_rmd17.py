@@ -109,7 +109,7 @@ def main(args):
             dataset_arg=args.target,
             train_size=args.train_size,
             val_size=args.val_size,
-            test_size=None,
+            test_patch_size=None,
             seed=args.seed,
             # order="consecutive_test" if args.fpreuse_test else None,
         )
@@ -122,7 +122,7 @@ def main(args):
             dname=args.dname,
             train_size=args.train_size,
             val_size=args.val_size,
-            test_size=None,
+            test_patch_size=None,
             seed=args.seed,
             order=md_all.get_order(args),
         )

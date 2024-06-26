@@ -44,10 +44,10 @@ compute_stats: False
 test_interval: 10
 # max iteration (num batches) to evaluate on the testing set (int)
 test_max_iter: -1 # ChangeS 1000
-# max samples to evaluate on the testing set (int)
-test_size: 2 # ChangeS null
+# test_patch_size*test_patches = max samples to evaluate on the testing set (int)
+test_patch_size: 2 # ChangeS null
 do_final_test: False
-# after training is done (-1 means whole test set ~ 100-200k) (int)
+# after training is done (-1 means whole test set ~ 100-600k) (int)
 test_max_iter_final: -1
 
 # It's a mess but this is the settings I suggest for the different datasplits:
@@ -63,11 +63,11 @@ test_max_iter_final: -1
 # which is not representative of the whole dataset.
 # if eval_batch_size=4, test_max_iter=800 we will test 
 # e.g. idx=[[42,...242][50042,...50242][100042,...100242][150042,...150242]]
-# (3) fpreuse_test=True, eval_batch_size=1, test_patches>=4, test_size=1000//test_patches, datasplit=fpreuse_overlapping
+# (3) fpreuse_test=True, eval_batch_size=1, test_patches>=4, test_patch_size=1000//test_patches, datasplit=fpreuse_overlapping
 # Only useful for evaluate=True (not training).
 # When evaluating fixed-point reuse in DEQs, it is better to use eval_batch_size=1.
 # test_patches will concat multiple consecutive streaks of idxs for the test set,
-# e.g. for test_size=200: idx=[42,...242,50042,...50242,100042,...100242,150042,...150242]
+# e.g. for test_patch_size=200: idx=[42,...242,50042,...50242,100042,...100242,150042,...150242]
 # the jumps are excluded in the nstep and time measurements
 
 # (int)

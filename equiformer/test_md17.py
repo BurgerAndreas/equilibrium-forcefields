@@ -39,7 +39,7 @@ if __name__ == "__main__":
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
-        test_size=None,
+        test_patch_size=None,
         seed=args.seed,
     )
 

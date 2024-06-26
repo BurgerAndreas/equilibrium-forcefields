@@ -127,7 +127,7 @@ def do_test(args_base: DictConfig) -> None:
             dataset_arg=args.target,
             train_size=args.train_size,
             val_size=args.val_size,
-            test_size=None,
+            test_patch_size=None,
             seed=args.seed,
         )
 

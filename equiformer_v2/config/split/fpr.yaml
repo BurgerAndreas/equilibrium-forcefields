@@ -1,0 +1,11 @@
+# @package _global_
+# this @package directive solves any nesting problem (if this file is included in another folder)
+
+# Datasplit introduces to work with fixed-point reuse
+
+datasplit: "fpreuse_overlapping"
+test_patches: 1000
+test_max_iter: -1
+test_patch_size: 2
+eval_batch_size: 1 # 24
+fpreuse_test: True

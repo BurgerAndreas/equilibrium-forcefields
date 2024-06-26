@@ -167,7 +167,7 @@ IGNORE_OVERRIDES_CHECKPOINT = [
     "test_w_eval_mode",
     "testwevalmode",
     "test_max_iter",
-    "test_size",
+    "test_patch_size",
     "datasplit",
     "test_patches",
     # "trial",

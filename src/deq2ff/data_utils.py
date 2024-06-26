@@ -22,16 +22,16 @@ def reorder_dataset(dataset, batch_size):
     assert len(order) == len(dataset), f"{len(order)} != {len(dataset)}"
 
     # # patches
-    # test_size_select = None
-    # test_size = len(dataset)
+    # test_patch_size_select = None
+    # test_patch_size = len(dataset)
     # test_patches = 2
 
-    # if test_size_select is None:
-    #     test_size_select = 1000
-    # # assert test_size_select <= test_size, \
-    # #     f"Warning: test_size_select ({test_size_select}) is greater than test_size ({test_size})."
-    # start_idx = np.linspace(0, test_size - test_size_select, test_patches, dtype=int)
-    # test_indices = np.hstack([np.arange(s, s + test_size_select) for s in start_idx])
+    # if test_patch_size_select is None:
+    #     test_patch_size_select = 1000
+    # # assert test_patch_size_select <= test_patch_size, \
+    # #     f"Warning: test_patch_size_select ({test_patch_size_select}) is greater than test_patch_size ({test_patch_size})."
+    # start_idx = np.linspace(0, test_patch_size - test_patch_size_select, test_patches, dtype=int)
+    # test_indices = np.hstack([np.arange(s, s + test_patch_size_select) for s in start_idx])
 
     # order = np.asarray(order)[test_indices]
 

@@ -145,41 +145,41 @@ class MD17(InMemoryDataset):
 
 
 # From https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L54
-def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=None):
+def train_val_test_split(dset_len, train_size, val_size, test_patch_size, seed, order=None):
     assert (train_size is None) + (val_size is None) + (
-        test_size is None
-    ) <= 1, "Only one of train_size, val_size, test_size is allowed to be None."
+        test_patch_size is None
+    ) <= 1, "Only one of train_size, val_size, test_patch_size is allowed to be None."
     is_float = (
         isinstance(train_size, float),
         isinstance(val_size, float),
-        isinstance(test_size, float),
+        isinstance(test_patch_size, float),
     )
 
     train_size = round(dset_len * train_size) if is_float[0] else train_size
     val_size = round(dset_len * val_size) if is_float[1] else val_size
-    test_size = round(dset_len * test_size) if is_float[2] else test_size
+    test_patch_size = round(dset_len * test_patch_size) if is_float[2] else test_patch_size
 
     if train_size is None:
-        train_size = dset_len - val_size - test_size
+        train_size = dset_len - val_size - test_patch_size
     elif val_size is None:
-        val_size = dset_len - train_size - test_size
-    elif test_size is None:
-        test_size = dset_len - train_size - val_size
+        val_size = dset_len - train_size - test_patch_size
+    elif test_patch_size is None:
+        test_patch_size = dset_len - train_size - val_size
 
-    if train_size + val_size + test_size > dset_len:
+    if train_size + val_size + test_patch_size > dset_len:
         if is_float[2]:
-            test_size -= 1
+            test_patch_size -= 1
         elif is_float[1]:
             val_size -= 1
         elif is_float[0]:
             train_size -= 1
 
-    assert train_size >= 0 and val_size >= 0 and test_size >= 0, (
+    assert train_size >= 0 and val_size >= 0 and test_patch_size >= 0, (
         f"One of training ({train_size}), validation ({val_size}) or "
-        f"testing ({test_size}) splits ended up with a negative size."
+        f"testing ({test_patch_size}) splits ended up with a negative size."
     )
 
-    total = train_size + val_size + test_size
+    total = train_size + val_size + test_patch_size
 
     assert dset_len >= total, (
         f"The dataset ({dset_len}) is smaller than the "
@@ -210,7 +210,7 @@ def make_splits(
     dataset_len,
     train_size,
     val_size,
-    test_size,
+    test_patch_size,
     seed,
     filename=None,  # path to save split index
     splits=None,
@@ -223,7 +223,7 @@ def make_splits(
         idx_test = splits["idx_test"]
     else:
         idx_train, idx_val, idx_test = train_val_test_split(
-            dataset_len, train_size, val_size, test_size, seed, order
+            dataset_len, train_size, val_size, test_patch_size, seed, order
         )
 
     if filename is not None:
@@ -237,7 +237,7 @@ def make_splits(
 
 
 def get_md17_datasets(
-    root, dataset_arg, train_size, val_size, test_size, seed, return_idx=False
+    root, dataset_arg, train_size, val_size, test_patch_size, seed, return_idx=False
 ):
     """
     Return training, validation and testing sets of MD17 with the same data partition as TorchMD-NET.
@@ -249,7 +249,7 @@ def get_md17_datasets(
         len(all_dataset),
         train_size,
         val_size,
-        test_size,
+        test_patch_size,
         seed,
         filename=os.path.join(root, "splits.npz"),
         splits=None,
@@ -276,7 +276,7 @@ if __name__ == "__main__":
         dataset_arg="aspirin",
         train_size=950,
         val_size=50,
-        test_size=None,
+        test_patch_size=None,
         seed=1,
     )
 

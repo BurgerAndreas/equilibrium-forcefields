@@ -3,5 +3,5 @@
 
 evaluate: True 
 test_max_iter: -1 
-test_size: null 
+test_patch_size: null 
 assert_checkpoint: True

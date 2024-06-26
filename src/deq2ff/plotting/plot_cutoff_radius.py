@@ -60,7 +60,7 @@ def test(args, max_radius=np.arange(1.0, 10.0), batch_size=1):
             dataset_arg=args.target,
             train_size=args.train_size,
             val_size=args.val_size,
-            test_size=None,
+            test_patch_size=None,
             seed=args.seed,
             # order="consecutive_test" if args.fpreuse_test else None,
         )
@@ -72,7 +72,7 @@ def test(args, max_radius=np.arange(1.0, 10.0), batch_size=1):
             dataset_arg=args.target,
             train_size=args.train_size,
             val_size=args.val_size,
-            test_size=None,
+            test_patch_size=None,
             seed=args.seed,
             dname=args.dname,
             order=md_all.get_order,

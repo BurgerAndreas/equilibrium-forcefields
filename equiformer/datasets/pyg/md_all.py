@@ -35,12 +35,12 @@ class MDAll(InMemoryDataset):
             dataset_arg=args.target,
             train_size=args.train_size,
             val_size=args.val_size,
-            test_size=None,
+            test_patch_size=None,
             seed=args.seed,
         )
     """
 
-    raw_url = "http://www.quantum-machine.org/gdml/data/npz/"  # gdml
+    gdml_url = "http://www.quantum-machine.org/gdml/data/npz/"  # gdml
     revised_url = "https://archive.materialscloud.org/record/file?filename=rmd17.tar.bz2&record_id=466"
 
     # We note that the file names have been changed.
@@ -75,12 +75,12 @@ class MDAll(InMemoryDataset):
             "revised azobenzene": "rmd17_azobenzene.npz",
         },
         "ccsd": {
-            "benzene CCSD(T)": "benzene_ccsd_t.zip",
+            "benzene CCSD": "benzene_ccsd_t.zip",
             "aspirin CCSD": "aspirin_ccsd.zip",
-            "malonaldehyde CCSD(T)": "malonaldehyde_ccsd_t.zip",
-            "ethanol CCSD(T)": "ethanol_ccsd_t.zip",
-            "toluene CCSD(T)": "toluene_ccsd_t.zip",
-            "benzene FHI-aims": "benzene2018_dft.npz",
+            "malonaldehyde CCSD": "malonaldehyde_ccsd_t.zip",
+            "ethanol CCSD": "ethanol_ccsd_t.zip",
+            "toluene CCSD": "toluene_ccsd_t.zip",
+            "benzene CCSD": "benzene2018_dft.npz",
         },
         "md22": {
             "AT_AT_CG_CG": "md22_AT-AT-CG-CG.npz",
@@ -115,6 +115,10 @@ class MDAll(InMemoryDataset):
         if dname == "rmd17":
             assert (
                 "revised " + dataset_arg in MDAll.molecule_files[dname]
+            ), f"Unknown target={dataset_arg} with dname={dname}. Try: {MDAll.molecule_files[dname]}"
+        elif dname == "ccsd":
+            assert (
+                dataset_arg + " CCSD" in MDAll.molecule_files[dname]
             ), f"Unknown target={dataset_arg} with dname={dname}. Try: {MDAll.molecule_files[dname]}"
         else:
             assert (
@@ -182,6 +186,9 @@ class MDAll(InMemoryDataset):
     # MD17
     @property
     def raw_file_names(self):
+        """Get names of the files containing the raw data.
+        Returns a list.
+        """
         if self.dname == "rmd17":
             return [
                 osp.join(
@@ -191,11 +198,16 @@ class MDAll(InMemoryDataset):
                 )
                 for mol in self.molecules
             ]
+        elif self.dname == "ccsd":
+            return [MDAll.molecule_files[self.dname][mol + " CCSD"] for mol in self.molecules]
         else:
             return [MDAll.molecule_files[self.dname][mol] for mol in self.molecules]
 
     @property
     def processed_file_names(self):
+        """Get names of the files containing the processed data.
+        Returns a list.
+        """
         if self.dname == "rmd17og":
             return [f"rmd17og-{mol}.pt" for mol in self.molecules]
         elif self.dname == "rmd17":
@@ -223,17 +235,18 @@ class MDAll(InMemoryDataset):
                 extract_tar(path, self.raw_dir, mode="r:bz2")
                 os.unlink(path)
             else:
-                # download_url(MD17.raw_url + file_name, self.raw_dir)
-                url = f"{self.raw_url}/{file_name}"
+                # download_url(MD17.gdml_url + file_name, self.raw_dir)
+                url = f"{self.gdml_url}/{file_name}"
                 path = download_url(url, self.raw_dir)
                 if self.dname == "ccsd":
                     extract_zip(path, self.raw_dir)
+                    # yields: aspirin_ccsd-test.npz  aspirin_ccsd-train.npz
                     os.unlink(path)
 
     def process(self):
-        """After downloading the raw data, we process it and save it.
-        After changes, run:
-        rm -r -f datasets/**/processed
+        """After downloading the raw data, we process it to torch_geometric.data.Data format.
+        After changes to the code, delete the processed files:
+        ```rm -r -f datasets/**/processed```
         """
         # rm -r -f datasets/md17/**/processed
 
@@ -314,58 +327,58 @@ class MDAll(InMemoryDataset):
             torch.save((data, slices), processed_path)
 
 
-def fix_train_val_test_size(train_size, val_size, test_size, dset_len):
+def fix_train_val_test_patch_size(train_size, val_size, test_patch_size, dset_len):
     assert (train_size is None) + (val_size is None) + (
-        test_size is None
-    ) <= 1, "Only one of train_size, val_size, test_size is allowed to be None."
+        test_patch_size is None
+    ) <= 1, "Only one of train_size, val_size, test_patch_size is allowed to be None."
     is_float = (
         isinstance(train_size, float),
         isinstance(val_size, float),
-        isinstance(test_size, float),
+        isinstance(test_patch_size, float),
     )
 
     # if we provide the sizes as percentages
     train_size = round(dset_len * train_size) if is_float[0] else train_size
     val_size = round(dset_len * val_size) if is_float[1] else val_size
-    test_size = round(dset_len * test_size) if is_float[2] else test_size
+    test_patch_size = round(dset_len * test_patch_size) if is_float[2] else test_patch_size
 
     if train_size is None:
-        train_size = dset_len - val_size - test_size
+        train_size = dset_len - val_size - test_patch_size
     elif val_size is None:
-        val_size = dset_len - train_size - test_size
-    elif test_size is None:
-        test_size = dset_len - train_size - val_size
+        val_size = dset_len - train_size - test_patch_size
+    elif test_patch_size is None:
+        test_patch_size = dset_len - train_size - val_size
 
-    if train_size + val_size + test_size > dset_len:
+    if train_size + val_size + test_patch_size > dset_len:
         if is_float[2]:
-            test_size -= 1
+            test_patch_size -= 1
         elif is_float[1]:
             val_size -= 1
         elif is_float[0]:
             train_size -= 1
 
-    assert train_size >= 0 and val_size >= 0 and test_size >= 0, (
+    assert train_size >= 0 and val_size >= 0 and test_patch_size >= 0, (
         f"One of training ({train_size}), validation ({val_size}) or "
-        f"testing ({test_size}) splits ended up with a negative size."
+        f"testing ({test_patch_size}) splits ended up with a negative size."
     )
-    return train_size, val_size, test_size
+    return train_size, val_size, test_patch_size
 
 
 # From https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L54
-def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=None):
+def train_val_test_split(dset_len, train_size, val_size, test_patch_size, seed, order=None):
 
     if order in [None, "equiformer", "default"]:
         order = None
 
-    train_size, val_size, test_size = fix_train_val_test_size(
-        train_size, val_size, test_size, dset_len
+    train_size, val_size, test_patch_size = fix_train_val_test_patch_size(
+        train_size, val_size, test_patch_size, dset_len
     )
 
-    total = train_size + val_size + test_size
+    total = train_size + val_size + test_patch_size
 
     assert dset_len >= total, (
         f"The dataset ({dset_len}) is smaller than the "
-        f"combined split sizes ({total} = {train_size} + {val_size} + {test_size})."
+        f"combined split sizes ({total} = {train_size} + {val_size} + {test_patch_size})."
     )
     if total < dset_len:
         print(f"{dset_len - total} samples were excluded from the dataset")
@@ -400,8 +413,8 @@ def train_val_test_split(dset_len, train_size, val_size, test_size, seed, order=
         idx_train = idxs_rand[:train_size]
         idx_val = idxs_rand[train_size : train_size + val_size]
         # test: random consecutive block
-        test_start_idx = np.random.randint(0, dset_len - test_size - 1)
-        idx_test = idxs[test_start_idx : test_start_idx + test_size]
+        test_start_idx = np.random.randint(0, dset_len - test_patch_size - 1)
+        idx_test = idxs[test_start_idx : test_start_idx + test_patch_size]
         return np.array(idx_train), np.array(idx_val), idx_test
 
     else:
@@ -416,7 +429,7 @@ def make_splits(
     dataset_len,
     train_size,
     val_size,
-    test_size,
+    test_patch_size,
     seed,
     # max_samples=-1, # take the first max_samples samples from the dataset
     filename=None,  # path to save split index
@@ -429,7 +442,7 @@ def make_splits(
     """
     if splits is None or order is not None:
         idx_train, idx_val, idx_test = train_val_test_split(
-            dataset_len, train_size, val_size, test_size, seed, order
+            dataset_len, train_size, val_size, test_patch_size, seed, order
         )
         # save the randomly created split
         if order is None:
@@ -440,8 +453,8 @@ def make_splits(
 
     elif type(splits) == dict:
         # load splits from different files. No need to save it.
-        train_size, val_size, test_size = fix_train_val_test_size(
-            train_size, val_size, test_size, dataset_len
+        train_size, val_size, test_patch_size = fix_train_val_test_patch_size(
+            train_size, val_size, test_patch_size, dataset_len
         )
         # datasets/rmd17/aspirin/raw/rmd17/splits/index_test_01.csv
         # dtype = np.dtype('int64')
@@ -451,7 +464,7 @@ def make_splits(
         # test and val are combined
         idx_test_val = np.loadtxt(splits["test"], dtype=dtype)
         idx_val = idx_test_val[:val_size]
-        idx_test = idx_test_val[val_size : val_size + test_size]
+        idx_test = idx_test_val[val_size : val_size + test_patch_size]
         print(f"Loaded splits from {splits['train']} and {splits['test']}")
 
     else:
@@ -473,7 +486,7 @@ def get_md_datasets(
     dataset_arg,
     train_size,
     val_size,
-    test_size,
+    test_patch_size,
     seed,
     # added
     dname="md17",
@@ -481,7 +494,7 @@ def get_md_datasets(
     return_idx=False,
     order=None,
     num_test_patches=1,
-    test_size_select=None,
+    test_patch_size_select=None,
 ):
     """
     Return training, validation and testing sets of MD17 with the same data partition as TorchMD-NET.
@@ -529,11 +542,11 @@ def get_md_datasets(
     if max_samples > 0:
         _total = train_size if isinstance(train_size, int) else 0
         _total += val_size if isinstance(val_size, int) else 0
-        _total += test_size if isinstance(test_size, int) else 0
+        _total += test_patch_size if isinstance(test_patch_size, int) else 0
         if _total > 0:
             assert (
                 max_samples >= _total
-            ), f"max_samples ({max_samples}) must be greater than the sum of train_size, val_size, and test_size ({_total})"
+            ), f"max_samples ({max_samples}) must be greater than the sum of train_size, val_size, and test_patch_size ({_total})"
         print(
             f"Taking the first {max_samples} samples from the dataset (length {dset_len})."
         )
@@ -543,7 +556,7 @@ def get_md_datasets(
         dset_len,
         train_size,
         val_size,
-        test_size,
+        test_patch_size,
         seed,
         # save splits
         filename=os.path.join(root, "splits.npz"),
@@ -556,29 +569,29 @@ def get_md_datasets(
     if return_idx:
         return idx_train, idx_val, idx_test
 
-    test_size = len(idx_test)
+    test_patch_size = len(idx_test)
 
     if num_test_patches is not None and num_test_patches > 1:
-        # split the test set into test_patches of size test_size_select, evenly distributed
-        # test_size_select: number of samples of the test set that we are actually going to use
-        # test_size: total number of samples in the test set
-        if test_size_select is None:
-            test_size_select = 1000
+        # split the test set into test_patches of size test_patch_size_select, evenly distributed
+        # test_patch_size_select: number of samples of the test set that we are actually going to use
+        # test_patch_size: total number of samples in the test set
+        if test_patch_size_select is None:
+            test_patch_size_select = 1000
         assert (
-            test_size_select <= test_size
-        ), f"Warning: test_size_select ({test_size_select}) is greater than test_size ({test_size})."
+            test_patch_size_select <= test_patch_size
+        ), f"Warning: test_patch_size_select ({test_patch_size_select}) is greater than test_patch_size ({test_patch_size})."
         start_idx = np.linspace(
-            start=0, stop=test_size - test_size_select, num=num_test_patches, dtype=int
+            start=0, stop=test_patch_size - test_patch_size_select, num=num_test_patches, dtype=int
         )
         test_indices = np.hstack(
-            [np.arange(s, s + test_size_select) for s in start_idx]
+            [np.arange(s, s + test_patch_size_select) for s in start_idx]
         )
     else:
-        if test_size_select is None:
+        if test_patch_size_select is None:
             # full test set
-            test_size_select = test_size
-        # 0:test_size_select
-        test_indices = torch.arange(test_size_select)
+            test_patch_size_select = test_patch_size
+        # 0:test_patch_size_select
+        test_indices = torch.arange(test_patch_size_select)
 
     # log split to wandb
     if wandb.run is not None:
@@ -621,7 +634,7 @@ if __name__ == "__main__":
         dataset_arg="aspirin",
         train_size=950,
         val_size=50,
-        test_size=None,
+        test_patch_size=None,
         seed=1,
         revised=True,
     )

@@ -42,7 +42,7 @@ def main(run_id, datasplit="test_fpreuse"):
     dname = run.config["dname"]
     train_size = run.config["train_size"]
     val_size = run.config["val_size"]
-    test_size = run.config["test_size"]
+    test_patch_size = run.config["test_patch_size"]
     seed = run.config["seed"]
     args_datasplit = run.config["datasplit"]
     fpreuse_test = run.config["fpreuse_test"]
@@ -85,8 +85,8 @@ def main(run_id, datasplit="test_fpreuse"):
         dname=dname,
         train_size=train_size,
         val_size=val_size,
-        test_size=None,  # influences data splitting
-        test_size_select=test_size,  # doesn't influence data splitting
+        test_patch_size=None,  # influences data splitting
+        test_patch_size_select=test_patch_size,  # doesn't influence data splitting
         seed=seed,
         order="consecutive_all",
     )
@@ -96,9 +96,9 @@ def main(run_id, datasplit="test_fpreuse"):
 
     # remove every patch_size row (because there is no fpreuse)
     # df = df.iloc[1:]
-    test_size = run.config["test_size"]
+    test_patch_size = run.config["test_patch_size"]
     test_patches = run.config["test_patches"]
-    patch_size = test_size // test_patches
+    patch_size = test_patch_size // test_patches
     print(f"patch_size: {patch_size}")
     assert patch_size == 200
     # remove every patch_size row (because there is no fpreuse)

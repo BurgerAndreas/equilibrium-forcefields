@@ -56,7 +56,7 @@ def test_revised_dataset_creation(args):
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
-        test_size=None,
+        test_patch_size=None,
         seed=args.seed,
         return_idx=False,
     )
@@ -71,7 +71,7 @@ def test_revised_dataset_creation(args):
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
-        test_size=None,
+        test_patch_size=None,
         seed=args.seed,
         return_idx=False,
     )
@@ -120,7 +120,7 @@ def test_revisedold_equal_original(args):
         dataset_arg=args.target,
         train_size=0.5,
         val_size=0.5,
-        test_size=None,
+        test_patch_size=None,
         max_samples=max_samples,
         seed=args.seed,
         revised=False,  # <--- Old data, old source
@@ -136,7 +136,7 @@ def test_revisedold_equal_original(args):
         dataset_arg=args.target,
         train_size=0.5,  # get all samples
         val_size=0.5,
-        test_size=None,
+        test_patch_size=None,
         seed=args.seed,
         max_samples=max_samples,
         revised=True,  # <--- Old data, new source
@@ -189,7 +189,7 @@ def test_load_revised_split(args):
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
-        test_size=None,
+        test_patch_size=None,
         seed=args.seed,
         revised=True,
         revised_old=False,
@@ -207,7 +207,7 @@ def test_load_revised_split(args):
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
-        test_size=None,
+        test_patch_size=None,
         seed=args.seed,
         revised=True,
         revised_old=False,
@@ -248,7 +248,7 @@ def test_consecutive_order(args):
         dataset_arg=args.target,
         train_size=args.train_size,
         val_size=args.val_size,
-        test_size=None,
+        test_patch_size=None,
         seed=args.seed,
         return_idx=False,
         order="consecutive",

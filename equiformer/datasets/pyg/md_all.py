@@ -80,7 +80,7 @@ class MDAll(InMemoryDataset):
             "malonaldehyde CCSD": "malonaldehyde_ccsd_t.zip",
             "ethanol CCSD": "ethanol_ccsd_t.zip",
             "toluene CCSD": "toluene_ccsd_t.zip",
-            "benzene CCSD": "benzene2018_dft.npz",
+            "benzenefhi CCSD": "benzene2018_dft.npz",
         },
         "md22": {
             "AT_AT_CG_CG": "md22_AT-AT-CG-CG.npz",

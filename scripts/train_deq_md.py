@@ -15,6 +15,7 @@ import os
 import sys
 import yaml
 import re
+import copy
 
 # add the root of the project to the path so it can find equiformer
 # root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -519,7 +520,11 @@ def train(args):
     if args.opt in ["sps"]:
         lr_scheduler = None
     else:
-        lr_scheduler, _ = create_scheduler(args, optimizer)
+        schedargs = copy.deepcopy(args)
+        if "lr_cycle_epochs" in schedargs and schedargs.lr_cycle_epochs is not None:
+            schedargs.epochs = schedargs.lr_cycle_epochs
+            # lr_cycle_epochs=10 cycle_limit=100 lr_cycle_mul=2
+        lr_scheduler, _ = create_scheduler(schedargs, optimizer)
     grads = None  # grokfast
     # record the best validation and testing errors and corresponding epochs
     best_metrics = {

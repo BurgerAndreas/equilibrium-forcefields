@@ -244,6 +244,7 @@ REPLACE = {
     "target-": "",
     "test-": "t-",
     "layernorm": "ln",
+    "dname-": "",
     # "lntype-layernorm": "type-ln",
 }
 

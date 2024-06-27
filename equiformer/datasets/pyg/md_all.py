@@ -185,8 +185,9 @@ class MDAll(InMemoryDataset):
 
     # MD17
     @property
-    def raw_file_names(self):
-        """Get names of the files containing the raw data.
+    def raw_zip_file_names(self):
+        """Get names of the files containing the raw data as on the website.
+        Used by download().
         Returns a list.
         """
         if self.dname == "rmd17":
@@ -201,10 +202,21 @@ class MDAll(InMemoryDataset):
         elif self.dname == "ccsd":
             # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/datasets/md17.html#MD17
             # name = self.file_names[self.name]
+            return [MDAll.molecule_files[self.dname][mol + " CCSD"] for mol in self.molecules]
+        else:
+            return [MDAll.molecule_files[self.dname][mol] for mol in self.molecules]
+    
+    @property
+    def raw_file_names(self):
+        """Get names of the files containing the raw data as on the local machine after downloading and unzipping.
+        Used by raw_paths and process().
+        Returns a list.
+        """
+        if self.dname == "ccsd":
             names = [MDAll.molecule_files[self.dname][mol + " CCSD"] for mol in self.molecules]
             return [name[:-4] + '-train.npz' for name in names] + [name[:-4] + '-test.npz' for name in names]
         else:
-            return [MDAll.molecule_files[self.dname][mol] for mol in self.molecules]
+            return self.raw_file_names
 
     @property
     def processed_file_names(self):
@@ -232,14 +244,16 @@ class MDAll(InMemoryDataset):
     #     fs.torch_save((data.to_dict(), slices, data.__class__), path)
 
     def download(self):
-        for file_name in self.raw_file_names:
+        for file_name in self.raw_zip_file_names:
             if self.dname in ["rmd17", "rmd17og"]:
+                print("Downloading", self.revised_url)
                 path = download_url(self.revised_url, self.raw_dir)
                 extract_tar(path, self.raw_dir, mode="r:bz2")
                 os.unlink(path)
             else:
                 # download_url(MD17.gdml_url + file_name, self.raw_dir)
                 url = f"{self.gdml_url}/{file_name}"
+                print("Downloading", url)
                 path = download_url(url, self.raw_dir)
                 if self.dname == "ccsd":
                     extract_zip(path, self.raw_dir)

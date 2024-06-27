@@ -1945,7 +1945,10 @@ def evaluate(
     task_mean = model.task_mean
     task_std = model.task_std
 
-    max_steps = max_iter if max_iter != -1 else len(data_loader)
+    if max_iter != -1:
+        max_steps = min(max_iter, len(data_loader))
+    else:
+        len(data_loader)
     # if we stitch together a series of samples that are consecutive within but not across patches
     # e.g. [42,...,5042, 10042, ..., 15042, ..., 20042] -> patch_size=5000
     if args.test_patches > 0:
@@ -2236,7 +2239,7 @@ def evaluate(
                 step=global_step,
             )
 
-            print(f"Finished {_datasplit} evaluation (epoch {epoch}).")
+            print(f"Finished {_datasplit} evaluation after {step} steps (epoch {epoch}).")
             for k, v in _logs.items():
                 logger.info(f" {k}: {v}")
 

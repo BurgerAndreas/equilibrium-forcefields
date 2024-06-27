@@ -80,7 +80,9 @@ class MDAll(InMemoryDataset):
             "malonaldehyde CCSD": "malonaldehyde_ccsd_t.zip",
             "ethanol CCSD": "ethanol_ccsd_t.zip",
             "toluene CCSD": "toluene_ccsd_t.zip",
-            "benzenefhi CCSD": "benzene2018_dft.npz",
+        },
+        "fhi": {
+            "benzene FHI": "benzene2018_dft.npz",
         },
         "md22": {
             "AT_AT_CG_CG": "md22_AT-AT-CG-CG.npz",
@@ -119,6 +121,10 @@ class MDAll(InMemoryDataset):
         elif dname == "ccsd":
             assert (
                 dataset_arg + " CCSD" in MDAll.molecule_files[dname]
+            ), f"Unknown target={dataset_arg} with dname={dname}. Try: {MDAll.molecule_files[dname]}"
+        elif dname == "fhi":
+            assert (
+                dataset_arg + " FHI" in MDAll.molecule_files[dname]
             ), f"Unknown target={dataset_arg} with dname={dname}. Try: {MDAll.molecule_files[dname]}"
         else:
             assert (
@@ -203,7 +209,11 @@ class MDAll(InMemoryDataset):
             # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/datasets/md17.html#MD17
             # name = self.file_names[self.name]
             return [MDAll.molecule_files[self.dname][mol + " CCSD"] for mol in self.molecules]
+        elif self.dname == "fhi":
+            # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/datasets/md17.html#MD17
+            return [MDAll.molecule_files[self.dname][mol + " FHI"] for mol in self.molecules]
         else:
+            # MD17
             return [MDAll.molecule_files[self.dname][mol] for mol in self.molecules]
     
     @property
@@ -215,8 +225,13 @@ class MDAll(InMemoryDataset):
         if self.dname == "ccsd":
             names = [MDAll.molecule_files[self.dname][mol + " CCSD"] for mol in self.molecules]
             return [name[:-4] + '-train.npz' for name in names] + [name[:-4] + '-test.npz' for name in names]
+        elif self.dname == "fhi":
+            # datasets/ccsd/benzenefhi/raw/
+            # E.npy  F.npy  md5.npy  name.npy  R.npy  theory.npy  type.npy  z.npy
+            return ["E.npy",  "F.npy",  "md5.npy",  "name.npy",  "R.npy",  "theory.npy", " type.npy",  "z.npy"]
         else:
-            return self.raw_file_names
+            # nothing to unzip?
+            return self.raw_zip_file_names
 
     @property
     def processed_file_names(self):

@@ -1948,7 +1948,7 @@ def evaluate(
     if max_iter != -1:
         max_steps = min(max_iter, len(data_loader))
     else:
-        len(data_loader)
+        max_steps = len(data_loader)
     # if we stitch together a series of samples that are consecutive within but not across patches
     # e.g. [42,...,5042, 10042, ..., 15042, ..., 20042] -> patch_size=5000
     if args.test_patches > 0:

@@ -18,3 +18,4 @@ model:
   path_drop: 0.05
   use_variational_path_drop: True
   ln: post
+  ln_type: layer_norm

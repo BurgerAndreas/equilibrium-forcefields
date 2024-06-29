@@ -711,7 +711,7 @@ class EquiformerV2_OC20(BaseModel):
                 # which depends on the molecule configuration
                 # mask_before = self.blocks[i].graph_attention.alpha_dropout.mask
                 alpha_mask = self.blocks[i].graph_attention.alpha_dropout.update_mask(
-                    shape=[self.num_edges, 1, self.num_heads, 1],
+                    shape=[self.num_edges, 1, self.num_heads, 1], # TODO: check shape
                     dtype=x.dtype,
                     device=x.device,
                 )
@@ -720,6 +720,11 @@ class EquiformerV2_OC20(BaseModel):
                 path_mask = self.blocks[i].path_drop.update_mask(x=x, batch=batch)
             if self.blocks[i].proj_drop is not None:
                 self.blocks[i].proj_drop.update_mask(x=x, batch=batch)
+            # adding noise to hidden states
+            if self.blocks[i].noise_in is not None:
+                self.blocks[i].noise_in.update_mask(x.shape, x.dtype, x.device)
+            if self.blocks[i].noise_out is not None:
+                self.blocks[i].noise_out.update_mask(x.shape, x.dtype, x.device)
 
     @conditional_grad(torch.enable_grad())
     def forward(self, data, step=None, datasplit=None, **kwargs):

@@ -106,6 +106,26 @@ model:
   # EdgeDegreeEmbedding source target nn.Embedding(max_norm)
   edge_emb_st_max_norm: null
 
+  # add noise to the input of the hidden layers (Transformer blocks)
+  noise_hidden_in:
+    use_mul: False
+    use_add: False
+    mul_mean: 0.0
+    mul_std: 0.05
+    add_mean: 0.0
+    add_std: 0.05
+    recurrent: False
+    start_step: 0
+  noise_hidden_out:
+    use_mul: False
+    use_add: False
+    mul_mean: 0.0
+    mul_std: 0.05
+    add_mean: 0.0
+    add_std: 0.05
+    recurrent: False
+    start_step: 0
+
 # Optimizer for OC20, ignored in MD17
 optim:
   batch_size:  4 # 4 6 8

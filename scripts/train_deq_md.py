@@ -16,6 +16,7 @@ import sys
 import yaml
 import re
 import copy
+import math
 
 # add the root of the project to the path so it can find equiformer
 # root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -414,16 +415,13 @@ def train(args):
     # We don't need to shuffle because either the indices are already randomized
     # or we want to keep the order
     # we just keep the shuffle option for the sake of consistency with equiformer
-    shuffle = True
-    # if args.datasplit in ["fpreuse_ordered"]:
-    #     shuffle = False
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
-        shuffle=shuffle,
+        shuffle=args.shuffle,
         num_workers=args.workers,
         pin_memory=args.pin_mem,
-        drop_last=True,
+        drop_last=args.drop_last_train,
     )
     # idx are from the dataset e.g. (1, ..., 100k)
     # indices are from the DataLoader e.g. (0, ..., 1k)
@@ -433,7 +431,7 @@ def train(args):
     indices_to_idx = {v: k for k, v in idx_to_indices.items()}
     # added drop_last=True to avoid error with fixed-point reuse
     val_loader = DataLoader(
-        val_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=True
+        val_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=args.drop_last_val
     )
     if args.datasplit.startswith("fpreuse"):
         # reorder test dataset to be consecutive
@@ -446,14 +444,14 @@ def train(args):
         test_dataset,
         batch_size=args.eval_batch_size,
         shuffle=args.shuffle_test,
-        drop_last=True,
+        drop_last=args.drop_last_test,
     )
     # full dataset for final evaluation
     test_loader_full = DataLoader(
         test_dataset_full,
         batch_size=args.eval_batch_size,
         shuffle=args.shuffle_test,
-        drop_last=True,
+        drop_last=args.drop_last_test,
     )
 
     if args.return_data:
@@ -1942,15 +1940,14 @@ def evaluate(
     else:
         loss_per_idx = False
 
-    task_mean = model.task_mean
-    task_std = model.task_std
-
-    if max_iter != -1:
-        max_steps = min(max_iter, len(data_loader))
-    else:
-        max_steps = len(data_loader)
+    max_steps = len(data_loader)
+    if (max_iter != -1) and (max_iter < max_steps):
+        max_steps = max_iter
+    max_samples = max_iter * args.eval_batch_size
+        
     # if we stitch together a series of samples that are consecutive within but not across patches
     # e.g. [42,...,5042, 10042, ..., 15042, ..., 20042] -> patch_size=5000
+    # patch_size is used to reinit the fixed point
     if args.test_patches > 0:
         patch_size = len(data_loader) // args.test_patches
     else:

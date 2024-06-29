@@ -30,8 +30,6 @@ use_dataset_avg_stats: False
 # fpreuse_ordered # dataset is split into train, val, test without any shuffling. Testset is reordered to be consecutive across batches
 # rmd17 # datasplit indices delivered with the revised MD17 dataset, only works with md17 or rmd17
 datasplit: "fpreuse_overlapping" # ChangeS equiformer
-shuffle: True
-shuffle_test: False
 # for fpreuse we might want multiple consecutive dataloaders
 test_patches: 1000 # ChangeS 1
 
@@ -49,6 +47,12 @@ test_patch_size: 2 # ChangeS null
 do_final_test: False
 # after training is done (-1 means whole test set ~ 100-600k) (int)
 test_max_iter_final: -1
+
+shuffle: True
+shuffle_test: False
+drop_last_train: True
+drop_last_val: True
+drop_last_test: True
 
 # It's a mess but this is the settings I suggest for the different datasplits:
 # (1) default

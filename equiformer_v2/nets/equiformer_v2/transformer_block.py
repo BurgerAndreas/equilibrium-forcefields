@@ -30,6 +30,7 @@ from .drop import (
     VariationalGraphPathDrop,
     VariationalDropout,
     EquivariantDropoutArraySphericalHarmonics,
+    RecurrentNoise,
 )
 
 from deq2ff.logging_utils_deq import print_values
@@ -920,6 +921,8 @@ class TransBlockV2(torch.nn.Module):
         ln_affine=True,
         ln="pre",  # pre, post
         final_ln=False,
+        noise_hidden_in={},
+        noise_hidden_out={},
     ):
         super(TransBlockV2, self).__init__()
 
@@ -931,6 +934,8 @@ class TransBlockV2(torch.nn.Module):
         ], "ln must be 'pre' or 'post' but got {}".format(ln)
         self.ln = ln
         self.final_ln = final_ln
+
+        self.noise_in = RecurrentNoise(**noise_hidden_in)
 
         self.norm_1 = get_normalization_layer(
             ln_type,
@@ -1018,6 +1023,8 @@ class TransBlockV2(torch.nn.Module):
             )
         else:
             self.ffn_shortcut = None
+        
+        self.noise_out = RecurrentNoise(**noise_hidden_out)
 
     def forward(
         self,
@@ -1029,6 +1036,8 @@ class TransBlockV2(torch.nn.Module):
         **kwargs,
     ):
         """Norm, GraphAttention, PathDrop, ProjDrop, Norm, FFN, PathDrop, ProjDrop"""
+
+        x.embedding = self.noise_in(x.embedding)
 
         output_embedding = x
 
@@ -1107,5 +1116,7 @@ class TransBlockV2(torch.nn.Module):
             output_embedding.embedding = self.norm_2(output_embedding.embedding)
         if self.final_ln:
             output_embedding.embedding = self.norm_final(output_embedding.embedding)
+        
+        output_embedding.embedding = self.noise_out(output_embedding.embedding)
 
         return output_embedding

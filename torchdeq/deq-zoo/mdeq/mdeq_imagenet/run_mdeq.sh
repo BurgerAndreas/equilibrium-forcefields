@@ -11,5 +11,5 @@ python3 -m torch.distributed.launch --nproc_per_node=2 --master_addr 127.0.0.1 -
                 --f_max_iter 26 \
                 --f_solver fixed_point_iter \
                 --grad 5 \
-                --ln_type weight_norm \
+                --norm_type weight_norm \
                 ${@:1}

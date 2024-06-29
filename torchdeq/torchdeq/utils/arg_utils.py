@@ -70,7 +70,7 @@ def add_deq_args(parser):
 
     # Norm
     parser.add_argument(
-        "--ln_type",
+        "--norm_type",
         default="weight_norm",
         type=str,
         help="Normalizations for DEQ, using the form of [W <- W * min(norm_clip_value, target_norm / norm)], \

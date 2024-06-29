@@ -13,5 +13,5 @@ f_stop_mode: rel
 f_tol: 1e-6
 grad: 3
 n_states: 2
-ln_type: weight_norm
+norm_type: weight_norm
 

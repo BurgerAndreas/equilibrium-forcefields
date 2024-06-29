@@ -5,8 +5,9 @@
 
 deq_kwargs:
   # core: sliced
-  f_solver: 'broyden'
+  f_solver: 'anderson'
   f_stop_mode: 'rel'
+  f_tol: 1e-2
   
 # fpc_freq: 2
 # fpreuse_test: True
@@ -14,3 +15,6 @@ deq_kwargs:
 model:
   torchdeq_norm:
     norm_type: null
+  path_drop: 0.05
+  use_variational_path_drop: True
+  ln: post

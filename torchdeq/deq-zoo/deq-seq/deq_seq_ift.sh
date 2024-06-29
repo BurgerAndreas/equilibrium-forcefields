@@ -23,7 +23,7 @@ python train.py \
     --tgt_len 150 \
     --mem_len 150 \
     --eval_tgt_len 150 \
-    --ln_type weight_norm \
+    --norm_type weight_norm \
     --ift \
     --f_solver broyden \
     --b_solver broyden \

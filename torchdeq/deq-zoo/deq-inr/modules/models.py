@@ -21,7 +21,7 @@ class DEQINR(nn.Module):
         input_scale=256.0,
         filter_type="fourier",
         filter_options={},
-        ln_type="none",
+        norm_type="none",
         n_layers=1,
         one_pass=False,
         init="default",
@@ -45,7 +45,7 @@ class DEQINR(nn.Module):
             interm_channels,
             n_layers,
             filter_type=filter_type,
-            ln_type=ln_type,
+            norm_type=norm_type,
             filter_options=filter_options,
             init=init,
         )

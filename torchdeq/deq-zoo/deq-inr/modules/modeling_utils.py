@@ -41,7 +41,7 @@ def construct_model_args(
     use_implicit=False,
     filter_type="fourier",
     filter_options={},
-    ln_type="none",
+    norm_type="none",
 ):
     _dict = {
         "model_type": model_type,
@@ -54,7 +54,7 @@ def construct_model_args(
         "one_pass": not use_implicit,
         "filter_type": filter_type,
         "filter_options": filter_options,
-        "ln_type": ln_type,
+        "norm_type": norm_type,
         "init": "default" if not use_implicit else "deq",
     }
     return _dict
@@ -105,7 +105,7 @@ def get_summary_dict(
                         use_implicit=deq,
                         filter_type=filter_t,
                         filter_options={"alpha": 3.0},
-                        ln_type="spectral_norm",
+                        norm_type="spectral_norm",
                     ),
                     "results": {},
                     "state_dicts": [],

@@ -19,24 +19,24 @@ _norm_class = {
 }
 
 
-def register_norm(ln_type, norm_class):
+def register_norm(norm_type, norm_class):
     """
     Registers a user-defined normalization class for the apply_norm function.
 
     This function adds a new entry to the Norm class dict with the key as
-    the specified ``ln_type`` and the value as the ``norm_class``.
+    the specified ``norm_type`` and the value as the ``norm_class``.
 
     Args:
-        ln_type (str): The type of normalization to register. This will be used as the key in the Norm class dictionary.
+        norm_type (str): The type of normalization to register. This will be used as the key in the Norm class dictionary.
         norm_class (type): The class defining the normalization. This will be used as the value in the Norm class dictionary.
 
     Example:
         >>> register_norm('custom_norm', CustomNorm)
     """
-    _norm_class[ln_type] = norm_class
+    _norm_class[norm_type] = norm_class
 
 
-def register_norm_module(module_class, ln_type, names="weight", dims=0):
+def register_norm_module(module_class, norm_type, names="weight", dims=0):
     """
     Registers a to-be-normed module for the user-defined normalization class in the `apply_norm` function.
 
@@ -46,14 +46,14 @@ def register_norm_module(module_class, ln_type, names="weight", dims=0):
 
     Args:
         module_class (type): Module class to be indexed for the user-defined normalization class.
-        ln_type (str): The type of normalization class that the module class should be registered for.
+        norm_type (str): The type of normalization class that the module class should be registered for.
         names (str, optional): Attribute name of ``module_class`` for the normalization to be applied. Default ``'weight'``.
         dims (int, optional): Dimension over which to compute the norm. Default 0.
 
     Example:
         >>> register_norm_module(Conv2d, 'custom_norm', 'weight', 0)
     """
-    _norm_class[ln_type]._target_modules[module_class] = (names, dims)
+    _norm_class[norm_type]._target_modules[module_class] = (names, dims)
 
 
 def _is_skip_prefix(name, prefix_filter_out):
@@ -94,21 +94,21 @@ def _is_skip_name(name, filter_out):
 
 def apply_norm(
     model,
-    ln_type="weight_norm",
+    norm_type="weight_norm",
     prefix_filter_out=None,
     filter_out=None,
     args=None,
     **norm_kwargs
 ):
     """
-    Auto applies normalization to all weights of a given layer based on the ``ln_type``.
+    Auto applies normalization to all weights of a given layer based on the ``norm_type``.
 
     The currently supported normalizations include ``'weight_norm'``, ``'spectral_norm'``, and ``'none'`` (No Norm applied).
     Skip the weights whose name contains any string of ``filter_out`` or starts with any of ``prefix_filter_out``.
 
     Args:
         model (torch.nn.Module): Model to apply normalization.
-        ln_type (str, optional): Type of normalization to be applied. Default is ``'weight_norm'``.
+        norm_type (str, optional): Type of normalization to be applied. Default is ``'weight_norm'``.
         prefix_filter_out (list or str, optional):
             List of module weights prefixes to skip out when applying normalization. Default is None.
         filter_out (list or str, optional):
@@ -121,7 +121,7 @@ def apply_norm(
         norm_kwargs: Keyword arguments for the normalization layer.
 
     Raises:
-        AssertionError: If the ``ln_type`` is not registered.
+        AssertionError: If the ``norm_type`` is not registered.
 
     Example:
         >>> apply_norm(model, 'weight_norm', filter_out=['embedding'])
@@ -129,12 +129,13 @@ def apply_norm(
     args = DEQConfig(args)
     args.update(**norm_kwargs)
 
-    ln_type = args.get("ln_type", ln_type)
-    if ln_type == "none":
+    norm_type = args.get("norm_type", norm_type)
+    if norm_type == "none":
         return
+    print(f"TorchDEQ: Applying {norm_type}")
 
-    assert ln_type in _norm_class, "Not registered norm type!"
-    Norm = _norm_class[ln_type]
+    assert norm_type in _norm_class, "Not registered norm type!"
+    Norm = _norm_class[norm_type]
 
     if isinstance(prefix_filter_out, str):
         prefix_filter_out = [prefix_filter_out]

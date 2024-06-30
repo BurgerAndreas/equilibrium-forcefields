@@ -987,21 +987,17 @@ class TransBlockV2(torch.nn.Module):
             else None
         )
 
+        # post layer norm -> after FF/FF_shortcut -> potentially reduce sphere channels
+        _sphere_channels = sphere_channels
+        if self.ln == "post":
+            _sphere_channels = output_channels
         self.norm_2 = get_normalization_layer(
             ln_type,
             lmax=max_lmax,
-            num_channels=sphere_channels,
+            num_channels=_sphere_channels,
             normalization=ln_norm,
             affine=ln_affine,
         )
-        if self.final_ln:
-            self.norm_final = get_normalization_layer(
-                ln_type,
-                lmax=max_lmax,
-                num_channels=sphere_channels,
-                normalization=ln_norm,
-                affine=ln_affine,
-            )
 
         self.ffn = FeedForwardNetwork(
             sphere_channels=sphere_channels,
@@ -1024,6 +1020,15 @@ class TransBlockV2(torch.nn.Module):
         else:
             self.ffn_shortcut = None
         
+        if self.final_ln:
+            self.norm_final = get_normalization_layer(
+                ln_type,
+                lmax=max_lmax,
+                num_channels=output_channels,
+                normalization=ln_norm,
+                affine=ln_affine,
+            )
+
         self.noise_out = RecurrentNoise(**noise_hidden_out)
 
     def forward(
@@ -1112,6 +1117,7 @@ class TransBlockV2(torch.nn.Module):
         output_embedding.embedding = output_embedding.embedding + x_res
 
         # post layer norm
+        # after shortcut, i.e. sphere channels are potentially reduced
         if self.ln == "post":
             output_embedding.embedding = self.norm_2(output_embedding.embedding)
         if self.final_ln:

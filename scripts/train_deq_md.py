@@ -585,7 +585,7 @@ def train(args):
                     new_key = new_key.replace(k, v)
                 state_dict[new_key] = saved_state["state_dict"].pop(key)
             # write state_dict
-            model.load_state_dict(state_dict)
+            model.load_state_dict(state_dict, strict=False)
             optimizer.load_state_dict(saved_state["optimizer"])
             if lr_scheduler is not None:
                 lr_scheduler.load_state_dict(saved_state["lr_scheduler"])

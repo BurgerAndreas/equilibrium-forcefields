@@ -5,6 +5,8 @@ Get miniforge (mamba)
 curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
 bash Miniforge3-$(uname)-$(uname -m).sh
 source ~/.bashrc
+~/miniforge3/bin/mamba
+source ~/.bashrc
 ```
 
 Get a terminal based editor
@@ -17,7 +19,7 @@ source ~/.bashrc
 
 acces to cluster via ssh
 ```bash
-ssh-copy-id username@remote_host
+ssh-copy-id <username>@remote_host
 ```
 
 authenticate with github

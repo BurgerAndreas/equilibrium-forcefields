@@ -50,9 +50,9 @@ def get_data(datadir, task, split, del_intmd_files):
         raise NotImplementedError("S2EF requires a split to be defined.")
 
     if task == "s2ef":
-        assert (
-            split in DOWNLOAD_LINKS[task]
-        ), f'S2EF "{split}" split not defined, please specify one of the following: {list(DOWNLOAD_LINKS["s2ef"].keys())}'
+        assert split in DOWNLOAD_LINKS[task], \
+            f'S2EF "{split}" split not defined, please specify one of the following:' \
+            f'\n {list(DOWNLOAD_LINKS["s2ef"].keys())}'
         download_link = DOWNLOAD_LINKS[task][split]
 
     elif task == "is2re":

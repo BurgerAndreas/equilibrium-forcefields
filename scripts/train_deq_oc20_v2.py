@@ -35,6 +35,9 @@ import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
+# Original config:
+# https://github.com/FAIR-Chem/fairchem/blob/v0.1.0/ocpmodels/common/flags.py
+# https://github.com/atomicarchitects/equiformer_v2/blob/main/oc20/configs/s2ef/2M/equiformer_v2/equiformer_v2_N%4012_L%406_M%402.yml
 
 class Runner(submitit.helpers.Checkpointable):
     def __init__(self):

@@ -421,6 +421,7 @@ class BaseTrainerV2(BaseTrainer):
         # self.file_logger.info(name_no_wd)
         self.file_logger.info(len(name_no_wd))
 
+        # initialize optimizer
         self.optimizer = optimizer(
             parameters,
             lr=self.config["optim"]["lr_initial"],

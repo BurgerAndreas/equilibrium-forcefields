@@ -644,18 +644,20 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
         """
 
         def inject_input(z, u):
-            if self.cat_injection:
+            if self.inp_inj == "cat":
                 z = torch.cat([z, u], dim=1)
-            else:
+            elif self.inp_inj == "add":
                 # we can't use previous of z because we initialize z as 0
                 # norm_before = z.norm()
                 norm_before = u.norm()
                 z = z + u
-                if self.norm_injection == "prev":
+                if self.inj_norm == "prev":
                     scale = z.norm() / norm_before
                     z = z / scale
-                elif self.norm_injection == "one":
+                elif self.inj_norm == "one":
                     z = z / z.norm()
+            else:
+                raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
             return z
 
         # [num_atoms*batch_size, irrep_dim]

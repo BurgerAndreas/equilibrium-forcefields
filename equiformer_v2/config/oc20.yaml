@@ -22,8 +22,8 @@ model:
 # from ocp/ocpmodels/common/flags.py:
 
 # Whether to train the model, make predictions, or to run relaxations
-# choices=["train "predict "run-relaxations "validate"]
-mode: "train"
+# choices=[train, predict, run-relaxations, validate]
+mode: train
 config_yml: "" # Path to a config file listing data, model, optim parameters.
 identifier: "" # Experiment identifier to append to checkpoint/log/result directory
 debug: False # Whether this is a debugging run or not
@@ -78,8 +78,19 @@ wandb_run_name: null
 wandb_group: null
 slurm_job_id: null
 model_name: ${model.name}
+
+####################################################
+# added
+
+checkpoint_path: auto
+checkpoint_wandb_name: null # only used if checkpoint_path is auto. will be filled by wandb
+
+fpreuse_test: False
+contrastive_loss: False
+
 # wandb.watch gradients, activations, model parameters (bool)
 watch_model: False
+wandb_tags: null
 
 # variables we can access in our code
 job_name: 'results'

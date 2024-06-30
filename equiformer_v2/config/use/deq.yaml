@@ -35,8 +35,9 @@ model:
   # deq
   z0: "zero"
   # concat or add input injection to node_features (fixed-point estimate)
-  cat_injection: False
-  norm_injection: prev # None=False, 'one', 'prev'
+  # cat, add, lc (linear combination), cwlc (component wise lc = linear layer without bias)
+  inp_inj: add
+  inj_norm: prev # None=False, 'one', 'prev'
   
   path_norm: "none"
   irrep_norm: null

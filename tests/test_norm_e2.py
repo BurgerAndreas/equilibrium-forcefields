@@ -119,16 +119,16 @@ def main(
     args,
     weight_init="uniform",
     num_layers=2,
-    cat_injection=False,
-    norm_injection="prev",
+    inp_inj="add",
+    inj_norm="prev",
     ln_norm="component",
     ln_type="rms_norm_sh",
 ):
 
     args.model.weight_init = weight_init
     args.model.num_layers = num_layers
-    args.model.cat_injection = cat_injection
-    args.model.norm_injection = norm_injection  # None, prev
+    args.model.inp_inj = inp_inj
+    args.model.inj_norm = inj_norm  # None, prev
 
     args.model.ln_norm = ln_norm  # component, norm
     args.model.ln_type = ln_type  # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
@@ -372,7 +372,7 @@ def plot_norms_layer(args):
         for ln_norm in ["component", "norm"]:
             norms = main(
                 args,
-                norm_injection="prev",
+                inj_norm="prev",
                 ln_type=ln_type,
                 ln_norm=ln_norm,
             )
@@ -409,28 +409,28 @@ def plot_input_inj(args):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
 
     i = 0
-    for cat_injection in [True, False]:
-        # for norm_injection in [None, 'one', 'prev']:
-        for norm_injection in ["one", "prev"]:
+    for inp_inj in ["cat", "cat"]:
+        # for inj_norm in [None, 'one', 'prev']:
+        for inj_norm in ["one", "prev"]:
             norms = main(
                 args,
-                cat_injection=cat_injection,
-                norm_injection=norm_injection,
+                inp_inj=inp_inj,
+                inj_norm=inj_norm,
                 ln_type="rms_norm_sh",
                 ln_norm="norm",
             )
             norms = np.array(norms)
 
             # plot
-            cat = "cat" if cat_injection else "add"
-            _norm = "" if cat_injection else norm_injection
+            cat = inp_inj
+            _norm = "" if inp_inj == "cat" else inj_norm
             ax1.plot(norms[:, 0], label=f"{cat} {_norm}", color=colors[i])
             ax2.plot(
                 norms[:, 1], label=f"{cat} {_norm}", color=colors[i], linestyle="--"
             )
             i += 1
 
-            if cat_injection:
+            if inp_inj == "cat":
                 break
 
     ax1.title.set_text("l2 norm")
@@ -489,7 +489,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
     init_wandb(args)
 
-    # norms = main(args, norm_injection='prev', ln_type='layer_norm_sh', ln_norm='component')
+    # norms = main(args, inj_norm='prev', ln_type='layer_norm_sh', ln_norm='component')
 
     # plot_norms_layer(args)
     plot_input_inj(args)

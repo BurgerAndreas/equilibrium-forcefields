@@ -19,8 +19,8 @@ class EquiformerDEQBase:
         irreps_feature,
         num_layers,
         input_injection="first_layer",  # False=V1, 'first_layer'=V2
-        cat_injection=False,
-        norm_injection=None,
+        inp_inj="add",
+        inj_norm=None,
         irreps_node_embedding_injection="64x0e+32x1e+16x2e",
         z0="zero",
         z0_requires_grad=False,
@@ -92,17 +92,17 @@ class EquiformerDEQBase:
         self.irreps_feature = o3.Irreps(irreps_feature)
 
         # concat input injection or add it to the node features (embeddings)
-        self.cat_injection = cat_injection
-        if cat_injection is False:
+        self.inp_inj = inp_inj
+        if inp_inj == "add":
             if irreps_node_embedding_injection != irreps_node_embedding:
                 irreps_node_embedding_injection = irreps_node_embedding
                 print(
-                    f"Warning: `cat_injection` is False and thus addition is used. "
+                    f"Warning: `inp_inj` is set to addition. "
                     f"Setting `irreps_node_embedding_injection` = `irreps_node_embedding` = "
                     f"{irreps_node_embedding}."
                 )
                 # assert input_injection in ["first_layer", "every_layer", True, "legacy"]
-        self.norm_injection = norm_injection
+        self.inj_norm = inj_norm
 
         self.input_injection = input_injection
         if input_injection is False:
@@ -126,7 +126,7 @@ class EquiformerDEQBase:
             # "128x0e+64x1e+32x2e" + "64x0e+32x1e+16x2e"
             # 128x0e+64x1e+32x2e+64x0e+32x1e+16x2e
             # input to block
-            if self.cat_injection:
+            if self.inp_inj == "cat":
                 irreps_node_z = self.irreps_node_embedding + self.irreps_node_injection
                 self.irreps_node_z = o3.Irreps(irreps_node_z)
             else:

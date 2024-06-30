@@ -25,10 +25,15 @@ def fix_args(args: OmegaConf):
     args = scale_batchsize_lr(args, k=args.get("bsscale", None))
 
     # allows to load checkpoint with the same name
-    if args.evaluate:
+    if ("evaluate" in args) and args.evaluate:
         if args.wandb_tags is None:
             args.wandb_tags = []
         args.wandb_tags.append("eval")
+    
+    if ("mode" in args) and args.mode != "train":
+        if args.wandb_tags is None:
+            args.wandb_tags = []
+        args.wandb_tags.append(args.mode)
 
     # rename model to include deq
     if "model_is_deq" in args and args.model_is_deq is True:
@@ -41,7 +46,7 @@ def fix_args(args: OmegaConf):
             args.fpreuse_test = False
 
     # if we use fpreuse, we need to make sure that the test set is consecutive across batches
-    if args.fpreuse_test:
+    if "fpreuse_test" in args and args.fpreuse_test:
         if args.datasplit not in ["fpreuse_overlapping", "fpreuse_ordered"]:
             print(
                 'Warning: fpreuse_test is set, but datasplit is not "fpreuse_overlapping" or "fpreuse_ordered". Setting datasplit to "fpreuse_overlapping"'

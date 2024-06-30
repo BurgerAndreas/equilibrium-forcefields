@@ -83,22 +83,22 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # deq
         sphere_channels_fixedpoint=None,
         z0="zero",
-        cat_injection=True,
-        norm_injection=None,
+        inp_inj="cat",
+        inj_norm=None,
         path_norm="none",
         irrep_norm=None,
         **kwargs,
     ):
         # DEQ
         self.z0 = z0
-        self.cat_injection = cat_injection
-        self.norm_injection = norm_injection
+        self.inp_inj = inp_inj
+        self.inj_norm = inj_norm
         # self.path_norm = path_norm  # TODO: unused
         # self.irrep_norm = irrep_norm  # TODO: unused
         if sphere_channels_fixedpoint is None:
             sphere_channels_fixedpoint = sphere_channels
         self.sphere_channels_fixedpoint = sphere_channels_fixedpoint
-        if self.cat_injection:
+        if self.inp_inj == "cat": # TODO should if == "add"?
             assert self.sphere_channels_fixedpoint == sphere_channels
 
         non_deq_kwargs = copy.deepcopy(kwargs)
@@ -106,6 +106,22 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         non_deq_kwargs.pop("deq_mode", None)
         non_deq_kwargs.pop("torchdeq_norm", None)
         super().__init__(sphere_channels=sphere_channels, **non_deq_kwargs)
+        if self.inp_inj == "lc":
+            # two scalar learnable weights
+            self.inj_w1 = nn.Parameter(torch.ones(1))
+            self.inj_w2 = nn.Parameter(torch.ones(1))
+        elif self.inp_inj == "cwlc":
+            # two matrix learnable weights # [D,C]
+            # TODO: breaks equivaraince?
+            num_coefficients = 0
+            for i in range(self.num_resolutions):
+                num_coefficients = num_coefficients + int((self.lmax_list[i] + 1) ** 2)
+            self.inj_w1 = nn.Parameter(torch.ones(1, num_coefficients, sphere_channels))
+            self.inj_w2 = nn.Parameter(torch.ones(1, num_coefficients, sphere_channels))
+        elif self.inp_inj == "swlc":
+            # sphere-channel-wise learnable weights # [C]
+            self.inj_w1 = nn.Parameter(torch.ones(1, 1, sphere_channels))
+            self.inj_w2 = nn.Parameter(torch.ones(1, 1, sphere_channels))
 
         # DEQ
         kwargs = self._init_deq(**kwargs)
@@ -119,7 +135,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             sphere_channels_in = self.sphere_channels
             if i == 0:
                 # add input_injection
-                if self.cat_injection:
+                if self.inp_inj == "cat":
                     sphere_channels_in = (
                         self.sphere_channels_fixedpoint + self.sphere_channels
                     )
@@ -523,18 +539,20 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             return energy, info
 
     def inject_input(self, z, u):
-        if self.cat_injection:
+        if self.inp_inj == "cat":
             z = torch.cat([z, u], dim=1)
-        else:
+        elif self.inp_inj == "add":
             # we can't use previous of z because we initialize z as 0
             # norm_before = z.norm()
             norm_before = u.norm()
             z = z + u
-            if self.norm_injection == "prev":
+            if self.inj_norm == "prev":
                 scale = z.norm() / norm_before
                 z = z / scale
-            elif self.norm_injection == "one":
+            elif self.inj_norm == "one":
                 z = z / z.norm()
+        else:
+            raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
         return z
 
     def deq_implicit_layer(
@@ -546,36 +564,55 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             x = x.view(self.shape_batched)
+        # we can't use previous of x because we initialize z as 0
+        # norm_before = x.norm()
+        norm_before = emb.norm()
         # input injection
-        if self.cat_injection:
+        channels = self.sphere_channels
+        if self.inp_inj == "cat":
             # x = torch.cat([x, emb], dim=-1)
-            x = SO3_Embedding(
-                length=x.shape[0],
-                lmax_list=self.lmax_list,
-                num_channels=self.sphere_channels + self.sphere_channels_fixedpoint,
-                device=self.device,
-                dtype=self.dtype,
-                embedding=torch.cat([x, emb], dim=-1),
-            )
-        else:
-            # we can't use previous of x because we initialize z as 0
-            # norm_before = x.norm()
-            norm_before = emb.norm()
+            z = torch.cat([x, emb], dim=-1)
+            channels = self.sphere_channels + self.sphere_channels_fixedpoint
+        elif self.inp_inj == "add":
             z = x + emb
-            print_values(z, "injprenorm", log=False)
-            if self.norm_injection == "prev":
-                scale = z.norm() / norm_before
-                z = z / scale
-            elif self.norm_injection == "one":
-                z = z / z.norm()
-            x = SO3_Embedding(
-                length=x.shape[0],
-                lmax_list=self.lmax_list,
-                num_channels=self.sphere_channels,
-                device=self.device,
-                dtype=self.dtype,
-                embedding=z,
-            )
+        elif self.inp_inj == "lc":
+            # linear combination with scalar weights
+            z = self.inj_w1 * x + self.inj_w2 * emb
+        elif self.inp_inj == "cwlc":
+            # linear combination with matrix weights
+            # inj_w1: [D,C] -> [B*N, D, C]
+            # inj_w1 = self.inj_w1.unsqueeze(0).expand(x.shape[0], -1, -1)
+            inj_w1 = self.inj_w1.repeat(x.shape[0], 1, 1)
+            inj_w2 = self.inj_w2.repeat(x.shape[0], 1, 1)
+            z = inj_w1 * x + inj_w2 * emb
+        elif self.inp_inj == "swlc":
+            inj_w1 = self.inj_w1.repeat(x.shape[0], x.shape[1], 1)
+            inj_w2 = self.inj_w2.repeat(x.shape[0], x.shape[1], 1)
+            z = inj_w1 * x + inj_w2 * emb
+        else:
+            raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
+        #
+        print_values(z, "injprenorm", log=False)
+        if self.inj_norm == "prev":
+            scale = z.norm() / norm_before
+            z = z / scale
+        elif self.inj_norm == "one":
+            z = z / z.norm()
+        elif self.inj_norm == "ln":
+            # z = self.inj_ln(z)
+            raise NotImplementedError("inj_norm=ln: use enc_ln=True instead.")
+        elif self.inj_norm in [None, False, "none", "None"]:
+            pass
+        else:
+            raise ValueError(f"Invalid inj_norm: {self.inj_norm}")
+        x = SO3_Embedding(
+            length=x.shape[0],
+            lmax_list=self.lmax_list,
+            num_channels=channels,
+            device=self.device,
+            dtype=self.dtype,
+            embedding=z,
+        )
         print_values(x.embedding, "postinj", log=False)
         # layers
         for i in range(self.num_layers):
@@ -611,6 +648,21 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             )
         elif self.z0 == "emb":
             return emb
+        elif self.z0.startswith('rand'):
+            # rand_0.1
+            if len(self.z0.split('_')) > 1:
+                mult = float(self.z0.split('_')[1])
+            else:
+                mult = 1.0
+            return torch.rand(shape, device=self.device) * mult
+        elif self.z0.startswith('normal'):
+            # normal_mean_std
+            return torch.normal(
+                mean = float(self.z0.split('_')[1]),
+                std = float(self.z0.split('_')[2]),
+                size = shape,
+                device = self.device,
+            )
         else:
             raise ValueError(f"Invalid z0: {self.z0}")
 

@@ -79,7 +79,11 @@ equiformer_v2/nets/equiformer_v2/equiformer_v2_oc20.py
 class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
     def __init__(
         self,
-        sphere_channels,
+        # not used but necessary for OC20 compatibility
+        num_atoms=None,  # not used
+        bond_feat_dim=None,  # not used
+        num_targets=None,  # not used
+        sphere_channels=None,
         # deq
         sphere_channels_fixedpoint=None,
         z0="zero",

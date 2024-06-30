@@ -71,7 +71,11 @@ class Runner(submitit.helpers.Checkpointable):
                 cpu=config.get("cpu", False),
                 slurm=config.get("slurm", {}),
                 noddp=config.get("noddp", False),
+                # added
                 val_max_iter=config.get("val_max_iter", -1),
+                model_is_deq=config.get("model_is_deq", False),
+                deq_kwargs=config.get("deq_kwargs", {}),
+                # test_w_eval_mode
             )
             # overwrite mode
             if config.get("compute_stats", False):

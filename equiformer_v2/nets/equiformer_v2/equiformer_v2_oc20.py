@@ -109,6 +109,7 @@ class EquiformerV2_OC20(BaseModel):
 
     def __init__(
         self,
+        # not used but necessary for OC20 compatibility
         num_atoms=None,  # not used
         bond_feat_dim=None,  # not used
         num_targets=None,  # not used

@@ -171,6 +171,8 @@ class BaseTrainerV2(BaseTrainer):
         slurm={},
         noddp=False,
         # added
+        deq_kwargs={},
+        model_is_deq=False,
         val_max_iter=-1,
         test_w_eval_mode=True,
     ):
@@ -178,10 +180,6 @@ class BaseTrainerV2(BaseTrainer):
         self.cpu = cpu
         self.epoch = 0
         self.step = 0
-
-        # added
-        self.val_max_iter = val_max_iter
-        self.test_w_eval_mode = test_w_eval_mode
 
         if torch.cuda.is_available() and not self.cpu:
             self.device = torch.device(f"cuda:{local_rank}")
@@ -233,6 +231,7 @@ class BaseTrainerV2(BaseTrainer):
         self.config = {
             "task": task,
             "model": model.pop("name"),
+            # model_attributes is what will be passed to the model
             "model_attributes": model,
             "optim": optimizer,
             "logger": logger,
@@ -254,9 +253,20 @@ class BaseTrainerV2(BaseTrainer):
             },
             "slurm": slurm,
             "noddp": noddp,
+            # added
+            # "deq_kwargs": deq_kwargs,
+            "model_is_deq": model_is_deq,
+            "val_max_iter": val_max_iter,
+            "test_w_eval_mode": test_w_eval_mode,
         }
         # AMP Scaler
         self.scaler = torch.cuda.amp.GradScaler() if amp else None
+
+        # if we are using DEQ, ensure that the kwargs are present
+        if len(deq_kwargs) > 0:
+            self.config["model_attributes"]["deq_kwargs"] = deq_kwargs
+        if model_is_deq:
+            assert (not self.config["model_is_deq"]) or ("deq_kwargs" in self.config["model_attributes"])
 
         if "SLURM_JOB_ID" in os.environ and "folder" in self.config["slurm"]:
             self.config["slurm"]["job_id"] = os.environ["SLURM_JOB_ID"]
@@ -366,16 +376,19 @@ class BaseTrainerV2(BaseTrainer):
         # TODO: depricated, remove.
         bond_feat_dim = None
         bond_feat_dim = self.config["model_attributes"].get("num_gaussians", 50)
+        
+        import deq2ff.register_all_models
 
         loader = self.train_loader or self.val_loader or self.test_loader
+        if loader and hasattr(loader.dataset[0], "x") and loader.dataset[0].x is not None:
+            x_shape = loader.dataset[0].x.shape[-1]
+        else:
+            x_shape = None
+        # https://github.com/atomicarchitects/equiformer_v2/blob/main/nets/equiformer_v2/equiformer_v2_oc20.py
         self.model = registry.get_model_class(self.config["model"])(
-            loader.dataset[0].x.shape[-1]
-            if loader
-            and hasattr(loader.dataset[0], "x")
-            and loader.dataset[0].x is not None
-            else None,
-            bond_feat_dim,
-            self.num_targets,
+            num_atoms = x_shape,
+            bond_feat_dim=bond_feat_dim,
+            num_targets=self.num_targets,
             **self.config["model_attributes"],
         ).to(self.device)
 
@@ -520,7 +533,7 @@ class BaseTrainerV2(BaseTrainer):
         if self.is_hpo:
             disable_tqdm = True
 
-        if self.test_w_eval_mode:
+        if self.config["test_w_eval_mode"]:
             self.model.eval()
         if self.ema and use_ema:
             self.ema.store()

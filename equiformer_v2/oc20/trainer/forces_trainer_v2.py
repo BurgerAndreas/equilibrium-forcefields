@@ -94,6 +94,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         # added
         val_max_iter=-1,
         test_w_eval_mode=True,
+        **kwargs,
     ):
         super().__init__(
             task=task,
@@ -118,6 +119,7 @@ class ForcesTrainerV2(BaseTrainerV2):
             # added
             val_max_iter=val_max_iter,
             test_w_eval_mode=test_w_eval_mode,
+            **kwargs,
         )
 
     def load_task(self):
@@ -905,7 +907,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         if self.is_hpo:
             disable_tqdm = True
 
-        if self.test_w_eval_mode:
+        if self.config["test_w_eval_mode"]:
             self.model.eval()
         if self.ema and use_ema:
             self.ema.store()
@@ -917,7 +919,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         loader = self.val_loader if split == "val" else self.test_loader
 
         # max_iter = self.config.get("val_max_iter", -1)
-        max_iter = self.val_max_iter
+        max_iter = self.config.get("val_max_iter", -1)
         if max_iter == -1:
             max_iter = len(loader)
         print(f"Steps: {max_iter}")

@@ -26,7 +26,7 @@ def _init_deq(
 
     # to have weight/spectral normalization. (for better stability)
     # Using norm_type='none' in `kwargs` can also skip it.
-    if torchdeq_norm.norm_type in [None, "none", False]:
+    if torchdeq_norm["norm_type"] in [None, "none", False]:
         print(f"Not applying torchdeq normalization.")
         pass
     elif "both" in torchdeq_norm.norm_type:

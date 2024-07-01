@@ -849,6 +849,11 @@ def train(args):
             except Exception as e:
                 _log.info(f"Failed to stop recording memory history {e}")
         return True
+    
+    if args.equivariance:
+        collate = Collater(follow_batch=None, exclude_keys=None)
+        equivariance_test(args, model, train_dataset, test_dataset_full, device, collate, step=global_step)
+        return True   
 
     """ Train! """
     if node_embedding_shape is not None:
@@ -956,6 +961,7 @@ def train(args):
         )
 
         if (epoch + 1) % args.test_interval == 0:
+            # test set
             _log.info(f"Testing model after epoch {epoch+1}.")
             test_err, test_loss = evaluate(
                 args=args,
@@ -975,6 +981,10 @@ def train(args):
                 datasplit="test",
                 normalizers=normalizers,
             )
+            # equivariance test
+            collate = Collater(follow_batch=None, exclude_keys=None)
+            # device = list(model.parameters())[0].device
+            equivariance_test(args, model, train_dataset, test_dataset_full, device, collate, step=global_step)
         else:
             test_err, test_loss = None, None
 
@@ -1342,6 +1352,12 @@ def train(args):
             _log.info(f"Failed to stop recording memory history {e}")
 
     # all epochs done
+    # equivariance test
+    collate = Collater(follow_batch=None, exclude_keys=None)
+    # device = list(model.parameters())[0].device
+    equivariance_test(args, model, train_dataset, test_dataset_full, device, collate, step=global_step)
+    
+
     # evaluate on the whole testing set
     if args.do_final_test:
         optimizer.zero_grad(set_to_none=True)
@@ -2243,6 +2259,94 @@ def evaluate(
         # fp_reuse True/False finished
 
     return mae_metrics, loss_metrics
+
+
+
+def equivariance_test(args, model, data_train, data_test, device, collate, step=None):
+    model.eval()
+    print('Model in train mode:', model.training)
+
+    # cast to float64
+    for prec, cast_to_float64 in zip(["float64", "float32"], [False, True]):
+        for dataype, dataset in zip(['train', 'test'], [data_train, data_test]):
+            for ni, idx in zip(["first", "mid", "end"], [0, len(dataset) // 2, -1]):
+                # ['y', 'pos', 'z', 'natoms', 'idx', 'batch', 'atomic_numbers', 'dy', 'ptr']
+                sample = dataset[idx]
+                sample = collate([sample])
+                sample = sample.to(device)
+                if cast_to_float64:
+                    torch.set_default_dtype(torch.float64)
+                    sample.y = sample.y.double()
+                    sample.dy = sample.dy.double()
+                    sample.pos = sample.pos.double()
+                    model = model.double()
+                else:
+                    torch.set_default_dtype(torch.float32)
+                    sample.y = sample.y.float()
+                    sample.dy = sample.dy.float()
+                    sample.pos = sample.pos.float()
+                    model = model.float()
+
+                energy1, forces1, info = model(
+                    data=sample,
+                    node_atom=sample.z,
+                    pos=sample.pos,
+                    batch=sample.batch,
+                )
+                print('First sample done!')
+
+                # rotate molecule
+                R = torch.tensor(o3.rand_matrix(), device=device, dtype=sample.pos.dtype)
+                rotated_pos = torch.matmul(sample.pos, R)
+                sample.pos = rotated_pos
+                energy_rot, forces_rot, info = model(
+                    data=sample,
+                    node_atom=sample.z,
+                    pos=sample.pos,
+                    batch=sample.batch,
+                )
+
+                modeltype = "DEQ" if args.model_is_deq else "Equiformer"
+                solver_type = args.deq_kwargs.f_solver if args.model_is_deq else ""
+
+                max_off_e = (energy1 - energy_rot).abs().max().item()
+                avg_off_e = (energy1 - energy_rot).abs().mean().item()
+                max_off_f = (torch.matmul(forces1, R) - forces_rot).abs().max().item()
+                avg_off_f = (torch.matmul(forces1, R) - forces_rot).abs().mean().item()
+
+                print(
+                    f"\nEquivariance result {modeltype}:", 
+                    f"\n {solver_type} {sample.pos.dtype}, {dataype}, sample={idx}:",
+                    # energy should be invariant
+                    f"\nEnergy:", 
+                    # f"\ne-7:", torch.allclose(energy1, energy_rot, atol=1.0e-7),
+                    # f"\ne-5:", torch.allclose(energy1, energy_rot, atol=1.0e-5),
+                    # f"\ne-3:", torch.allclose(energy1, energy_rot, atol=1.0e-3),
+                    f"\n max off: {max_off_e:.2E}",
+                    f"\n avg off: {avg_off_e:.2E}",
+                    # (energy1 - energy_rot).item(),
+                    # forces should be equivariant
+                    # model(rot(f)) == rot(model(f))
+                    "\nForces:", 
+                    # f"\ne-7:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-7),
+                    # f"\ne-5:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-5),
+                    # f"\ne-3:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-3),
+                    f"\n max off: {max_off_f:.2E}",
+                    f"\n avg off: {avg_off_f:.2E}",
+                    # (torch.matmul(forces1, R) - forces_rot).abs(),
+                    # sep="\n",
+                )
+
+                if step is not None:
+                    _n = f"{dataype}_sample_{ni}_{prec}"
+                    wandb.log({
+                        "equ_max_e" + _n: max_off_e,
+                        "equ_avg_e" + _n: avg_off_e,
+                        "equ_max_f" + _n: max_off_f,
+                        "equ_avg_f" + _n: avg_off_f,
+                    }, step=step
+                    )
+    return
 
 
 @hydra.main(config_name="md17", config_path="../equiformer/config", version_base="1.3")

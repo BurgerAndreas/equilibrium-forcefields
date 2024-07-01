@@ -16,12 +16,10 @@ from deq2ff.plotting.style import chemical_symbols, plotfolder
 
 from deq2ff.logging_utils import init_wandb
 import scripts as scripts
-from scripts.train_deq_md import train
+from scripts.train_deq_md import train, equivariance_test
 
 # register all models
 import deq2ff.register_all_models
-
-
 
 @hydra.main(
     config_name="md17", config_path="../equiformer_v2/config", version_base="1.3"
@@ -51,75 +49,8 @@ def hydra_wrapper(args: DictConfig) -> None:
     device = list(model.parameters())[0].device
 
     collate = Collater(follow_batch=None, exclude_keys=None)
-
-
-    # model in eval mode
-    model.eval()
-    print('Model in train mode:', model.training)
-
-    # cast to float64
-    cast_to_float = True
-    for cast_to_float in [False, True]:
-        # ['y', 'pos', 'z', 'natoms', 'idx', 'batch', 'atomic_numbers', 'dy', 'ptr']
-        sample = test_dataset_full[0]
-        sample = collate([sample])
-        sample = sample.to(device)
-        if cast_to_float:
-            torch.set_default_dtype(torch.float64)
-            sample.y = sample.y.double()
-            sample.dy = sample.dy.double()
-            sample.pos = sample.pos.double()
-            model = model.double()
-        else:
-            torch.set_default_dtype(torch.float32)
-            sample.y = sample.y.float()
-            sample.dy = sample.dy.float()
-            sample.pos = sample.pos.float()
-            model = model.float()
-
-        energy1, forces1, info = model(
-            data=sample,
-            node_atom=sample.z,
-            pos=sample.pos,
-            batch=sample.batch,
-        )
-        print('First sample done!')
-
-        # rotate molecule
-        R = torch.tensor(o3.rand_matrix(), device=device, dtype=sample.pos.dtype)
-        rotated_pos = torch.matmul(sample.pos, R)
-        sample.pos = rotated_pos
-        energy_rot, forces_rot, info = model(
-            data=sample,
-            node_atom=sample.z,
-            pos=sample.pos,
-            batch=sample.batch,
-        )
-
-        modeltype = "DEQ" if args.model_is_deq else "Equi"
-        solver_type = args.deq_kwargs.f_solver if args.model_is_deq else ""
-
-        print(
-            f"\nEquivariance result {modeltype} {solver_type} {sample.pos.dtype}:",
-            # energy should be invariant
-            f"\nEnergy:", 
-            "\ne-7:", torch.allclose(energy1, energy_rot, atol=1.0e-7),
-            "\ne-5:", torch.allclose(energy1, energy_rot, atol=1.0e-5),
-            "\ne-3:", torch.allclose(energy1, energy_rot, atol=1.0e-3),
-            "\nmax off:", (energy1 - energy_rot).abs().max().item(),
-            "\navg off:", (energy1 - energy_rot).abs().mean().item(),
-            # (energy1 - energy_rot).item(),
-            # forces should be equivariant
-            # model(rot(f)) == rot(model(f))
-            "\nForces:", 
-            "\ne-7:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-7),
-            "\ne-5:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-5),
-            "\ne-3:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-3),
-            "\nmax off:", (torch.matmul(forces1, R) - forces_rot).abs().max().item(),
-            "\navg off:", (torch.matmul(forces1, R) - forces_rot).abs().mean().item(),
-            # (torch.matmul(forces1, R) - forces_rot).abs(),
-            # sep="\n",
-        )
+    equivariance_test(args, model, train_dataset, test_dataset_full, device, collate)
+    
 
     print('\nDone!')
 

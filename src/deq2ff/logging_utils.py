@@ -171,6 +171,8 @@ IGNORE_OVERRIDES_CHECKPOINT = [
     "evaluate",
     "test_w_eval_mode",
     "testwevalmode",
+    "test_w_grad",
+    "testwgrad",
     "test_max_iter",
     "test_patch_size",
     "datasplit",

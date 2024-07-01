@@ -39,7 +39,7 @@ train_size: 950
 val_size: 50
 compute_stats: False
 # epoch interval to evaluate on the testing set (int)
-test_interval: 10
+test_interval: 50
 # max iteration (num batches) to evaluate on the testing set (int)
 test_max_iter: -1 # ChangeS 1000
 # test_patch_size*test_patches = max samples to evaluate on the testing set (int)
@@ -203,7 +203,7 @@ model_is_deq: False
 # DEQ Optical Flow used FPR only during inference
 fpreuse_test: True # ChangeS False
 fpreuse_test_only: False
-fpreuse_last_epoch_only: True
+fpreuse_last_test_only: True
 
 # reuse fixed-points across epochs
 fpreuse_across_epochs: False

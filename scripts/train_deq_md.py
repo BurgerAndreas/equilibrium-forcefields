@@ -1378,6 +1378,7 @@ def train(args):
             epoch=final_epoch,
             datasplit="test_final",
             normalizers=normalizers,
+            final_test=True,
         )
         optimizer.zero_grad(set_to_none=True)
 
@@ -1926,6 +1927,7 @@ def evaluate(
     epoch=None,
     datasplit=None,
     normalizers={"energy": None, "force": None},
+    final_test=None,
 ):
     """Val or test split."""
 
@@ -1961,11 +1963,11 @@ def evaluate(
     max_epochs = min(args.epochs, args.max_epochs)
     last_test_epoch = max_epochs - (max_epochs % args.test_interval)
     if (epoch + 1 == last_test_epoch) or (args.evaluate == True):
-        # it's the last epoch
+        # it's the last test
         pass
     else:
-        # it is not the last epoch
-        if args.fpreuse_last_epoch_only:
+        # it is not the last test
+        if args.fpreuse_last_test_only:
             fpreuse_list = [False]
         loss_per_idx = False
 
@@ -2257,8 +2259,9 @@ def evaluate(
             )
 
             print(f"Finished {_datasplit} evaluation after {step} steps (epoch {epoch}).")
-            for k, v in _logs.items():
-                logger.info(f" {k}: {v}")
+            # print
+            # for k, v in _logs.items():
+            #     logger.info(f" {k}: {v}")
 
         # fp_reuse True/False finished
 
@@ -2269,6 +2272,8 @@ def evaluate(
 def equivariance_test(args, model, data_train, data_test, device, collate, step=None):
     model.eval()
     print('Model in train mode:', model.training)
+
+    model_dtype = next(model.parameters()).dtype
 
     # cast to float64
     for prec, cast_to_float64 in zip(["float64", "float32"], [False, True]):
@@ -2350,6 +2355,7 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
                         "equ_avg_f" + _n: avg_off_f,
                     }, step=step
                     )
+        model = model.to(model_dtype)
     return
 
 

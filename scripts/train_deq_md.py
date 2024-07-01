@@ -1936,6 +1936,16 @@ def evaluate(
         solver_kwargs = args.deq_kwargs_test
     else:
         solver_kwargs = {}
+    
+    # if we use fpreuse_test, also try without to get a comparison
+    if datasplit == "test" and args.fpreuse_test == True:
+        if args.fpreuse_test_only == True:
+            fpreuse_list = [True]
+        else:
+            # important that fpreuse comes first
+            fpreuse_list = [True, False]
+    else:
+        fpreuse_list = [False]
 
     if args.test_w_eval_mode is True:
         model.eval()
@@ -1951,9 +1961,12 @@ def evaluate(
     max_epochs = min(args.epochs, args.max_epochs)
     last_test_epoch = max_epochs - (max_epochs % args.test_interval)
     if (epoch + 1 == last_test_epoch) or (args.evaluate == True):
-        # not and not
+        # it's the last epoch
         pass
     else:
+        # it is not the last epoch
+        if args.fpreuse_last_epoch_only:
+            fpreuse_list = [False]
         loss_per_idx = False
 
     max_steps = len(data_loader)
@@ -1973,15 +1986,6 @@ def evaluate(
     # with torch.no_grad():
     with torch.set_grad_enabled(args.test_w_grad):
 
-        # if we use fpreuse_test, also try without to get a comparison
-        if datasplit == "test" and args.fpreuse_test == True:
-            if args.fpreuse_test_only == True:
-                fpreuse_list = [True]
-            else:
-                # important that fpreuse comes first
-                fpreuse_list = [True, False]
-        else:
-            fpreuse_list = [False]
         for fpreuse_test in fpreuse_list:
             # name for logging
             _datasplit = f"{datasplit}_fpreuse" if fpreuse_test else datasplit

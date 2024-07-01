@@ -203,6 +203,7 @@ model_is_deq: False
 # DEQ Optical Flow used FPR only during inference
 fpreuse_test: True # ChangeS False
 fpreuse_test_only: False
+fpreuse_last_epoch_only: True
 
 # reuse fixed-points across epochs
 fpreuse_across_epochs: False

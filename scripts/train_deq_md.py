@@ -2271,12 +2271,15 @@ def evaluate(
 
 def equivariance_test(args, model, data_train, data_test, device, collate, step=None):
     model.eval()
-    print('Model in train mode:', model.training)
+    # print('Model in train mode:', model.training)
 
     model_dtype = next(model.parameters()).dtype
+    modeltype = "DEQ" if args.model_is_deq else "Equiformer"
+    solver_type = args.deq_kwargs.f_solver if args.model_is_deq else ""
 
-    # cast to float64
-    for prec, cast_to_float64 in zip(["float64", "float32"], [False, True]):
+    print(f"Equivariance result {modeltype}:")
+    for prec, cast_to_float64 in zip(["float64", "float32"], [True, False]):
+    # for prec, cast_to_float64 in zip(["float32"], [False]):
         for dataype, dataset in zip(['train', 'test'], [data_train, data_test]):
             for ni, idx in zip(["first", "mid", "end"], [0, len(dataset) // 2, -1]):
                 # ['y', 'pos', 'z', 'natoms', 'idx', 'batch', 'atomic_numbers', 'dy', 'ptr']
@@ -2302,7 +2305,6 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
                     pos=sample.pos,
                     batch=sample.batch,
                 )
-                print('First sample done!')
 
                 # rotate molecule
                 R = torch.tensor(o3.rand_matrix(), device=device, dtype=sample.pos.dtype)
@@ -2315,17 +2317,13 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
                     batch=sample.batch,
                 )
 
-                modeltype = "DEQ" if args.model_is_deq else "Equiformer"
-                solver_type = args.deq_kwargs.f_solver if args.model_is_deq else ""
-
                 max_off_e = (energy1 - energy_rot).abs().max().item()
                 avg_off_e = (energy1 - energy_rot).abs().mean().item()
                 max_off_f = (torch.matmul(forces1, R) - forces_rot).abs().max().item()
                 avg_off_f = (torch.matmul(forces1, R) - forces_rot).abs().mean().item()
 
-                print(
-                    f"\nEquivariance result {modeltype}:", 
-                    f"\n {solver_type} {sample.pos.dtype}, {dataype}, sample={idx}:",
+                print( 
+                    f"\n{solver_type} {sample.pos.dtype}, {dataype}, sample={idx}:",
                     # energy should be invariant
                     f"\nEnergy:", 
                     # f"\ne-7:", torch.allclose(energy1, energy_rot, atol=1.0e-7),

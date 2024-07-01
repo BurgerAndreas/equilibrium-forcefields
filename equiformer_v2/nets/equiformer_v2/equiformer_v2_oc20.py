@@ -4,7 +4,10 @@ import math
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
 from pyexpat.model import XML_CQUANT_OPT
+
+import wandb
 
 from ocpmodels.common.registry import registry
 from ocpmodels.common.utils import conditional_grad
@@ -698,6 +701,51 @@ class EquiformerV2_OC20(BaseModel):
             "NodeEmbeddingShape": x.embedding.shape,
         }
         return logs
+    
+    def measure_oversmoothing(self, x, batch, step=None, split=None, layer=None):
+        """ 
+        From https://arxiv.org/pdf/1909.03211:
+        Mean Average Distance (MAD), which calculates the mean average distance
+        among node representations in the graph to measure the smoothness of the graph 
+        (smoothness means similarity of graph nodes representation)
+        x: node representations
+        """
+        similarity_euclidean = []
+        similarity_cosine = []
+        for b in range(max(batch) + 1):
+            mask = batch == b # [NB]
+            if mask.sum() == 0:
+                # empty batch
+                continue
+            # x[mask]: [N, D, C]
+            # x[n]: [D, C]
+            idx = torch.arange(x.shape[0], device=x.device)[mask]
+            for i, n1 in enumerate(idx):
+                for n2 in idx[i+1:]:
+                    similarity_euclidean.append(
+                        torch.norm(x[n1] - x[n2], p=2).detach()
+                    )
+                    # dim=0 or dim=1?
+                    similarity_cosine.append(
+                        F.cosine_similarity(x[n1], x[n2]).mean().detach()
+                    )
+            # one batch is enough
+            break
+        _logs = {
+            "sim_eucl_mean": torch.mean(torch.tensor(similarity_euclidean)),
+            "sim_cos_mean": torch.mean(torch.tensor(similarity_cosine)),
+            "sim_eucl_max": torch.max(torch.tensor(similarity_euclidean)),
+            "sim_cos_max": torch.max(torch.tensor(similarity_cosine)),
+            "sim_eucl_min": torch.min(torch.tensor(similarity_euclidean)),
+            "sim_cos_min": torch.min(torch.tensor(similarity_cosine)),
+        }
+        if split is not None:
+            _logs = {k+f"_{split}": v for k, v in _logs.items()}
+        if layer is not None:
+            _logs = {k+f"_l{layer}": v for k, v in _logs.items()}
+        if step is not None:
+            wandb.log(_logs, step=step)
+        return _logs
 
     def reset_dropout(self, x, batch):
         # set dropout mask
@@ -845,6 +893,11 @@ class EquiformerV2_OC20(BaseModel):
                     edge_index,
                     batch=data.batch,  # for GraphPathDrop
                 )
+                if (step % 100 == 0) or datasplit in ["val", "test"]:
+                    self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit, layer=i)
+
+        if (step % 100 == 0) or datasplit in ["val", "test"]:
+            self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit)
 
         # Final layer norm
         x.embedding = self.norm(x.embedding)

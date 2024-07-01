@@ -448,6 +448,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 z_pred[-1].clone().detach(), step, datasplit
             )
 
+            if (step % 100 == 0) or datasplit in ["val", "test"]:
+                self.measure_oversmoothing(x=z_pred[-1].detach(), batch=data.batch, step=step, split=datasplit)
+
         ###############################################################
         # Decode the fixed-point estimate
         ###############################################################
@@ -560,11 +563,13 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         return z
 
     def deq_implicit_layer(
-        self, x: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, data
+        self, x: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, data,
+        step=None, datasplit=None, solver_step=None
     ) -> torch.Tensor:
         """Implicit layer for DEQ that defines the fixed-point.
         Make sure to input and output only torch.tensor, not SO3_Embedding, to not break TorchDEQ.
         """
+        """ Input injection """
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             x = x.view(self.shape_batched)
@@ -618,7 +623,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             embedding=z,
         )
         print_values(x.embedding, "postinj", log=False)
-        # layers
+        """ Layers / Transformer blocks """
         for i in range(self.num_layers):
             x = self.blocks[i](
                 x,  # SO3_Embedding
@@ -627,6 +632,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 edge_index,
                 batch=data.batch,  # for GraphPathDrop
             )
+            # self.cnt_layer += 1
+            # self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit, layer=self.cnt_layer)
         x = x.embedding
         # [B*N, D, C] -> [B, N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:

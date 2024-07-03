@@ -67,7 +67,7 @@ cd ocp
 # Structure to Energy and Forces (S2EF) task
 # "2M": 3.4GB (17GB uncompressed)
 # https://github.com/Open-Catalyst-Project/ocp/blob/main/DATASET.md
-python scripts/download_data.py --task s2ef --split "2M" --num-workers 8 --ref-energy 
+# python scripts/download_data.py --task s2ef --split "2M" --num-workers 8 --ref-energy 
 python scripts/download_data.py --task s2ef --split "200k" --num-workers 8 --ref-energy 
 python scripts/download_data.py --task s2ef --split "val_id" --num-workers 8 --ref-energy 
 # More data splits:

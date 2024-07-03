@@ -29,7 +29,7 @@ def _init_deq(
     if torchdeq_norm["norm_type"] in [None, "none", False]:
         print(f"Not applying torchdeq normalization.")
         pass
-    elif "both" in torchdeq_norm.norm_type:
+    elif "both" in torchdeq_norm["norm_type"]:
         print(
             f"Applying both weight and spectral normalization with kwargs: {norm_kwargs}"
         )

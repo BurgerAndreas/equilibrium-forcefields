@@ -39,7 +39,7 @@ def _init_deq(
         apply_norm(self.blocks, norm_type="spectral_norm" ** norm_kwargs)
     else:
         print(
-            f"Applying {torchdeq_norm.norm_type} normalization with kwargs: {torchdeq_norm}"
+            f"Applying {torchdeq_norm['norm_type']} normalization with kwargs: {torchdeq_norm}"
         )
         apply_norm(self.blocks, **torchdeq_norm)
         # register_norm_module(DEQDotProductAttentionTransformerMD17, 'spectral_norm', names=['blocks'], dims=[0])

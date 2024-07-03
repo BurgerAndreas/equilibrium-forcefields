@@ -988,16 +988,22 @@ class TransBlockV2(torch.nn.Module):
         )
 
         # post layer norm -> after FF/FF_shortcut -> potentially reduce sphere channels
-        _sphere_channels = sphere_channels
-        if self.ln == "post":
-            _sphere_channels = output_channels
-        self.norm_2 = get_normalization_layer(
-            ln_type,
-            lmax=max_lmax,
-            num_channels=_sphere_channels,
-            normalization=ln_norm,
-            affine=ln_affine,
-        )
+        if self.ln in ["pp", "pre"]:
+            self.norm_2_pre = get_normalization_layer(
+                ln_type,
+                lmax=max_lmax,
+                num_channels=sphere_channels,
+                normalization=ln_norm,
+                affine=ln_affine,
+            )
+        if self.ln in ["pp", "post"]:
+            self.norm_2_post = get_normalization_layer(
+                ln_type,
+                lmax=max_lmax,
+                num_channels=output_channels,
+                normalization=ln_norm,
+                affine=ln_affine,
+            )
 
         self.ffn = FeedForwardNetwork(
             sphere_channels=sphere_channels,
@@ -1052,7 +1058,7 @@ class TransBlockV2(torch.nn.Module):
         print_values(a=x_res, name="TansBlockIn")
 
         # Norm
-        if self.ln == "pre":
+        if self.ln in ["pp", "pre"]:
             output_embedding.embedding = self.norm_1(output_embedding.embedding)
         # GraphAttention
         output_embedding = self.graph_attention(
@@ -1073,15 +1079,15 @@ class TransBlockV2(torch.nn.Module):
         # Merge residual connection
         output_embedding.embedding = output_embedding.embedding + x_res
 
-        if self.ln == "post":
+        if self.ln in ["pp", "post"]:
             output_embedding.embedding = self.norm_1(output_embedding.embedding)
 
         # Open residual connection
         x_res = output_embedding.embedding
 
         # Norm
-        if self.ln == "pre":
-            output_embedding.embedding = self.norm_2(output_embedding.embedding)
+        if self.ln in ["pp", "pre"]:
+            output_embedding.embedding = self.norm_2_pre(output_embedding.embedding)
 
         # FeedForwardNetwork
         output_embedding = self.ffn(output_embedding)
@@ -1118,8 +1124,8 @@ class TransBlockV2(torch.nn.Module):
 
         # post layer norm
         # after shortcut, i.e. sphere channels are potentially reduced
-        if self.ln == "post":
-            output_embedding.embedding = self.norm_2(output_embedding.embedding)
+        if self.ln in ["pp", "post"]:
+            output_embedding.embedding = self.norm_2_post(output_embedding.embedding)
         if self.final_ln:
             output_embedding.embedding = self.norm_final(output_embedding.embedding)
         

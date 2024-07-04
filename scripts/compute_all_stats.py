@@ -45,7 +45,7 @@ def compute_all_stats(args: DictConfig) -> None:
 
             for mol in molecules:
                 args.target = mol
-                _stats = train_deq_md.train(args)
+                _stats = train_deq_md.train_md(args)
                 if mol not in statistics[dname]:
                     statistics[dname][mol] = {}
                 statistics[dname][mol][str(max_radius)] = _stats

@@ -25,6 +25,7 @@ import equiformer_v2.oc20.trainer.dist_setup
 
 # deq_equiformer_v2
 from deq2ff.deq_equiformer_v2.deq_equiformer_v2_oc20 import DEQ_EquiformerV2_OC20
+from deq2ff.logging_utils import init_wandb
 
 # in PyG version <= 2.0.4
 # UserWarning: An output with one or more elements was resized since it had shape [528],
@@ -115,7 +116,7 @@ from omegaconf import DictConfig, OmegaConf
 @hydra.main(
     config_name="oc20", config_path="../equiformer_v2/config", version_base="1.3"
 )
-def hydra_wrapper(args: DictConfig) -> None:
+def hydra_wrapper_oc20(args: DictConfig) -> None:
     """Run training loop.
 
     Usage:
@@ -127,10 +128,9 @@ def hydra_wrapper(args: DictConfig) -> None:
         sbatch scripts/slurm_launcher.slrm deq_equiformer.py +machine=vector
     """
 
-    from deq2ff.logging_utils import init_wandb
-
     init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
 
+    # turn args into dictionary for compatibility with ocpmodels
     # args: omegaconf.dictconfig.DictConfig -> dict
     args = OmegaConf.to_container(args, resolve=True)
     Runner()(args)
@@ -145,4 +145,4 @@ if __name__ == "__main__":
     # config = build_config(args, override_args)
 
     # use hydra instead of ocpmodels
-    hydra_wrapper()
+    hydra_wrapper_oc20()

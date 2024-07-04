@@ -6,7 +6,7 @@ from omegaconf import DictConfig, OmegaConf
 import wandb
 
 from deq2ff.logging_utils import init_wandb
-from train_deq_md import train
+from train_deq_md import train_md
 import deq2ff.register_all_models
 
 
@@ -26,7 +26,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
     run_id = init_wandb(args)
 
-    train(args)
+    train_md(args)
 
 
 if __name__ == "__main__":

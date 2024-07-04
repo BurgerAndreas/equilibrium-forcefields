@@ -448,7 +448,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 z_pred[-1].clone().detach(), step, datasplit
             )
 
-            if (step % 100 == 0) or datasplit in ["val", "test"]:
+            if step is not None and (step % 100 == 0) or datasplit in ["val", "test"]:
                 self.measure_oversmoothing(x=z_pred[-1].detach(), batch=data.batch, step=step, split=datasplit)
 
         ###############################################################

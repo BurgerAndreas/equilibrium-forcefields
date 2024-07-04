@@ -261,6 +261,12 @@ gf_alpha: null # 0.98
 gf_lambda: null # 2.0
 gf_ws: null # window size 0.1
 
+# hyperparameter tuning
+tune:
+  days_per_run: 1
+  days: 10
+  concurrent: 1
+
 # variables we can access in our code
 job_name: 'results'
 # job_name: ${hydra:job.name}

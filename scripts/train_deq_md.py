@@ -66,6 +66,13 @@ import tracemalloc
 
 from ocpmodels.modules.normalizer import Normalizer, NormalizerByAtomtype, NormalizerByAtomtype3D
 
+import ray
+# from ray.train import Checkpoint, get_checkpoint
+# from ray.tune.schedulers import ASHAScheduler
+# import ray.cloudpickle as pickle
+# from ray.tune.search import ConcurrencyLimiter
+# from ray.tune.search.bayesopt import BayesOptSearch
+
 """
 Adapted from equiformer/main_md17.py
 """
@@ -83,6 +90,7 @@ from deq2ff.losses import (
 from deq2ff.data_utils import reorder_dataset
 import deq2ff.register_all_models
 from deq2ff.grokfast import gradfilter_ma, gradfilter_ema
+from deq2ff.logging_utils import init_wandb
 
 
 # DEQ EquiformerV2
@@ -212,7 +220,7 @@ def compute_loss(args, y, dy, target_y, target_dy, criterion_energy, criterion_f
     return loss, loss_e, loss_f
 
 
-def train(args):
+def train_md(args):
 
     # set environment values if they are not None
     # if args.broyden_print_values is not None:
@@ -959,6 +967,8 @@ def train(args):
             datasplit="val",
             normalizers=normalizers,
         )
+        # ray.train.report({"train_fmae": train_err["force"].avg, "train_emae": train_err["energy"].avg})
+        ray.train.report({"val_fmae": val_err["force"].avg, "val_emae": val_err["energy"].avg})
 
         if (epoch + 1) % args.test_interval == 0:
             # test set
@@ -981,6 +991,7 @@ def train(args):
                 datasplit="test",
                 normalizers=normalizers,
             )
+            ray.train.report({"test_fmae": test_err["force"].avg, "test_emae": test_err["energy"].avg})
             # equivariance test
             collate = Collater(follow_batch=None, exclude_keys=None)
             # device = list(model.parameters())[0].device
@@ -2358,18 +2369,16 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
 
 
 @hydra.main(config_name="md17", config_path="../equiformer/config", version_base="1.3")
-def hydra_wrapper(args: DictConfig) -> None:
+def hydra_wrapper_md(args: DictConfig) -> None:
     """Run training loop."""
-
-    from deq2ff.logging_utils import init_wandb
 
     init_wandb(args)
 
     # args: omegaconf.dictconfig.DictConfig -> dict
     # args = OmegaConf.to_container(args, resolve=True)
 
-    train(args)
+    train_md(args)
 
 
 if __name__ == "__main__":
-    hydra_wrapper()
+    hydra_wrapper_md()

@@ -893,10 +893,10 @@ class EquiformerV2_OC20(BaseModel):
                     edge_index,
                     batch=data.batch,  # for GraphPathDrop
                 )
-                if (step % 100 == 0) or datasplit in ["val", "test"]:
+                if step is not None and (step % 100 == 0) or datasplit in ["val", "test"]:
                     self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit, layer=i)
 
-        if (step % 100 == 0) or datasplit in ["val", "test"]:
+        if step is not None and (step % 100 == 0) or datasplit in ["val", "test"]:
             self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit)
 
         # Final layer norm

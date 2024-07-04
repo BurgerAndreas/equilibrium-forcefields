@@ -66,7 +66,7 @@ import tracemalloc
 
 from ocpmodels.modules.normalizer import Normalizer, NormalizerByAtomtype, NormalizerByAtomtype3D
 
-import ray
+import ray.train as raytrain
 # from ray.train import Checkpoint, get_checkpoint
 # from ray.tune.schedulers import ASHAScheduler
 # import ray.cloudpickle as pickle
@@ -967,8 +967,8 @@ def train_md(args):
             datasplit="val",
             normalizers=normalizers,
         )
-        # ray.train.report({"train_fmae": train_err["force"].avg, "train_emae": train_err["energy"].avg})
-        ray.train.report({"val_fmae": val_err["force"].avg, "val_emae": val_err["energy"].avg})
+        # raytrain.report({"train_fmae": train_err["force"].avg, "train_emae": train_err["energy"].avg})
+        raytrain.report({"val_fmae": val_err["force"].avg, "val_emae": val_err["energy"].avg})
 
         if (epoch + 1) % args.test_interval == 0:
             # test set
@@ -991,7 +991,7 @@ def train_md(args):
                 datasplit="test",
                 normalizers=normalizers,
             )
-            ray.train.report({"test_fmae": test_err["force"].avg, "test_emae": test_err["energy"].avg})
+            raytrain.report({"test_fmae": test_err["force"].avg, "test_emae": test_err["energy"].avg})
             # equivariance test
             collate = Collater(follow_batch=None, exclude_keys=None)
             # device = list(model.parameters())[0].device

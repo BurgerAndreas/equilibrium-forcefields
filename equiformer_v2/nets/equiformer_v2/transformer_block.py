@@ -933,6 +933,8 @@ class TransBlockV2(torch.nn.Module):
             "pre",
             "post",
         ], "ln must be 'pre', 'pp' or 'post' but got {}".format(ln)
+        if ln in ['both']:
+            ln = "pp"
         self.ln = ln
         self.final_ln = final_ln
 

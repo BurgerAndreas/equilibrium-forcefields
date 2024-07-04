@@ -18,7 +18,7 @@ model:
   path_drop: 0.05
   use_variational_path_drop: True
 
-  ln: both
+  ln: pp
   ln_type: rms_norm_sh
   enc_ln: True
   inj_norm: null

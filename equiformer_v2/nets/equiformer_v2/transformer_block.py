@@ -929,9 +929,10 @@ class TransBlockV2(torch.nn.Module):
         max_lmax = max(lmax_list)
 
         assert ln in [
+            "pp",
             "pre",
             "post",
-        ], "ln must be 'pre' or 'post' but got {}".format(ln)
+        ], "ln must be 'pre', 'pp' or 'post' but got {}".format(ln)
         self.ln = ln
         self.final_ln = final_ln
 

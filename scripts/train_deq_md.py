@@ -2367,17 +2367,21 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
         model = model.to(model_dtype)
     return
 
-
-@hydra.main(config_name="md17", config_path="../equiformer/config", version_base="1.3")
-def hydra_wrapper_md(args: DictConfig) -> None:
-    """Run training loop."""
-
+def setup_logging_and_train_md(args):
+    """Process args, initialize wandb logging, train."""
     init_wandb(args)
 
     # args: omegaconf.dictconfig.DictConfig -> dict
     # args = OmegaConf.to_container(args, resolve=True)
 
     train_md(args)
+    
+
+@hydra.main(config_name="md17", config_path="../equiformer/config", version_base="1.3")
+def hydra_wrapper_md(args: DictConfig) -> None:
+    """Construct args configuration from passed arguments and yaml files"""
+    setup_logging_and_train_md(args)
+
 
 
 if __name__ == "__main__":

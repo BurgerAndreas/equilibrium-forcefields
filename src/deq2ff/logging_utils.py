@@ -94,8 +94,6 @@ def init_wandb(args: OmegaConf, project="EquilibriumEquiFormer"):
     # to dict
     # omegaconf.errors.InterpolationResolutionError: Recursive interpolation detected
     args = OmegaConf.structured(OmegaConf.to_yaml(args))
-    args_wandb = OmegaConf.to_container(args, resolve=True)
-    # print("args passed to wandb:\n", args_wandb)
 
     # wandb.run.name = name_from_config(args)
     wandb.init(
@@ -103,7 +101,7 @@ def init_wandb(args: OmegaConf, project="EquilibriumEquiFormer"):
         project=project,
         # entity="andreas-burger",
         name=args.wandb_run_name,
-        config=args_wandb,
+        config=OmegaConf.to_container(args, resolve=True),
         tags=args.wandb_tags,
         # reinit=True,
         # settings=wandb.Settings(start_method="fork")

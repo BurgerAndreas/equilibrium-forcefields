@@ -1,3 +1,7 @@
+"""
+pip install -U "ray[data,train,tune,serve]"
+pip install bayesian-optimization
+"""
 
 import os
 from pathlib import Path
@@ -17,10 +21,15 @@ import ray.cloudpickle as pickle
 from ray.tune.search import ConcurrencyLimiter
 from ray.tune.search.bayesopt import BayesOptSearch
 
-# pip install -U "ray[data,train,tune,serve]"
-# pip install bayesian-optimization
+from deq2ff.logging_utils import init_wandb
 
-from train_deq_md import train_md
+
+import hydra
+import omegaconf
+from omegaconf import DictConfig, OmegaConf
+import wandb
+
+from train_deq_md import train_md, hydra_wrapper_md, setup_logging_and_train_md
 
 
 def tune_hyperparameters(num_samples=10, max_num_epochs=10, gpus_per_trial=2):
@@ -55,33 +64,14 @@ def tune_hyperparameters(num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 
     best_trial = result.get_best_trial("loss", "min", "last")
     print(f"Best trial config: {best_trial.config}")
-    print(f"Best trial final validation loss: {best_trial.last_result['loss']}")
-    print(f"Best trial final validation accuracy: {best_trial.last_result['accuracy']}")
-
-    best_trained_model = Net(best_trial.config["l1"], best_trial.config["l2"])
-    device = "cpu"
-    if torch.cuda.is_available():
-        device = "cuda:0"
-        if gpus_per_trial > 1:
-            best_trained_model = nn.DataParallel(best_trained_model)
-    best_trained_model.to(device)
-
-    best_checkpoint = result.get_best_checkpoint(trial=best_trial, metric="accuracy", mode="max")
-    with best_checkpoint.as_directory() as checkpoint_dir:
-        data_path = Path(checkpoint_dir) / "data.pkl"
-        with open(data_path, "rb") as fp:
-            best_checkpoint_data = pickle.load(fp)
-
-        best_trained_model.load_state_dict(best_checkpoint_data["net_state_dict"])
-        test_acc = test_accuracy(best_trained_model, device)
-        print("Best trial test set accuracy: {}".format(test_acc))
+    # print(f"Best trial final validation loss: {best_trial.last_result['loss']}")
+    # print(f"Best trial final validation accuracy: {best_trial.last_result['accuracy']}")
     
     return
 
 def tune_hyperparameters_baysianopt(args):
     """
     https://docs.ray.io/en/latest/tune/examples/includes/bayesopt_example.html
-    
     """
 
     args_tune = args.get("tune", {})
@@ -96,13 +86,13 @@ def tune_hyperparameters_baysianopt(args):
     algo = ConcurrencyLimiter(algo, max_concurrent=concurrent)
 
     search_space = {
-        "steps": 100,
-        "width": tune.uniform(0, 20),
-        "height": tune.uniform(-100, 100),
+        # "steps": 100,
+        # "width": tune.uniform(0, 20),
+        # "height": tune.uniform(-100, 100),
         "lr": tune.loguniform(1e-4, 1e-1),
         "solver": tune.choice(["anderson", "broyden"]),
         "ln": tune.choice(["pre", "post"]),
-        # "deq_kwargs.f_tol": 
+        "deq_kwargs.f_tol": tune.uniform(1e-4, 1e-1),
     }
 
     # https://docs.ray.io/en/latest/tune/index.html
@@ -110,7 +100,8 @@ def tune_hyperparameters_baysianopt(args):
     # just add the following line to the training loop:
     # tune.report(mean_loss=loss) # or # train.report({"mean_accuracy": acc})
     tuner = tune.Tuner(
-        train_md,
+        # partial(train_md, args=args),
+        partial(setup_logging_and_train_md, args=args),
         tune_config=tune.TuneConfig(
             metric="test_fmae",
             mode="min",
@@ -126,7 +117,24 @@ def tune_hyperparameters_baysianopt(args):
     print("Best hyperparameters found were: ", results.best_config)
     return
 
+@hydra.main(config_name="md17", config_path="../equiformer/config", version_base="1.3")
+def hydra_wrapper_tune_md(args: DictConfig) -> None:
+    """Run training loop."""
+
+    # init_wandb(args)
+    # args = fix_args(args)
+
+    # to dict
+    # args = OmegaConf.structured(OmegaConf.to_yaml(args))
+
+    # args: omegaconf.dictconfig.DictConfig -> dict
+    # args = OmegaConf.to_container(args, resolve=True)
+
+    # train_md(args)
+    tune_hyperparameters_baysianopt(args)
 
 if __name__ == "__main__":
     # You can change the number of GPUs per trial here:
-    tune_hyperparameters(num_samples=10, max_num_epochs=10, gpus_per_trial=0)
+    # tune_hyperparameters(num_samples=10, max_num_epochs=10, gpus_per_trial=0)
+    hydra_wrapper_tune_md()
+    

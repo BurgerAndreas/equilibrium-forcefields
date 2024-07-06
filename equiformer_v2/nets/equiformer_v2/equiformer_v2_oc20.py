@@ -734,10 +734,10 @@ class EquiformerV2_OC20(BaseModel):
         _logs = {
             "sim_eucl_mean": torch.mean(torch.tensor(similarity_euclidean)),
             "sim_cos_mean": torch.mean(torch.tensor(similarity_cosine)),
-            "sim_eucl_max": torch.max(torch.tensor(similarity_euclidean)),
-            "sim_cos_max": torch.max(torch.tensor(similarity_cosine)),
-            "sim_eucl_min": torch.min(torch.tensor(similarity_euclidean)),
-            "sim_cos_min": torch.min(torch.tensor(similarity_cosine)),
+            # "sim_eucl_max": torch.max(torch.tensor(similarity_euclidean)),
+            # "sim_cos_max": torch.max(torch.tensor(similarity_cosine)),
+            # "sim_eucl_min": torch.min(torch.tensor(similarity_euclidean)),
+            # "sim_cos_min": torch.min(torch.tensor(similarity_cosine)),
         }
         if split is not None:
             _logs = {k+f"_{split}": v for k, v in _logs.items()}
@@ -893,8 +893,8 @@ class EquiformerV2_OC20(BaseModel):
                     edge_index,
                     batch=data.batch,  # for GraphPathDrop
                 )
-                if step is not None and (step % 100 == 0) or datasplit in ["val", "test"]:
-                    self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit, layer=i)
+                # if step is not None and (step % 100 == 0) or datasplit in ["val", "test"]:
+                #     self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit, layer=i)
 
         if step is not None and (step % 100 == 0) or datasplit in ["val", "test"]:
             self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit)

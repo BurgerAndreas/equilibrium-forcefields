@@ -96,7 +96,7 @@ model_ema_force_cpu: False
 opt: "adamw"
 # Optimizer Epsilon (default: 1e-8 (float)
 opt_eps: 1e-8
-# Optimizer Betas (default: None (float)
+# Optimizer Betas (default: None (float) -> (0.9, 0.999))
 opt_betas: null
 # Clip gradient norm (default: None (float)
 # clip_grad: null

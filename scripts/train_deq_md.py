@@ -2289,9 +2289,13 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
     solver_type = args.deq_kwargs.f_solver if args.model_is_deq else ""
 
     print(f"Equivariance result {modeltype}:")
-    for prec, cast_to_float64 in zip(["float64", "float32"], [True, False]):
-    # for prec, cast_to_float64 in zip(["float32"], [False]):
+    # for prec, cast_to_float64 in zip(["float64", "float32"], [True, False]):
+    for prec, cast_to_float64 in zip(["float32"], [False]):
         for dataype, dataset in zip(['train', 'test'], [data_train, data_test]):
+            max_off_e_list = []
+            avg_off_e_list = []
+            max_off_f_list = []
+            avg_off_f_list = []
             for ni, idx in zip(["first", "mid", "end"], [0, len(dataset) // 2, -1]):
                 # ['y', 'pos', 'z', 'natoms', 'idx', 'batch', 'atomic_numbers', 'dy', 'ptr']
                 sample = dataset[idx]
@@ -2332,16 +2336,20 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
                 avg_off_e = (energy1 - energy_rot).abs().mean().item()
                 max_off_f = (torch.matmul(forces1, R) - forces_rot).abs().max().item()
                 avg_off_f = (torch.matmul(forces1, R) - forces_rot).abs().mean().item()
+                max_off_e_list.append(max_off_e)
+                avg_off_e_list.append(avg_off_e)
+                max_off_f_list.append(max_off_f)
+                avg_off_f_list.append(avg_off_f)
 
                 print( 
                     f"\n{solver_type} {sample.pos.dtype}, {dataype}, sample={idx}:",
                     # energy should be invariant
-                    f"\nEnergy:", 
-                    # f"\ne-7:", torch.allclose(energy1, energy_rot, atol=1.0e-7),
-                    # f"\ne-5:", torch.allclose(energy1, energy_rot, atol=1.0e-5),
-                    # f"\ne-3:", torch.allclose(energy1, energy_rot, atol=1.0e-3),
-                    f"\n max off: {max_off_e:.2E}",
-                    f"\n avg off: {avg_off_e:.2E}",
+                    # f"\nEnergy:", 
+                    # # f"\ne-7:", torch.allclose(energy1, energy_rot, atol=1.0e-7),
+                    # # f"\ne-5:", torch.allclose(energy1, energy_rot, atol=1.0e-5),
+                    # # f"\ne-3:", torch.allclose(energy1, energy_rot, atol=1.0e-3),
+                    # f"\n max off: {max_off_e:.2E}",
+                    # f"\n avg off: {avg_off_e:.2E}",
                     # (energy1 - energy_rot).item(),
                     # forces should be equivariant
                     # model(rot(f)) == rot(model(f))
@@ -2355,15 +2363,15 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
                     # sep="\n",
                 )
 
-                if step is not None:
-                    _n = f"{dataype}_sample_{ni}_{prec}"
-                    wandb.log({
-                        "equ_max_e" + _n: max_off_e,
-                        "equ_avg_e" + _n: avg_off_e,
-                        "equ_max_f" + _n: max_off_f,
-                        "equ_avg_f" + _n: avg_off_f,
-                    }, step=step
-                    )
+            if step is not None:
+                _n = f"{dataype}_{prec}"
+                wandb.log({
+                    # "equ_max_e" + _n: max_off_e,
+                    # "equ_avg_e" + _n: avg_off_e,
+                    "equ_max_f" + _n: max(max_off_f_list),
+                    "equ_avg_f" + _n: np.mean(avg_off_f_list),
+                }, step=step
+                )
         model = model.to(model_dtype)
     return
 

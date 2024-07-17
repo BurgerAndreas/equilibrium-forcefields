@@ -146,6 +146,8 @@ def activations_fn(act, **kwargs):
         return ScaledSwiGLU(**kwargs)
     elif act.lower() == "smoothleakyrelu":
         return SmoothLeakyReLU(**kwargs)
+    elif act.lower() == "leakyrelu":
+        return nn.LeakyReLU(**kwargs)
     elif act.lower() == "scaled_smoothleakyrelu":
         return ScaledSmoothLeakyReLU(**kwargs)
     elif act.lower() == "scaled_sigmoid":

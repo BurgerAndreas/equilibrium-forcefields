@@ -23,6 +23,8 @@ from timm.optim.rmsprop_tf import RMSpropTF
 from timm.optim.sgdp import SGDP
 from timm.optim.adabelief import AdaBelief
 
+from rfrmsprop import RfRmsProp
+
 
 def add_weight_decay(model, weight_decay=1e-5, skip_list=()):
     decay = []
@@ -150,6 +152,10 @@ def create_optimizer_v2(
         optimizer = Adahessian(parameters, **opt_args)
     elif opt_lower == "rmsprop":
         optimizer = optim.RMSprop(parameters, alpha=0.9, momentum=momentum, **opt_args)
+    elif opt_lower == "rfrmsprop":
+        # root free RMSprop
+        # https://github.com/yorkerlin/remove-the-square-root/blob/main/myoptim/rfrmsprop.py
+        optimizer = RfRmsProp(parameters, alpha=0.9, momentum=momentum, **opt_args)
     elif opt_lower == "rmsproptf":
         optimizer = RMSpropTF(parameters, alpha=0.9, momentum=momentum, **opt_args)
     elif opt_lower == "novograd":

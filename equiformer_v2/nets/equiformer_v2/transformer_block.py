@@ -465,7 +465,7 @@ class FeedForwardNetwork(torch.nn.Module):
                         self.sphere_channels_all, self.hidden_channels, bias=True
                     ),
                     # nn.SiLU(),
-                    activations_fn(activation),
+                    activationactivations_fn(activation),
                 )
             else:
                 self.scalar_mlp = None

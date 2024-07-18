@@ -99,7 +99,9 @@ def create_optimizer(args, model, filter_bias_and_bn=True):
         model,
         **optimizer_kwargs(cfg=args),
         filter_bias_and_bn=filter_bias_and_bn,
-        batch_size=args.batch_size,
+        # added for root free optimizers
+        batch_size=args["batch_size"],
+        batch_averaged=args["opt_kwargs"]["batch_averaged"],
     )
 
 
@@ -110,7 +112,9 @@ def create_optimizer_v2(
     weight_decay: float = 0.0,
     momentum: float = 0.9,
     filter_bias_and_bn: bool = True,
+    # added for root free optimizers
     batch_size=None,
+    batch_averaged=True,
     **kwargs
 ):
     """Create an optimizer.
@@ -199,6 +203,7 @@ def create_optimizer_v2(
         optimizer = RfRmsProp(
             parameters, alpha=0.9, momentum=momentum, 
             batch_size=batch_size,
+            batch_averaged=batch_averaged,
             cast_dtype=dtype,
             **opt_args
         )
@@ -208,6 +213,7 @@ def create_optimizer_v2(
             parameters, 
             cast_dtype=dtype,
             batch_size=batch_size,
+            batch_averaged=batch_averaged,
             **opt_args
         )
     # elif opt_lower == 'fusedsgd':

@@ -106,6 +106,8 @@ momentum: 0.9
 weight_decay: 5e-3 
 # when multiplying the batch size by k, one should multiply the learning rate by sqrt(k)
 bsscale: null
+opt_kwargs:
+  batch_averaged: True
 
 # 'LR scheduler (default: cosine' (str)
 sched: "cosine"

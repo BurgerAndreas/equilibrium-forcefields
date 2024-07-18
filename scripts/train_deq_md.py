@@ -230,6 +230,9 @@ def train_md(args):
     #     os.environ["FIX_BROYDEN"] = args.fix_broyden
     torch.autograd.set_detect_anomaly(args.torch_detect_anomaly)
 
+    dtype = eval("torch." + args.dtype)
+    torch.set_default_dtype(dtype)
+
     # create output directory
     if args.output_dir == "auto":
         # args.output_dir = os.path.join('outputs', datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
@@ -351,19 +354,19 @@ def train_md(args):
         )
 
     else:
-        norm_mean_atom = torch.ones(args.model.max_num_elements)  # [A]
-        norm_std_atom = torch.ones(args.model.max_num_elements)
-        mean_atom = torch.ones(args.model.max_num_elements)
-        std_atom = torch.ones(args.model.max_num_elements)
+        norm_mean_atom = torch.ones(args["model"]["max_num_elements"])  # [A]
+        norm_std_atom = torch.ones(args["model"]["max_num_elements"])
+        mean_atom = torch.ones(args["model"]["max_num_elements"])
+        std_atom = torch.ones(args["model"]["max_num_elements"])
         # componentwise
-        mean3d_atom = torch.ones(args.model.max_num_elements, 3)
-        std3d_atom = torch.ones(args.model.max_num_elements, 3)
+        mean3d_atom = torch.ones(args["model"]["max_num_elements"], 3)
+        std3d_atom = torch.ones(args["model"]["max_num_elements"], 3)
         # concatenate all the forces
         dy = torch.cat([batch.dy for batch in train_dataset], dim=0)  # [N, 3]
         dy_norm = torch.linalg.norm(dy, dim=1)  # [N]
         atoms = torch.cat([batch.z for batch in train_dataset], dim=0)  # [N]
         # Compute statistics
-        for i in range(args.model.max_num_elements):
+        for i in range(args["model"]["max_num_elements"]):
             mask = atoms == i
             norm_mean_atom[i] = dy_norm[mask].mean()
             norm_std_atom[i] = dy_norm[mask].std()
@@ -379,24 +382,24 @@ def train_md(args):
         args.norm_forces_by_atom = args.norm_forces_by_atom.replace("_", "").lower()
         if args.norm_forces_by_atom == "normmean":
             # normalizer_f = lambda x, z: x / norm_mean_atom[z].unsqueeze(1)
-            mean = torch.zeros(args.model.max_num_elements)
+            mean = torch.zeros(args["model"]["max_num_elements"])
             std = norm_mean_atom
         elif args.norm_forces_by_atom == "normstd":
-            mean = torch.zeros(args.model.max_num_elements)
+            mean = torch.zeros(args["model"]["max_num_elements"])
             std = norm_std_atom
         # not really sure how to interpret this
         elif args.norm_forces_by_atom == "mean":
-            mean = torch.zeros(args.model.max_num_elements)
+            mean = torch.zeros(args["model"]["max_num_elements"])
             std = mean_atom
         elif args.norm_forces_by_atom == "std":
-            mean = torch.zeros(args.model.max_num_elements)
+            mean = torch.zeros(args["model"]["max_num_elements"])
             std = std_atom
         # componentwise
         elif args.norm_forces_by_atom == "mean3d":
-            mean = torch.zeros(args.model.max_num_elements, 3)
+            mean = torch.zeros(args["model"]["max_num_elements"], 3)
             std = mean3d_atom
         elif args.norm_forces_by_atom == "std3d":
-            mean = torch.zeros(args.model.max_num_elements, 3)
+            mean = torch.zeros(args["model"]["max_num_elements"], 3)
             std = std3d_atom
         # non-zero mean
         elif args.norm_forces_by_atom == "normmeanstd":
@@ -508,6 +511,7 @@ def train_md(args):
         f"\nModel {args.model.name} created with kwargs:\n{omegaconf.OmegaConf.to_yaml(args.model)}"
     )
     # _log.info(f"Model: \n{model}")
+    model.to(dtype=dtype)
 
     # log available memory
     if torch.cuda.is_available():

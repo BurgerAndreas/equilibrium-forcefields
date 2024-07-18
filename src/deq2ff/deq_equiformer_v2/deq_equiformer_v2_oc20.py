@@ -91,6 +91,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         inj_norm=None,
         path_norm="none",
         irrep_norm=None,
+        num_layers=1,
+        stacks=1,
         **kwargs,
     ):
         # DEQ
@@ -104,12 +106,18 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         self.sphere_channels_fixedpoint = sphere_channels_fixedpoint
         if self.inp_inj == "cat": # TODO should if == "add"?
             assert self.sphere_channels_fixedpoint == sphere_channels
+        
+        self.stacks = stacks
+        self.num_layers_per_stack = num_layers
+        num_layers = num_layers * stacks
 
         non_deq_kwargs = copy.deepcopy(kwargs)
         non_deq_kwargs.pop("deq_kwargs", None)
         non_deq_kwargs.pop("deq_mode", None)
         non_deq_kwargs.pop("torchdeq_norm", None)
-        super().__init__(sphere_channels=sphere_channels, **non_deq_kwargs)
+        super().__init__(
+            sphere_channels=sphere_channels, num_layers=num_layers,**non_deq_kwargs
+        )
         if self.inp_inj == "lc":
             # two scalar learnable weights
             self.inj_w1 = nn.Parameter(torch.ones(1))
@@ -182,6 +190,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 ln=self.ln,
                 final_ln=self.final_ln,
             )
+            # eval(f"self.{blocksname}.append(block)")
             self.blocks.append(block)
 
     def _init_deq(self, **kwargs):
@@ -367,45 +376,42 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             x = fixedpoint.to(emb.device)
 
         reset_norm(self.blocks)
-        if reset_dropout:
-            self.reset_dropout(x, data.batch)
 
-        # Transformer blocks
-        # f = lambda z: self.mfn_forward(z, u)
-        def f(_x):
-            # x is a tensor, not SO3_Embedding
-            # if batchify_for_torchdeq is True, x in and out should be [B, N, D, C]
-            return self.deq_implicit_layer(
-                _x,
-                emb=emb,
-                edge_index=edge_index,
-                edge_distance=edge_distance,
-                atomic_numbers=atomic_numbers,
-                data=data,
+        for stack in range(self.stacks):
+            if reset_dropout:
+                self.reset_dropout(x, data.batch)
+
+            # Transformer blocks
+            # f = lambda z: self.mfn_forward(z, u)
+            def f(_x):
+                # x is a tensor, not SO3_Embedding
+                # if batchify_for_torchdeq is True, x in and out should be [B, N, D, C]
+                return self.deq_implicit_layer(
+                    _x,
+                    emb=emb,
+                    edge_index=edge_index,
+                    edge_distance=edge_distance,
+                    atomic_numbers=atomic_numbers,
+                    data=data,
+                    stack=stack,
+                )
+
+            # [B*N, D, C] -> [B, N, D, C] # torchdeq batchify
+            if self.batchify_for_torchdeq:
+                x = x.view(self.shape_unbatched)
+
+            # find fixed-point
+            # During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
+            # During inference, returns a list containing the fixed point solution only.
+            # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
+            z_pred, info = self.deq(
+                f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
             )
-
-        # [B*N, D, C] -> [B, N, D, C] # torchdeq batchify
-        if self.batchify_for_torchdeq:
-            x = x.view(self.shape_unbatched)
-
-        # find fixed-point
-        # During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
-        # During inference, returns a list containing the fixed point solution only.
-        # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
-        z_pred, info = self.deq(
-            f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
-        )
-        # make sure out code is working and we have the correct number of fixed-point estimates along the trajectory
-        # that we need for the fixed-point correction loss
-        # assert (
-        #     # len(z_pred) == len(self.deq.last_indexing)
-        #     len(z_pred) > 1
-        #     or min(info["nstep"]) < min(self.deq.last_indexing)
-        # ), f"z_pred: {len(z_pred)}. last_indexing={len(self.deq.last_indexing)}. nstep<={max(info['nstep'])}"
-        # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
-        if self.batchify_for_torchdeq:
-            z_pred = [z.view(self.shape_batched) for z in z_pred]
-        info["z_pred"] = z_pred
+            
+            # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
+            if self.batchify_for_torchdeq:
+                z_pred = [z.view(self.shape_batched) for z in z_pred]
+            info["z_pred"] = z_pred
 
         ######################################################
         # Fixed-point reuse loss
@@ -564,7 +570,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
     def deq_implicit_layer(
         self, x: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, data,
-        step=None, datasplit=None, solver_step=None
+        step=None, datasplit=None, solver_step=None, stack=0,
     ) -> torch.Tensor:
         """Implicit layer for DEQ that defines the fixed-point.
         Make sure to input and output only torch.tensor, not SO3_Embedding, to not break TorchDEQ.
@@ -624,7 +630,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         )
         print_values(x.embedding, "postinj", log=False)
         """ Layers / Transformer blocks """
-        for i in range(self.num_layers):
+        prev_layers = self.num_layers_per_stack * stack
+        for i in range(prev_layers, prev_layers + self.num_layers_per_stack):
             x = self.blocks[i](
                 x,  # SO3_Embedding
                 atomic_numbers,

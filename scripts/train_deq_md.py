@@ -17,6 +17,7 @@ import yaml
 import re
 import copy
 import math
+import traceback
 
 # add the root of the project to the path so it can find equiformer
 # root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -916,7 +917,9 @@ def train_md(args):
             )
             epoch_train_time = time.perf_counter() - epoch_start_time
         except Exception as e:
-            _log.info(f"Error in training: {e}")
+            _log.info(f"Error in training:\n {e}")
+            # print full stack trace
+            _log.info(traceback.format_exc())
             # save checkpoint as example for further analysis
             _cname = f"pathological_ep@{epoch}_e@NaN_f@NaN.pth.tar"
             os.makedirs(args.output_dir, exist_ok=True)

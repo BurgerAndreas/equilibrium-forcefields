@@ -63,7 +63,7 @@ deq_kwargs:
   # (str, optional) – The forward solver function. Default 'fixed_point_iter'
   f_solver: 'anderson'
   # (str, optional) – The backward solver function. Default 'fixed_point_iter'.
-  b_solver: 'fixed_point_iter'
+  b_solver: 'anderson'
   # f_tol (float, optional) – The forward pass solver stopping criterion. Default 1e-3.
   f_tol: 1e-3
   # b_tol (float, optional) – The backward pass solver stopping criterion. Default 1e-6.

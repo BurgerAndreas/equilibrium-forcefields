@@ -14,14 +14,23 @@ for mol in ${md17[@]}; do
 done
 
 # Baseline Equiformer2 with one layer
-# launchrun model.num_layers=1 wandb_tags=["md173"] target=aspirin
-# launchrun model.num_layers=1 wandb_tags=["md173"] target=benzene
-# launchrun model.num_layers=1 wandb_tags=["md173"] target=ethanol
-# launchrun model.num_layers=1 wandb_tags=["md173"] target=malonaldehyde
-# launchrun model.num_layers=1 wandb_tags=["md173"] target=naphthalene
-# launchrun model.num_layers=1 wandb_tags=["md173"] target=salicylic_acid
-# launchrun model.num_layers=1 wandb_tags=["md173"] target=toluene
-# launchrun model.num_layers=1 wandb_tags=["md173"] target=uracil
+launchrun +cfg=dd model.num_layers=1 wandb_tags=["md173"] target=aspirin
+launchrun +cfg=dd model.num_layers=1 wandb_tags=["md173"] target=benzene
+launchrun +cfg=dd model.num_layers=1 wandb_tags=["md173"] target=ethanol
+launchrun +cfg=dd model.num_layers=1 wandb_tags=["md173"] target=malonaldehyde
+launchrun +cfg=dd model.num_layers=1 wandb_tags=["md173"] target=naphthalene
+launchrun +cfg=dd model.num_layers=1 wandb_tags=["md173"] target=salicylic_acid
+launchrun +cfg=dd model.num_layers=1 wandb_tags=["md173"] target=toluene
+launchrun +cfg=dd model.num_layers=1 wandb_tags=["md173"] target=uracil
+
+launchrun +cfg=dd model.num_layers=2 wandb_tags=["md173"] target=aspirin
+launchrun +cfg=dd model.num_layers=2 wandb_tags=["md173"] target=benzene
+launchrun +cfg=dd model.num_layers=2 wandb_tags=["md173"] target=ethanol
+launchrun +cfg=dd model.num_layers=2 wandb_tags=["md173"] target=malonaldehyde
+launchrun +cfg=dd model.num_layers=2 wandb_tags=["md173"] target=naphthalene
+launchrun +cfg=dd model.num_layers=2 wandb_tags=["md173"] target=salicylic_acid
+launchrun +cfg=dd model.num_layers=2 wandb_tags=["md173"] target=toluene
+launchrun +cfg=dd model.num_layers=2 wandb_tags=["md173"] target=uracil
 
 
 # Baseline Equiformer2 with four layers

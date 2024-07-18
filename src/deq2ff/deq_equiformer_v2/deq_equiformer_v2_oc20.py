@@ -377,7 +377,11 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         reset_norm(self.blocks)
 
+        x_stack = x
+
         for stack in range(self.stacks):
+            x = x_stack
+            
             if reset_dropout:
                 self.reset_dropout(x, data.batch)
 
@@ -412,6 +416,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             if self.batchify_for_torchdeq:
                 z_pred = [z.view(self.shape_batched) for z in z_pred]
             info["z_pred"] = z_pred
+
+            x_stack = z_pred[-1]
 
         ######################################################
         # Fixed-point reuse loss

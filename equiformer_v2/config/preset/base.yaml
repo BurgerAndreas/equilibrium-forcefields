@@ -125,6 +125,8 @@ model:
     add_std: 0.05
     recurrent: False
     start_step: 0
+  
+  stacks: 1
 
 # Optimizer for OC20, ignored in MD17
 # optim:

@@ -23,8 +23,8 @@ from timm.optim.rmsprop_tf import RMSpropTF
 from timm.optim.sgdp import SGDP
 from timm.optim.adabelief import AdaBelief
 
-from rfrmsprop import RfRmsProp
-from rfadamw import RfAdamW
+from deq2ff.rfrmsprop import RfRmsProp
+from deq2ff.rfadamw import RfAdamW
 
 
 def add_weight_decay(model, weight_decay=1e-5, skip_list=()):
@@ -153,18 +153,18 @@ def create_optimizer_v2(
         optimizer = Adahessian(parameters, **opt_args)
     elif opt_lower == "rmsprop":
         optimizer = optim.RMSprop(parameters, **opt_args)
-    elif opt_lower == "rfrmsprop":
-        # root free RMSprop
-        optimizer = RfRmsProp(parameters, alpha=0.9, momentum=momentum, **opt_args)
-    elif opt_lower == "rfadamw":
-        # root free AdamW
-        optimizer = RfAdamW(parameters, alpha=0.9, momentum=momentum, **opt_args)
     elif opt_lower == "rmsproptf":
         optimizer = RMSpropTF(parameters, alpha=0.9, momentum=momentum, **opt_args)
     elif opt_lower == "novograd":
         optimizer = NovoGrad(parameters, **opt_args)
     elif opt_lower == "nvnovograd":
         optimizer = NvNovoGrad(parameters, **opt_args)
+    elif opt_lower == "rfrmsprop":
+        # root free RMSprop
+        optimizer = RfRmsProp(parameters, alpha=0.9, momentum=momentum, **opt_args)
+    elif opt_lower == "rfadamw":
+        # root free AdamW
+        optimizer = RfAdamW(parameters, **opt_args)
     # elif opt_lower == 'fusedsgd':
     #    opt_args.pop('eps', None)
     #    optimizer = FusedSGD(parameters, momentum=momentum, nesterov=True, **opt_args)

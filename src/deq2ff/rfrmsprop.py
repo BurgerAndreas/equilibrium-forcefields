@@ -14,7 +14,7 @@ class RfRmsProp(optim.Optimizer):
         eps=1e-8,
         weight_decay=0, 
         momentum=0,
-        batch_averaged=True,
+        batch_averaged=True, 
         batch_size=None,
         cast_dtype=torch.float32,
         model=None,

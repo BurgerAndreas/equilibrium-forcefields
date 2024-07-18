@@ -50,7 +50,7 @@ class RfAdamW(optim.Optimizer):
         self.batch_size = batch_size
  
 
-        super(MyAdamW, self).__init__(params, defaults)
+        super(RfAdamW, self).__init__(params, defaults)
 
 
     @torch.no_grad()

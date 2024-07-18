@@ -25,6 +25,9 @@ from timm.optim.rmsprop_tf import RMSpropTF
 from timm.optim.sgdp import SGDP
 from timm.optim.adabelief import AdaBelief
 
+from deq2ff.rfrmsprop import RfRmsProp
+from deq2ff.rfadamw import RfAdamW
+
 
 def scale_batchsize_lr(args, k=None):
     """
@@ -73,6 +76,7 @@ def optimizer_kwargs(cfg):
     Convert optimizer args in argparse args or cfg like object to keyword args for updated create fn.
     """
     kwargs = dict(
+        # batch_size=cfg.batch_size,
         optimizer_name=cfg.opt,
         learning_rate=cfg.lr,
         weight_decay=cfg.weight_decay,
@@ -95,6 +99,7 @@ def create_optimizer(args, model, filter_bias_and_bn=True):
         model,
         **optimizer_kwargs(cfg=args),
         filter_bias_and_bn=filter_bias_and_bn,
+        batch_size=args.batch_size,
     )
 
 
@@ -105,6 +110,7 @@ def create_optimizer_v2(
     weight_decay: float = 0.0,
     momentum: float = 0.9,
     filter_bias_and_bn: bool = True,
+    batch_size=None,
     **kwargs
 ):
     """Create an optimizer.
@@ -126,6 +132,7 @@ def create_optimizer_v2(
     Returns:
         Optimizer
     """
+    dtype = model.parameters().__next__().dtype
     opt_lower = optimizer_name.lower()
     if weight_decay and filter_bias_and_bn:
         skip = {}
@@ -187,6 +194,22 @@ def create_optimizer_v2(
         optimizer = sps.Sps(parameters)
     elif opt_lower == "adagrad":
         optimizer = optim.Adagrad(parameters, **opt_args)
+    elif opt_lower == "rfrmsprop":
+        # root free RMSprop
+        optimizer = RfRmsProp(
+            parameters, alpha=0.9, momentum=momentum, 
+            batch_size=batch_size,
+            cast_dtype=dtype,
+            **opt_args
+        )
+    elif opt_lower == "rfadamw":
+        # root free AdamW
+        optimizer = RfAdamW(
+            parameters, 
+            cast_dtype=dtype,
+            batch_size=batch_size,
+            **opt_args
+        )
     # elif opt_lower == 'fusedsgd':
     #    opt_args.pop('eps', None)
     #    optimizer = FusedSGD(parameters, momentum=momentum, nesterov=True, **opt_args)

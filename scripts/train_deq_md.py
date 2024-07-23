@@ -745,7 +745,8 @@ def train_md(args):
     """ Dryrun of forward pass for testing """
     first_batch = next(iter(train_loader))
 
-    data = first_batch.to(device)
+    data = first_batch.to(device) 
+    data = data.to(device, dtype)
 
     # energy, force
     pred_y, pred_dy, info = model(
@@ -773,7 +774,8 @@ def train_md(args):
         criterion_force.train()
 
         for step, data in enumerate(train_loader):
-            data = data.to(device)
+            data = data.to(device) 
+            data = data.to(device, dtype)
 
             # energy, force
             shapes_to_log = model.get_shapes(
@@ -1537,6 +1539,8 @@ def train_one_epoch(
     # count the number of NaNs and stop training if it exceeds a threshold
     isnan_cnt = 0
 
+    dtype = model.parameters().__next__().dtype
+
     # for debugging
     # if we don't set model.eval()
     # params like the batchnorm layers in the model will be updated.
@@ -1562,6 +1566,7 @@ def train_one_epoch(
     max_steps = len(data_loader)
     for batchstep, data in enumerate(data_loader):
         data = data.to(device)
+        data = data.to(device, dtype)
 
         # for sparse fixed-point correction loss
         solver_kwargs = {}
@@ -1834,7 +1839,7 @@ def train_one_epoch(
 
         if model_ema is not None:
             model_ema.update(model)
-
+        
         torch.cuda.synchronize()
 
         # logging
@@ -1946,6 +1951,7 @@ def evaluate(
     datasplit=None,
     normalizers={"energy": None, "force": None},
     final_test=None,
+    # dtype=torch.float32,
 ):
     """Val or test split."""
 
@@ -2001,6 +2007,8 @@ def evaluate(
         patch_size = len(data_loader) // args.test_patches
     else:
         patch_size = max_steps + 10  # +10 to avoid accidents
+    
+    dtype = model.parameters().__next__().dtype
 
     # remove because of torchdeq and force prediction via dE/dx
     # with torch.no_grad():
@@ -2041,6 +2049,7 @@ def evaluate(
 
             for step, data in enumerate(data_loader):
                 data = data.to(device)
+                data = data.to(device, dtype)
 
                 # if we pass step, things will be logged to wandb
                 # note that global_step is only updated in train_one_epoch
@@ -2297,89 +2306,80 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
 
     print(f"Equivariance result {modeltype}:")
     # for prec, cast_to_float64 in zip(["float64", "float32"], [True, False]):
-    for prec, cast_to_float64 in zip(["float32"], [False]):
-        for dataype, dataset in zip(['train', 'test'], [data_train, data_test]):
-            max_off_e_list = []
-            avg_off_e_list = []
-            max_off_f_list = []
-            avg_off_f_list = []
-            for ni, idx in zip(["first", "mid", "end"], [0, len(dataset) // 2, -1]):
-                # ['y', 'pos', 'z', 'natoms', 'idx', 'batch', 'atomic_numbers', 'dy', 'ptr']
-                sample = dataset[idx]
-                sample = collate([sample])
-                sample = sample.to(device)
-                if cast_to_float64:
-                    torch.set_default_dtype(torch.float64)
-                    sample.y = sample.y.double()
-                    sample.dy = sample.dy.double()
-                    sample.pos = sample.pos.double()
-                    model = model.double()
-                else:
-                    torch.set_default_dtype(torch.float32)
-                    sample.y = sample.y.float()
-                    sample.dy = sample.dy.float()
-                    sample.pos = sample.pos.float()
-                    model = model.float()
+    for dataype, dataset in zip(['train', 'test'], [data_train, data_test]):
+        max_off_e_list = []
+        avg_off_e_list = []
+        max_off_f_list = []
+        avg_off_f_list = []
+        for ni, idx in zip(["first", "mid", "end"], [0, len(dataset) // 2, -1]):
+            # ['y', 'pos', 'z', 'natoms', 'idx', 'batch', 'atomic_numbers', 'dy', 'ptr']
+            sample = dataset[idx]
+            sample = collate([sample])
+            sample = sample.to(device)
+            # torch.set_default_dtype(torch.float64)
+            sample.y = sample.y.to(dtype=model_dtype)
+            sample.dy = sample.dy.to(dtype=model_dtype)
+            sample.pos = sample.pos.to(dtype=model_dtype)
 
-                energy1, forces1, info = model(
-                    data=sample,
-                    node_atom=sample.z,
-                    pos=sample.pos,
-                    batch=sample.batch,
-                )
+            energy1, forces1, info = model(
+                data=sample,
+                node_atom=sample.z,
+                pos=sample.pos,
+                batch=sample.batch,
+            )
 
-                # rotate molecule
-                R = torch.tensor(o3.rand_matrix(), device=device, dtype=sample.pos.dtype)
-                rotated_pos = torch.matmul(sample.pos, R)
-                sample.pos = rotated_pos
-                energy_rot, forces_rot, info = model(
-                    data=sample,
-                    node_atom=sample.z,
-                    pos=sample.pos,
-                    batch=sample.batch,
-                )
+            # rotate molecule
+            R = torch.tensor(o3.rand_matrix(), device=device, dtype=sample.pos.dtype)
+            rotated_pos = torch.matmul(sample.pos, R)
+            sample.pos = rotated_pos
+            energy_rot, forces_rot, info = model(
+                data=sample,
+                node_atom=sample.z,
+                pos=sample.pos,
+                batch=sample.batch,
+            )
 
-                max_off_e = (energy1 - energy_rot).abs().max().item()
-                avg_off_e = (energy1 - energy_rot).abs().mean().item()
-                max_off_f = (torch.matmul(forces1, R) - forces_rot).abs().max().item()
-                avg_off_f = (torch.matmul(forces1, R) - forces_rot).abs().mean().item()
-                max_off_e_list.append(max_off_e)
-                avg_off_e_list.append(avg_off_e)
-                max_off_f_list.append(max_off_f)
-                avg_off_f_list.append(avg_off_f)
+            max_off_e = (energy1 - energy_rot).abs().max().item()
+            avg_off_e = (energy1 - energy_rot).abs().mean().item()
+            max_off_f = (torch.matmul(forces1, R) - forces_rot).abs().max().item()
+            avg_off_f = (torch.matmul(forces1, R) - forces_rot).abs().mean().item()
+            max_off_e_list.append(max_off_e)
+            avg_off_e_list.append(avg_off_e)
+            max_off_f_list.append(max_off_f)
+            avg_off_f_list.append(avg_off_f)
 
-                print( 
-                    f"\n{solver_type} {sample.pos.dtype}, {dataype}, sample={idx}:",
-                    # energy should be invariant
-                    # f"\nEnergy:", 
-                    # # f"\ne-7:", torch.allclose(energy1, energy_rot, atol=1.0e-7),
-                    # # f"\ne-5:", torch.allclose(energy1, energy_rot, atol=1.0e-5),
-                    # # f"\ne-3:", torch.allclose(energy1, energy_rot, atol=1.0e-3),
-                    # f"\n max off: {max_off_e:.2E}",
-                    # f"\n avg off: {avg_off_e:.2E}",
-                    # (energy1 - energy_rot).item(),
-                    # forces should be equivariant
-                    # model(rot(f)) == rot(model(f))
-                    "\nForces:", 
-                    # f"\ne-7:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-7),
-                    # f"\ne-5:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-5),
-                    # f"\ne-3:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-3),
-                    f"\n max off: {max_off_f:.2E}",
-                    f"\n avg off: {avg_off_f:.2E}",
-                    # (torch.matmul(forces1, R) - forces_rot).abs(),
-                    # sep="\n",
-                )
+            print( 
+                f"\n{solver_type} {sample.pos.dtype}, {dataype}, sample={idx}:",
+                # energy should be invariant
+                # f"\nEnergy:", 
+                # # f"\ne-7:", torch.allclose(energy1, energy_rot, atol=1.0e-7),
+                # # f"\ne-5:", torch.allclose(energy1, energy_rot, atol=1.0e-5),
+                # # f"\ne-3:", torch.allclose(energy1, energy_rot, atol=1.0e-3),
+                # f"\n max off: {max_off_e:.2E}",
+                # f"\n avg off: {avg_off_e:.2E}",
+                # (energy1 - energy_rot).item(),
+                # forces should be equivariant
+                # model(rot(f)) == rot(model(f))
+                "\nForces:", 
+                # f"\ne-7:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-7),
+                # f"\ne-5:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-5),
+                # f"\ne-3:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-3),
+                f"\n max off: {max_off_f:.2E}",
+                f"\n avg off: {avg_off_f:.2E}",
+                # (torch.matmul(forces1, R) - forces_rot).abs(),
+                # sep="\n",
+            )
 
-            if step is not None:
-                _n = f"{dataype}_{prec}"
-                wandb.log({
-                    # "equ_max_e" + _n: max_off_e,
-                    # "equ_avg_e" + _n: avg_off_e,
-                    "equ_max_f" + _n: max(max_off_f_list),
-                    "equ_avg_f" + _n: np.mean(avg_off_f_list),
-                }, step=step
-                )
-        model = model.to(model_dtype)
+        if step is not None:
+            _n = f"{dataype}"
+            wandb.log({
+                # "equ_max_e" + _n: max_off_e,
+                # "equ_avg_e" + _n: avg_off_e,
+                "equ_max_f" + _n: max(max_off_f_list),
+                "equ_avg_f" + _n: np.mean(avg_off_f_list),
+            }, step=step
+            )
+    model = model.to(model_dtype)
     return
 
 def setup_logging_and_train_md(args):

@@ -1,17 +1,17 @@
 # @package _global_
 # this @package directive solves any nesting problem (if this file is included in another folder)
 
-# https://github.com/atomicarchitects/equiformer_v2/blob/main/oc20/configs/s2ef/2M/equiformer_v2/equiformer_v2_N%4012_L%406_M%402.yml
-
 # as close as possible to the original EquiformerV2 config
+# https://github.com/atomicarchitects/equiformer_v2/blob/main/oc20/configs/s2ef/2M/equiformer_v2/equiformer_v2_N%4012_L%406_M%402.yml
 
 deq_kwargs:
   # core: sliced
   f_solver: 'anderson'
   f_stop_mode: 'rel'
-  # f_tol: 1e-2
+  b_solver: 'anderson'
+  f_tol: 1e-2
   # grad: 1
-  # ift: True
+  ift: True
   
 # fpc_freq: 2
 # fpreuse_test: True
@@ -19,5 +19,22 @@ deq_kwargs:
 model:
   torchdeq_norm:
     norm_type: null
+  
+  # alpha_drop: 0.1
   path_drop: 0.05
   use_variational_path_drop: True
+
+  attn_activation: 'silu'
+  ffn_activation: 'silu'
+
+  # lmax_list: [6]             
+  # mmax_list: [2]             
+  # grid_resolution: 18
+  # num_sphere_samples: 128
+
+# force_coefficient: 100
+# energy_coefficient: 2
+energy_weight: 0.1 # 1
+force_weight: 0.1 # 80
+
+weight_decay: 0.001 # 5e-3

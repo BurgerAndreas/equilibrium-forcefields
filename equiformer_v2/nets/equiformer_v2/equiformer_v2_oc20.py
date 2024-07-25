@@ -882,22 +882,22 @@ class EquiformerV2_OC20(BaseModel):
 
         self.reset_dropout(x.embedding, data.batch)
 
-        if self.skip_blocks:
-            pass
-        else:
-            for i in range(self.num_layers):
-                x = self.blocks[i](
-                    x,  # SO3_Embedding
-                    atomic_numbers,
-                    edge_distance,
-                    edge_index,
-                    batch=data.batch,  # for GraphPathDrop
-                )
-                # if step is not None and (step % 100 == 0) or datasplit in ["val", "test"]:
-                #     self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit, layer=i)
+        # if self.skip_blocks:
+        #     pass
+        # else:
+        for i in range(self.num_layers):
+            x = self.blocks[i](
+                x,  # SO3_Embedding
+                atomic_numbers,
+                edge_distance,
+                edge_index,
+                batch=data.batch,  # for GraphPathDrop
+            )
+            # if step is not None and (step % 100 == 0) or datasplit in ["val", "test"]:
+            #     self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit, layer=i)
 
-        if step is not None and (step % 100 == 0) or datasplit in ["val", "test"]:
-            self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit)
+        # if step is not None and (step % 100 == 0) or datasplit in ["val", "test"]:
+        #     self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit)
 
         # Final layer norm
         x.embedding = self.norm(x.embedding)
@@ -908,10 +908,10 @@ class EquiformerV2_OC20(BaseModel):
         ######################################################
         # Logging
         ######################################################
-        if step is not None:
-            logging_utils_deq.log_fixed_point_norm(
-                x.embedding.clone().detach(), step, datasplit
-            )
+        # if step is not None:
+        #     logging_utils_deq.log_fixed_point_norm(
+        #         x.embedding.clone().detach(), step, datasplit
+        #     )
 
         ###############################################################
         # Energy estimation

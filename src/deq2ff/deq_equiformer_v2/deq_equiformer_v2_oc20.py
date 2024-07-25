@@ -107,9 +107,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         if self.inp_inj == "cat": # TODO should if == "add"?
             assert self.sphere_channels_fixedpoint == sphere_channels
         
-        self.stacks = stacks
-        self.num_layers_per_stack = num_layers
-        num_layers = num_layers * stacks
+        # self.stacks = stacks
+        self.num_layers = num_layers
 
         non_deq_kwargs = copy.deepcopy(kwargs)
         non_deq_kwargs.pop("deq_kwargs", None)
@@ -259,16 +258,16 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         self.num_edges = edge_distance.shape[0]
 
-        print_values(
-            edge_distance_vec,
-            "edge_distance_vec",
-            step=step,
-            datasplit=datasplit,
-            log=True,
-            before="-" * 100,
-        )
-        print_values(edge_index[0].float(), "edge_index0", log=True)
-        print_values(edge_index[1].float(), "edge_index1", log=True)
+        # print_values(
+        #     edge_distance_vec,
+        #     "edge_distance_vec",
+        #     step=step,
+        #     datasplit=datasplit,
+        #     log=True,
+        #     before="-" * 100,
+        # )
+        # print_values(edge_index[0].float(), "edge_index0", log=True)
+        # print_values(edge_index[1].float(), "edge_index1", log=True)
 
         ###############################################################
         # Initialize data structures
@@ -277,7 +276,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # Compute 3x3 rotation matrix per edge
         # data unused
         edge_rot_mat = self._init_edge_rot_mat(data, edge_index, edge_distance_vec)
-        print_values(edge_rot_mat.float(), "edge_rot_mat", log=True)
+        # print_values(edge_rot_mat.float(), "edge_rot_mat", log=True)
 
         # Initialize the WignerD matrices and other values for spherical harmonic calculations
         for i in range(self.num_resolutions):
@@ -350,15 +349,15 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # "Replaced" by DEQ
         ###############################################################
 
-        print_values(
-            x.embedding,
-            "emb",
-            step=step,
-            datasplit=datasplit,
-            log=True,
-            before="-" * 80,
-        )
-        print_values(edge_degree.embedding, "edgedegreeemb", log=True)
+        # print_values(
+        #     x.embedding,
+        #     "emb",
+        #     step=step,
+        #     datasplit=datasplit,
+        #     log=True,
+        #     before="-" * 80,
+        # )
+        # print_values(edge_degree.embedding, "edgedegreeemb", log=True)
 
         # if self.skip_blocks:
         #     pass
@@ -377,91 +376,83 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         reset_norm(self.blocks)
 
-        x_stack = x
+        if reset_dropout:
+            self.reset_dropout(x, data.batch)
 
-        for stack in range(self.stacks):
-            x = x_stack
-            
-            if reset_dropout:
-                self.reset_dropout(x, data.batch)
-
-            # Transformer blocks
-            # f = lambda z: self.mfn_forward(z, u)
-            def f(_x):
-                # x is a tensor, not SO3_Embedding
-                # if batchify_for_torchdeq is True, x in and out should be [B, N, D, C]
-                return self.deq_implicit_layer(
-                    _x,
-                    emb=emb,
-                    edge_index=edge_index,
-                    edge_distance=edge_distance,
-                    atomic_numbers=atomic_numbers,
-                    data=data,
-                    stack=stack,
-                )
-
-            # [B*N, D, C] -> [B, N, D, C] # torchdeq batchify
-            if self.batchify_for_torchdeq:
-                x = x.view(self.shape_unbatched)
-
-            # find fixed-point
-            # During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
-            # During inference, returns a list containing the fixed point solution only.
-            # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
-            z_pred, info = self.deq(
-                f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
+        # Transformer blocks
+        # f = lambda z: self.mfn_forward(z, u)
+        def f(_x):
+            # x is a tensor, not SO3_Embedding
+            # if batchify_for_torchdeq is True, x in and out should be [B, N, D, C]
+            return self.deq_implicit_layer(
+                _x,
+                emb=emb,
+                edge_index=edge_index,
+                edge_distance=edge_distance,
+                atomic_numbers=atomic_numbers,
+                data=data,
             )
-            
-            # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
-            if self.batchify_for_torchdeq:
-                z_pred = [z.view(self.shape_batched) for z in z_pred]
-            info["z_pred"] = z_pred
 
-            x_stack = z_pred[-1]
+        # [B*N, D, C] -> [B, N, D, C] # torchdeq batchify
+        if self.batchify_for_torchdeq:
+            x = x.view(self.shape_unbatched)
+
+        # find fixed-point
+        # During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
+        # During inference, returns a list containing the fixed point solution only.
+        # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
+        z_pred, info = self.deq(
+            f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
+        )
+        
+        # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
+        if self.batchify_for_torchdeq:
+            z_pred = [z.view(self.shape_batched) for z in z_pred]
+        info["z_pred"] = z_pred
 
         ######################################################
         # Fixed-point reuse loss
-        if fpr_loss == True:
-            # torchdeq batchify
-            if self.deq.f_solver.__name__.startswith("broyden"):
-                z_next, _, _info = broyden_solver_grad(
-                    func=f,
-                    x0=z_pred[-1].clone(),
-                    max_iter=1,
-                    tol=solver_kwargs.get("f_tol", self.deq.f_tol),
-                    stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
-                    # return_final=True,
-                )
-            elif self.deq.f_solver.__name__.startswith("anderson"):
-                z_next, _, _info = anderson_solver(
-                    func=f,
-                    x0=z_pred[-1].clone(),
-                    max_iter=1,
-                    tol=solver_kwargs.get("f_tol", self.deq.f_tol),
-                    stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
-                )
-            elif self.deq.f_solver.__name__.startswith("fixed_point_iter"):
-                z_next, _, _info = fixed_point_iter(
-                    func=f,
-                    x0=z_pred[-1].clone(),
-                    max_iter=1,
-                    tol=solver_kwargs.get("f_tol", self.deq.f_tol),
-                    stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
-                )
-            else:
-                raise ValueError(f"Invalid f_solver: {self.deq.f_solver.__name__} with fpr_loss")
-            info["z_next"] = z_next
+        # if fpr_loss == True:
+        #     # torchdeq batchify
+        #     if self.deq.f_solver.__name__.startswith("broyden"):
+        #         z_next, _, _info = broyden_solver_grad(
+        #             func=f,
+        #             x0=z_pred[-1].clone(),
+        #             max_iter=1,
+        #             tol=solver_kwargs.get("f_tol", self.deq.f_tol),
+        #             stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
+        #             # return_final=True,
+        #         )
+        #     elif self.deq.f_solver.__name__.startswith("anderson"):
+        #         z_next, _, _info = anderson_solver(
+        #             func=f,
+        #             x0=z_pred[-1].clone(),
+        #             max_iter=1,
+        #             tol=solver_kwargs.get("f_tol", self.deq.f_tol),
+        #             stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
+        #         )
+        #     elif self.deq.f_solver.__name__.startswith("fixed_point_iter"):
+        #         z_next, _, _info = fixed_point_iter(
+        #             func=f,
+        #             x0=z_pred[-1].clone(),
+        #             max_iter=1,
+        #             tol=solver_kwargs.get("f_tol", self.deq.f_tol),
+        #             stop_mode=solver_kwargs.get("f_stop_mode", self.deq.f_stop_mode),
+        #         )
+        #     else:
+        #         raise ValueError(f"Invalid f_solver: {self.deq.f_solver.__name__} with fpr_loss")
+        #     info["z_next"] = z_next
 
         ######################################################
         # Logging
         ######################################################
-        if step is not None:
-            logging_utils_deq.log_fixed_point_norm(
-                z_pred[-1].clone().detach(), step, datasplit
-            )
+        # if step is not None:
+        #     logging_utils_deq.log_fixed_point_norm(
+        #         z_pred[-1].clone().detach(), step, datasplit
+        #     )
 
-            if step is not None and (step % 100 == 0) or datasplit in ["val", "test"]:
-                self.measure_oversmoothing(x=z_pred[-1].detach(), batch=data.batch, step=step, split=datasplit)
+        #     if step is not None and (step % 100 == 0) or datasplit in ["val", "test"]:
+        #         self.measure_oversmoothing(x=z_pred[-1].detach(), batch=data.batch, step=step, split=datasplit)
 
         ###############################################################
         # Decode the fixed-point estimate
@@ -613,7 +604,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         else:
             raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
         #
-        print_values(z, "injprenorm", log=False)
+        # print_values(z, "injprenorm", log=False)
         if self.inj_norm == "prev":
             scale = z.norm() / norm_before
             z = z / scale
@@ -634,10 +625,11 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             dtype=self.dtype,
             embedding=z,
         )
-        print_values(x.embedding, "postinj", log=False)
+        # print_values(x.embedding, "postinj", log=False)
         """ Layers / Transformer blocks """
-        prev_layers = self.num_layers_per_stack * stack
-        for i in range(prev_layers, prev_layers + self.num_layers_per_stack):
+        # prev_layers = self.num_layers_per_stack * stack
+        # for i in range(prev_layers, prev_layers + self.num_layers_per_stack):
+        for i in range(self.num_layers):
             x = self.blocks[i](
                 x,  # SO3_Embedding
                 atomic_numbers,

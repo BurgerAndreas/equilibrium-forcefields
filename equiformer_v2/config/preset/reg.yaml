@@ -1,16 +1,20 @@
 # @package _global_
 # this @package directive solves any nesting problem (if this file is included in another folder)
 
+# same as equiformerv2 on OC20 2M
+# https://github.com/atomicarchitects/equiformer_v2/blob/main/oc20/configs/s2ef/2M/equiformer_v2/equiformer_v2_N%4012_L%406_M%402.yml
+
 defaults:
   - base
 
 model:
   # num_layers (int): Number of layers in the GNN
   num_layers: 4 # 8 12
+
   # sphere_channels (int): Number of spherical channels (one set per resolution)
   sphere_channels: 128 # 128
-  # attn_hidden_channels (int): Number of hidden channels used during SO(2) graph attention
-  attn_hidden_channels: 64 # [64, 96] This determines the hidden size of message passing. Do not necessarily use 96. 
+  # attn_hidden_channels (int): Number of hidden channels used during SO(2) graph attention message passing
+  attn_hidden_channels: 64 # [64, 96] 
   # num_heads (int): Number of attention heads
   num_heads: 8 # 8
   # attn_alpha_head (int): Number of channels for alpha vector in each attention head

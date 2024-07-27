@@ -7,25 +7,29 @@ defaults:
 model:
   # num_layers (int): Number of layers in the GNN
   num_layers: 4 # 8 12
-  # sphere_channels (int): Number of spherical channels (one set per resolution)
-  sphere_channels: 128 # 128
-  # attn_hidden_channels (int): Number of hidden channels used during SO(2) graph attention
-  attn_hidden_channels: 64 # [64, 96] This determines the hidden size of message passing. Do not necessarily use 96. 
-  # num_heads (int): Number of attention heads
-  num_heads: 8 # 8
-  # attn_alpha_head (int): Number of channels for alpha vector in each attention head
-  attn_alpha_channels: 64 # 64 # Not used when `use_s2_act_attn` is True. 
-  # attn_value_head (int): Number of channels for value vector in each attention head
-  attn_value_channels: 16 # 16
-  # ffn_hidden_channels (int): Number of hidden channels used during feedforward network
-  ffn_hidden_channels: 128 # 128
-  # edge_channels (int): Number of channels for the edge invariant features
-  edge_channels: 128 # 128
 
+  # 1/4 of reg_l3
+  # sphere_channels (int): Number of spherical channels (one set per resolution)
+  sphere_channels: 32 # 128
+  # attn_hidden_channels (int): Number of hidden channels used during SO(2) graph attention
+  attn_hidden_channels: 16 # [64, 96] This determines the hidden size of message passing. Do not necessarily use 96. 
+  # num_heads (int): Number of attention heads
+  num_heads: 2 # 8
+  # attn_alpha_head (int): Number of channels for alpha vector in each attention head
+  attn_alpha_channels: 16 # 64 # Not used when `use_s2_act_attn` is True. 
+  # attn_value_head (int): Number of channels for value vector in each attention head
+  attn_value_channels: 4 # 16
+  # ffn_hidden_channels (int): Number of hidden channels used during feedforward network
+  ffn_hidden_channels: 32 # 128
+  # edge_channels (int): Number of channels for the edge invariant features
+  edge_channels: 32 # 128
+
+  # unchanged
   # lmax_list (int): List of maximum degree of the spherical harmonics (1 to 10)
   lmax_list: [3] # 4
   # mmax_list (int): List of maximum order of the spherical harmonics (0 to lmax)
   mmax_list: [2] 
   # grid_resolution (int): Resolution of SO3_Grid
   grid_resolution: 14 # [18, 16, 14, None] For `None`, simply comment this line. 
+
 

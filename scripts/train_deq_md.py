@@ -924,6 +924,7 @@ def train_md(args):
             epoch_train_time = time.perf_counter() - epoch_start_time
         except Exception as e:
             _log.info(f"Error in training:\n {e}")
+            wandb.log({"error": str(e)}, step=global_step)
             # print full stack trace
             _log.info(traceback.format_exc())
             # save checkpoint as example for further analysis
@@ -1979,9 +1980,11 @@ def evaluate(
         criterion_energy.eval()
         criterion_force.eval()
 
+    # logging loss for each data index only makes sense with batch_size=1
     loss_per_idx = False
     if args.eval_batch_size == 1:
         loss_per_idx = True
+
     # only if it is the last epoch or if we are evaluating
     # if (epoch + 1) % args.test_interval == 0
     max_epochs = min(args.epochs, args.max_epochs)
@@ -1991,6 +1994,7 @@ def evaluate(
         pass
     else:
         # it is not the last test
+        # don't do fpreuse and loss_per_idx (takes too long)
         if args.fpreuse_last_test_only:
             fpreuse_list = [False]
         loss_per_idx = False

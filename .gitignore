@@ -8,7 +8,7 @@ equiformer/datasets/oc20
 # ocp
 
 models/*
-models1
+modelstemp
 
 traces/*
 scrap

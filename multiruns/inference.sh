@@ -1,66 +1,62 @@
 #!/bin/bash
 
+# replace `launchrun` with `sbatch scripts/amd_launcher.slrm train_deq_md_v2.py` or `sbatch scripts/slurm_launcher.slrm train_deq_md_v2.py`
 
-# run this on a machine with the checkpointed models from multiruns/md17.sh
-# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05
-# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 seed=2
-# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 seed=3
-# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 model.num_layers=2
-# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 model.num_layers=2 seed=2
-# launchrun +use=deq +cfg=fpc_of model.path_drop=0.05 model.num_layers=2 seed=3
-# launchrun model.alpha_drop=0.1 model.path_drop=0.05 model.num_layers=1
-# launchrun model.alpha_drop=0.1 model.path_drop=0.05 model.num_layers=1 seed=2
-# launchrun model.alpha_drop=0.1 model.path_drop=0.05 model.num_layers=1 seed=3
-# launchrun model.alpha_drop=0.1 model.path_drop=0.05 model.num_layers=2 
-# launchrun model.alpha_drop=0.1 model.path_drop=0.05 model.num_layers=2 seed=2
-# launchrun model.alpha_drop=0.1 model.path_drop=0.05 model.num_layers=2 seed=3
+# run with `source multiruns/md17_deq.sh`
 
-# for speed table and accuracy table
+md17=(aspirin benzene ethanol malonaldehyde naphthalene salicylic_acid toluene uracil)
+md22=(AT_AT_CG_CG AT_AT Ac_Ala3_NHMe DHA buckyball_catcher dw_nanotube stachyose)
 
-# launchrun evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1
-# launchrun evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4
-# launchrun evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8
+# DEQ MD17
+for mol in ${md17[@]}; do
+    launchrun +use=deq +cfg=bp wandb_tags=["md17"] target=$mol +inf=bs1
+    # launchrun +use=deq +cfg=bp wandb_tags=["md17"] target=$mol model.num_layers=2 +inf=bs1
+    # launchrun model.num_layers=1 +cfg=dd wandb_tags=["md17"] target=$mol +inf=bs1
+    # launchrun model.num_layers=4 +cfg=dd  wandb_tags=["md17"] target=$mol +inf=bs1
+    # launchrun model.num_layers=8 +cfg=dd  wandb_tags=["md17"] target=$mol +inf=bs1
+done
 
-# md17=(benzene ethanol malonaldehyde naphthalene salicylic_acid toluene uracil)
-# for target in "${md17[@]}"; do
-#     # loop over fpreuse_f_tol
-#     # 16 values * 8 molecules * 2 models * 3 seeds * 1 minute = 768 minutes = 12.8 hours
-#     # for fpreuse_f_tol in 1e-4 1e-3 1e-2 5e-2 1e-1 2e-1 3e-1 4e-1 5e-1 6e-1 7e-1 8e-1 9e-1 1e0 1e1 1e2; do
-#     #     # without dropout
-#     #     launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=$fpreuse_f_tol target=$target
-#     #     launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=2 deq_kwargs_test.fpreuse_f_tol=$fpreuse_f_tol target=$target
-#     #     # with dropout
-#     #     # launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.path_drop=0.05 model.num_layers=2 deq_kwargs_test.fpreuse_f_tol=$fpreuse_f_tol target=$target
-#     # done
+# E MD17
+for mol in ${md17[@]}; do
+    # launchrun +use=deq +cfg=bp wandb_tags=["md17"] target=$mol +inf=bs1
+    # launchrun +use=deq +cfg=bp wandb_tags=["md17"] target=$mol model.num_layers=2 +inf=bs1
+    launchrun model.num_layers=1 +cfg=dd wandb_tags=["md17"] target=$mol +inf=bs1
+    launchrun model.num_layers=4 +cfg=dd  wandb_tags=["md17"] target=$mol +inf=bs1
+    launchrun model.num_layers=8 +cfg=dd  wandb_tags=["md17"] target=$mol +inf=bs1
+done
 
-#     # DEQ most important run
-#     launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
-#     launchrun +use=deq +cfg=fpc_of model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
+# DEQ MD22
+for mol in ${md22[@]}; do
+    launchrun +use=deq +cfg=bp wandb_tags=["md22"] target=$mol +inf=bs1
+    # launchrun +use=deq +cfg=bp wandb_tags=["md22"] target=$mol model.num_layers=2 +inf=bs1
+    # launchrun model.num_layers=1 +cfg=dd wandb_tags=["md22"] target=$mol +inf=bs1
+    # launchrun model.num_layers=4 +cfg=dd  wandb_tags=["md22"] target=$mol +inf=bs1
+    # launchrun model.num_layers=8 +cfg=dd  wandb_tags=["md22"] target=$mol +inf=bs1
+done
 
-#     # Equiformer
-#     launchrun evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=1 target=$target
-#     launchrun evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=4 target=$target
-#     launchrun evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=$target
-# done
+# E MD17
+for mol in ${md22[@]}; do
+    # launchrun +use=deq +cfg=bp wandb_tags=["md22"] target=$mol +inf=bs1
+    # launchrun +use=deq +cfg=bp wandb_tags=["md22"] target=$mol model.num_layers=2 +inf=bs1
+    launchrun model.num_layers=1 +cfg=dd wandb_tags=["md22"] target=$mol +inf=bs1
+    launchrun model.num_layers=4 +cfg=dd  wandb_tags=["md22"] target=$mol +inf=bs1
+    launchrun model.num_layers=8 +cfg=dd  wandb_tags=["md22"] target=$mol +inf=bs1
+done
 
-# for target in benzene ethanol malonaldehyde naphthalene salicylic_acid toluene uracil; do
-#     launchrun evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=$target
-    
-#     launchrun +use=deq +cfg=fpc_of model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
-#     launchrun +use=deq +cfg=fpc_of model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=1e-1 target=$target
+# DEQ 2layer MD17
+for mol in ${md17[@]}; do
+    # launchrun +use=deq +cfg=bp wandb_tags=["md17"] target=$mol +inf=bs1
+    launchrun +use=deq +cfg=bp wandb_tags=["md17"] target=$mol model.num_layers=2 +inf=bs1
+    # launchrun model.num_layers=1 +cfg=dd wandb_tags=["md17"] target=$mol +inf=bs1
+    # launchrun model.num_layers=4 +cfg=dd  wandb_tags=["md17"] target=$mol +inf=bs1
+    # launchrun model.num_layers=8 +cfg=dd  wandb_tags=["md17"] target=$mol +inf=bs1
+done
 
-#     launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
-#     launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=1e-1 target=$target
-
-# done
-
-for target in benzene ethanol malonaldehyde naphthalene salicylic_acid toluene uracil; do
-    # launchrun evaluate=True wandb_tags=["inference"] assert_checkpoint=True eval_batch_size=1 model.num_layers=8 target=$target
-    
-    # launchrun +use=deq +cfg=fpc_of model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=2e-1 target=$target
-    launchrun +use=deq +cfg=fpc_of model.num_layers=2 evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 target=$target
-
-    launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 target=$target
-    # launchrun +use=deq +cfg=fpc_of evaluate=True wandb_tags=["inference2"] assert_checkpoint=True eval_batch_size=1 deq_kwargs_test.fpreuse_f_tol=1e-1 target=$target
-
+# DEQ 2layer MD22
+for mol in ${md22[@]}; do
+    # launchrun +use=deq +cfg=bp wandb_tags=["md22"] target=$mol +inf=bs1
+    launchrun +use=deq +cfg=bp wandb_tags=["md22"] target=$mol model.num_layers=2 +inf=bs1
+    # launchrun model.num_layers=1 +cfg=dd wandb_tags=["md22"] target=$mol +inf=bs1
+    # launchrun model.num_layers=4 +cfg=dd  wandb_tags=["md22"] target=$mol +inf=bs1
+    # launchrun model.num_layers=8 +cfg=dd  wandb_tags=["md22"] target=$mol +inf=bs1
 done

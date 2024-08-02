@@ -42,8 +42,9 @@ def fix_args(args: OmegaConf):
 
     # regular Equiformer cannot use fpreuse_test
     else:
-        if "fpreuse_test" in args:
-            args.fpreuse_test = False
+        if "equiform_allow_fpreuse" not in args or args.equiform_allow_fpreuse is False:
+            if "fpreuse_test" in args:
+                args.fpreuse_test = False
 
     # if we use fpreuse, we need to make sure that the test set is consecutive across batches
     if "fpreuse_test" in args and args.fpreuse_test:

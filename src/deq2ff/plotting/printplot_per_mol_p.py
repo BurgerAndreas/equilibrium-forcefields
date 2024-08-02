@@ -21,10 +21,14 @@ from deq2ff.plotting.style import (
     myrc,
 )
 
+project = "Equi2"
+
 nans = ["NaN", pd.NA, None, float("inf"), np.nan]
 
 
-def print_table(_df, runs_with_dropout, mode="Force", add_nfe=False):
+def print_table(
+        _df, runs_with_dropout, mode="Force", add_nfe=False, compare_pairwise=False
+    ):
     assert mode in [
         "Force",
         "Energy",
@@ -152,16 +156,36 @@ def print_table(_df, runs_with_dropout, mode="Force", add_nfe=False):
     # mark the best row in each column
     for _c in range(mean_values.shape[1]):
         if mode == "Time":
-            # ingore the first row: Equiformer 1 layer
-            # compare the second row (Equiformer 4 layers) and the fourth row (DEQ 2 layers)
-            for pair in [(1, 3), (2, 4)]:
+            if compare_pairwise:
+                # only compare 1-layer DEQ vs 4-layer Equiformer,
+                # and 2-layer DEQ vs 8-layer Equiformer
+                # ingore the first row: Equiformer 1 layer
+                # compare the second row (Equiformer 4 layers) and the fourth row (DEQ 2 layers)
+                for pair in [(1, 3), (2, 4)]:
+                    _means = mean_values[:, _c]
+                    # shift all errors up, except the pair
+                    mask = np.ones(_means.shape, dtype=bool) * 1000.0
+                    mask[pair[0]] = 0
+                    mask[pair[1]] = 0
+                    _means = _means + mask
+                    best_row = np.argmin(_means)
+                    # the first column in each line is the row name
+                    line_prev = lines[best_row][_c + 1]
+                    line_prev = (
+                        line_prev.replace("$", "")
+                        .replace(" &", "")
+                        .replace("\\\\", "")
+                        .replace(padding, "")
+                    )
+                    lines[best_row][_c + 1] = "$ \\mathbf{" + line_prev + "} $"
+                    if _c == mean_values.shape[1] - 1:
+                        lines[best_row][_c + 1] += "\\\\"
+                    else:
+                        lines[best_row][_c + 1] += " &"
+            else:
                 _means = mean_values[:, _c]
-                mask = np.ones(_means.shape, dtype=bool) * 1000.0
-                mask[pair[0]] = 0
-                mask[pair[1]] = 0
-                _means = _means + mask
                 best_row = np.argmin(_means)
-                # lines first column is the row name
+                # the first column in each line is the row name
                 line_prev = lines[best_row][_c + 1]
                 line_prev = (
                     line_prev.replace("$", "")
@@ -174,7 +198,9 @@ def print_table(_df, runs_with_dropout, mode="Force", add_nfe=False):
                     lines[best_row][_c + 1] += "\\\\"
                 else:
                     lines[best_row][_c + 1] += " &"
+
         else:
+            # ?
             best_row = np.argmin(mean_values[:, _c])
             # lines first column is the row name
             line_prev = lines[best_row][_c + 1]
@@ -205,7 +231,9 @@ def print_table(_df, runs_with_dropout, mode="Force", add_nfe=False):
     return
 
 
-def print_table_time_forces(_df, runs_with_dropout):
+def print_table_time_forces(
+        _df, runs_with_dropout, compare_pairwise=False
+    ):
     # filter for target=aspirin
     # _df = _df[_df["Target"] == "aspirin"]
 
@@ -244,7 +272,7 @@ def print_table_time_forces(_df, runs_with_dropout):
     # padding of 9 chars to compensate for 'mathbf{}'
     padding = " " * 9
 
-    print(f"\nCombined table (dropout={runs_with_dropout}):")
+    print(f"\nCombined Force+Time table (dropout={runs_with_dropout}):")
     lines_both = []
     for mode in ["Force", "Time"]:
         first_deq = True
@@ -254,7 +282,7 @@ def print_table_time_forces(_df, runs_with_dropout):
             metric = "test_f_mae"
         elif mode == "Energy":
             metric = "test_e_mae"
-        else:
+        else: # Time
             metric = "time_forward_per_batch_test_lowest"
         for _r, row in enumerate(list(_df["type"].unique())):
             line = [row + " & "]
@@ -306,14 +334,31 @@ def print_table_time_forces(_df, runs_with_dropout):
         # mark the best row in each column
         for _c in range(mean_values.shape[1]):
             if mode == "Time":
-                # ingore the first row: Equiformer 1 layer
-                # compare the second row (Equiformer 4 layers) and the fourth row (DEQ 2 layers)
-                for pair in [(1, 3), (2, 4)]:
+                if compare_pairwise:
+                    # ingore the first row: Equiformer 1 layer
+                    # compare the second row (Equiformer 4 layers) and the fourth row (DEQ 2 layers)
+                    for pair in [(1, 3), (2, 4)]:
+                        _means = mean_values[:, _c]
+                        mask = np.ones(_means.shape, dtype=bool) * 1000.0
+                        mask[pair[0]] = 0
+                        mask[pair[1]] = 0
+                        _means = _means + mask
+                        best_row = np.argmin(_means)
+                        # lines first column is the row name
+                        line_prev = lines[best_row][_c + 1]
+                        line_prev = (
+                            line_prev.replace("$", "")
+                            .replace(" &", "")
+                            .replace("\\\\", "")
+                            .replace(padding, "")
+                        )
+                        lines[best_row][_c + 1] = "$ \\mathbf{" + line_prev + "} $"
+                        if _c == mean_values.shape[1] - 1:
+                            lines[best_row][_c + 1] += "\\\\"
+                        else:
+                            lines[best_row][_c + 1] += " &"
+                else:
                     _means = mean_values[:, _c]
-                    mask = np.ones(_means.shape, dtype=bool) * 1000.0
-                    mask[pair[0]] = 0
-                    mask[pair[1]] = 0
-                    _means = _means + mask
                     best_row = np.argmin(_means)
                     # lines first column is the row name
                     line_prev = lines[best_row][_c + 1]
@@ -359,7 +404,7 @@ def print_table_time_forces(_df, runs_with_dropout):
                 lines_force[_r][_c].replace("\\\\", "&") + lines_time[_r][_c]
             )
 
-    # compute relative speedupt between Equiformer 8 layers and DEQ 2 layers
+    # compute relative speedup between Equiformer 8 layers and DEQ 2 layers
     avg_speedup = 0.0
     for _c, col in enumerate(list(_df["Target"].unique())):
         val_eq8 = _df[
@@ -368,9 +413,14 @@ def print_table_time_forces(_df, runs_with_dropout):
         val_deq2 = _df[
             (_df["type"] == "DEQuiformer (2 layers)") & (_df["Target"] == col)
         ]["time_forward_per_batch_test_lowest"].values
-        if len(val_eq8) == 0 or len(val_deq2) == 0:
+        if len(val_eq8) == 0:
             print(
-                f" Warning: No value for Equiformer 8 layers and DEQ 2 layers for {col}"
+                f" Warning: No value for Equiformer 8 layers for {col}"
+            )
+            continue
+        if len(val_deq2) == 0:
+            print(
+                f" Warning: No value for DEQ 2 layers for {col}"
             )
             continue
         for seed in range(1, 4):
@@ -386,7 +436,7 @@ def print_table_time_forces(_df, runs_with_dropout):
     avg_speedup /= len(list(_df["Target"].unique()))
     print(f"Average speedup: {avg_speedup:.2f}")
 
-    print(f"\nCombined table:")
+    print(f"\nCombined Force+Time table:")
     for _l, line in enumerate(lines):
         if _l == first_deq:
             print("\midrule[0.6pt]")
@@ -398,9 +448,9 @@ if __name__ == "__main__":
     filter_eval_batch_size = 1  # 1 or 4
     # filter_fpreuseftol = [1e1, 1e0, 1e-1, 1e-2, 1e-3, 1e-4]
     # filter_fpreuseftol = {"max": 1e1, "min": 1e-4}
-    set_fpreuseftol = 2e-1
+    set_fpreuseftol = 1e-2 # 2e-1
     # seeds = [1]
-    seeds = [1, 2, 3]
+    seeds = [1]
     Target = "aspirin"  # aspirin, all, malonaldehyde, ethanol
     time_metric = (
         "time_forward_per_batch_test" + "_lowest"
@@ -408,38 +458,27 @@ if __name__ == "__main__":
     acc_metric = (
         "test_f_mae" + "_lowest"
     )  # test_f_mae_lowest, test_f_mae, test_e_mae_lowest, test_e_mae, best_test_f_mae, best_test_e_mae
-    layers_deq = [1, 2, 3]
+    layers_deq = [1, 2]
     layers_equi = [1, 4, 8]
     # hosts = ["tacozoid11", "tacozoid10", "andreasb-lenovo"]
-    # hosts, hostname = ["tacozoid11", "tacozoid10"], "taco"
-    hosts, hostname = ["andreasb-lenovo"], "bahen"
+    hosts, hostname = ["tacozoid11", "tacozoid10"], "taco"
+    # hosts, hostname = ["andreasb-lenovo"], "bahen"
 
     # set_fpreuseftol = {
     #     "aspirin": 2e-1,
     #     "benzene": 2e-1,
-    #     "ethanol": 1e-3,
-    #     "malonaldehyde": 1e-3,
-    #     "naphthalene": 1e-3,
-    #     "salicylic_acid": 1e-3,
-    #     "toluene": 1e-3,
-    #     "uracil": 1e-3,
+    #     "ethanol": 1e-1,
+    #     "malonaldehyde": 1e-1,
+    #     "naphthalene": 1e-1,
+    #     "salicylic_acid": 1e-1,
+    #     "toluene": 1e-1,
+    #     "uracil": 1e-1,
     # }
-    # runs_with_dropout = True
-
-    set_fpreuseftol = {
-        "aspirin": 2e-1,
-        "benzene": 2e-1,
-        "ethanol": 1e-1,
-        "malonaldehyde": 1e-1,
-        "naphthalene": 1e-1,
-        "salicylic_acid": 1e-1,
-        "toluene": 1e-1,
-        "uracil": 1e-1,
-    }
-    runs_with_dropout = False
+    runs_with_dropout = True
+    filter_fpreuse_f_tol = False
 
     # download data or load from file
-    download_data = False
+    download_data = True
 
     # choose from
     eval_batch_sizes = [1, 4]
@@ -466,9 +505,10 @@ if __name__ == "__main__":
         runs = api.runs(
             project,
             {
-                "tags": "inference2",
+                # "tags": "inference2",
+                "$and": [{"tags": "md17"}, {"tags": "eval"}],
                 "state": "finished",
-                # $or": [{"tags": "md17"}, {"tags": "main2"}, {"tags": "inference"}],
+                # "$or": [{"tags": "md17"}, {"tags": "main2"}, {"tags": "inference"}],
                 # "state": "finished",
                 # "$or": [{"state": "finished"}, {"state": "crashed"}],
             },
@@ -564,6 +604,7 @@ if __name__ == "__main__":
         df = pd.read_csv(f"{plotfolder}/{fname}.csv")
 
     print("Loaded dataframe:", df)
+    assert not df.empty, "Dataframe is empty!"
 
     # print('\nFiltering for Target:', _Target)
     # df = df[df["Target"] == Target]
@@ -621,22 +662,23 @@ if __name__ == "__main__":
     df["fpreuse_f_tol"] = df["fpreuse_f_tol"].astype(float)
 
     # filter for fpreuse_f_tol per target
-    if isinstance(set_fpreuseftol, dict):
-        _dfts = []
-        for _target, _tol in set_fpreuseftol.items():
-            _dft = df[df["Target"] == _target]
-            print(
-                f' Found fpreuse_f_tol={_dft["fpreuse_f_tol"].unique()} for target={_target}'
-            )
-            _dft = _dft[_dft["fpreuse_f_tol"].isin([_tol] + nans)]
-            print(
-                f"  Found {_dft.shape[0]} rows for target={_target} and fpreuse_f_tol={_tol}"
-            )
-            _dfts.append(_dft)
-        df = pd.concat(_dfts)
-        # df = df[(df["fpreuse_f_tol"] >= filter_fpreuseftol["min"]) & (df["fpreuse_f_tol"] <= filter_fpreuseftol["max"])]
-    else:
-        df = df[df["fpreuse_f_tol"].isin([set_fpreuseftol] + nans)]
+    if filter_fpreuse_f_tol:
+        if isinstance(set_fpreuseftol, dict):
+            _dfts = []
+            for _target, _tol in set_fpreuseftol.items():
+                _dft = df[df["Target"] == _target]
+                print(
+                    f' Found fpreuse_f_tol={_dft["fpreuse_f_tol"].unique()} for target={_target}'
+                )
+                _dft = _dft[_dft["fpreuse_f_tol"].isin([_tol] + nans)]
+                print(
+                    f"  Found {_dft.shape[0]} rows for target={_target} and fpreuse_f_tol={_tol}"
+                )
+                _dfts.append(_dft)
+            df = pd.concat(_dfts)
+            # df = df[(df["fpreuse_f_tol"] >= filter_fpreuseftol["min"]) & (df["fpreuse_f_tol"] <= filter_fpreuseftol["max"])]
+        else:
+            df = df[df["fpreuse_f_tol"].isin([set_fpreuseftol] + nans)]
 
     # fpreuse_f_tol: replace nans with 0
     # df["fpreuse_f_tol"] = df["fpreuse_f_tol"].apply(lambda x: 0.0 if np.isnan(x) else x)

@@ -776,7 +776,7 @@ class EquiformerV2_OC20(BaseModel):
                 self.blocks[i].noise_out.update_mask(x.shape, x.dtype, x.device)
 
     @conditional_grad(torch.enable_grad())
-    def forward(self, data, step=None, datasplit=None, **kwargs):
+    def forward(self, data, step=None, datasplit=None, return_fixedpoint=False, **kwargs):
         self.batch_size = len(data.natoms)
         self.dtype = data.pos.dtype
         self.device = data.pos.device
@@ -963,8 +963,12 @@ class EquiformerV2_OC20(BaseModel):
                 forces = forces * force_scale
 
         if not self.regress_forces:
+            if return_fixedpoint:
+                return energy, None, {}
             return energy, {}
         else:
+            if return_fixedpoint:
+                return energy, forces, None, {}
             return energy, forces, {}
 
     # Initialize the edge rotation matrics

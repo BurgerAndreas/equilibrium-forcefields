@@ -458,6 +458,7 @@ def train_md(args):
         shuffle=args.shuffle_test,
         drop_last=args.drop_last_test,
     )
+    assert len(test_loader) > 0, f"Empty test_loader: len(test_loader)={len(test_loader)}"
     # full dataset for final evaluation
     test_loader_full = DataLoader(
         test_dataset_full,
@@ -2016,10 +2017,10 @@ def evaluate(
 
     # remove because of torchdeq and force prediction via dE/dx
     # with torch.no_grad():
-    grad_test = torch.tensor(1., requires_grad=True) 
+    # grad_test = torch.tensor(1., requires_grad=True) 
     with torch.set_grad_enabled(args.test_w_grad):
 
-        B = grad_test + 1
+        # B = grad_test + 1
         # print(f'tracking gradients: {B.requires_grad}')
 
         for fpreuse_test in fpreuse_list:
@@ -2293,7 +2294,7 @@ def evaluate(
                 step=global_step,
             )
 
-            print(f"Finished {_datasplit} evaluation after {step} steps (epoch {epoch}).")
+            print(f"Finished evaluation: {_datasplit} ({global_step} training steps, epoch {epoch}).")
             # print
             # for k, v in _logs.items():
             #     logger.info(f" {k}: {v}")

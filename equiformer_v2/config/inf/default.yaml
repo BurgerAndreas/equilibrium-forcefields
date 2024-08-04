@@ -1,0 +1,26 @@
+# @package _global_
+# this @package directive solves any nesting problem (if this file is included in another folder)
+
+# deq_kwargs:
+#   # core: sliced
+#   f_solver: 'anderson'
+#   f_stop_mode: 'rel'
+#   f_tol: 1e-2
+
+evaluate: True
+assert_checkpoint: True
+
+datasplit: "equiformer"
+test_patches: 1
+test_max_iter: 1000
+test_patch_sizes: null
+eval_batch_size: 24
+
+# datasplit: "fpreuse_overlapping"
+# test_patches: 1000
+# test_patch_size: 2
+# test_max_iter: -1
+# eval_batch_size: 1
+
+# will only apply to DEQs
+fpreuse_test: False

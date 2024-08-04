@@ -108,7 +108,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             assert self.sphere_channels_fixedpoint == sphere_channels
         
         # self.stacks = stacks
-        self.num_layers = num_layers
+        # self.num_layers = num_layers
 
         non_deq_kwargs = copy.deepcopy(kwargs)
         non_deq_kwargs.pop("deq_kwargs", None)
@@ -144,9 +144,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         self.blocks = nn.ModuleList()
         for i in range(self.num_layers):
             sphere_channels_in = self.sphere_channels
-            if i == 0:
-                # add input_injection
-                if self.inp_inj == "cat":
+            if (i == 0) and (self.inp_inj == "cat"):
                     sphere_channels_in = (
                         self.sphere_channels_fixedpoint + self.sphere_channels
                     )
@@ -603,7 +601,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             z = inj_w1 * x + inj_w2 * emb
         else:
             raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
-        #
+        """ Normalize after input injection """
         # print_values(z, "injprenorm", log=False)
         if self.inj_norm == "prev":
             scale = z.norm() / norm_before

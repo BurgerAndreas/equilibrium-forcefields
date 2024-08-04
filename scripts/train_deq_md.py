@@ -2016,7 +2016,11 @@ def evaluate(
 
     # remove because of torchdeq and force prediction via dE/dx
     # with torch.no_grad():
+    grad_test = torch.tensor(1., requires_grad=True) 
     with torch.set_grad_enabled(args.test_w_grad):
+
+        B = grad_test + 1
+        # print(f'tracking gradients: {B.requires_grad}')
 
         for fpreuse_test in fpreuse_list:
             # name for logging

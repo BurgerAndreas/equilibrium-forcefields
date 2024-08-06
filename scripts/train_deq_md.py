@@ -2068,15 +2068,6 @@ def evaluate(
                 data = data.to(device)
                 data = data.to(device, dtype)
 
-                # if we pass step, things will be logged to wandb
-                # note that global_step is only updated in train_one_epoch
-                # which is why we only want to log once per evaluation
-                if step == max_steps - 1:
-                    pass_step = global_step
-                else:
-                    pass_step = None
-
-                # TODO
                 log_fp = True
                 if fpreuse_test and (step % patch_size == 0):
                     # reset fixed-point
@@ -2084,6 +2075,16 @@ def evaluate(
                     prev_idx = None
                     # for time and nsteps only keep samples where we used the fixed-point
                     log_fp = False
+
+                # if we pass step, things will be logged to wandb
+                # note that global_step is only updated in train_one_epoch
+                # which is why we only want to log once per evaluation
+                if step == max_steps - 1:
+                    pass_step = global_step
+                    # if we are logging stuff we don't want to time it
+                    log_fp = False
+                else:
+                    pass_step = None
 
                 torch.cuda.synchronize()
                 forward_start_time = time.perf_counter()

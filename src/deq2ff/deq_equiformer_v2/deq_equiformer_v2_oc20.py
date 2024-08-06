@@ -193,7 +193,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
     def _init_deq(self, **kwargs):
         return _init_deq(self, **kwargs)
 
-    @conditional_grad(torch.enable_grad())
+    # @conditional_grad(torch.enable_grad())
     def forward(
         self,
         data,
@@ -219,6 +219,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             return_fixedpoint: Return the final fixed-point estimate
             solver_kwargs: Additional kwargs or overrides for the deq solver
         """
+        # The following "encoder" is the same as EquiformerV2_OC20
+        # and yields the input injection
         # data.natoms: [batch_size]
         # data.pos: [batch_size*num_atoms, 3])
         # data.atomic_numbers = data.z: [batch_size*num_atoms]
@@ -336,11 +338,11 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             x.embedding = self.norm_enc(x.embedding)
 
         # logging
-        if step is not None:
-            # log the input injection (output of encoder)
-            logging_utils_deq.log_fixed_point_norm(
-                x.embedding.clone().detach(), step, datasplit, name="emb"
-            )
+        # if step is not None:
+        #     # log the input injection (output of encoder)
+        #     logging_utils_deq.log_fixed_point_norm(
+        #         x.embedding.clone().detach(), step, datasplit, name="emb"
+        #     )
 
         ###############################################################
         # Update spherical node embeddings
@@ -363,27 +365,33 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         #     info = {}
         # else:
         # emb_SO3 = x
+
+        # In Equiformer x are the node features,
+        # where x is initialized in the "encoder" and then updated in the transformer blocks. 
+        # In DEQ x is also initialized in the "encoder" but then used as the input injection.
         emb = x.embedding
 
+        # if previous fixed-point is not reused, initialize z
         if fixedpoint is None:
-            x: torch.Tensor = self._init_z(shape=emb.shape, emb=emb)
+            z: torch.Tensor = self._init_z(shape=emb.shape, emb=emb)
             reuse = False
         else:
             reuse = True
-            x = fixedpoint.to(emb.device)
+            z = fixedpoint.to(emb.device)
 
+        # from torchdeq
         reset_norm(self.blocks)
 
         if reset_dropout:
-            self.reset_dropout(x, data.batch)
+            self.reset_dropout(z, data.batch)
 
         # Transformer blocks
         # f = lambda z: self.mfn_forward(z, u)
-        def f(_x):
+        def f(_z):
             # x is a tensor, not SO3_Embedding
             # if batchify_for_torchdeq is True, x in and out should be [B, N, D, C]
             return self.deq_implicit_layer(
-                _x,
+                _z,
                 emb=emb,
                 edge_index=edge_index,
                 edge_distance=edge_distance,
@@ -393,19 +401,19 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         # [B*N, D, C] -> [B, N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
-            x = x.view(self.shape_unbatched)
+            z = z.view(self.shape_unbatched)
 
         # find fixed-point
         # During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
         # During inference, returns a list containing the fixed point solution only.
         # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
         z_pred, info = self.deq(
-            f, x, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
+            f, z, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
         )
         
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
-            z_pred = [z.view(self.shape_batched) for z in z_pred]
+            z_pred = [_z.view(self.shape_batched) for _z in z_pred]
         info["z_pred"] = z_pred
 
         ######################################################
@@ -469,7 +477,10 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         )
 
     def decode(self, data, z, info, return_fixedpoint=False):
-
+        """Predict energy and forces from fixed-point estimate.
+        Uses separate heads for energy and forces.
+        """
+        # tensor -> S03_Embedding
         x = SO3_Embedding(
             length=self.num_atoms,
             lmax_list=self.lmax_list,
@@ -564,41 +575,44 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         return z
 
     def deq_implicit_layer(
-        self, x: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, data,
+        self, z: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, data,
         step=None, datasplit=None, solver_step=None, stack=0,
     ) -> torch.Tensor:
         """Implicit layer for DEQ that defines the fixed-point.
-        Make sure to input and output only torch.tensor, not SO3_Embedding, to not break TorchDEQ.
+        Make sure to inputs and outputs are torch.tensor, not SO3_Embedding, to not break TorchDEQ.
+        Args:
+            z: torch.Tensor, [B, N, D, C]: fixed-point estimate (node features)
+            emb: torch.Tensor, [B, N, D, C]: input injection (output of encoder)
         """
         """ Input injection """
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
-            x = x.view(self.shape_batched)
+            z = z.view(self.shape_batched)
         # we can't use previous of x because we initialize z as 0
-        # norm_before = x.norm()
+        # norm_before = z.norm()
         norm_before = emb.norm()
         # input injection
         channels = self.sphere_channels
         if self.inp_inj == "cat":
-            # x = torch.cat([x, emb], dim=-1)
-            z = torch.cat([x, emb], dim=-1)
+            # z = torch.cat([z, emb], dim=-1)
+            z = torch.cat([z, emb], dim=-1)
             channels = self.sphere_channels + self.sphere_channels_fixedpoint
         elif self.inp_inj == "add":
-            z = x + emb
+            z = z + emb
         elif self.inp_inj == "lc":
             # linear combination with scalar weights
-            z = self.inj_w1 * x + self.inj_w2 * emb
+            z = self.inj_w1 * z + self.inj_w2 * emb
         elif self.inp_inj == "cwlc":
             # linear combination with matrix weights
             # inj_w1: [D,C] -> [B*N, D, C]
             # inj_w1 = self.inj_w1.unsqueeze(0).expand(x.shape[0], -1, -1)
-            inj_w1 = self.inj_w1.repeat(x.shape[0], 1, 1)
-            inj_w2 = self.inj_w2.repeat(x.shape[0], 1, 1)
-            z = inj_w1 * x + inj_w2 * emb
+            inj_w1 = self.inj_w1.repeat(z.shape[0], 1, 1)
+            inj_w2 = self.inj_w2.repeat(z.shape[0], 1, 1)
+            z = inj_w1 * z + inj_w2 * emb
         elif self.inp_inj == "swlc":
-            inj_w1 = self.inj_w1.repeat(x.shape[0], x.shape[1], 1)
-            inj_w2 = self.inj_w2.repeat(x.shape[0], x.shape[1], 1)
-            z = inj_w1 * x + inj_w2 * emb
+            inj_w1 = self.inj_w1.repeat(z.shape[0], z.shape[1], 1)
+            inj_w2 = self.inj_w2.repeat(z.shape[0], z.shape[1], 1)
+            z = inj_w1 * z + inj_w2 * emb
         else:
             raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
         """ Normalize after input injection """
@@ -615,8 +629,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             pass
         else:
             raise ValueError(f"Invalid inj_norm: {self.inj_norm}")
-        x = SO3_Embedding(
-            length=x.shape[0],
+        z = SO3_Embedding(
+            length=z.shape[0],
             lmax_list=self.lmax_list,
             num_channels=channels,
             device=self.device,
@@ -628,8 +642,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # prev_layers = self.num_layers_per_stack * stack
         # for i in range(prev_layers, prev_layers + self.num_layers_per_stack):
         for i in range(self.num_layers):
-            x = self.blocks[i](
-                x,  # SO3_Embedding
+            z = self.blocks[i](
+                z,  # SO3_Embedding
                 atomic_numbers,
                 edge_distance,
                 edge_index,
@@ -637,11 +651,11 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             )
             # self.cnt_layer += 1
             # self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit, layer=self.cnt_layer)
-        x = x.embedding
+        z = z.embedding
         # [B*N, D, C] -> [B, N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
-            x = x.view(self.shape_unbatched)
-        return x
+            z = z.view(self.shape_unbatched)
+        return z
 
     def _init_z(self, shape, emb=None):
         """Initializes fixed-point for DEQ

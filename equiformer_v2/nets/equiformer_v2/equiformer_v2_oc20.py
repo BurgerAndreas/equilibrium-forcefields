@@ -775,7 +775,9 @@ class EquiformerV2_OC20(BaseModel):
             if self.blocks[i].noise_out is not None:
                 self.blocks[i].noise_out.update_mask(x.shape, x.dtype, x.device)
 
-    @conditional_grad(torch.enable_grad())
+    # from OCP models to predict F=dE/dx
+    # not needed since we are predicting forces directly with another head
+    # @conditional_grad(torch.enable_grad())
     def forward(self, data, step=None, datasplit=None, return_fixedpoint=False, **kwargs):
         self.batch_size = len(data.natoms)
         self.dtype = data.pos.dtype
@@ -870,11 +872,11 @@ class EquiformerV2_OC20(BaseModel):
             x.embedding = self.norm_enc(x.embedding)
 
         # logging
-        if step is not None:
-            # log the input injection (output of encoder)
-            logging_utils_deq.log_fixed_point_norm(
-                x.embedding.clone().detach(), step, datasplit, name="emb"
-            )
+        # if step is not None:
+        #     # log the input injection (output of encoder)
+        #     logging_utils_deq.log_fixed_point_norm(
+        #         x.embedding.clone().detach(), step, datasplit, name="emb"
+        #     )
 
         ###############################################################
         # Update spherical node embeddings

@@ -2019,9 +2019,14 @@ def evaluate(
     # with torch.no_grad():
     # grad_test = torch.tensor(1., requires_grad=True) 
     with torch.set_grad_enabled(args.test_w_grad):
-
         # B = grad_test + 1
         # print(f'tracking gradients: {B.requires_grad}')
+
+        # warmup the cuda kernels for accurate timing
+        data = next(iter(data_loader))
+        data = data.to(device)
+        data = data.to(device, dtype)
+        outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
 
         for fpreuse_test in fpreuse_list:
             # name for logging
@@ -2033,7 +2038,7 @@ def evaluate(
             abs_fixed_point_error = []
             rel_fixed_point_error = []
             f_steps_to_fixed_point = []
-            model_forward_time = []
+            model_forward_times = []
             n_fsolver_steps = []
             if loss_per_idx:
                 # wandb table with columns: idx, e_mae, f_mae, nstep, nstep_max, nstep_min
@@ -2054,6 +2059,9 @@ def evaluate(
             fixedpoint = None
             prev_idx = None
 
+            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, but not the actual GPU execution time of the kernel. 
+            # torch.cuda.synchronize() waits for all tasks in the GPU to complete, thereby providing an accurate measure of time taken to execute
+            torch.cuda.synchronize()
             start_time = time.perf_counter()
 
             for step, data in enumerate(data_loader):
@@ -2077,6 +2085,7 @@ def evaluate(
                     # for time and nsteps only keep samples where we used the fixed-point
                     log_fp = False
 
+                torch.cuda.synchronize()
                 forward_start_time = time.perf_counter()
                 # fixed-point reuse
                 if fpreuse_test == True:
@@ -2114,7 +2123,9 @@ def evaluate(
                         solver_kwargs=solver_kwargs,
                     )
                 if log_fp:
-                    model_forward_time += [time.perf_counter() - forward_start_time]
+                    torch.cuda.synchronize()
+                    forward_end_time = time.perf_counter()
+                    model_forward_times += [forward_end_time - forward_start_time]
 
                 target_y = normalizers["energy"](data.y, data.z)
                 target_dy = normalizers["force"](data.dy, data.z)
@@ -2173,6 +2184,7 @@ def evaluate(
                         n_fsolver_steps.append(info["nstep"].mean().item())
 
                 if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
+                    torch.cuda.synchronize()
                     w = time.perf_counter() - start_time
                     e = (step + 1) / max_steps
                     info_str = (
@@ -2221,22 +2233,23 @@ def evaluate(
                     break
 
             # test set finished
+            torch.cuda.synchronize()
             eval_time = time.perf_counter() - start_time  # time for whole test set
             _logs = {
                 f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
                 f"{_datasplit}_f_mae": mae_metrics["force"].avg,
                 f"time_{_datasplit}": eval_time,
-                f"time_forward_per_batch_{_datasplit}": np.mean(model_forward_time),
-                # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_time)
-                f"time_forward_total_{_datasplit}": np.sum(model_forward_time),
+                f"time_forward_per_batch_{_datasplit}": np.mean(model_forward_times),
+                # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_times)
+                f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
             }
             # log the time
             wandb.log(
                 {
                     f"time_{_datasplit}": eval_time,
-                    f"time_forward_per_batch_{_datasplit}": np.mean(model_forward_time),
-                    # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_time),
-                    f"time_forward_total_{_datasplit}": np.sum(model_forward_time),
+                    f"time_forward_per_batch_{_datasplit}": np.mean(model_forward_times),
+                    # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_times),
+                    f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
                 },
                 step=global_step,
             )

@@ -104,7 +104,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         if sphere_channels_fixedpoint is None:
             sphere_channels_fixedpoint = sphere_channels
         self.sphere_channels_fixedpoint = sphere_channels_fixedpoint
-        if self.inp_inj == "cat": # TODO should if == "add"?
+        if self.inp_inj == "cat": # TODO should be if == "add"?
             assert self.sphere_channels_fixedpoint == sphere_channels
         
         # self.stacks = stacks
@@ -118,9 +118,14 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             sphere_channels=sphere_channels, num_layers=num_layers,**non_deq_kwargs
         )
         if self.inp_inj == "lc":
-            # two scalar learnable weights
+            # linear combination: two scalar learnable weights
+            # x = w1 * x + w2 * u (u is the input injection)
             self.inj_w1 = nn.Parameter(torch.ones(1))
             self.inj_w2 = nn.Parameter(torch.ones(1))
+        elif self.inp_inj == "nlc":
+            # normed linear combination:
+            # x = w1 * x + (1-w1) * u
+            self.inj_w1 = nn.Parameter(torch.ones(1))
         elif self.inp_inj == "cwlc":
             # two matrix learnable weights # [D,C]
             # TODO: breaks equivaraince?
@@ -557,6 +562,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 return energy, z.detach().clone(), info
             return energy, info
 
+    # TODO: deprecated
     def inject_input(self, z, u):
         if self.inp_inj == "cat":
             z = torch.cat([z, u], dim=1)
@@ -602,6 +608,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         elif self.inp_inj == "lc":
             # linear combination with scalar weights
             z = self.inj_w1 * z + self.inj_w2 * emb
+        elif self.inp_inj == "nlc":
+            # linear combination with scalar weights
+            z = self.inj_w1 * z + (1-self.inj_w1) * emb
         elif self.inp_inj == "cwlc":
             # linear combination with matrix weights
             # inj_w1: [D,C] -> [B*N, D, C]
@@ -624,7 +633,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             z = z / z.norm()
         elif self.inj_norm == "ln":
             # z = self.inj_ln(z)
-            raise NotImplementedError("inj_norm=ln: use enc_ln=True instead.")
+            raise NotImplementedError("inj_norm=ln: use enc_ln=True inj_norm=null instead.")
         elif self.inj_norm in [None, False, "none", "None"]:
             pass
         else:

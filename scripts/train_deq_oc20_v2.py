@@ -62,7 +62,12 @@ class Runner(submitit.helpers.Checkpointable):
                 optimizer=config["optim"],
                 identifier=config["identifier"],
                 timestamp_id=config.get("timestamp_id", None),
+                # checkpointing
                 run_dir=config.get("run_dir", "./"),
+                checkpoint_path=config.get("checkpoint_path", None), # checkpoint to load
+                checkpoint_wandb_name=config.get("checkpoint_wandb_name", None), 
+                checkpoint_name=config.get("checkpoint.pth", None), # Provide
+                assert_checkpoint=config.get("assert_checkpoint", False),
                 is_debug=config.get("is_debug", False),
                 print_every=config.get("print_every", 10),
                 seed=config.get("seed", 0),
@@ -129,6 +134,7 @@ def hydra_wrapper_oc20(args: DictConfig) -> None:
     """
 
     init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
+    print("checkpoint_name:", args.checkpoint_wandb_name)
 
     # turn args into dictionary for compatibility with ocpmodels
     # args: omegaconf.dictconfig.DictConfig -> dict

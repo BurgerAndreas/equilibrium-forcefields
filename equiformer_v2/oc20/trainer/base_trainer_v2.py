@@ -159,6 +159,10 @@ class BaseTrainerV2(BaseTrainer):
         normalizer=None,
         timestamp_id=None,
         run_dir=None,
+        checkpoint_name=None,
+        checkpoint_wandb_name=None,
+        checkpoint_path=None,
+        assert_checkpoint=False,
         is_debug=False,
         is_hpo=False,
         print_every=100,
@@ -190,6 +194,10 @@ class BaseTrainerV2(BaseTrainer):
         if run_dir is None:
             run_dir = os.getcwd()
         self.run_dir = run_dir
+        self.checkpoint_name = checkpoint_name
+        self.checkpoint_wandb_name = checkpoint_wandb_name
+        self.checkpoint_path = checkpoint_path
+        self.assert_checkpoint = assert_checkpoint
 
         if timestamp_id is None:
             timestamp = torch.tensor(datetime.datetime.now().timestamp()).to(
@@ -243,9 +251,14 @@ class BaseTrainerV2(BaseTrainer):
                 "seed": seed,
                 "timestamp_id": self.timestamp_id,
                 "commit": commit_hash,
+                # TODO: create checkpoint dir based on name
                 "checkpoint_dir": os.path.join(
-                    run_dir, "checkpoints", self.timestamp_id
+                    run_dir, "checkpoints", 
+                    # TODO: changed from self.timestamp_id
+                    self.timestamp_id if self.checkpoint_wandb_name is None else self.checkpoint_wandb_name
                 ),
+                "checkpoint_path": self.checkpoint_path,
+                "assert_checkpoint": self.assert_checkpoint,
                 "results_dir": os.path.join(run_dir, "results", self.timestamp_id),
                 "logs_dir": os.path.join(
                     run_dir, "logs", logger_name, self.timestamp_id
@@ -292,6 +305,7 @@ class BaseTrainerV2(BaseTrainer):
         if self.config.get("dataset", None) is not None and normalizer is None:
             self.normalizer = self.config["dataset"]
 
+        # create directories
         if not is_debug and distutils.is_master() and not is_hpo:
             os.makedirs(self.config["cmd"]["checkpoint_dir"], exist_ok=True)
             os.makedirs(self.config["cmd"]["results_dir"], exist_ok=True)
@@ -379,11 +393,14 @@ class BaseTrainerV2(BaseTrainer):
         
         import deq2ff.register_all_models
 
+        # dataloaders
         loader = self.train_loader or self.val_loader or self.test_loader
         if loader and hasattr(loader.dataset[0], "x") and loader.dataset[0].x is not None:
             x_shape = loader.dataset[0].x.shape[-1]
         else:
             x_shape = None
+
+        # instantiate model
         # https://github.com/atomicarchitects/equiformer_v2/blob/main/nets/equiformer_v2/equiformer_v2_oc20.py
         self.model = registry.get_model_class(self.config["model"])(
             num_atoms = x_shape,
@@ -408,6 +425,30 @@ class BaseTrainerV2(BaseTrainer):
             f"Loaded {self.model.__class__.__name__} with "
             f"{self.model.num_params} parameters."
         )
+
+        # TODO: load model from checkpoint
+        if self.config["cmd"].get("checkpoint_path", None) is not None:
+            if self.config["cmd"]["checkpoint_path"] == "auto":
+                # set the checkpoint path based on the name
+                # checkpoint_dir
+                # TODO: checkpoint_name not used or properly set
+                checkpoint_path = os.path.join(
+                    self.config["cmd"]["checkpoint_dir"], "checkpoint.pth"
+                )
+                logging.info(f"Loading checkpoint from {checkpoint_path}")
+            else:
+                checkpoint_path = self.config["cmd"]["checkpoint_path"]
+            # load the checkpoint
+            if os.path.isfile(checkpoint_path):
+                self.load_checkpoint(checkpoint_path=checkpoint_path)
+            else:
+                if self.config["cmd"].get("assert_checkoint", False):
+                    raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), checkpoint_path)
+                if distutils.is_master():
+                    logging.warning(f"Checkpoint not found at {checkpoint_path}")
+        else:
+            if distutils.is_master():
+                logging.info("No checkpoint provided. Skipping checkpoint loading.")
 
         if self.logger is not None:
             self.logger.log({"ModelParameters": self.model.num_params}, step=0)

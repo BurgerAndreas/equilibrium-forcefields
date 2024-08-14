@@ -65,6 +65,7 @@ class BaseTrainer(ABC):
         normalizer=None,
         timestamp_id=None,
         run_dir=None,
+        checkpoint_name=None,
         is_debug=False,
         is_hpo=False,
         print_every=100,
@@ -90,6 +91,7 @@ class BaseTrainer(ABC):
             # but there are no gpu devices available
         if run_dir is None:
             run_dir = os.getcwd()
+        self.checkpoint_name = checkpoint_name
 
         if timestamp_id is None:
             timestamp = torch.tensor(datetime.datetime.now().timestamp()).to(
@@ -146,8 +148,10 @@ class BaseTrainer(ABC):
                     "models",
                     "OC20",
                     "equiformer_v2",
-                    self.timestamp_id,
+                    # TODO: changed from self.timestamp_id to checkpoint_name
+                    self.timestamp_id if self.checkpoint_wandb_name is None else self.checkpoint_wandb_name,
                 ),
+                "checkpoint_name": checkpoint_name,
                 "results_dir": os.path.join(run_dir, "results", self.timestamp_id),
                 "logs_dir": os.path.join(
                     run_dir, "logs", logger_name, self.timestamp_id

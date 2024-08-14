@@ -14,6 +14,7 @@ from equiformer.optim_factory import scale_batchsize_lr
 
 
 def fix_args(args: OmegaConf):
+    """Fix invalid arg combinations and add runtime information."""
     slurm_job_id = os.environ.get("SLURM_JOB_ID", None)
     args.slurm_job_id = int(slurm_job_id) if slurm_job_id is not None else None
     args = set_gpu_name(args)

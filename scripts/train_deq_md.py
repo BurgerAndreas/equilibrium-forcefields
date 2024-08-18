@@ -255,7 +255,7 @@ def train_md(args):
     #     f"Args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}"
     # )
 
-    # since dataset needs random
+    # set random seed for reproducibility
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
@@ -495,6 +495,14 @@ def train_md(args):
             "avg_edge": avg_edge,
             "avg_degree": avg_degree.item(),
         }
+    
+    # datasplit has been generated with "seed".
+    # "seedrun" is used to initialize model weights and training
+    # without affecting datasplit
+    if args.seedrun not in [None, "None", "none", "null"]:
+        seedrun = int(args.seedrun)
+        torch.manual_seed(seedrun)
+        np.random.seed(seedrun)
 
     """ Instantiate Model """
     _log.info("Creating model...")

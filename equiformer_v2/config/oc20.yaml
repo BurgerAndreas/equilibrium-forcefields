@@ -84,7 +84,9 @@ optim:
   loss_energy: mae
   loss_force: l2mae
 
+  # 200k: len(train_loader)=50k (one epoch)
   eval_every: 5000
+  checkpoint_every: 5000
 
 val_max_iter: 1000
 hide_eval_progressbar: False      

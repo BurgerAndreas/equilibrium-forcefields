@@ -145,6 +145,7 @@ energy_weight: 0.2 # 1
 force_weight: 0.8 # 80
 # (int)
 seed: 1
+seedrun: null
 # (int)
 workers: 4
 # Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU. (bool)

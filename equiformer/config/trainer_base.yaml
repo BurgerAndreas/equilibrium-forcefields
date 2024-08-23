@@ -239,8 +239,8 @@ fpr_weight: 1.0
 unsqueeze_e_dim: False # if to reshape model output [B] (OC20) -> [B,1] (MD17)
 squeeze_e_dim: False # if to reshape data [B,1] (MD17) -> [B] (OC20)
 
-norm_by_atoms: False # if to divide the loss by the number of atoms
-norm_by_atoms_mul: 21 # if norm_by_atoms is True, multiply the loss by this number
+norm_by_natoms: False # if to divide the loss by the number of atoms
+norm_by_natoms_mul: 21 # if norm_by_atoms is True, multiply the loss by this number
 
 # if false, torchdeq treats each node as a separate batch
 # if true, torchdeq treats each graph (molecule) as a separate batch. # [B*N, D, C] -> [B, N, D, C]

@@ -1659,7 +1659,6 @@ def train_one_epoch(
         else:
             pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
         
-        # TODO
         if args.norm_by_natoms:
             loss = loss * args.norm_by_atoms_mul / natoms
 

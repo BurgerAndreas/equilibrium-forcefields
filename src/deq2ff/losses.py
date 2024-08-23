@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 # from ocpmodels.modules.loss import DDPLoss, L2MAELoss
-# from https://github.com/Open-Catalyst-Project/ocp/blob/main/ocpmodels/modules/loss.py#L7
+# from https://github.com/FAIR-Chem/fairchem/blob/v0.0.3/ocpmodels/modules/loss.py
 class L2MAELoss(torch.nn.Module):
     def __init__(self, reduction="mean"):
         super().__init__()

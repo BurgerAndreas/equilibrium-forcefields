@@ -1641,6 +1641,8 @@ def train_one_epoch(
         target_y = normalizers["energy"](data.y, data.z)  # [NB], [NB]
         target_dy = normalizers["force"](data.dy, data.z)
 
+        natoms = data.natoms[0].item()
+
         # reshape model output [B] (OC20) -> [B,1] (MD17)
         if args.unsqueeze_e_dim and pred_y.dim() == 1:
             pred_y = pred_y.unsqueeze(-1)
@@ -1656,6 +1658,10 @@ def train_one_epoch(
             loss += args.force_weight * loss_f
         else:
             pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
+        
+        # TODO
+        if args.norm_by_natoms:
+            loss = loss * args.norm_by_atoms_mul / natoms
 
         # Fixed-point correction loss
         # for superior performance and training stability
@@ -1783,16 +1789,16 @@ def train_one_epoch(
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
 
-        if args.grokfast in [None, False, "None"]:
-            pass
-        elif args.grokfast == "ema":
-            ### Option 1: Grokfast (has argument alpha, lamb)
-            grads = gradfilter_ema(model, grads=grads)
-        elif args.grokfast == "ma":
-            ### Option 2: Grokfast-MA (has argument window_size, lamb)
-            grads = gradfilter_ma(model, grads=grads)
-        else:
-            raise NotImplementedError(f"Grokfast {args.grokfast} not implemented.")
+        # if args.grokfast in [None, False, "None"]:
+        #     pass
+        # elif args.grokfast == "ema":
+        #     ### Option 1: Grokfast (has argument alpha, lamb)
+        #     grads = gradfilter_ema(model, grads=grads)
+        # elif args.grokfast == "ma":
+        #     ### Option 2: Grokfast-MA (has argument window_size, lamb)
+        #     grads = gradfilter_ma(model, grads=grads)
+        # else:
+        #     raise NotImplementedError(f"Grokfast {args.grokfast} not implemented.")
 
         # optionally clip and log grad norm
         if args.clip_grad_norm:

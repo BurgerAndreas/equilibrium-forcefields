@@ -1660,7 +1660,7 @@ def train_one_epoch(
             pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
         
         if args.norm_by_natoms:
-            loss = loss * args.norm_by_atoms_mul / natoms
+            loss = loss * args.norm_by_natoms_mul / natoms
 
         # Fixed-point correction loss
         # for superior performance and training stability

@@ -1544,6 +1544,7 @@ def train_one_epoch(
     abs_fixed_point_error = []
     rel_fixed_point_error = []
     f_steps_to_fixed_point = []
+    grad_norm_epoch_avg = []
 
     # broyden solver outpus NaNs if it diverges
     # count the number of NaNs and stop training if it exceeds a threshold
@@ -1818,6 +1819,7 @@ def train_one_epoch(
                     if param.grad is not None
                 ]
             ).norm()
+        grad_norm_epoch_avg.append(grad_norm.item())
 
         if args.opt in ["sps"]:
             optimizer.step(loss=loss)
@@ -1937,6 +1939,12 @@ def train_one_epoch(
         abs_fixed_point_error = []
         rel_fixed_point_error = []
         f_steps_to_fixed_point = []
+    
+    # epoch statistics
+    wandb.log(
+        {"grad_norm_epoch_avg": np.mean(grad_norm_epoch_avg)}, 
+        step=global_step
+    )
 
     # if loss_metrics is all nan
     # probably because deq_kwargs.f_solver=broyden,anderson did not converge

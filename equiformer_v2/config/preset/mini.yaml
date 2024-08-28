@@ -21,7 +21,7 @@ model:
   # attn_value_head (int): Number of channels for value vector in each attention head
   attn_value_channels: 4 # 16 # half of tiny
   # ffn_hidden_channels (int): Number of hidden channels used during feedforward network
-  ffn_hidden_channels: 128 # 128 unchanged
+  ffn_hidden_channels: 128 # 128 unchanged TODO: why?
   # edge_channels (int): Number of channels for the edge invariant features
   edge_channels: 32 # 128 # half of tiny
 

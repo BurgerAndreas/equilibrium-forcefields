@@ -95,12 +95,16 @@ def create_optimizer(args, model, filter_bias_and_bn=True):
     """Legacy optimizer factory for backwards compatibility.
     NOTE: Use create_optimizer_v2 for new code.
     """
+    if "opt_batch_size" in args and args["opt_batch_size"] not in [None, "none", "None", "null"]:
+        batch_size = args["opt_batch_size"]
+    else:
+        batch_size = args["batch_size"]
     return create_optimizer_v2(
         model,
         **optimizer_kwargs(cfg=args),
         filter_bias_and_bn=filter_bias_and_bn,
         # added for root free optimizers
-        batch_size=args["batch_size"],
+        batch_size=batch_size,
         batch_averaged=args["opt_kwargs"]["batch_averaged"],
     )
 

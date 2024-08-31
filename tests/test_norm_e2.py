@@ -486,7 +486,7 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     from deq2ff.logging_utils import init_wandb
 
-    # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
+    # init_wandb(args, project="oc20-ev2")
     init_wandb(args)
 
     # norms = main(args, inj_norm='prev', ln_type='layer_norm_sh', ln_norm='component')

@@ -23,7 +23,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     # argsmd17.update(args)
     # args = argsmd17
 
-    # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
+    # init_wandb(args, project="oc20-ev2")
     run_id = init_wandb(args)
 
     train_md(args)

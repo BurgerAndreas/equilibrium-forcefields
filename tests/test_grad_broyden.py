@@ -457,7 +457,7 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     from deq2ff.logging_utils import init_wandb
 
-    # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
+    # init_wandb(args, project="oc20-ev2")
     init_wandb(args)
 
     test_if_differentiable_broyden_same_as_before(args)

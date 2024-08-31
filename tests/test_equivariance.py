@@ -38,7 +38,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     args.return_model_and_data = True
     # args.model.max_num_elements = 10
 
-    # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
+    # init_wandb(args, project="oc20-ev2")
     run_id = init_wandb(args)
 
     datas = train(args)

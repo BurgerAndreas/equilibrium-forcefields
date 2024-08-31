@@ -143,7 +143,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     args.norm_forces_by_atom = "normmean"
     args.norm_forces_by_atom = "std3d"
 
-    # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
+    # init_wandb(args, project="oc20-ev2")
     run_id = init_wandb(args)
 
     datas = train(args)

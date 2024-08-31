@@ -133,7 +133,7 @@ def hydra_wrapper_oc20(args: DictConfig) -> None:
         sbatch scripts/slurm_launcher.slrm deq_equiformer.py +machine=vector
     """
 
-    init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
+    init_wandb(args, project="oc20-ev2")
     print("checkpoint_name:", args.checkpoint_wandb_name)
 
     # turn args into dictionary for compatibility with ocpmodels

@@ -4,11 +4,12 @@
 model_is_deq: False
 
 model:
-  use_pbc:                  True # use periodic boundary conditions
-  regress_forces:           True
-  otf_graph:                True
-  # max_neighbors:            20
-  # max_radius:               12.0
+  use_pbc: True # use periodic boundary conditions
+  regress_forces: True
+  forces_via_grad: False
+  otf_graph: True
+  # max_neighbors: 20
+  # max_radius: 12.0
   # Maximum atomic number
   max_num_elements: 90 # 90 
 
@@ -125,35 +126,35 @@ model:
     add_std: 0.05
     recurrent: False
     start_step: 0
-  
+
   stacks: 1
 
 # Optimizer for OC20, ignored in MD17
 # optim:
-#   batch_size:  4 # 4 6 8
-#   eval_batch_size: 4 # 6 # 12
-#   grad_accumulation_steps: 1 # gradient accumulation: effective batch size = `grad_accumulation_steps` * `batch_size` * (num of GPUs)
-#   load_balancing: atoms
-#   num_workers: 8 # 8
-#   lr_initial:  0.0004 # [0.0002, 0.0004], eSCN uses 0.0008 for batch size 96
+# batch_size: 4 # 4 6 8
+# eval_batch_size: 4 # 6 # 12
+# grad_accumulation_steps: 1 # gradient accumulation: effective batch size = `grad_accumulation_steps` * `batch_size` * (num of GPUs)
+# load_balancing: atoms
+# num_workers: 8 # 8
+# lr_initial: 0.0004 # [0.0002, 0.0004], eSCN uses 0.0008 for batch size 96
 
-#   optimizer: AdamW
-#   optimizer_params:
-#     weight_decay: 0.001
+# optimizer: AdamW
+# optimizer_params:
+# weight_decay: 0.001
 
-#   scheduler: LambdaLR
-#   scheduler_params:
-#     lambda_type: cosine
-#     warmup_factor: 0.2
-#     warmup_epochs: 0.1
-#     lr_min_factor: 0.01 
+# scheduler: LambdaLR
+# scheduler_params:
+# lambda_type: cosine
+# warmup_factor: 0.2
+# warmup_epochs: 0.1
+# lr_min_factor: 0.01 
 
-#   # max_epochs: 30
-#   force_coefficient: 100
-#   energy_coefficient: 2 # 4
-#   clip_grad_norm: 100
-#   ema_decay: 0.999
-#   loss_energy: mae
-#   loss_force: l2mae
+# # max_epochs: 30
+# force_coefficient: 100
+# energy_coefficient: 2 # 4
+# clip_grad_norm: 100
+# ema_decay: 0.999
+# loss_energy: mae
+# loss_force: l2mae
 
-#   eval_every: 5000
+# eval_every: 5000

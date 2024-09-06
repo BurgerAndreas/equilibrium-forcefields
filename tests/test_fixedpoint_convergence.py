@@ -173,6 +173,7 @@ def hydra_wrapper(args: DictConfig) -> None:
                         _rel_err = (d_fp2_wo_reuse[-1] / torch.linalg.norm(fp2)).item()
                         print(f"{cnt}: |fp2 - fp2_wreuse| / |fp2| =", _rel_err, "<- should be small")
                         d_fp2_wo_reuse_rel.append(_rel_err)
+                        # TODO: compare the distances between the predicted forces
                 
                 # reps finished
                 

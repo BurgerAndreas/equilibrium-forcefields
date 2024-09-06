@@ -118,6 +118,7 @@ class EquiformerV2_OC20(BaseModel):
         num_targets=None,  # not used
         use_pbc=True,
         regress_forces=True,
+        forces_via_grad=False,
         otf_graph=True,
         max_neighbors=500,
         max_radius=5.0,
@@ -260,6 +261,8 @@ class EquiformerV2_OC20(BaseModel):
 
         self.use_pbc = use_pbc
         self.regress_forces = regress_forces
+        self.direct_forces = not forces_via_grad # for ocp models conditional_grad
+        self.forces_via_grad = forces_via_grad
         self.otf_graph = otf_graph
         self.max_neighbors = max_neighbors
         self.max_radius = max_radius
@@ -777,7 +780,7 @@ class EquiformerV2_OC20(BaseModel):
 
     # from OCP models to predict F=dE/dx
     # not needed since we are predicting forces directly with another head
-    # @conditional_grad(torch.enable_grad())
+    @conditional_grad(torch.enable_grad())
     def forward(self, data, step=None, datasplit=None, return_fixedpoint=False, **kwargs):
         self.batch_size = len(data.natoms)
         self.dtype = data.pos.dtype
@@ -797,6 +800,9 @@ class EquiformerV2_OC20(BaseModel):
 
         num_atoms = len(atomic_numbers)
         # pos = data.pos
+
+        if self.forces_via_grad:
+            data.pos.requires_grad_(True)
 
         (
             edge_index,
@@ -939,30 +945,41 @@ class EquiformerV2_OC20(BaseModel):
         # Force estimation
         ###############################################################
         if self.regress_forces:
-            # x: [num_atoms*batch_size, num_coefficients, sphere_channels]
-            # forces: [num_atoms*batch_size, num_coefficients, 1]
-            forces = self.force_block(x, atomic_numbers, edge_distance, edge_index)
-            # if self.learn_scale_after_force_block:
-            # forces.embedding *= self.learn_scale_after_force_block
-            # [num_atoms*batch_size, 3, 1]
-            forces = forces.embedding.narrow(dim=1, start=1, length=3)
-            # [num_atoms*batch_size, 3]
-            forces = forces.view(-1, 3)
-            # multiply force on each node by a scalar
-            if self.force_scale_block is not None:
-                if self.force_scale_head == "FeedForwardNetwork":
-                    force_scale = self.force_scale_block(x)
-                else:  # SO2EquivariantGraphAttention
-                    force_scale = self.force_scale_block(
-                        x, atomic_numbers, edge_distance, edge_index
-                    )
-                # select scalars only, one per node # (B, 1, 1)
-                force_scale = force_scale.embedding.narrow(dim=1, start=0, length=1)
-                # view: [B, 1]
-                force_scale = force_scale.view(-1, 1)
-                # [B, 3]
-                force_scale = force_scale.expand(-1, 3)
-                forces = forces * force_scale
+            if self.forces_via_grad:
+                forces = -1 * (
+                    torch.autograd.grad(
+                        energy,
+                        data.pos,
+                        grad_outputs=torch.ones_like(energy),
+                        create_graph=True,
+                    )[0]
+                )
+
+            else:
+                # x: [num_atoms*batch_size, num_coefficients, sphere_channels]
+                # forces: [num_atoms*batch_size, num_coefficients, 1]
+                forces = self.force_block(x, atomic_numbers, edge_distance, edge_index)
+                # if self.learn_scale_after_force_block:
+                # forces.embedding *= self.learn_scale_after_force_block
+                # [num_atoms*batch_size, 3, 1]
+                forces = forces.embedding.narrow(dim=1, start=1, length=3)
+                # [num_atoms*batch_size, 3]
+                forces = forces.view(-1, 3)
+                # multiply force on each node by a scalar
+                if self.force_scale_block is not None:
+                    if self.force_scale_head == "FeedForwardNetwork":
+                        force_scale = self.force_scale_block(x)
+                    else:  # SO2EquivariantGraphAttention
+                        force_scale = self.force_scale_block(
+                            x, atomic_numbers, edge_distance, edge_index
+                        )
+                    # select scalars only, one per node # (B, 1, 1)
+                    force_scale = force_scale.embedding.narrow(dim=1, start=0, length=1)
+                    # view: [B, 1]
+                    force_scale = force_scale.view(-1, 1)
+                    # [B, 3]
+                    force_scale = force_scale.expand(-1, 3)
+                    forces = forces * force_scale
 
         if not self.regress_forces:
             if return_fixedpoint:

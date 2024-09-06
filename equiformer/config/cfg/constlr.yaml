@@ -42,3 +42,11 @@ warmup_epochs: 0
 #     lr_min_factor: 0.01  
 optim:
   scheduler: "Null"
+
+  # not necessary but doesn't hurt to have it
+  # scheduler: LambdaLR
+  scheduler_params:
+    lambda_type: cosine
+    warmup_factor: 1.0 # 0.2
+    warmup_epochs: 0.0 # 0.1
+    lr_min_factor: 1.0 # 0.01   

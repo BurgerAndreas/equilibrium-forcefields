@@ -249,7 +249,10 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # molecules in batch can be of different sizes
         num_atoms = len(atomic_numbers)
         self.num_atoms = num_atoms
-        pos = data.pos
+        # pos = data.pos
+
+        if self.forces_via_grad:
+            data.pos.requires_grad_(True)
 
         # basically the same as edge_src, edge_dst, edge_vec, edge_length in V1
         (
@@ -481,6 +484,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             return_fixedpoint=return_fixedpoint,
         )
 
+    @conditional_grad(torch.enable_grad())
     def decode(self, data, z, info, return_fixedpoint=False):
         """Predict energy and forces from fixed-point estimate.
         Uses separate heads for energy and forces.
@@ -526,30 +530,41 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # Force estimation
         ###############################################################
         if self.regress_forces:
-            # atom-wise forces using a block of equivariant graph attention
-            # and treating the output of degree 1 as the predictions
-            forces = self.force_block(
-                x, self.atomic_numbers, self.edge_distance, self.edge_index
-            )
-            # if self.learn_scale_after_force_block:
-            x.embedding = x.embedding * self.learn_scale_after_force_block
-            forces = forces.embedding.narrow(1, 1, 3)
-            forces = forces.view(-1, 3)
-            # multiply force on each node by a scalar
-            if self.force_scale_block is not None:
-                if self.force_scale_head == "FeedForwardNetwork":
-                    force_scale = self.force_scale_block(x)
-                else:  # SO2EquivariantGraphAttention
-                    force_scale = self.force_scale_block(
-                        x, self.atomic_numbers, self.edge_distance, self.edge_index
-                    )
-                # select scalars only, one per node # (B, 1, 1)
-                force_scale = force_scale.embedding.narrow(dim=1, start=0, length=1)
-                # view: [B, 1]
-                force_scale = force_scale.view(-1, 1)
-                # [B, 3]
-                force_scale = force_scale.expand(-1, 3)
-                forces = forces * force_scale
+            if self.forces_via_grad:
+                forces = -1 * (
+                    torch.autograd.grad(
+                        energy,
+                        data.pos,
+                        grad_outputs=torch.ones_like(energy),
+                        create_graph=True,
+                    )[0]
+                )
+
+            else:
+                # atom-wise forces using a block of equivariant graph attention
+                # and treating the output of degree 1 as the predictions
+                forces = self.force_block(
+                    x, self.atomic_numbers, self.edge_distance, self.edge_index
+                )
+                # if self.learn_scale_after_force_block:
+                x.embedding = x.embedding * self.learn_scale_after_force_block
+                forces = forces.embedding.narrow(1, 1, 3)
+                forces = forces.view(-1, 3)
+                # multiply force on each node by a scalar
+                if self.force_scale_block is not None:
+                    if self.force_scale_head == "FeedForwardNetwork":
+                        force_scale = self.force_scale_block(x)
+                    else:  # SO2EquivariantGraphAttention
+                        force_scale = self.force_scale_block(
+                            x, self.atomic_numbers, self.edge_distance, self.edge_index
+                        )
+                    # select scalars only, one per node # (B, 1, 1)
+                    force_scale = force_scale.embedding.narrow(dim=1, start=0, length=1)
+                    # view: [B, 1]
+                    force_scale = force_scale.view(-1, 1)
+                    # [B, 3]
+                    force_scale = force_scale.expand(-1, 3)
+                    forces = forces * force_scale
 
         if self.regress_forces:
             if return_fixedpoint:

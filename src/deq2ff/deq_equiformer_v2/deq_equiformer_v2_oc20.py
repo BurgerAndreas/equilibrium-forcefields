@@ -419,7 +419,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             z_pred = [_z.view(self.shape_batched) for _z in z_pred]
-        info["z_pred"] = z_pred
+        # info["z_pred"] = z_pred # TODO: slow?
 
         ######################################################
         # Fixed-point reuse loss
@@ -596,7 +596,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             z = z.view(self.shape_batched)
         # we can't use previous of x because we initialize z as 0
         # norm_before = z.norm()
-        norm_before = emb.norm()
+        # norm_before = torch.linalg.norm(z, ord=2, dim=-1)
+        norm_before = torch.linalg.norm(z)
         # input injection
         channels = self.sphere_channels
         if self.inp_inj == "cat":

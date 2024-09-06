@@ -473,6 +473,7 @@ def train_md(args):
             "val_dataset": val_dataset,
             "test_dataset": test_dataset,
             "test_dataset_full": test_dataset_full,
+            "test_loader": test_loader,
             "normalizers": normalizers,
             "idx_to_indices": idx_to_indices,
             "indices_to_idx": indices_to_idx,
@@ -652,6 +653,8 @@ def train_md(args):
             "val_dataset": val_dataset,
             "test_dataset": test_dataset,
             "test_dataset_full": test_dataset_full,
+            "test_loader": test_loader,
+            "train_loader": train_loader,
             "normalizers": normalizers,
             "idx_to_indices": idx_to_indices,
             "indices_to_idx": indices_to_idx,
@@ -830,6 +833,25 @@ def train_md(args):
             _log.info(f"Failed to record memory history {e}")
 
     """ Inference! """
+    if args.eval_speed:
+        test_err, test_loss = eval_speed(
+            args=args,
+            model=model,
+            criterion_energy=criterion_energy,
+            criterion_force=criterion_force,
+            data_loader=test_loader,
+            optimizer=optimizer,
+            device=device,
+            print_freq=args.print_freq,
+            logger=_log,
+            print_progress=True,
+            max_iter=args.test_max_iter,
+            global_step=global_step,
+            epoch=start_epoch,
+            datasplit="test",
+            normalizers=normalizers,
+        )
+        return True
     if args.evaluate:
         test_err, test_loss = evaluate(
             args=args,
@@ -2144,10 +2166,9 @@ def evaluate(
                         fixedpoint=None,
                         solver_kwargs=solver_kwargs,
                     )
-                if log_fp:
-                    torch.cuda.synchronize()
-                    forward_end_time = time.perf_counter()
-                    model_forward_times += [forward_end_time - forward_start_time]
+                torch.cuda.synchronize()
+                forward_end_time = time.perf_counter()
+                model_forward_times += [forward_end_time - forward_start_time]
 
                 target_y = normalizers["energy"](data.y, data.z)
                 target_dy = normalizers["force"](data.dy, data.z)
@@ -2333,6 +2354,204 @@ def evaluate(
             # print
             # for k, v in _logs.items():
             #     logger.info(f" {k}: {v}")
+
+        # fp_reuse True/False finished
+
+    return mae_metrics, loss_metrics
+
+def eval_speed(
+    args,
+    model: torch.nn.Module,
+    # criterion: torch.nn.Module,
+    criterion_energy: torch.nn.Module,
+    criterion_force: torch.nn.Module,
+    data_loader: Iterable,
+    optimizer: torch.optim.Optimizer,
+    device: torch.device,
+    print_freq: int = 100,
+    logger=None,
+    print_progress=False,
+    max_iter=-1,
+    global_step=None,
+    epoch=None,
+    datasplit=None,
+    normalizers={"energy": None, "force": None},
+    final_test=None,
+    # dtype=torch.float32,
+):
+    """Version of evaluate() simplified for speed testing."""
+
+    # Techniques for faster inference
+    # e.g. fixed-point reuse, relaxed FP-error threshold, etc.
+    # for simplicity we only apply it to test (val is too small)
+    if datasplit == "test" and "deq_kwargs_test" in args:
+        solver_kwargs = args.deq_kwargs_test
+    else:
+        solver_kwargs = {}
+    
+    fpreuse_list = [True]
+
+    if args.test_w_eval_mode is True:
+        model.eval()
+        # criterion.eval()
+        criterion_energy.eval()
+        criterion_force.eval()
+
+    max_steps = len(data_loader)
+    if (max_iter != -1) and (max_iter < max_steps):
+        max_steps = max_iter
+    max_samples = max_iter * args.eval_batch_size
+        
+    # if we stitch together a series of samples that are consecutive within but not across patches
+    # e.g. [42,...,5042, 10042, ..., 15042, ..., 20042] -> patch_size=5000
+    # patch_size is used to reinit the fixed point
+    if args.test_patches > 0:
+        patch_size = len(data_loader) // args.test_patches
+    else:
+        patch_size = max_steps + 10  # +10 to avoid accidents
+    
+    dtype = model.parameters().__next__().dtype
+
+    # remove because of torchdeq and force prediction via dE/dx
+    # with torch.no_grad():
+    # grad_test = torch.tensor(1., requires_grad=True) 
+    with torch.set_grad_enabled(args.test_w_grad):
+        # B = grad_test + 1
+        # print(f'tracking gradients: {B.requires_grad}')
+
+        # warmup the cuda kernels for accurate timing
+        data = next(iter(data_loader))
+        data = data.to(device)
+        data = data.to(device, dtype)
+        outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
+
+        for fpreuse_test in fpreuse_list:
+            # name for logging
+            _datasplit = f"{datasplit}_fpreuse" if fpreuse_test else datasplit
+
+            # initialize metrics
+            loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
+            mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
+            abs_fixed_point_error = []
+            rel_fixed_point_error = []
+            f_steps_to_fixed_point = []
+            model_forward_times = []
+            n_fsolver_steps = []
+            fixedpoint = None
+            prev_idx = None
+
+            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, but not the actual GPU execution time of the kernel. 
+            # torch.cuda.synchronize() waits for all tasks in the GPU to complete, thereby providing an accurate measure of time taken to execute
+            # torch.cuda.synchronize()
+            start_time = time.perf_counter()
+
+            for step, data in enumerate(data_loader):
+                data = data.to(device)
+                data = data.to(device, dtype)
+
+                if fpreuse_test and (step % patch_size == 0):
+                    # reset fixed-point
+                    fixedpoint = None
+
+                # torch.cuda.synchronize()
+                # forward_start_time = time.perf_counter()
+                
+                # call model and pass fixedpoint
+                pred_y, pred_dy, fixedpoint, info = model(
+                    data=data,  # for EquiformerV2
+                    node_atom=data.z,
+                    pos=data.pos,
+                    batch=data.batch,
+                    # step=pass_step,
+                    datasplit=_datasplit,
+                    return_fixedpoint=True,
+                    fixedpoint=fixedpoint,
+                    solver_kwargs=solver_kwargs,
+                )
+                
+                # torch.cuda.synchronize()
+                # forward_end_time = time.perf_counter()
+                # model_forward_times += [forward_end_time - forward_start_time]
+                    
+                target_y = normalizers["energy"](data.y, data.z)
+                target_dy = normalizers["force"](data.dy, data.z)
+
+                # reshape model output [B] (OC20) -> [B,1] (MD17)
+                if args.unsqueeze_e_dim and pred_y.dim() == 1:
+                    pred_y = pred_y.unsqueeze(-1)
+
+                # reshape data [B,1] (MD17) -> [B] (OC20)
+                if args.squeeze_e_dim and target_y.dim() == 2:
+                    target_y = pred_y.squeeze(1)
+
+                loss_e = criterion_energy(pred_y, target_y)
+                if args.meas_force == True:
+                    loss_f = criterion_force(pred_dy, target_dy)
+                else:
+                    pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
+
+                optimizer.zero_grad(set_to_none=True)
+
+                # --- metrics ---
+                loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
+                loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
+
+                # energy_err = pred_y.detach() * task_std + task_mean - data.y
+                energy_err = normalizers["energy"].denorm(pred_y.detach(), data.z) - data.y
+                energy_err = torch.mean(torch.abs(energy_err)).item()
+                mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
+
+                # force_err = pred_dy.detach() * task_std - data.dy
+                force_err = normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy 
+                force_err = torch.mean(
+                    torch.abs(force_err)
+                ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
+                mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
+
+                if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
+                    # torch.cuda.synchronize()
+                    w = time.perf_counter() - start_time
+                    e = (step + 1) / max_steps
+                    info_str = (
+                        f"[{step}/{max_steps}]{'(fpreuse)' if fpreuse_test else ''} \t"
+                    )
+                    info_str += "e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
+                        e_mae=mae_metrics["energy"].avg,
+                        f_mae=mae_metrics["force"].avg,
+                    )
+                    info_str += "time/step={time_per_step:.0f}ms".format(
+                        time_per_step=(1e3 * w / e / max_steps)
+                    )
+                    logger.info(info_str)
+
+                if (step + 1) >= max_steps:
+                    break
+
+            # test set finished
+            # torch.cuda.synchronize()
+            eval_time = time.perf_counter() - start_time  # time for whole test set
+
+            # if len(n_fsolver_steps) > 0:
+            #     wandb.log(
+            #         {f"avg_n_fsolver_steps_{_datasplit}": np.mean(n_fsolver_steps)},
+            #         step=global_step,
+            #     )
+            #     # log the full list
+            #     wandb.log(
+            #         {f"n_fsolver_steps_{_datasplit}": n_fsolver_steps}, step=global_step
+            #     )
+
+            # log 
+            wandb.log(
+                {
+                    f"time_{_datasplit}": eval_time,
+                    f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
+                    f"{_datasplit}_f_mae": mae_metrics["force"].avg,
+                },
+                step=global_step,
+            )
+
+            print(f"Finished evaluation: {_datasplit} ({global_step} training steps, epoch {epoch}).")
 
         # fp_reuse True/False finished
 

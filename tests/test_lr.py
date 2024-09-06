@@ -18,7 +18,7 @@ from deq2ff.plotting.style import chemical_symbols, plotfolder
 
 from deq2ff.logging_utils import init_wandb
 import scripts as scripts
-from scripts.train_deq_md import train
+from scripts.train_deq_md import train_md
 
 # register all models
 import deq2ff.register_all_models

@@ -16,7 +16,7 @@ from deq2ff.plotting.style import chemical_symbols, plotfolder
 
 from deq2ff.logging_utils import init_wandb
 import scripts as scripts
-from scripts.train_deq_md import train, equivariance_test
+from scripts.train_deq_md import train_md, equivariance_test
 
 # register all models
 import deq2ff.register_all_models
@@ -41,7 +41,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     # init_wandb(args, project="oc20-ev2")
     run_id = init_wandb(args)
 
-    datas = train(args)
+    datas = train_md(args)
     model = datas["model"]
     train_dataset = datas["train_dataset"]
     test_dataset_full = datas["test_dataset_full"]

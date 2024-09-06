@@ -30,6 +30,10 @@ def fix_args(args: OmegaConf):
         if args.wandb_tags is None:
             args.wandb_tags = []
         args.wandb_tags.append("eval")
+    if ("eval_speed" in args) and args.eval_speed:
+        if args.wandb_tags is None:
+            args.wandb_tags = []
+        args.wandb_tags.append("speed")
     
     if ("mode" in args) and args.mode != "train":
         if args.wandb_tags is None:

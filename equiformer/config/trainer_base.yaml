@@ -167,6 +167,8 @@ assert_checkpoint: False
 max_checkpoints: 2
 # Only run inference on the test set, then stop (nool)
 evaluate: False
+# run a version of evaluate simplified for speed testing (bool)
+eval_speed: False
 # Only run equivariance test, then stop (bool)
 equivariance: False
 # Stop after the data is loaded and return the dataloaders (bool)

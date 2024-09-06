@@ -84,12 +84,15 @@ class DEQBase(nn.Module):
         b_stop_mode="abs",
         eval_factor=1.0,
         eval_f_max_iter=0,
+        force_train_mode=False,
         **kwargs,
     ):
         super(DEQBase, self).__init__()
 
         self.args = DEQConfig(args)
         self.args.update(**kwargs)
+
+        self.force_train_mode = force_train_mode
 
         self.f_solver = get_solver(self.args.get("f_solver", f_solver))
         self.b_solver = get_solver(self.args.get("b_solver", b_solver))
@@ -386,7 +389,7 @@ class DEQIndexing(DEQBase):
                 - dict[str, torch.Tensor]: A dict containing solver statistics.
         """
         solver_kwargs = {k: v for k, v in solver_kwargs.items() if k != "f_max_iter"}
-        indexing = indexing if self.training else None
+        indexing = indexing if (self.training or self.force_train_mode) else None
 
         f_tol = solver_kwargs.pop("f_tol", self.f_tol)
 
@@ -449,7 +452,7 @@ class DEQIndexing(DEQBase):
             solver_kwargs = dict()
         # print(f'{self.__class__.__name__}.forward solver_kwargs: {solver_kwargs}')
 
-        if self.training:
+        if self.training or self.force_train_mode:
             _recompute_f_iter = (
                 type(solver_kwargs.get("f_max_iter", None)) in [int, float]
                 or type(solver_kwargs.get("n_states", None)) in [int, float]
@@ -757,7 +760,7 @@ class DEQSliced(DEQBase):
         if solver_kwargs is None:
             solver_kwargs = dict()
 
-        if self.training:
+        if self.training or self.force_train_mode:
             _f_max_iter = solver_kwargs.get("f_max_iter", None)
             _n_states = solver_kwargs.get("n_states", None)
             _indexing = solver_kwargs.get("indexing", None)

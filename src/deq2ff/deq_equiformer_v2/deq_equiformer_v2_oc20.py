@@ -198,7 +198,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
     def _init_deq(self, **kwargs):
         return _init_deq(self, **kwargs)
 
-    # @conditional_grad(torch.enable_grad())
+    @conditional_grad(torch.enable_grad())
     def forward(
         self,
         data,
@@ -484,7 +484,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             return_fixedpoint=return_fixedpoint,
         )
 
-    # @conditional_grad(torch.enable_grad())
+    @conditional_grad(torch.enable_grad())
     def decode(self, data, z, info, return_fixedpoint=False):
         """Predict energy and forces from fixed-point estimate.
         Uses separate heads for energy and forces.
@@ -595,7 +595,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
         return z
 
-    # @conditional_grad(torch.enable_grad())
+    @conditional_grad(torch.enable_grad())
     def deq_implicit_layer(
         self, z: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, data,
         step=None, datasplit=None, solver_step=None, stack=0,
@@ -613,7 +613,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # we can't use previous of x because we initialize z as 0
         # norm_before = z.norm()
         # norm_before = torch.linalg.norm(z, ord=2, dim=-1)
-        norm_before = torch.linalg.norm(z)
+        norm_before = torch.linalg.norm(emb)
         # input injection
         channels = self.sphere_channels
         if self.inp_inj == "cat":

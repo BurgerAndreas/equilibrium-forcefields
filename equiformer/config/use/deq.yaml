@@ -92,6 +92,8 @@ deq_kwargs:
   # Uniformly samples trajectory states from the solver. The backward passes of sampled states will be automactically tracked.
   n_states: 1 
   indexing: null
+  
+  force_train_mode: False
 
   # regularization
   # jac_reg: False
@@ -100,4 +102,3 @@ deq_kwargs:
   # jac_incremental: 0.0
   # torchdeq.loss.jac_reg(f0, z0, vecs=1, create_graph=True)
 
-  force_train_mode: False

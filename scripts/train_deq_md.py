@@ -851,7 +851,6 @@ def train_md(args):
             datasplit="test",
             normalizers=normalizers,
         )
-        return True
     if args.evaluate:
         test_err, test_loss = evaluate(
             args=args,
@@ -894,12 +893,13 @@ def train_md(args):
                 torch.cuda.memory._record_memory_history(enabled=None)
             except Exception as e:
                 _log.info(f"Failed to stop recording memory history {e}")
-        return True
-    
+
     if args.equivariance:
         collate = Collater(follow_batch=None, exclude_keys=None)
         equivariance_test(args, model, train_dataset, test_dataset_full, device, collate, step=global_step)
-        return True   
+
+    if args.evaluate or args.eval_speed or args.equivariance:
+        return True
 
     """ Train! """
     if node_embedding_shape is not None:

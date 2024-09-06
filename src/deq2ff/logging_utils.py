@@ -308,6 +308,8 @@ def name_from_config(args: omegaconf.DictConfig, is_checkpoint_name=False) -> st
         if "pathdrop-005" in _name and "alphadrop-01" in _name:
             _name = _name.replace("pathdrop-005", f"")
             _name = _name.replace("alphadrop-01", f"dd")
+    if "aspirin" in _name:
+        _name = _name.replace("aspirin", f"")
     # done
     print(f"Name{' checkpoint' if is_checkpoint_name else ''}: {_name}")
     return _name

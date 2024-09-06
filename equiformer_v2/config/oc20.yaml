@@ -88,6 +88,8 @@ optim:
   eval_every: 5000
   checkpoint_every: 5000
 
+  maxdata: -1
+  
 val_max_iter: 1000
 hide_eval_progressbar: False      
 logger: wandb
@@ -103,6 +105,7 @@ model_name: ${model.name}
 checkpoint_path: auto
 checkpoint_wandb_name: null # only used if checkpoint_path is auto. will be filled by wandb
 assert_checkpoint: False
+
 
 fpreuse_test: False
 contrastive_loss: False

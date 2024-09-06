@@ -484,7 +484,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             return_fixedpoint=return_fixedpoint,
         )
 
-    @conditional_grad(torch.enable_grad())
+    # @conditional_grad(torch.enable_grad())
     def decode(self, data, z, info, return_fixedpoint=False):
         """Predict energy and forces from fixed-point estimate.
         Uses separate heads for energy and forces.
@@ -569,12 +569,12 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         if self.regress_forces:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)
-                return energy, forces, z.detach().clone(), info
+                return energy, forces, z, info # z.detach().clone()
             return energy, forces, info
         else:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)
-                return energy, z.detach().clone(), info
+                return energy, z, info
             return energy, info
 
     # TODO: deprecated
@@ -595,6 +595,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
         return z
 
+    # @conditional_grad(torch.enable_grad())
     def deq_implicit_layer(
         self, z: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, data,
         step=None, datasplit=None, solver_step=None, stack=0,

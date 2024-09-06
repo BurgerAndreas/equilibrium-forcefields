@@ -357,6 +357,38 @@ class BaseTrainerV2(BaseTrainer):
         self.load()
 
         self.evaluator = Evaluator(task=name)
+    
+    def look_for_checkpoint(self):
+        # TODO: load model from checkpoint
+        checkpoint_loaded = False
+        if self.config["cmd"].get("checkpoint_path", None) is not None:
+            if self.config["cmd"]["checkpoint_path"] == "auto":
+                # set the checkpoint path based on the name
+                # checkpoint_dir
+                # TODO: checkpoint_name not used or properly set
+                checkpoint_path = os.path.join(
+                    self.config["cmd"]["checkpoint_dir"], "checkpoint.pth"
+                )
+                logging.info(f"Loading checkpoint from {checkpoint_path}")
+            else:
+                checkpoint_path = self.config["cmd"]["checkpoint_path"]
+                
+            # load the checkpoint
+            if os.path.isfile(checkpoint_path):
+                self.load_checkpoint(checkpoint_path=checkpoint_path)
+                checkpoint_loaded = True
+            else:
+                if distutils.is_master():
+                    logging.warning(f"Checkpoint not found at {checkpoint_path}")
+
+        else:
+            if distutils.is_master():
+                logging.info("No checkpoint provided. Skipping checkpoint loading.")
+
+        if self.config["cmd"].get("assert_checkoint", False) and not checkpoint_loaded:
+            raise FileNotFoundError(
+                errno.ENOENT, os.strerror(errno.ENOENT), checkpoint_path
+            )
 
     def load(self):
         self.load_seed_from_config()
@@ -367,6 +399,8 @@ class BaseTrainerV2(BaseTrainer):
         self.load_loss()
         self.load_optimizer()
         self.load_extras()
+        self.look_for_checkpoint()
+
 
     def load_seed_from_config(self):
         # https://pytorch.org/docs/stable/notes/randomness.html
@@ -426,29 +460,7 @@ class BaseTrainerV2(BaseTrainer):
             f"{self.model.num_params} parameters."
         )
 
-        # TODO: load model from checkpoint
-        if self.config["cmd"].get("checkpoint_path", None) is not None:
-            if self.config["cmd"]["checkpoint_path"] == "auto":
-                # set the checkpoint path based on the name
-                # checkpoint_dir
-                # TODO: checkpoint_name not used or properly set
-                checkpoint_path = os.path.join(
-                    self.config["cmd"]["checkpoint_dir"], "checkpoint.pth"
-                )
-                logging.info(f"Loading checkpoint from {checkpoint_path}")
-            else:
-                checkpoint_path = self.config["cmd"]["checkpoint_path"]
-            # load the checkpoint
-            if os.path.isfile(checkpoint_path):
-                self.load_checkpoint(checkpoint_path=checkpoint_path)
-            else:
-                if self.config["cmd"].get("assert_checkoint", False):
-                    raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), checkpoint_path)
-                if distutils.is_master():
-                    logging.warning(f"Checkpoint not found at {checkpoint_path}")
-        else:
-            if distutils.is_master():
-                logging.info("No checkpoint provided. Skipping checkpoint loading.")
+        # self.look_for_checkpoint()
 
         if self.logger is not None:
             self.logger.log({"ModelParameters": self.model.num_params}, step=0)

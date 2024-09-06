@@ -15,6 +15,8 @@ import os
 import pathlib
 from collections import defaultdict
 from pathlib import Path
+import yaml
+import time
 
 import numpy as np
 import torch
@@ -380,6 +382,8 @@ class ForcesTrainerV2(BaseTrainerV2):
                         "step": self.step,
                     }
                 )
+                if "nsteps" in out:
+                    log_dict["nsteps"] = out["nsteps"]
                 if (
                     (
                         self.step % self.config["cmd"]["print_every"] == 0
@@ -475,7 +479,6 @@ class ForcesTrainerV2(BaseTrainerV2):
         # end of training
         # from datetime import datetime
         # print(f'Finished training at time {datetime.now().time()}.')
-        import time
 
         print(f"Finished training at time {time.ctime()}.")
 
@@ -491,9 +494,9 @@ class ForcesTrainerV2(BaseTrainerV2):
         if self.config["model_attributes"].get("regress_forces", True) or self.config[
             "model_attributes"
         ].get("use_auxiliary_task", False):
-            out_energy, out_forces, _ = self.model(batch_list)
+            out_energy, out_forces, info = self.model(batch_list)
         else:
-            out_energy, _ = self.model(batch_list)
+            out_energy, info = self.model(batch_list)
 
         if out_energy.shape[-1] == 1:
             out_energy = out_energy.view(-1)
@@ -506,6 +509,9 @@ class ForcesTrainerV2(BaseTrainerV2):
             "model_attributes"
         ].get("use_auxiliary_task", False):
             out["forces"] = out_forces
+        
+        if "nstep" in info:
+            out["nstep"] = info["nstep"].mean().item()
 
         return out
 
@@ -934,6 +940,8 @@ class ForcesTrainerV2(BaseTrainerV2):
 
         def get_pbar_desc(step):
             return f"Validate (device {distutils.get_rank()}) Step={step}"
+        
+        start_time = time.perf_counter()
 
         for i, batch in tqdm(
             enumerate(loader),
@@ -950,6 +958,11 @@ class ForcesTrainerV2(BaseTrainerV2):
             loss = self._compute_loss(out, batch)
             metrics = self._compute_metrics(out, batch, evaluator, metrics)
             metrics = evaluator.update("loss", loss.item(), metrics)
+            if "nstep" in out:
+                metrics = evaluator.update("nstep", out["nstep"], metrics)
+        
+        if distutils.is_master():
+            time_total = time.perf_counter() - start_time
 
         aggregated_metrics = {}
         for k in metrics:
@@ -965,6 +978,7 @@ class ForcesTrainerV2(BaseTrainerV2):
                 aggregated_metrics[k]["total"] / aggregated_metrics[k]["numel"]
             )
         metrics = aggregated_metrics
+        metrics["time_total"] = time_total
 
         log_dict = {k: metrics[k]["metric"] for k in metrics}
         log_dict.update({"epoch": self.epoch})

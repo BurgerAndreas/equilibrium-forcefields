@@ -87,6 +87,7 @@ class Runner(submitit.helpers.Checkpointable):
             if config.get("compute_stats", False):
                 config["mode"] = "compute_stats"
             self.task = registry.get_task_class(config["mode"])(self.config)
+            print('Running task: ', self.task.__class__.__name__)
             self.task.setup(self.trainer)
             start_time = time.time()
             print(f"Starting task: {self.task.__class__.__name__}")
@@ -97,6 +98,7 @@ class Runner(submitit.helpers.Checkpointable):
                 logging.info(
                     f"Total time taken: {time_total}s ({time_total/3600:.2f}h)"
                 )
+                # wandb.log({"total_time": time_total})
         finally:
             pass
             # if args.distributed:

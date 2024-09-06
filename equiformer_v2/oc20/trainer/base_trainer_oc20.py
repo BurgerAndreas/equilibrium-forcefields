@@ -23,6 +23,9 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+# tune_reporter
+from ray import tune
+
 import ocpmodels
 from ocpmodels.common import distutils
 from ocpmodels.common.data_parallel import (
@@ -77,11 +80,13 @@ class BaseTrainer(ABC):
         name="base_trainer",
         slurm={},
         noddp=False,
+        maxdata=-1,
     ):
         self.name = name
         self.cpu = cpu
         self.epoch = 0
         self.step = 0
+        self.maxdata = maxdata
 
         if torch.cuda.is_available() and not self.cpu:
             self.device = torch.device(f"cuda:{local_rank}")
@@ -288,6 +293,12 @@ class BaseTrainer(ABC):
             self.train_dataset = registry.get_dataset_class(
                 self.config["task"]["dataset"]
             )(self.config["dataset"])
+
+            self.maxdata = self.config["optim"].get("maxdata", -1)
+            if self.maxdata > 0:
+                self.train_dataset = torch.utils.data.Subset(self.train_dataset, indices=range(self.maxdata))
+                logging.info(f"Using only {self.maxdata} training samples")
+
             self.train_sampler = self.get_sampler(
                 self.train_dataset,
                 self.config["optim"]["batch_size"],
@@ -423,10 +434,13 @@ class BaseTrainer(ABC):
 
         if "optimizer" in checkpoint:
             self.optimizer.load_state_dict(checkpoint["optimizer"])
+            logging.info("Loaded optimizer state dict.")
         if "scheduler" in checkpoint and checkpoint["scheduler"] is not None:
             self.scheduler.scheduler.load_state_dict(checkpoint["scheduler"])
+            logging.info("Loaded scheduler state dict.")
         if "ema" in checkpoint and checkpoint["ema"] is not None:
             self.ema.load_state_dict(checkpoint["ema"])
+            logging.info("Loaded EMA state dict.")
         else:
             self.ema = None
 
@@ -556,6 +570,7 @@ class BaseTrainer(ABC):
                 )
                 if self.ema:
                     self.ema.restore()
+        
 
     def save_hpo(self, epoch, step, metrics, checkpoint_every):
         # default is no checkpointing

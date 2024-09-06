@@ -5,16 +5,16 @@ deq_kwargs:
   # core: sliced
   f_solver: 'anderson'
   f_stop_mode: 'rel'
-  f_tol: 1e-2
+  f_tol: 1e-4
+  b_solver: 'anderson'
+  b_stop_mode: 'rel'
+  b_tol: 1e-6
   ift: True
-  # fixed-point correction
-  n_states: 3
-
-  force_train_mode: False
-# fpc_weight: 0.1
+  hook_ift: True
   
-# fpc_freq: 2
-# fpreuse_test: True
+  force_train_mode: False
+  
+  # n_states: 3
 
 model:
   torchdeq_norm:
@@ -23,6 +23,6 @@ model:
   use_variational_path_drop: True
   ln: pp # post or pp
   ln_type: rms_norm_sh
-  # input injection
-  enc_ln: True
-  inj_norm: null
+
+  # enc_ln: True
+  # inj_norm: null

@@ -10,6 +10,8 @@ deq_kwargs:
   # fixed-point correction
   # n_states: 3
 
+  force_train_mode: False
+  
 # fpc_weight: 0.1
   
 # fpc_freq: 2

@@ -2215,7 +2215,7 @@ def evaluate(
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
                 # --- logging ---
-                if len(info) > 0:
+                if "abs_trace" in info.keys():
                     if pass_step is not None:
                         # log fixed-point trajectory once per evaluation
                         logging_utils_deq.log_fixed_point_error(
@@ -2230,6 +2230,8 @@ def evaluate(
                     rel_fixed_point_error.append(
                         info["rel_trace"].mean(dim=0)[-1].item()
                     )
+
+                if "nstep" in info.keys():
                     if log_fp:
                         # duplicates kept for legacy reasons
                         f_steps_to_fixed_point.append(info["nstep"].mean().item())

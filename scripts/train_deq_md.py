@@ -1814,7 +1814,7 @@ def train_one_epoch(
 
         # .requires_grad=True: loss, loss_e, loss_f, pred_y, pred_dy
         optimizer.zero_grad(set_to_none=True)
-        loss.backward(retain_graph=False)
+        loss.backward()
 
         # if args.grokfast in [None, False, "None"]:
         #     pass
@@ -1872,7 +1872,6 @@ def train_one_epoch(
 
         loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
         loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
-        # TODO: other losses in the same way
 
         # energy_err1 = pred_y.detach() * task_std + task_mean - data.y
         energy_err = normalizers["energy"].denorm(pred_y.detach(), data.z) - data.y
@@ -1915,28 +1914,27 @@ def train_one_epoch(
             "train_loss": loss.item(),
             "grad_norm": grad_norm.item(),
             # energy
-            "energy_pred_mean": pred_y.mean().item(),
-            "energy_pred_std": pred_y.std().item(),
-            "energy_pred_min": pred_y.min().item(),
-            "energy_pred_max": pred_y.max().item(),
-            "energy_target_mean": target_y.mean().item(),
-            "energy_target_std": target_y.std().item(),
-            "energy_target_min": target_y.min().item(),
-            "energy_target_max": target_y.max().item(),
+            # "energy_pred_mean": pred_y.mean().item(),
+            # "energy_pred_std": pred_y.std().item(),
+            # "energy_pred_min": pred_y.min().item(),
+            # "energy_pred_max": pred_y.max().item(),
+            # "energy_target_mean": target_y.mean().item(),
+            # "energy_target_std": target_y.std().item(),
+            # "energy_target_min": target_y.min().item(),
+            # "energy_target_max": target_y.max().item(),
             "scaled_energy_loss": (args.energy_weight * loss_e).item(),
             # force
-            "force_pred_mean": pred_dy.mean().item(),
-            "force_pred_std": pred_dy.std().item(),
-            "force_pred_min": pred_dy.min().item(),
-            "force_pred_max": pred_dy.max().item(),
-            "force_target_mean": target_dy.mean().item(),
-            "force_target_std": target_dy.std().item(),
-            "force_target_min": target_dy.min().item(),
-            "force_target_max": target_dy.max().item(),
+            # "force_pred_mean": pred_dy.mean().item(),
+            # "force_pred_std": pred_dy.std().item(),
+            # "force_pred_min": pred_dy.min().item(),
+            # "force_pred_max": pred_dy.max().item(),
+            # "force_target_mean": target_dy.mean().item(),
+            # "force_target_std": target_dy.std().item(),
+            # "force_target_min": target_dy.min().item(),
+            # "force_target_max": target_dy.max().item(),
             "scaled_force_loss": (args.force_weight * loss_f).item(),
         }
-        if "z_pred" in info:
-            logs["len_z_pred"] = len(info["z_pred"])
+        
         wandb.log(logs, step=global_step)
 
         global_step += 1

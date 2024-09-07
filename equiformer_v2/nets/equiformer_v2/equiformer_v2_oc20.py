@@ -802,7 +802,8 @@ class EquiformerV2_OC20(BaseModel):
 
         num_atoms = len(atomic_numbers)
 
-        pos = data.pos.clone()
+        # pos = data.pos.clone()
+        pos = data.pos.detach()
         if self.forces_via_grad:
             # data.pos.requires_grad_(True)
             pos.requires_grad_(True)

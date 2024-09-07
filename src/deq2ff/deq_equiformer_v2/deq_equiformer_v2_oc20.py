@@ -250,7 +250,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         num_atoms = len(atomic_numbers)
         self.num_atoms = num_atoms
 
-        pos = data.pos.clone()
+        # pos = data.pos.clone()
+        pos = data.pos.detach()
         if self.forces_via_grad:
             # data.pos.requires_grad_(True)
             pos.requires_grad_(True)

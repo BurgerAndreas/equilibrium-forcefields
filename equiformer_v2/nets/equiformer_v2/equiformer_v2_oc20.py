@@ -801,10 +801,11 @@ class EquiformerV2_OC20(BaseModel):
             data.cell = None
 
         num_atoms = len(atomic_numbers)
-        # pos = data.pos
 
+        pos = data.pos.clone()
         if self.forces_via_grad:
-            data.pos.requires_grad_(True)
+            # data.pos.requires_grad_(True)
+            pos.requires_grad_(True)
 
         (
             edge_index,
@@ -923,6 +924,9 @@ class EquiformerV2_OC20(BaseModel):
         #         x.embedding.clone().detach(), step, datasplit
         #     )
 
+        # corresponding to DEQ
+        info = {"nstep": [self.num_layers] * forces.shape[0]}
+
         ###############################################################
         # Energy estimation
         ###############################################################
@@ -952,7 +956,7 @@ class EquiformerV2_OC20(BaseModel):
                 forces = -1 * (
                     torch.autograd.grad(
                         energy,
-                        data.pos,
+                        pos,
                         grad_outputs=torch.ones_like(energy),
                         create_graph=True,
                     )[0]
@@ -986,12 +990,12 @@ class EquiformerV2_OC20(BaseModel):
 
         if not self.regress_forces:
             if return_fixedpoint:
-                return energy, None, {}
-            return energy, {}
+                return energy, None, info
+            return energy, info
         else:
             if return_fixedpoint:
-                return energy, forces, None, {}
-            return energy, forces, {}
+                return energy, forces, None, info
+            return energy, forces, info
 
     # Initialize the edge rotation matrics
     def _init_edge_rot_mat(self, data, edge_index, edge_distance_vec):

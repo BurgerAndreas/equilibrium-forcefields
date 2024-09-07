@@ -249,10 +249,11 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # molecules in batch can be of different sizes
         num_atoms = len(atomic_numbers)
         self.num_atoms = num_atoms
-        # pos = data.pos
 
+        pos = data.pos.clone()
         if self.forces_via_grad:
-            data.pos.requires_grad_(True)
+            # data.pos.requires_grad_(True)
+            pos.requires_grad_(True)
 
         # basically the same as edge_src, edge_dst, edge_vec, edge_length in V1
         (
@@ -482,11 +483,12 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             data=data,
             z=z_pred[-1],  # last fixed-point estimate
             info=info,
+            pos=pos,
             return_fixedpoint=return_fixedpoint,
         )
 
     @conditional_grad(torch.enable_grad())
-    def decode(self, data, z, info, return_fixedpoint=False):
+    def decode(self, data, z, pos, info, return_fixedpoint=False):
         """Predict energy and forces from fixed-point estimate.
         Uses separate heads for energy and forces.
         """
@@ -536,7 +538,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 forces = -1 * (
                     torch.autograd.grad(
                         energy,
-                        data.pos,
+                        pos,
                         grad_outputs=torch.ones_like(energy),
                         # we need to retain the graph to call loss.backward() later
                         create_graph=True,

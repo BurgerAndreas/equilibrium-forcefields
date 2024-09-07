@@ -762,6 +762,8 @@ class DEQSliced(DEQBase):
             solver_kwargs = dict()
 
         if self.training or self.force_train_mode:
+
+            # TODO@speedupdeq: don't do this every time
             _f_max_iter = solver_kwargs.get("f_max_iter", None)
             _n_states = solver_kwargs.get("n_states", None)
             _indexing = solver_kwargs.get("indexing", None)

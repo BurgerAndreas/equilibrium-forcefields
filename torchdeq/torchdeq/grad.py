@@ -176,7 +176,7 @@ def backward_factory(
                         f = func(h)
 
                     grad_f = (
-                        lambda x: autograd.grad(f, h, x, retain_graph=True)[0] + grad
+                        lambda x: autograd.grad(outpus=f, inputs=h, grad_outputs=x, retain_graph=True)[0] + grad
                     )
                     grad_star, _, info = b_solver(
                         grad_f, torch.zeros_like(grad), **b_solver_kwargs

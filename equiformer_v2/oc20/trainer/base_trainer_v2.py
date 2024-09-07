@@ -194,6 +194,8 @@ class BaseTrainerV2(BaseTrainer):
         if run_dir is None:
             run_dir = os.getcwd()
         self.run_dir = run_dir
+        this_file_dir = os.path.abspath(os.path.dirname(__file__))
+        self.proj_root_dir = os.path.abspath(os.path.join(this_file_dir, "../../../"))
         self.checkpoint_name = checkpoint_name
         self.checkpoint_wandb_name = checkpoint_wandb_name
         self.checkpoint_path = checkpoint_path
@@ -236,6 +238,15 @@ class BaseTrainerV2(BaseTrainer):
         logger_name = logger if isinstance(logger, str) else logger["name"]
         # model: omegaconf.dictconfig.DictConfig -> dict
         # model = model.to_dict()
+        if self.checkpoint_wandb_name is None:
+            checkpoint_folder = self.timestamp_id
+            checkpoint_folder_extended = self.timestamp_id
+        else:
+            # remove spaces and special characters
+            # checkpoint_folder = re.sub(r"[^A-Za-z0-9]+", "", self.checkpoint_wandb_name)
+            checkpoint_folder = "".join(e for e in self.checkpoint_wandb_name if e.isalnum())
+            checkpoint_folder_extended = f"{self.timestamp_id}-{checkpoint_folder}"
+            
         self.config = {
             "task": task,
             "model": model.pop("name"),
@@ -251,18 +262,18 @@ class BaseTrainerV2(BaseTrainer):
                 "seed": seed,
                 "timestamp_id": self.timestamp_id,
                 "commit": commit_hash,
-                # TODO: create checkpoint dir based on name
-                "checkpoint_dir": os.path.join(
-                    run_dir, "checkpoints", 
-                    # TODO: changed from self.timestamp_id
-                    self.timestamp_id if self.checkpoint_wandb_name is None else self.checkpoint_wandb_name
-                ),
+                # create checkpoint dir based on name
+                "checkpoint_dir": os.path.abspath(os.path.join(
+                    self.proj_root_dir, run_dir, "checkpoints", checkpoint_folder
+                )),
                 "checkpoint_path": self.checkpoint_path,
                 "assert_checkpoint": self.assert_checkpoint,
-                "results_dir": os.path.join(run_dir, "results", self.timestamp_id),
-                "logs_dir": os.path.join(
-                    run_dir, "logs", logger_name, self.timestamp_id
-                ),
+                "results_dir":  os.path.abspath(os.path.join(
+                    self.proj_root_dir, run_dir, "results", checkpoint_folder_extended
+                )),
+                "logs_dir":  os.path.abspath(os.path.join(
+                    self.proj_root_dir, run_dir, "logs", logger_name, checkpoint_folder_extended
+                )),
             },
             "slurm": slurm,
             "noddp": noddp,
@@ -372,7 +383,7 @@ class BaseTrainerV2(BaseTrainer):
                 logging.info(f"Loading checkpoint from {checkpoint_path}")
             else:
                 checkpoint_path = self.config["cmd"]["checkpoint_path"]
-                
+
             # load the checkpoint
             if os.path.isfile(checkpoint_path):
                 self.load_checkpoint(checkpoint_path=checkpoint_path)
@@ -400,6 +411,7 @@ class BaseTrainerV2(BaseTrainer):
         self.load_optimizer()
         self.load_extras()
         self.look_for_checkpoint()
+        logging.info("Trainer loaded.")
 
 
     def load_seed_from_config(self):

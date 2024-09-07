@@ -149,12 +149,11 @@ force_weight: 0.8 # 80
 seed: 1
 seedrun: null
 # (int)
-workers: 4
 # Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU. (bool)
 pin_mem: True
 # (int)
-no_pin_mem: True
 num_workers: 4
+persistent_workers: False
 
 # load checkpoint (str)
 checkpoint_path: auto

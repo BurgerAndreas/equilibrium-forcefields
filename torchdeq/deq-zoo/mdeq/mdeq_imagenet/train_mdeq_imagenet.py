@@ -219,7 +219,7 @@ def main():
     # Build DALI dataloader
     pipe = HybridTrainPipe(
         batch_size=args.batch_size,
-        num_threads=args.workers,
+        num_threads=args.num_workers,
         device_id=args.local_rank,
         data_dir=args.data,
         crop=args.imcrop,
@@ -232,7 +232,7 @@ def main():
 
     pipe = HybridValPipe(
         batch_size=50,
-        num_threads=args.workers,
+        num_threads=args.num_workers,
         device_id=args.local_rank,
         data_dir=args.data,
         crop=args.imcrop,

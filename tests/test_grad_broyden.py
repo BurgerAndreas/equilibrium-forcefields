@@ -249,7 +249,7 @@ def test_if_differentiable_broyden_same_as_before(args):
         train_dataset,
         batch_size=args.batch_size,
         shuffle=shuffle,
-        num_workers=args.workers,
+        num_workers=args.num_workers,
         pin_memory=args.pin_mem,
         drop_last=True,
     )

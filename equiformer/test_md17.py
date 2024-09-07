@@ -65,7 +65,7 @@ if __name__ == "__main__":
         train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=args.workers,
+        num_workers=args.num_workers,
         pin_memory=args.pin_mem,
         drop_last=True,
     )

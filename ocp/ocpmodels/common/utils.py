@@ -55,7 +55,7 @@ def save_checkpoint(
 ):
     filename = os.path.join(checkpoint_dir, checkpoint_file)
     torch.save(state, filename)
-    logging.info("Saving checkpoint: %s", filename)
+    logging.info(f"Saving checkpoint: {filename}")
     return filename
 
 

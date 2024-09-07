@@ -431,9 +431,11 @@ def train_md(args):
         train_dataset,
         batch_size=args.batch_size,
         shuffle=args.shuffle,
-        num_workers=args.workers,
-        pin_memory=args.pin_mem,
         drop_last=args.drop_last_train,
+        # optimize memory usage
+        num_workers=args.num_workers,
+        pin_memory=args.pin_mem,
+        persistent_workers=args.persistent_workers,
     )
     # idx are from the dataset e.g. (1, ..., 100k)
     # indices are from the DataLoader e.g. (0, ..., 1k)

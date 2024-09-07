@@ -22,6 +22,7 @@ import numpy as np
 import torch
 import torch_geometric
 from tqdm import tqdm
+import math as math
 
 from ocpmodels.common import distutils
 from ocpmodels.common.registry import registry
@@ -300,8 +301,9 @@ class ForcesTrainerV2(BaseTrainerV2):
         import pprint
 
         pp = pprint.PrettyPrinter(depth=4)
-        print(f"ForcesTrainerV2: self.config:")
+        logging.info(f"ForcesTrainerV2: self.config:")
         pp.pprint(self.config)
+        logging.info(f"------------------------------")
         self.logger.config.update(self.config)
 
         eval_every = self.config["optim"].get("eval_every", len(self.train_loader))
@@ -322,6 +324,8 @@ class ForcesTrainerV2(BaseTrainerV2):
         # tqdm might not work well with distributed training.
         num_steps = len(self.train_loader) * self.config["optim"]["max_epochs"]
 
+        isnan_cnt = 0
+
         def get_pbar_desc(epoch_int):
             return f"Train (device {distutils.get_rank()}) Epoch={epoch_int}"
 
@@ -333,8 +337,8 @@ class ForcesTrainerV2(BaseTrainerV2):
             # desc="Training",
             unit="steps",
         )
-        print(f"Starting training at step {self.step}.")
-        print(f"Steps per epoch: {len(self.train_loader)}")
+        logging.info(f"Starting training at step {self.step}.")
+        logging.info(f"Steps per epoch: {len(self.train_loader)}")
         for epoch_int in range(start_epoch, self.config["optim"]["max_epochs"]):
             self.train_sampler.set_epoch(epoch_int)
             skip_steps = self.step % len(self.train_loader)
@@ -373,6 +377,7 @@ class ForcesTrainerV2(BaseTrainerV2):
                     self.metrics,
                 )
 
+
                 # Log metrics.
                 log_dict = {k: self.metrics[k]["metric"] for k in self.metrics}
                 log_dict.update(
@@ -402,6 +407,13 @@ class ForcesTrainerV2(BaseTrainerV2):
                     pbar.set_description(get_pbar_desc(epoch_int))
                     pbar.write(f"Epoch={epoch_int}, step={i} : {log_str_short}")
 
+                # if torch.isnan(log_dict['forces_mae']):
+                # if log_dict['forces_mae'] == float("nan"): # nan, inf, -inf
+                if math.isnan(log_dict['forces_mae']):
+                    isnan_cnt += 1
+                    if isnan_cnt > len(self.train_loader) // 10:
+                        raise ValueError("NaN detected in forces_mae. Exiting.")
+
                 if self.logger is not None:
                     self.logger.log(
                         log_dict,
@@ -411,7 +423,7 @@ class ForcesTrainerV2(BaseTrainerV2):
 
                 if checkpoint_every != -1 and self.step % checkpoint_every == 0:
                     self.save(checkpoint_file="checkpoint.pt", training_state=True)
-                    print(f"Saved checkpoint at step {self.step}.")
+                    logging.info(f"Saved checkpoint at step {self.step}.")
 
                 # Evaluate on val set every `eval_every` iterations.
                 if self.step % eval_every == 0 or i == (len(self.train_loader) - 1):
@@ -478,9 +490,9 @@ class ForcesTrainerV2(BaseTrainerV2):
 
         # end of training
         # from datetime import datetime
-        # print(f'Finished training at time {datetime.now().time()}.')
+        # logging.info(f'Finished training at time {datetime.now().time()}.')
 
-        print(f"Finished training at time {time.ctime()}.")
+        logging.info(f"Finished training at time {time.ctime()}.")
 
         pbar.close()
         self.train_dataset.close_db()
@@ -666,7 +678,7 @@ class ForcesTrainerV2(BaseTrainerV2):
 
         out["natoms"] = natoms
 
-        # print(f'eval_on_free_atoms: {self.config["task"].get("eval_on_free_atoms", True)}')
+        # logging.info(f'eval_on_free_atoms: {self.config["task"].get("eval_on_free_atoms", True)}')
         if self.config["task"].get("eval_on_free_atoms", True):
             fixed = torch.cat([batch.fixed.to(self.device) for batch in batch_list])
             mask = fixed == 0
@@ -936,7 +948,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         max_iter = self.config.get("val_max_iter", -1)
         if max_iter == -1:
             max_iter = len(loader)
-        print(f"Steps: {max_iter}")
+        logging.info(f"Validate max steps: {max_iter}")
 
         def get_pbar_desc(step):
             return f"Validate (device {distutils.get_rank()}) Step={step}"
@@ -961,8 +973,8 @@ class ForcesTrainerV2(BaseTrainerV2):
             if "nstep" in out:
                 metrics = evaluator.update("nstep", out["nstep"], metrics)
         
-        if distutils.is_master():
-            time_total = time.perf_counter() - start_time
+        # if distutils.is_master():
+        time_total = time.perf_counter() - start_time
 
         aggregated_metrics = {}
         for k in metrics:
@@ -978,9 +990,9 @@ class ForcesTrainerV2(BaseTrainerV2):
                 aggregated_metrics[k]["total"] / aggregated_metrics[k]["numel"]
             )
         metrics = aggregated_metrics
-        metrics["time_total"] = time_total
 
         log_dict = {k: metrics[k]["metric"] for k in metrics}
+        log_dict["time_total"] = time_total
         log_dict.update({"epoch": self.epoch})
         log_str = ["{}: {:.4f}".format(k, v) for k, v in log_dict.items()]
         log_str = ", ".join(log_str)
@@ -994,7 +1006,7 @@ class ForcesTrainerV2(BaseTrainerV2):
                 split=split,
             )
         else:
-            print(f"validate: self.logger is None. log_dict: {log_dict}")
+            logging.info(f"validate: self.logger is None. log_dict: {log_dict}")
 
         if self.ema and use_ema:
             self.ema.restore()

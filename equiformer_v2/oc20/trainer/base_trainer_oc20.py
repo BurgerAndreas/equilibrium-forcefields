@@ -153,7 +153,6 @@ class BaseTrainer(ABC):
                     "models",
                     "OC20",
                     "equiformer_v2",
-                    # TODO: changed from self.timestamp_id to checkpoint_name
                     self.timestamp_id if self.checkpoint_wandb_name is None else self.checkpoint_wandb_name,
                 ),
                 "checkpoint_name": checkpoint_name,
@@ -191,7 +190,7 @@ class BaseTrainer(ABC):
         # This supports the legacy way of providing norm parameters in dataset
         if self.config.get("dataset", None) is not None and normalizer is None:
             self.normalizer = self.config["dataset"]
-        print(f"{self.__class__.__name__} Normalizer: {self.normalizer}")
+        logging.info(f"{self.__class__.__name__} Normalizer: {self.normalizer}")
 
         if not is_debug and distutils.is_master() and not is_hpo:
             os.makedirs(self.config["cmd"]["checkpoint_dir"], exist_ok=True)
@@ -212,7 +211,8 @@ class BaseTrainer(ABC):
             self.hpo_checkpoint_every = self.config["optim"].get("checkpoint_every", -1)
 
         if distutils.is_master():
-            print(yaml.dump(self.config, default_flow_style=False))
+            logging.info(f"{self.__class__.__name__} Config:")
+            logging.info(yaml.dump(self.config, default_flow_style=False))
         self.load()
 
         self.evaluator = Evaluator(task=name)

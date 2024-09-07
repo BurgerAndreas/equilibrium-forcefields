@@ -101,6 +101,7 @@ def init_wandb(args: OmegaConf, project="Equi2"):
     # omegaconf.errors.InterpolationResolutionError: Recursive interpolation detected
     args = OmegaConf.structured(OmegaConf.to_yaml(args))
 
+    wandb.require("core")
     # wandb.run.name = name_from_config(args)
     wandb.init(
         group=args.wandb_group,

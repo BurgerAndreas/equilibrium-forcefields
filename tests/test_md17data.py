@@ -92,7 +92,7 @@ def run_test(args):
         train_dataset,
         batch_size=args.batch_size,
         shuffle=shuffle,
-        num_workers=args.workers,
+        num_workers=args.num_workers,
         # enables faster data transfer to CUDA-enabled GPUs
         # Host to GPU copies are much faster when they originate from pinned (page-locked) memory
         pin_memory=args.pin_mem,

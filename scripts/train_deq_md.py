@@ -1601,7 +1601,7 @@ def train_one_epoch(
 
     max_steps = len(data_loader)
     for batchstep, data in enumerate(data_loader):
-        print(f"batchstep: {batchstep}/{max_steps}")
+        # print(f"batchstep: {batchstep}/{max_steps}")
         data = data.to(device)
         data = data.to(device, dtype)
 
@@ -1857,7 +1857,7 @@ def train_one_epoch(
         # data.pos.requires_grad_(False)
 
         # logging
-        if len(info) > 0:
+        if "abs_trace" in info.keys():
             # log fixed-point trajectory
             # if args.log_fixed_point_trace_train:
             logging_utils_deq.log_fixed_point_error(
@@ -1868,6 +1868,8 @@ def train_one_epoch(
             )
             abs_fixed_point_error.append(info["abs_trace"].mean(dim=0)[-1].item())
             rel_fixed_point_error.append(info["rel_trace"].mean(dim=0)[-1].item())
+        if "nstep" in info.keys():
+
             f_steps_to_fixed_point.append(info["nstep"].mean().item())
 
         loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])

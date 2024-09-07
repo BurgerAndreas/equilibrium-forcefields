@@ -926,7 +926,7 @@ class EquiformerV2_OC20(BaseModel):
         #     )
 
         # corresponding to DEQ
-        info = {"nstep": [self.num_layers] * x.embedding.shape[0]}
+        info = {"nstep": torch.tensor([self.num_layers] * x.embedding.shape[0], dtype=torch.float16, device=x.embedding.device)}
 
         ###############################################################
         # Energy estimation

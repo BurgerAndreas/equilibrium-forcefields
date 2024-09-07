@@ -422,7 +422,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             z_pred = [_z.view(self.shape_batched) for _z in z_pred]
-        # info["z_pred"] = z_pred # TODO: slow?
+        # info["z_pred"] = z_pred # slow?
 
         ######################################################
         # Fixed-point reuse loss
@@ -538,6 +538,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                         data.pos,
                         grad_outputs=torch.ones_like(energy),
                         create_graph=True,
+                        # retain_graph=True,
                     )[0]
                 )
                 # Without .detach() we will run into a memory leak:

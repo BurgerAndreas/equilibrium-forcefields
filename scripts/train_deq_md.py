@@ -1849,7 +1849,11 @@ def train_one_epoch(
             optimizer.step(loss=loss)
         else:
             optimizer.step()
+        
+        # necessary?
+        data.pos.requires_grad_(False)
 
+        # logging
         if len(info) > 0:
             # log fixed-point trajectory
             # if args.log_fixed_point_trace_train:
@@ -1865,7 +1869,7 @@ def train_one_epoch(
 
         loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
         loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
-        # TODO: other losses
+        # TODO: other losses in the same way
 
         # energy_err1 = pred_y.detach() * task_std + task_mean - data.y
         energy_err = normalizers["energy"].denorm(pred_y.detach(), data.z) - data.y

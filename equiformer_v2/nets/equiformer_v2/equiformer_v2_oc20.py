@@ -926,7 +926,7 @@ class EquiformerV2_OC20(BaseModel):
         #     )
 
         # corresponding to DEQ
-        info = {"nstep": [self.num_layers] * forces.shape[0]}
+        info = {"nstep": [self.num_layers] * x.embedding.shape[0]}
 
         ###############################################################
         # Energy estimation

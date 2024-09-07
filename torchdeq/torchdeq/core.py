@@ -247,9 +247,6 @@ class DEQIndexing(DEQBase):
         **kwargs,
     ):
         super(DEQIndexing, self).__init__(args=args, **kwargs)
-        print(
-            f"{self.__class__.__name__} args: \n{yaml.dump(args.config)} ift: {ift}, hook_ift: {hook_ift}, grad: {grad}, tau: {tau}, sup_gap: {sup_gap}, sup_loc: {sup_loc}, n_states: {n_states}, indexing: {indexing}"
-        )
 
         # Preprocess arguments.
         grad = self.args.get("grad", grad)
@@ -277,9 +274,16 @@ class DEQIndexing(DEQBase):
 
         # First compute the f_max_iter indexing where we add corrections.
         self.indexing = self._compute_f_iter(self.f_max_iter)
-        print(f"{self.__class__.__name__} indexing set to: {self.indexing}")
 
+        # set the gradient function self.prduce_grad
         self.set_grad(self.grad_args)
+
+        print(
+            f"\n{self.__class__.__name__} TorchDEQ args set:",
+            f"\n{yaml.dump(self.grad_args)}",
+            "\nn_states=", n_states,
+            "\nindexing=", self.indexing
+        )
 
     def set_grad(self, grad_args={}):
         """Define gradient functions through the backward factory.
@@ -577,9 +581,6 @@ class DEQSliced(DEQBase):
         **kwargs,
     ):
         super(DEQSliced, self).__init__(args, **kwargs)
-        print(
-            f"{self.__class__.__name__} args:\n{yaml.dump(args.config)} ift: {ift}, hook_ift: {hook_ift}, grad: {grad}, tau: {tau}, sup_gap: {sup_gap}, sup_loc: {sup_loc}, n_states: {n_states}, indexing: {indexing}"
-        )
 
         # Preprocess arguments.
         grad = self.args.get("grad", grad)
@@ -607,9 +608,16 @@ class DEQSliced(DEQBase):
 
         # First compute the f_max_iter indexing where we add corrections.
         self.indexing = self._compute_f_iter(self.f_max_iter)
-        print(f"{self.__class__.__name__} indexing set to: {self.indexing}")
 
+        # set the gradient function self.prduce_grad
         self.set_grad(self.grad_args)
+
+        print(
+            f"\n{self.__class__.__name__} TorchDEQ args set:",
+            f"\n{yaml.dump(self.grad_args)}",
+            "\nn_states=", n_states,
+            "\nindexing=", self.indexing
+        )
 
     def set_grad(self, grad_args={}):
         """Define gradient functions through the backward factory.

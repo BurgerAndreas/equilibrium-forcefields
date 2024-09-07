@@ -628,6 +628,7 @@ def train_md(args):
             _log.info(
                 f"Error loading checkpoint: {e}. \n List of files: {os.listdir(args.checkpoint_path)}"
             )
+            _log.info(f"Proceeding without checkpoint.")
     wandb.log({"start_epoch": start_epoch, "epoch": start_epoch}, step=global_step)
 
     # if we want to run inference only we want to make sure that the model is loaded
@@ -1853,7 +1854,7 @@ def train_one_epoch(
             optimizer.step()
         
         # necessary?
-        data.pos.requires_grad_(False)
+        # data.pos.requires_grad_(False)
 
         # logging
         if len(info) > 0:

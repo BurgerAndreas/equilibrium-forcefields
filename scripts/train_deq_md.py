@@ -2510,6 +2510,9 @@ def eval_speed(
                 ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
+                if len(info) > 0:
+                    f_steps_to_fixed_point.append(info["nstep"].mean().item())
+
                 if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
                     # torch.cuda.synchronize()
                     w = time.perf_counter() - start_time
@@ -2549,6 +2552,7 @@ def eval_speed(
                     f"time_{_datasplit}": eval_time,
                     f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
                     f"{_datasplit}_f_mae": mae_metrics["force"].avg,
+                    f"{f_steps_to_fixed_point}_{_datasplit}": np.mean(f_steps_to_fixed_point),
                 },
                 step=global_step,
             )

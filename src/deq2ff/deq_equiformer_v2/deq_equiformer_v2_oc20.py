@@ -531,6 +531,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         ###############################################################
         if self.regress_forces:
             if self.forces_via_grad:
+                # [num_atoms*batch_size, 3]
                 forces = -1 * (
                     torch.autograd.grad(
                         energy,
@@ -539,6 +540,10 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                         create_graph=True,
                     )[0]
                 )
+                # Without .detach() we will run into a memory leak:
+                # Exception in thread Thread-5 (_pin_memory_loop) 
+                # RuntimeError: received 0 items of ancdata
+                # z = z.detach()
 
             else:
                 # atom-wise forces using a block of equivariant graph attention
@@ -549,6 +554,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 # if self.learn_scale_after_force_block:
                 x.embedding = x.embedding * self.learn_scale_after_force_block
                 forces = forces.embedding.narrow(1, 1, 3)
+                # [num_atoms*batch_size, 3]
                 forces = forces.view(-1, 3)
                 # multiply force on each node by a scalar
                 if self.force_scale_block is not None:
@@ -569,12 +575,12 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         if self.regress_forces:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)
-                return energy, forces, z, info # z.detach().clone()
+                return energy, forces, z.detach(), info 
             return energy, forces, info
         else:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)
-                return energy, z, info
+                return energy, z.detach(), info
             return energy, info
 
     # TODO: deprecated

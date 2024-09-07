@@ -261,8 +261,10 @@ class EquiformerV2_OC20(BaseModel):
 
         self.use_pbc = use_pbc
         self.regress_forces = regress_forces
-        self.direct_forces = not forces_via_grad # for ocp models conditional_grad
+        # compute forces via gradient of the energy w.r.t. positions
         self.forces_via_grad = forces_via_grad
+        # compute forces directly via prediction head
+        self.direct_forces = regress_forces and not forces_via_grad # for ocp models conditional_grad
         self.otf_graph = otf_graph
         self.max_neighbors = max_neighbors
         self.max_radius = max_radius
@@ -946,6 +948,7 @@ class EquiformerV2_OC20(BaseModel):
         ###############################################################
         if self.regress_forces:
             if self.forces_via_grad:
+                # [num_atoms*batch_size, 3]
                 forces = -1 * (
                     torch.autograd.grad(
                         energy,

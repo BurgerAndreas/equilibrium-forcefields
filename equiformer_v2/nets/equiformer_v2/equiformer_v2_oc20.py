@@ -633,7 +633,7 @@ class EquiformerV2_OC20(BaseModel):
             cell_offsets,
             _,  # cell offset distances
             neighbors,
-        ) = self.generate_graph(data)
+        ) = self.generate_graph(data=data, pos=pos)
 
         ###############################################################
         # Initialize data structures

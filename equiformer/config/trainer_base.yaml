@@ -95,6 +95,9 @@ model_ema_force_cpu: False
 # float16, bfloat16, float32 or float64
 dtype: float32
 
+# .zero_grad(set_to_none=True) will delete the .grad attributes and will thus free memory
+set_grad_to_none: False
+
 # 'Optimizer (default: adamw' (str)
 opt: "adamw"
 # Optimizer Epsilon (default: 1e-8 (float)

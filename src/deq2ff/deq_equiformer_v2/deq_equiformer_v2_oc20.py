@@ -79,6 +79,8 @@ equiformer_v2/nets/equiformer_v2/equiformer_v2_oc20.py
 class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
     def __init__(
         self,
+        torchdeq_norm,
+        deq_kwargs,
         # not used but necessary for OC20 compatibility
         num_atoms=None,  # not used
         bond_feat_dim=None,  # not used
@@ -99,23 +101,20 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         self.z0 = z0
         self.inp_inj = inp_inj
         self.inj_norm = inj_norm
-        # self.path_norm = path_norm  # TODO: unused
-        # self.irrep_norm = irrep_norm  # TODO: unused
         if sphere_channels_fixedpoint is None:
             sphere_channels_fixedpoint = sphere_channels
         self.sphere_channels_fixedpoint = sphere_channels_fixedpoint
-        if self.inp_inj == "cat": # TODO should be if == "add"?
+
+        if self.inp_inj == "cat": 
+            # TODO should be if == "add"?
+            # do we cat along the channel or l dimension?
             assert self.sphere_channels_fixedpoint == sphere_channels
         
         # self.stacks = stacks
         # self.num_layers = num_layers
 
-        non_deq_kwargs = copy.deepcopy(kwargs)
-        non_deq_kwargs.pop("deq_kwargs", None)
-        non_deq_kwargs.pop("deq_mode", None)
-        non_deq_kwargs.pop("torchdeq_norm", None)
         super().__init__(
-            sphere_channels=sphere_channels, num_layers=num_layers,**non_deq_kwargs
+            sphere_channels=sphere_channels, num_layers=num_layers,**kwargs
         )
         if self.inp_inj == "lc":
             # linear combination: two scalar learnable weights
@@ -140,9 +139,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             self.inj_w2 = nn.Parameter(torch.ones(1, 1, sphere_channels))
 
         # DEQ
-        kwargs = self._init_deq(**kwargs)
-        # if len(kwargs) > 0:
-        #     print(f"\nIgnoring kwargs in {self.__class__.__name__}:", kwargs)
+        self.torchdeq_norm = torchdeq_norm
+        self.deq_kwargs = deq_kwargs
+        self._init_deq(torchdeq_norm=torchdeq_norm, deq_kwargs=deq_kwargs)
 
     def build_blocks(self):
         # Initialize the blocks for each layer of EquiformerV2
@@ -195,8 +194,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             # eval(f"self.{blocksname}.append(block)")
             self.blocks.append(block)
 
-    def _init_deq(self, **kwargs):
-        return _init_deq(self, **kwargs)
+    def _init_deq(self, torchdeq_norm, deq_kwargs, **kwargs):
+        return _init_deq(self, torchdeq_norm=torchdeq_norm, deq_kwargs=deq_kwargs, **kwargs)
 
     @conditional_grad(torch.enable_grad())
     def forward(

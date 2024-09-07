@@ -1218,7 +1218,7 @@ def train_md(args):
                 datasplit="ema_val",
                 normalizers=normalizers,
             )
-            optimizer.zero_grad(set_to_none=True)
+            optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
             if (epoch + 1) % args.test_interval == 0:
                 _log.info(f"Testing EMA model at epoch {epoch}")
@@ -1240,7 +1240,7 @@ def train_md(args):
                     datasplit="ema_test",
                     normalizers=normalizers,
                 )
-                optimizer.zero_grad(set_to_none=True)
+                optimizer.zero_grad(set_to_none=args.set_grad_to_none)
             else:
                 ema_test_err, ema_test_loss = None, None
 
@@ -1415,7 +1415,7 @@ def train_md(args):
 
     # evaluate on the whole testing set
     if args.do_final_test:
-        optimizer.zero_grad(set_to_none=True)
+        optimizer.zero_grad(set_to_none=args.set_grad_to_none)
         test_err, test_loss = evaluate(
             args=args,
             model=model,
@@ -1435,7 +1435,7 @@ def train_md(args):
             normalizers=normalizers,
             final_test=True,
         )
-        optimizer.zero_grad(set_to_none=True)
+        optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
     # save the final model
     if args.save_final_checkpoint:
@@ -1563,7 +1563,7 @@ def train_one_epoch(
     # triplet loss
     triplet_lossfn = TripletLoss(margin=args.tripletloss_margin)
 
-    optimizer.zero_grad(set_to_none=True)
+    optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
     # statistics over epoch
     abs_fixed_point_error = []
@@ -1605,17 +1605,10 @@ def train_one_epoch(
         data = data.to(device)
         data = data.to(device, dtype)
 
-        # for sparse fixed-point correction loss
+        # if model has attribute
+        # if hasattr(model, "deq"):
+        #     model.deq = get_deq(**model.deq_kwargs)
         solver_kwargs = {}
-        # if args.fpc_freq > 0:
-        #     if args.fpc_rand:
-        #         # randomly uniform sample indices
-        #         solver_kwargs["indexing"] = torch.randperm(range(model.deq.f_max_iter))[
-        #             : args.fpc_freq
-        #         ]
-        #     else:
-        #         # uniformly spaced indices
-        #         solver_kwargs["n_states"] = args.fpc_freq
 
         if args.fpreuse_across_epochs and epoch >= args.fpreuse_start_epoch:
             indices = [idx_to_indices[_idx.item()] for _idx in data.idx]
@@ -1813,7 +1806,7 @@ def train_one_epoch(
             isnan_cnt += 1
 
         # .requires_grad=True: loss, loss_e, loss_f, pred_y, pred_dy
-        optimizer.zero_grad(set_to_none=True)
+        optimizer.zero_grad(set_to_none=args.set_grad_to_none)
         loss.backward()
 
         # if args.grokfast in [None, False, "None"]:
@@ -1848,10 +1841,11 @@ def train_one_epoch(
             ).norm()
         grad_norm_epoch_avg.append(grad_norm.item())
 
-        if args.opt in ["sps"]:
-            optimizer.step(loss=loss)
-        else:
-            optimizer.step()
+        # if args.opt in ["sps"]:
+        #     optimizer.step(loss=loss)
+        # else:
+        optimizer.step()
+        optimizer.zero_grad(set_to_none=args.set_grad_to_none)
         
         # necessary?
         # data.pos.requires_grad_(False)
@@ -1868,8 +1862,8 @@ def train_one_epoch(
             )
             abs_fixed_point_error.append(info["abs_trace"].mean(dim=0)[-1].item())
             rel_fixed_point_error.append(info["rel_trace"].mean(dim=0)[-1].item())
+        
         if "nstep" in info.keys():
-
             f_steps_to_fixed_point.append(info["nstep"].mean().item())
 
         loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
@@ -2196,7 +2190,7 @@ def evaluate(
                 else:
                     pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
 
-                optimizer.zero_grad(set_to_none=True)
+                optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
                 # --- metrics ---
                 loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
@@ -2501,7 +2495,7 @@ def eval_speed(
                 else:
                     pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
 
-                optimizer.zero_grad(set_to_none=True)
+                optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
                 # --- metrics ---
                 loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])

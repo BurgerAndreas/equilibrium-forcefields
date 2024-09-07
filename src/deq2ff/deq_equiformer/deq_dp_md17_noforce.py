@@ -295,7 +295,6 @@ def deq_dot_product_attention_transformer_exp_l2_md17_noforce(
         scale=scale,
         atomref=atomref,
         # DEQ specific
-        deq_mode=True,
         deq_kwargs=deq_kwargs,
         torchdeq_norm=torchdeq_norm,
         input_injection=input_injection,

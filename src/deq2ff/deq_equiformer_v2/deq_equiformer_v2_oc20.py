@@ -400,6 +400,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             # if batchify_for_torchdeq is True, x in and out should be [B, N, D, C]
             return self.deq_implicit_layer(
                 _z,
+                # the following is all input injection
                 emb=emb,
                 edge_index=edge_index,
                 edge_distance=edge_distance,
@@ -573,7 +574,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                     force_scale = force_scale.expand(-1, 3)
                     forces = forces * force_scale
 
-        info = None # TODO
+        info = {} # for debugging
         if self.regress_forces:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)
@@ -649,6 +650,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             z = inj_w1 * z + inj_w2 * emb
         else:
             raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
+        
         """ Normalize after input injection """
         # print_values(z, "injprenorm", log=False)
         if self.inj_norm == "prev":
@@ -672,6 +674,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             embedding=z,
         )
         # print_values(x.embedding, "postinj", log=False)
+
         """ Layers / Transformer blocks """
         # prev_layers = self.num_layers_per_stack * stack
         # for i in range(prev_layers, prev_layers + self.num_layers_per_stack):

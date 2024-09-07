@@ -573,6 +573,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                     force_scale = force_scale.expand(-1, 3)
                     forces = forces * force_scale
 
+        info = None # TODO
         if self.regress_forces:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)

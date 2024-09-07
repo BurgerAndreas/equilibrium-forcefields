@@ -1600,6 +1600,7 @@ def train_one_epoch(
 
     max_steps = len(data_loader)
     for batchstep, data in enumerate(data_loader):
+        print(f"batchstep: {batchstep}/{max_steps}")
         data = data.to(device)
         data = data.to(device, dtype)
 
@@ -1686,7 +1687,7 @@ def train_one_epoch(
         
         if args.norm_by_natoms:
             loss = loss * args.norm_by_natoms_mul / natoms
-
+        
         # Fixed-point correction loss
         # for superior performance and training stability
         # https://arxiv.org/abs/2204.08442
@@ -1810,8 +1811,9 @@ def train_one_epoch(
         if torch.isnan(pred_y).any():
             isnan_cnt += 1
 
+        # .requires_grad=True: loss, loss_e, loss_f, pred_y, pred_dy
         optimizer.zero_grad(set_to_none=True)
-        loss.backward()
+        loss.backward(retain_graph=False)
 
         # if args.grokfast in [None, False, "None"]:
         #     pass
@@ -1885,7 +1887,7 @@ def train_one_epoch(
         if model_ema is not None:
             model_ema.update(model)
         
-        torch.cuda.synchronize()
+        # torch.cuda.synchronize()
 
         # logging
         if batchstep % print_freq == 0 or batchstep == max_steps - 1:

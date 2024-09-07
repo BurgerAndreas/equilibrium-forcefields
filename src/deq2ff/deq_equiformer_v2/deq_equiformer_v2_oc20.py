@@ -417,7 +417,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # During inference, returns a list containing the fixed point solution only.
         # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
         z_pred, info = self.deq(
-            f, z, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
+            func=f, z_star=z, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
         )
         
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
@@ -538,6 +538,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                         energy,
                         data.pos,
                         grad_outputs=torch.ones_like(energy),
+                        # we need to retain the graph to call loss.backward() later
                         create_graph=True,
                         # retain_graph=True,
                     )[0]
@@ -574,7 +575,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                     force_scale = force_scale.expand(-1, 3)
                     forces = forces * force_scale
 
-        info = {} # for debugging
+        # info = {} # for debugging
         if self.regress_forces:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)

@@ -709,10 +709,11 @@ class DEQSliced(DEQBase):
 
         f_tol = solver_kwargs.pop("f_tol", self.f_tol)
 
+        # TODO: gradient tracking
         with torch.no_grad():
             z_star, _, info = self.f_solver(
                 deq_func,
-                x0=z_init,
+                x0=z_init, # .requires_grad=False
                 max_iter=f_max_iter,  # To reuse the previous fixed point
                 tol=f_tol,
                 stop_mode=self.f_stop_mode,

@@ -4,6 +4,7 @@ import torch
 
 
 class DEQWrapper:
+    """DEQ Wrapper for tensor functions."""
     def __init__(self, func, z_init):
         self.func = func
 
@@ -40,6 +41,7 @@ class DEQWrapper:
 
 
 class MDEQWrapper:
+    """DEQ Wrapper for lists/tuples"""
     def __init__(self, func, z_init):
         z_shape = []
         z_indexing = [0]

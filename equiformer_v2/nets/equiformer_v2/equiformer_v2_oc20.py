@@ -815,7 +815,7 @@ class EquiformerV2_OC20(BaseModel):
             cell_offsets,
             _,  # cell offset distances
             neighbors,
-        ) = self.generate_graph(data)
+        ) = self.generate_graph(data=data, pos=pos)
 
         self.num_edges = edge_distance.shape[0]
 
@@ -824,7 +824,7 @@ class EquiformerV2_OC20(BaseModel):
         ###############################################################
 
         # Compute 3x3 rotation matrix per edge
-        edge_rot_mat = self._init_edge_rot_mat(data, edge_index, edge_distance_vec)
+        edge_rot_mat = self._init_edge_rot_mat(edge_index=edge_index, edge_distance_vec=edge_distance_vec)
 
         # Initialize the WignerD matrices and other values for spherical harmonic calculations
         for i in range(self.num_resolutions):
@@ -999,7 +999,7 @@ class EquiformerV2_OC20(BaseModel):
             return energy, forces, info
 
     # Initialize the edge rotation matrics
-    def _init_edge_rot_mat(self, data, edge_index, edge_distance_vec):
+    def _init_edge_rot_mat(self, edge_index, edge_distance_vec, data=None):
         return init_edge_rot_mat(edge_distance_vec)
 
     @property

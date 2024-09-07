@@ -264,7 +264,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             cell_offsets,
             _,  # cell offset distances
             neighbors,
-        ) = self.generate_graph(data)
+        ) = self.generate_graph(data=data, pos=pos)
 
         self.num_edges = edge_distance.shape[0]
 
@@ -285,7 +285,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         # Compute 3x3 rotation matrix per edge
         # data unused
-        edge_rot_mat = self._init_edge_rot_mat(data, edge_index, edge_distance_vec)
+        edge_rot_mat = self._init_edge_rot_mat(edge_index=edge_index, edge_distance_vec=edge_distance_vec)
         # print_values(edge_rot_mat.float(), "edge_rot_mat", log=True)
 
         # Initialize the WignerD matrices and other values for spherical harmonic calculations

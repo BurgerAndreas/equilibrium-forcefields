@@ -32,6 +32,7 @@ class BaseModel(nn.Module):
     def generate_graph(
         self,
         data,
+        pos,
         cutoff=None,
         max_neighbors=None,
         use_pbc=None,
@@ -65,7 +66,7 @@ class BaseModel(nn.Module):
                 )
 
             out = get_pbc_distances(
-                data.pos,
+                pos,
                 edge_index,
                 data.cell,
                 cell_offsets,
@@ -82,7 +83,7 @@ class BaseModel(nn.Module):
             if otf_graph:
                 # edge_src, edge_dst = radius_graph
                 edge_index = radius_graph(
-                    data.pos,
+                    pos,
                     r=cutoff,
                     batch=data.batch,
                     max_num_neighbors=max_neighbors,
@@ -91,14 +92,14 @@ class BaseModel(nn.Module):
             j, i = edge_index
 
             # edge_vec = pos.index_select(0, edge_src) - pos.index_select(0, edge_dst)
-            distance_vec = data.pos[j] - data.pos[i]
+            distance_vec = pos[j] - pos[i]
 
             # edge_length = edge_vec.norm(dim=1)
             edge_dist = distance_vec.norm(dim=-1)
 
-            cell_offsets = torch.zeros(edge_index.shape[1], 3, device=data.pos.device)
+            cell_offsets = torch.zeros(edge_index.shape[1], 3, device=pos.device)
             cell_offset_distances = torch.zeros_like(
-                cell_offsets, device=data.pos.device
+                cell_offsets, device=pos.device
             )
             neighbors = compute_neighbors(data, edge_index)
 

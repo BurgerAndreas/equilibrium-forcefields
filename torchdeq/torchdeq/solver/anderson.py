@@ -4,6 +4,7 @@ References:
     https://github.com/pv/scipy-work/tree/master/scipy/optimize
 """
 import torch
+import gc
 
 from .utils import init_solver_info, batch_flatten, update_state, solver_stat_from_info
 
@@ -58,11 +59,10 @@ def anderson_solver(
         >>> z_star, _, _ = anderson_solver(f, z0)           # Run Anderson Acceleration
         >>> print((z_star - f(z_star)).norm(p=1))           # Print the numerical error
     """
-    # if kwargs:
-    #     print(f"anderson_solver ignoring kwargs: {kwargs}")
+    # x0 = x0.detach().clone().requires_grad_(False) # Todo@temp
 
     # Wrap the input function to ensure the same shape
-    f = lambda x: func(x.view_as(x0)).reshape_as(x)
+    # funcsh = lambda _x: func(_x.view_as(x0)).reshape_as(_x)
 
     # Flatten the input tensor into (B, *)
     x0_flat = batch_flatten(x0)
@@ -71,17 +71,21 @@ def anderson_solver(
     alternative_mode = "rel" if stop_mode == "abs" else "abs"
 
     # Initialize tensors to store past values and their images under the fixed-point function
-    X = torch.zeros(bsz, m, dim, dtype=x0.dtype, device=x0.device)
-    F = torch.zeros(bsz, m, dim, dtype=x0.dtype, device=x0.device)
+    X = torch.zeros(bsz, m, dim, dtype=x0.dtype, device=x0.device, requires_grad=False)
+    F = torch.zeros(bsz, m, dim, dtype=x0.dtype, device=x0.device, requires_grad=False)
 
     # Initialize the first two values for X and F
-    X[:, 0], F[:, 0] = x0_flat, f(x0_flat)
-    X[:, 1], F[:, 1] = F[:, 0], f(F[:, 0])
+    X[:, 0] = x0_flat
+    # F[:, 0] = funcsh(x0_flat)
+    F[:, 0] = func(x0_flat.view_as(x0)).reshape_as(x0_flat)
+    X[:, 1] = F[:, 0]
+    # F[:, 1] = funcsh(F[:, 0])
+    F[:, 1] = func(F[:, 0].view_as(x0)).reshape_as(F[:, 0])
 
     # Initialize tensors for the Anderson mixing process
-    H = torch.zeros(bsz, m + 1, m + 1, dtype=x0.dtype, device=x0.device)
+    H = torch.zeros(bsz, m + 1, m + 1, dtype=x0.dtype, device=x0.device, requires_grad=False)
     H[:, 0, 1:] = H[:, 1:, 0] = 1
-    y = torch.zeros(bsz, m + 1, 1, dtype=x0.dtype, device=x0.device)
+    y = torch.zeros(bsz, m + 1, 1, dtype=x0.dtype, device=x0.device, requires_grad=False)
     y[:, 0] = 1
 
     trace_dict, lowest_dict, lowest_step_dict = init_solver_info(bsz, x0.device)
@@ -95,7 +99,7 @@ def anderson_solver(
         G = F[:, :n] - X[:, :n]
         H[:, 1 : n + 1, 1 : n + 1] = (
             torch.bmm(G, G.transpose(1, 2))
-            + lam * torch.eye(n, dtype=x0.dtype, device=x0.device)[None]
+            + lam * torch.eye(n, dtype=x0.dtype, device=x0.device, requires_grad=False)[None]
         )
         alpha = torch.linalg.solve(H[:, : n + 1, : n + 1], y[:, : n + 1])[
             :, 1 : n + 1, 0
@@ -105,7 +109,8 @@ def anderson_solver(
             tau * (alpha[:, None] @ F[:, :n])[:, 0]
             + (1 - tau) * (alpha[:, None] @ X[:, :n])[:, 0]
         )
-        F[:, k % m] = f(X[:, k % m])
+        # F[:, k % m] = funcsh(X[:, k % m])
+        F[:, k % m] = func(X[:, k % m].view_as(x0)).reshape_as(X[:, k % m])
 
         # Calculate the absolute and relative differences
         gx = F[:, k % m] - X[:, k % m]
@@ -114,34 +119,43 @@ def anderson_solver(
 
         # Update the state based on the new estimate
         lowest_xest = update_state(
-            lowest_xest,
-            F[:, k % m].view_as(x0),
-            k + 1,
-            stop_mode,
-            abs_diff,
-            rel_diff,
-            trace_dict,
-            lowest_dict,
-            lowest_step_dict,
-            return_final,
+            lowest_xest=lowest_xest.detach(),
+            x_est=F[:, k % m].view_as(x0).detach(),
+            nstep=k + 1,
+            stop_mode=stop_mode,
+            abs_diff=abs_diff.detach(),
+            rel_diff=rel_diff.detach(),
+            trace_dict=trace_dict,
+            lowest_dict=lowest_dict,
+            lowest_step_dict=lowest_step_dict,
+            return_final=return_final,
         )
 
         # Store the solution at the specified index
         if indexing and (k + 1) in indexing:
             indexing_list.append(lowest_xest)
+        # print('grad lowest_xest', lowest_xest.grad) # None
+        # print('grad lowest_xest', lowest_xest.requires_grad) # False
 
         # If the difference is smaller than the given tolerance, terminate the loop early
         if not return_final and trace_dict[stop_mode][-1].max() < tol:
             for _ in range(max_iter - 1 - k):
-                trace_dict[stop_mode].append(lowest_dict[stop_mode])
-                trace_dict[alternative_mode].append(lowest_dict[alternative_mode])
+                trace_dict[stop_mode].append(lowest_dict[stop_mode].detach())
+                trace_dict[alternative_mode].append(lowest_dict[alternative_mode].detach())
             break
 
     # If no solution was stored during the iteration process, store the final estimate
     if indexing and not indexing_list:
         indexing_list.append(lowest_xest)
 
-    X = F = None
+    # Clear the memory
+    X = None
+    F = None
+    # del X, F, G, H, y
+    # del funcsh, gx, abs_diff, rel_diff
+    # gc.collect()
+    # torch.cuda.empty_cache()
 
     info = solver_stat_from_info(stop_mode, lowest_dict, trace_dict, lowest_step_dict)
+    # [v.grad for k,v in info.items()]
     return lowest_xest, indexing_list, info

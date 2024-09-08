@@ -31,8 +31,11 @@ __all__ = ["register_solver", "get_solver", "solver_stat_from_final_step"]
 
 _solvers = {
     "anderson": anderson_solver,
+    "a": anderson_solver,
     "broyden": broyden_solver,
+    "b": broyden_solver,
     "fixed_point_iter": fixed_point_iter,
+    "fpiter": fixed_point_iter,
     "simple_fixed_point_iter": simple_fixed_point_iter,
 }
 

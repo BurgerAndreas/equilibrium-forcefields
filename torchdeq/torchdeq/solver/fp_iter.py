@@ -49,8 +49,6 @@ def fixed_point_iter(
         >>> z_star, _, _ = fixed_point_iter(f, z0)      # Run Fixed Point iterations.
         >>> print((z_star - f(z_star)).norm(p=1))       # Print the numerical error
     """
-    # if kwargs:
-    #     print(f"fixed_point_iter ignoring kwargs: {kwargs}")
 
     # Check input batch size
     bsz = x0.shape[0] if x0.dim() >= 2 else x0.nelement()
@@ -75,21 +73,23 @@ def fixed_point_iter(
 
         # Update the state based on the new estimate
         lowest_xest = update_state(
-            lowest_xest,
-            fx,
-            k + 1,
-            stop_mode,
-            abs_diff,
-            rel_diff,
-            trace_dict,
-            lowest_dict,
-            lowest_step_dict,
-            return_final,
+            lowest_xest=lowest_xest,
+            x_est=fx,
+            nstep=k + 1,
+            stop_mode=stop_mode,
+            abs_diff=abs_diff,
+            rel_diff=rel_diff,
+            trace_dict=trace_dict,
+            lowest_dict=lowest_dict,
+            lowest_step_dict=lowest_step_dict,
+            return_final=return_final,
         )
 
         # If indexing is enabled, store the solution at the specified indices
         if indexing and (k + 1) in indexing:
             indexing_list.append(lowest_xest)
+        # print('grad lowest_xest', lowest_xest.grad) # None
+        # print('grad lowest_xest', lowest_xest.requires_grad) # False
 
         # If the difference is smaller than the given tolerance, terminate the loop early
         if not return_final and trace_dict[stop_mode][-1].max() < tol:

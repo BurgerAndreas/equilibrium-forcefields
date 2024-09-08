@@ -140,6 +140,7 @@ def backward_factory(
                 def backward_hook(grad):
                     if trainer.hook is not None:
                         trainer.hook.remove()  # To avoid infinite loop
+                    # TODO: log backwards info?
                     grad_star, _, info = b_solver(
                         lambda y: autograd.grad(
                             new_z_pred, z_pred, y, retain_graph=True
@@ -157,36 +158,79 @@ def backward_factory(
                 return [new_z_pred]
 
             return hook_ift_grad
-        else:
+        
+        else:   
             # IFT via torch.autograd.Function
             class IFTGrad(torch.autograd.Function):
+                # https://pytorch.org/docs/stable/autograd.html#torch.autograd.Function
+
+                # ctx is short for context
+                # a static method does not implicitly pass the class instance (self)
                 @staticmethod
-                def forward(ctx, func, z_pred, writer):
-                    ctx.func, ctx.writer = func, writer
-                    ctx.save_for_backward(z_pred.detach())
+                # def forward(ctx, func, z_pred, writer):
+                def forward(func, z_pred, writer):
+                    """
+                    func: torchdeq.utils.layer_utils.DEQWrapper
+                    """
                     return z_pred
+                
+                @staticmethod
+                # https://pytorch.org/docs/stable/notes/extending.html#example
+                # inputs is a Tuple of all of the inputs passed to forward.
+                # output is the output of the forward().
+                def setup_context(ctx, inputs, output):
+                    func, z_pred, writer = inputs
+                    # should be called at most once, only from inside the forward method, 
+                    # and only with tensors
+                    ctx.save_for_backward(z_pred.detach())
+                    ctx.set_materialize_grads(False)
+                    ctx.func = func
+                    # ctx.writer = writer
 
                 @staticmethod
                 def backward(ctx, grad):
-                    func, writer = ctx.func, ctx.writer
+                    # backward must accept a context ctx as the first argument, 
+                    # followed by as many outputs as the forward() returned 
+                    # (None will be passed in for non tensor outputs of the forward function)
+                    # ctx.needs_input_grad: func=False, z_pred=True, writer=False
+
+                    func = ctx.func
+
+                    # https://discuss.pytorch.org/t/memory-leaks-from-custom-function/93028
+                    # ctx.save_for_backward(a), a=ctx.saved_tensors >> ctx.a=a, a=ctx.a
                     (z_pred,) = ctx.saved_tensors
 
-                    h = z_pred.clone().detach().requires_grad_()
+                    # first detach and then copy so the computation path is not copied
+                    # Gradients propagating to the cloned tensor will propagate to the original tensor
+                    # create a copy that starts a new gradient computation path
+                    h = z_pred.detach().clone().requires_grad_()
                     with torch.enable_grad():
                         f = func(h)
+                        # f = torch.sin(h) #Todo@temp
 
                     grad_f = (
-                        lambda x: autograd.grad(outputs=f, inputs=h, grad_outputs=x, retain_graph=True)[0] + grad
+                        lambda x: autograd.grad(
+                            outputs=f, inputs=h, grad_outputs=x, retain_graph=True
+                        )[0] + grad
                     )
-                    grad_star, _, info = b_solver(
-                        grad_f, torch.zeros_like(grad), **b_solver_kwargs
-                    )
-                    if writer:
-                        writer(info)
 
-                    return (None, grad_star, None)
+                    # TODO: log backwards info?
+                    with torch.no_grad(): # fixes memory leak Todo@temp
+                        grad_star, _, info = b_solver(
+                            func=grad_f, x0=torch.zeros_like(grad), **b_solver_kwargs
+                        )
 
-            def func_ift(_, func, z_pred, writer=None, **kwargs):
+                    # writer = ctx.writer
+                    # if writer:
+                    #     writer(info)
+
+                    # backward should return as many tensors, as there were inputs to forward(). 
+                    # Each argument is the gradient w.r.t the given output
+                    # each returned value should be the gradient w.r.t. the corresponding input. 
+                    # If an input is not a Tensor or is a Tensor not requiring grads, pass None as a gradient for that input
+                    return (None, grad_star, None) 
+
+            def func_ift(trainer, func, z_pred, writer=None, **kwargs):
                 new_z_pred = func(z_pred)  # 1-step grad for df/dtheta
                 return [IFTGrad.apply(func, new_z_pred, writer)]
 
@@ -199,7 +243,7 @@ def backward_factory(
 
         if sup_gap > 0:
 
-            def sup_gap_grad_func(_, func, z_pred, **kwargs):
+            def sup_gap_grad_func(trainer, func, z_pred, **kwargs):
                 z_out = []
                 for i in range(n_grad_step):
                     z_pred = func(z_pred, tau=tau)
@@ -211,7 +255,7 @@ def backward_factory(
             return sup_gap_grad_func
         elif sup_loc:
 
-            def sup_loc_grad_func(_, func, z_pred, **kwargs):
+            def sup_loc_grad_func(trainer, func, z_pred, **kwargs):
                 z_out = []
                 for i in range(n_grad_step):
                     z_pred = func(z_pred, tau=tau)
@@ -224,7 +268,7 @@ def backward_factory(
             return sup_loc_grad_func
         else:
 
-            def grad_func(_, func, z_pred, **kwargs):
+            def grad_func(trainer, func, z_pred, **kwargs):
                 for _ in range(n_grad_step):
                     z_pred = func(z_pred, tau=tau)
 

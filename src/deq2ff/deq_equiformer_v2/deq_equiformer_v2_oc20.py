@@ -282,11 +282,14 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             func=f, z_init=z, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
         )
         # z_pred = [emb]
-        info = {} # TODO@temp
+        # info = {} # TODO@temp
 
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             z_pred = [_z.view(self.shape_batched) for _z in z_pred]
+        
+        # print('z_pred.shape:', z_pred[-1])
+        # print('z_pred.shape:', z_pred[-1].shape)
 
         ######################################################
         # Fixed-point reuse loss

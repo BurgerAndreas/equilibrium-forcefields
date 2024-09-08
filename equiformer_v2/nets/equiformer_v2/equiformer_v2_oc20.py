@@ -1036,7 +1036,7 @@ class EquiformerV2_OC20(BaseModel):
                     force_scale = force_scale.expand(-1, 3)
                     forces = forces * force_scale
 
-        info = {} # Todo@temp for debugging
+        # info = {} # Todo@temp for debugging
         if self.regress_forces:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)

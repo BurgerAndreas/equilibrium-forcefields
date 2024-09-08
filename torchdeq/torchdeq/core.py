@@ -494,9 +494,13 @@ class DEQIndexing(DEQBase):
             z_out = []
             for z_pred, produce_grad in zip(trajectory, self.produce_grad):
                 z_pred = deq_func.detach(z_pred)
-                z_out += produce_grad( # see backward_factory
-                    self, deq_func, z_pred, writer=backward_writer
-                )  # See torchdeq.grad for the backward pass
+                # See torchdeq.grad backward_factory for the backward pass
+                # torch.tensor
+                z_out += produce_grad( 
+                    trainer=self, func=deq_func, z_pred=z_pred, writer=backward_writer
+                )  
+                # Todo@temp IFT
+                # _out: list[tuple(torch.tensor, <torchdeq.utils.layer_utils.DEQWrapper object>, None)]
 
             z_out = [deq_func.vec2list(each) for each in z_out]
 
@@ -794,7 +798,7 @@ class DEQSliced(DEQBase):
                 z_star = deq_func.detach(z_star)
 
                 # Calc gradients. See torchdeq.grad for implementations
-                z_out += produce_grad(self, deq_func, z_star, writer=backward_writer)
+                z_out += produce_grad(trainer=self, func=deq_func, z_pred=z_star, writer=backward_writer)
 
                 # z_out is of len=1 unless indexing or n_states is specified
                 z_star = z_out[-1]  # Add the gradient chain to the solver.

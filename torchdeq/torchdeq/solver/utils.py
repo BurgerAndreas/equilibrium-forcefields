@@ -135,9 +135,9 @@ def update_state(
         if mode == stop_mode:
             # get the lowest estimate for each batch?
             lowest_xest = batch_masked_mixing(is_lowest, x_est, lowest_xest)
-            if with_grad == False:
-                # we will apply phantom gradients later instead
-                lowest_xest = lowest_xest.clone().detach()
+            # if with_grad == False:
+            # we will apply phantom gradients later instead
+            lowest_xest = lowest_xest.detach().clone()
         lowest_dict[mode] = batch_masked_mixing(
             is_lowest, diff_dict[mode], lowest_dict[mode]
         )

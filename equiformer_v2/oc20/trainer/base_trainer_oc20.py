@@ -430,7 +430,7 @@ class BaseTrainer(ABC):
             new_dict = {f"module.{k}": v for k, v in checkpoint["state_dict"].items()}
             self.model.load_state_dict(new_dict)
         else:
-            self.model.load_state_dict(checkpoint["state_dict"])
+            self.model.load_state_dict(checkpoint["state_dict"], strict=False)
 
         if "optimizer" in checkpoint:
             self.optimizer.load_state_dict(checkpoint["optimizer"])
@@ -449,6 +449,8 @@ class BaseTrainer(ABC):
                 self.normalizers[key].load_state_dict(checkpoint["normalizers"][key])
             if self.scaler and checkpoint["amp"]:
                 self.scaler.load_state_dict(checkpoint["amp"])
+        
+        return True
 
     def load_loss(self):
         self.loss_fn = {}

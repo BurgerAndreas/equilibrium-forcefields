@@ -369,7 +369,7 @@ def main(args):
     loaded_checkpoint = False
     if args.checkpoint_path is not None:
         if args.checkpoint_path == "auto":
-            # args.checkpoint_path = os.path.join(args.output_dir, "checkpoint.pth.tar")
+            # args.checkpoint_path = os.path.join(args.output_dir, "checkpoint.pt.tar")
             args.checkpoint_path = args.output_dir
             _log.info(f"Auto checkpoint path: {args.checkpoint_path}")
         try:

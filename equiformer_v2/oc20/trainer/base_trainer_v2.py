@@ -370,6 +370,7 @@ class BaseTrainerV2(BaseTrainer):
         self.evaluator = Evaluator(task=name)
     
     def look_for_checkpoint(self):
+        logging.info("\nLooking for checkpoint...")
         # TODO: load model from checkpoint
         checkpoint_loaded = False
         if self.config["cmd"].get("checkpoint_path", None) is not None:
@@ -378,7 +379,7 @@ class BaseTrainerV2(BaseTrainer):
                 # checkpoint_dir
                 # TODO: checkpoint_name not used or properly set
                 checkpoint_path = os.path.join(
-                    self.config["cmd"]["checkpoint_dir"], "checkpoint.pth"
+                    self.config["cmd"]["checkpoint_dir"], "checkpoint.pt"
                 )
                 logging.info(f"Loading checkpoint from {checkpoint_path}")
             else:
@@ -386,8 +387,7 @@ class BaseTrainerV2(BaseTrainer):
 
             # load the checkpoint
             if os.path.isfile(checkpoint_path):
-                self.load_checkpoint(checkpoint_path=checkpoint_path)
-                checkpoint_loaded = True
+                checkpoint_loaded = self.load_checkpoint(checkpoint_path=checkpoint_path)
             else:
                 if distutils.is_master():
                     logging.warning(f"Checkpoint not found at {checkpoint_path}")
@@ -397,9 +397,7 @@ class BaseTrainerV2(BaseTrainer):
                 logging.info("No checkpoint provided. Skipping checkpoint loading.")
 
         if self.config["cmd"].get("assert_checkoint", False) and not checkpoint_loaded:
-            raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), checkpoint_path
-            )
+            raise FileNotFoundError(f"No checkpoint not found at {checkpoint_path}.")
 
     def load(self):
         self.load_seed_from_config()

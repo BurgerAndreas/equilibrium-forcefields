@@ -8,6 +8,7 @@ from torch.nn import functional as F
 from pyexpat.model import XML_CQUANT_OPT
 
 import wandb
+import copy
 
 from ocpmodels.common.registry import registry
 from ocpmodels.common.utils import conditional_grad
@@ -603,7 +604,6 @@ class EquiformerV2_OC20(BaseModel):
 
     def get_shapes(self, data, **kwargs):
         """Return dictionary of shapes."""
-        """Return dictionary of shapes."""
 
         self.batch_size = len(data.natoms)
         self.dtype = data.pos.dtype
@@ -641,7 +641,7 @@ class EquiformerV2_OC20(BaseModel):
 
         # Compute 3x3 rotation matrix per edge
         # data unused
-        edge_rot_mat = self._init_edge_rot_mat(data, edge_index, edge_distance_vec)
+        edge_rot_mat = self._init_edge_rot_mat(edge_index=edge_index, edge_distance_vec=edge_distance_vec)
 
         # Initialize the WignerD matrices and other values for spherical harmonic calculations
         for i in range(self.num_resolutions):
@@ -780,10 +780,8 @@ class EquiformerV2_OC20(BaseModel):
             if self.blocks[i].noise_out is not None:
                 self.blocks[i].noise_out.update_mask(x.shape, x.dtype, x.device)
 
-    # from OCP models to predict F=dE/dx
-    # not needed since we are predicting forces directly with another head
     @conditional_grad(torch.enable_grad())
-    def forward(self, data, step=None, datasplit=None, return_fixedpoint=False, **kwargs):
+    def encode(self, data):
         self.batch_size = len(data.natoms)
         self.dtype = data.pos.dtype
         self.device = data.pos.device
@@ -801,9 +799,11 @@ class EquiformerV2_OC20(BaseModel):
             data.cell = None
 
         num_atoms = len(atomic_numbers)
+        self.num_atoms = num_atoms
 
         # pos = data.pos.clone()
-        pos = data.pos.detach()
+        # pos = data.pos.detach()
+        pos = copy.deepcopy(data.pos.detach())
         if self.forces_via_grad:
             # data.pos.requires_grad_(True)
             pos.requires_grad_(True)
@@ -835,7 +835,6 @@ class EquiformerV2_OC20(BaseModel):
         ###############################################################
 
         # Init per node representations using an atomic number based embedding
-        offset = 0
         x = SO3_Embedding(
             num_atoms,
             self.lmax_list,
@@ -843,6 +842,8 @@ class EquiformerV2_OC20(BaseModel):
             self.device,
             self.dtype,
         )
+        self.shape_batched = x.embedding.shape
+        self.shape_unbatched = (self.batch_size, num_atoms, *x.embedding.shape[1:])
 
         offset_res = 0
         offset = 0
@@ -877,7 +878,6 @@ class EquiformerV2_OC20(BaseModel):
 
         # if self.learn_scale_after_encoder:
         # x.embedding = x.embedding * self.learn_scale_after_encoder
-
         if self.norm_enc is not None:
             x.embedding = self.norm_enc(x.embedding)
 
@@ -887,6 +887,15 @@ class EquiformerV2_OC20(BaseModel):
         #     logging_utils_deq.log_fixed_point_norm(
         #         x.embedding.clone().detach(), step, datasplit, name="emb"
         #     )
+
+        return x, pos, atomic_numbers, edge_distance, edge_index
+
+    # from OCP models to predict F=dE/dx
+    # not needed since we are predicting forces directly with another head
+    @conditional_grad(torch.enable_grad())
+    def forward(self, data, step=None, datasplit=None, return_fixedpoint=False, **kwargs):
+
+        x, pos, atomic_numbers, edge_distance, edge_index = self.encode(data)
 
         ###############################################################
         # Update spherical node embeddings
@@ -914,8 +923,13 @@ class EquiformerV2_OC20(BaseModel):
         # Final layer norm
         x.embedding = self.norm(x.embedding)
 
-        # if self.learn_scale_before_decoder:
-        x.embedding = x.embedding * self.learn_scale_before_decoder
+        # corresponding to DEQ
+        info = {
+            "nstep": torch.tensor(
+                [self.num_layers] * x.embedding.shape[0], 
+                dtype=torch.float16, device=x.embedding.device
+            )
+        }
 
         ######################################################
         # Logging
@@ -925,8 +939,37 @@ class EquiformerV2_OC20(BaseModel):
         #         x.embedding.clone().detach(), step, datasplit
         #     )
 
-        # corresponding to DEQ
-        info = {"nstep": torch.tensor([self.num_layers] * x.embedding.shape[0], dtype=torch.float16, device=x.embedding.device)}
+        return self.decode(
+            data=data,
+            x=x,
+            fp=x.embedding.detach(),  # last fixed-point estimate
+            pos=pos,
+            atomic_numbers=atomic_numbers,
+            edge_distance=edge_distance,
+            edge_index=edge_index,
+            info=info,
+            return_fixedpoint=return_fixedpoint,
+        )
+    
+    @conditional_grad(torch.enable_grad())
+    def decode(
+        self, data, x, fp, pos, 
+        atomic_numbers, edge_distance, edge_index,
+        info, return_fixedpoint=False
+    ):
+        """Predict energy and forces from fixed-point estimate.
+        Uses separate heads for energy and forces.
+        """
+
+        ######################################################
+        # Logging
+        ######################################################
+        # if step is not None:
+        #     # log the final fixed-point
+        #     logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
+        #     # log the input injection (output of encoder)
+        #     logging_utils_deq.log_fixed_point_norm(emb, step, datasplit, name="emb")
+
 
         ###############################################################
         # Energy estimation
@@ -959,11 +1002,15 @@ class EquiformerV2_OC20(BaseModel):
                         energy,
                         pos,
                         grad_outputs=torch.ones_like(energy),
+                        # we need to retain the graph to call loss.backward() later
                         create_graph=True,
+                        # retain_graph=True,
                     )[0]
                 )
 
             else:
+                # atom-wise forces using a block of equivariant graph attention
+                # and treating the output of degree 1 as the predictions
                 # x: [num_atoms*batch_size, num_coefficients, sphere_channels]
                 # forces: [num_atoms*batch_size, num_coefficients, 1]
                 forces = self.force_block(x, atomic_numbers, edge_distance, edge_index)
@@ -989,14 +1036,17 @@ class EquiformerV2_OC20(BaseModel):
                     force_scale = force_scale.expand(-1, 3)
                     forces = forces * force_scale
 
-        if not self.regress_forces:
+        info = {} # Todo@temp for debugging
+        if self.regress_forces:
             if return_fixedpoint:
-                return energy, None, info
-            return energy, info
+                # z_pred = sampled fixed point trajectory (tracked gradients)
+                return energy, forces, fp, info 
+            return energy, forces, info
         else:
             if return_fixedpoint:
-                return energy, forces, None, info
-            return energy, forces, info
+                # z_pred = sampled fixed point trajectory (tracked gradients)
+                return energy, fp, info
+            return energy, info
 
     # Initialize the edge rotation matrics
     def _init_edge_rot_mat(self, edge_index, edge_distance_vec, data=None):

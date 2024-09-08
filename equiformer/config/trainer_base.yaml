@@ -265,7 +265,7 @@ torch_record_memory: False
 max_num_of_mem_events_per_snapshot: 100000
 
 # print stack trace on error instead of e.g. silent NaNs
-torch_detect_anomaly: True
+torch_detect_anomaly: False
 
 # set environment variables for torchdeq
 broyden_print_values: null

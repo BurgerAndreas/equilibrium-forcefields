@@ -261,7 +261,6 @@ class DEQIndexing(DEQBase):
 
         self.arg_n_states = n_states
         self.arg_indexing = indexing
-        self.last_indexing = None
 
         self.grad_args = dict(
             grad=grad,
@@ -281,7 +280,7 @@ class DEQIndexing(DEQBase):
         print(
             f"\n{self.__class__.__name__} TorchDEQ args set:",
             f"\n{yaml.dump(self.grad_args)}",
-            "\nn_states=", n_states,
+            "n_states=", n_states,
             "\nindexing=", self.indexing
         )
 
@@ -457,22 +456,23 @@ class DEQIndexing(DEQBase):
         # print(f'{self.__class__.__name__}.forward solver_kwargs: {solver_kwargs}')
 
         if self.training or self.force_train_mode:
-            _recompute_f_iter = (
-                type(solver_kwargs.get("f_max_iter", None)) in [int, float]
-                or type(solver_kwargs.get("n_states", None)) in [int, float]
-                or type(solver_kwargs.get("indexing", None)) is list
-            )
-            if _recompute_f_iter:
-                indexing = self._compute_f_iter(
-                    solver_kwargs.get("f_max_iter", self.f_max_iter),
-                    solver_kwargs=solver_kwargs,
-                )
-            else:
-                indexing = self.indexing
+            # _recompute_f_iter = (
+            #     type(solver_kwargs.get("f_max_iter", None)) in [int, float]
+            #     or type(solver_kwargs.get("n_states", None)) in [int, float]
+            #     or type(solver_kwargs.get("indexing", None)) is list
+            # )
+            # if _recompute_f_iter:
+            #     indexing = self._compute_f_iter(
+            #         solver_kwargs.get("f_max_iter", self.f_max_iter),
+            #         solver_kwargs=solver_kwargs,
+            #     )
+            # else:
+            #     indexing = self.indexing
 
-            self.last_indexing = indexing
-            # if we want to overwrite indexing/n_states, we need to update the grad functions
-            self.set_grad({"indexing": indexing})
+            # # if we want to overwrite indexing/n_states, we need to update the grad functions
+            # self.set_grad({"indexing": indexing})
+
+            indexing = self.indexing
 
             # TODO
             # indexing defaults to indexing=[f_max_iter] if not specified otherwise
@@ -569,7 +569,9 @@ class DEQSliced(DEQBase):
 
     def __init__(
         self,
+        # args specified by the user
         args=None,
+        #default args if not specified
         ift=False,
         hook_ift=False,
         grad=1,
@@ -587,7 +589,6 @@ class DEQSliced(DEQBase):
         if isinstance(grad, int):
             assert grad > 0, "The minimal gradient step is 1!"
             grad = [grad]
-
         assert type(grad) in (list, tuple)
 
         sup_loc = [] if sup_loc is None else sup_loc
@@ -595,7 +596,6 @@ class DEQSliced(DEQBase):
 
         self.arg_n_states = n_states
         self.arg_indexing = indexing
-        self.last_indexing = None
 
         self.grad_args = dict(
             grad=grad,
@@ -614,8 +614,8 @@ class DEQSliced(DEQBase):
 
         print(
             f"\n{self.__class__.__name__} TorchDEQ args set:",
-            f"\n{yaml.dump(self.grad_args)}",
-            "\nn_states=", n_states,
+            f"\n{yaml.dump(self.args)}",
+            "n_states=", n_states,
             "\nindexing=", self.indexing
         )
 
@@ -772,29 +772,30 @@ class DEQSliced(DEQBase):
         if self.training or self.force_train_mode:
 
             # TODO@speedupdeq: don't do this every time
-            _f_max_iter = solver_kwargs.get("f_max_iter", None)
-            _n_states = solver_kwargs.get("n_states", None)
-            _indexing = solver_kwargs.get("indexing", None)
-            _recompute_f_iter = (
-                type(_f_max_iter) in [int, float]
-                or type(_n_states) in [int, float]
-                or type(_indexing) is list
-            )
-            if _recompute_f_iter:
-                indexing = self._compute_f_iter(
-                    f_max_iter=solver_kwargs.get("f_max_iter", self.f_max_iter),
-                    solver_kwargs=solver_kwargs,
-                )
-                # print('Indexing set to: ', indexing) # REMOVE
-                # print(' f_max_iter: ', _f_max_iter) # REMOVE
-                # print(' n_states: ', _n_states) # REMOVE
-                # print(' indexing: ', _indexing)
-            else:
-                indexing = self.indexing
+            # _f_max_iter = solver_kwargs.get("f_max_iter", None)
+            # _n_states = solver_kwargs.get("n_states", None)
+            # _indexing = solver_kwargs.get("indexing", None)
+            # _recompute_f_iter = (
+            #     type(_f_max_iter) in [int, float]
+            #     or type(_n_states) in [int, float]
+            #     or type(_indexing) is list
+            # )
+            # if _recompute_f_iter:
+            #     indexing = self._compute_f_iter(
+            #         f_max_iter=solver_kwargs.get("f_max_iter", self.f_max_iter),
+            #         solver_kwargs=solver_kwargs,
+            #     )
+            #     # print('Indexing set to: ', indexing) # REMOVE
+            #     # print(' f_max_iter: ', _f_max_iter) # REMOVE
+            #     # print(' n_states: ', _n_states) # REMOVE
+            #     # print(' indexing: ', _indexing)
+            # else:
+            #     indexing = self.indexing
 
-            self.last_indexing = indexing
-            # If we want to overwrite indexing/n_states, we need to update the grad functions
-            self.set_grad({"indexing": indexing})
+            # # If we want to overwrite indexing/n_states, we need to update the grad functions
+            # self.set_grad({"indexing": indexing})
+
+            indexing = self.indexing
 
             z_out = []
             for f_max_iter, produce_grad in zip(indexing, self.produce_grad):
@@ -900,7 +901,7 @@ def get_deq(args=None, **kwargs):
     args.update(**kwargs)
 
     core = args.get("core", "sliced")
-    assert core in _core, "Not registered DEQ class!"
+    assert core in _core, f"{core} is not registered DEQ class!"
 
     return _core[core](args)
 

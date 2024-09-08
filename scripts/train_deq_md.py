@@ -8,7 +8,6 @@ import torch
 import numpy as np
 from torch_geometric.loader import DataLoader
 from torch_geometric.loader.dataloader import Collater
-
 # from torch_geometric.data import collate
 
 import os
@@ -18,6 +17,7 @@ import re
 import copy
 import math
 import traceback
+import tracemalloc
 
 # add the root of the project to the path so it can find equiformer
 # root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -37,7 +37,6 @@ from equiformer.optim_factory import create_optimizer, scale_batchsize_lr
 
 from equiformer.engine import AverageMeter, compute_stats
 
-import torch
 import torch.nn as nn
 from torch_cluster import radius_graph
 from torch_scatter import scatter
@@ -111,6 +110,10 @@ parent_dir = os.path.dirname(file_dir)
 import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
+
+import gc
+# https://github.com/pytorch/pytorch/issues/973
+# torch.multiprocessing.set_sharing_strategy('file_system')
 
 
 def get_next_batch(dataset, batch, collate):
@@ -821,6 +824,7 @@ def train_md(args):
         print(f"node_embedding_batch_shape: {node_embedding_batch_shape}")
     except Exception as e:
         print(f"Failed to log shapes: {e}")
+        print(traceback.format_exc()) # print full stack trace
         node_embedding_batch_shape = None
         node_embedding_shape = None
 
@@ -1601,67 +1605,68 @@ def train_one_epoch(
 
     max_steps = len(data_loader)
     for batchstep, data in enumerate(data_loader):
-        # print(f"batchstep: {batchstep}/{max_steps}")
+        print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_summary())
         data = data.to(device)
         data = data.to(device, dtype)
 
-        # if model has attribute
+        # reinit DEQ to make sure nothing is stored in the buffers
         # if hasattr(model, "deq"):
         #     model.deq = get_deq(**model.deq_kwargs)
-        solver_kwargs = {}
 
-        if args.fpreuse_across_epochs and epoch >= args.fpreuse_start_epoch:
-            indices = [idx_to_indices[_idx.item()] for _idx in data.idx]
-            # print(f'idx: {[_idx.item() for _idx in data.idx]}, indices: {indices}')
-            # get previous fixed points via index
-            # _fp_prev = fixed_points[step].to(device)
-            # _fp_prev = fixed_points[indices].to(device)
-            _fp_prev = torch.cat([fixed_points[_idx] for _idx in indices], dim=0)
-            # _fp_prev = collate([fixed_points[_idx] for _idx in indices])
-            # energy, force
-            pred_y, pred_dy, fp, info = model(
-                data=data,  # for EquiformerV2
-                node_atom=data.z,
-                pos=data.pos,
-                batch=data.batch,
-                step=global_step,
-                datasplit="train",
-                solver_kwargs=solver_kwargs,
-                fpr_loss=args.fpr_loss,
-                # fixed-point reuse
-                return_fixedpoint=True,
-                fixedpoint=_fp_prev,
-            )
-            assert (
-                _fp_prev.shape == fp.shape
-            ), f"Fixed-point shape mismatch: {_fp_prev.shape} != {fp.shape}"
-            # split up fixed points [B*N, D, C] -> [B, N, D, C]
-            # [84, 16, 64] -> [4, 21, 16, 64]
-            fp = fp.view(args.batch_size, -1, *fp.shape[1:])
-            # store fixed points
-            # fixed_points[indices] = fp.detach()
-            for _idx, _fp in zip(indices, fp):
-                # TODO is clone necessary?
-                # fixed_points[_idx] = _fp.detach().clone().to(fpdevice)
-                fixed_points[_idx] = _fp.detach().to(fpdevice)
-            # print(' nsteps:', info["nstep"][0].item())
-        else:
-            # energy, force
-            pred_y, pred_dy, info = model(
-                data=data,  # for EquiformerV2
-                node_atom=data.z,
-                pos=data.pos,
-                batch=data.batch,
-                step=global_step,
-                datasplit="train",
-                solver_kwargs=solver_kwargs,
-                fpr_loss=args.fpr_loss,
-            )
+        # if args.fpreuse_across_epochs and epoch >= args.fpreuse_start_epoch:
+        #     indices = [idx_to_indices[_idx.item()] for _idx in data.idx]
+        #     # print(f'idx: {[_idx.item() for _idx in data.idx]}, indices: {indices}')
+        #     # get previous fixed points via index
+        #     # _fp_prev = fixed_points[step].to(device)
+        #     # _fp_prev = fixed_points[indices].to(device)
+        #     _fp_prev = torch.cat([fixed_points[_idx] for _idx in indices], dim=0)
+        #     # _fp_prev = collate([fixed_points[_idx] for _idx in indices])
+        #     # energy, force
+        #     pred_y, pred_dy, fp, info = model(
+        #         data=data,  # for EquiformerV2
+        #         node_atom=data.z,
+        #         pos=data.pos,
+        #         batch=data.batch,
+        #         step=global_step,
+        #         datasplit="train",
+        #         solver_kwargs=solver_kwargs,
+        #         fpr_loss=args.fpr_loss,
+        #         # fixed-point reuse
+        #         return_fixedpoint=True,
+        #         fixedpoint=_fp_prev,
+        #     )
+        #     assert (
+        #         _fp_prev.shape == fp.shape
+        #     ), f"Fixed-point shape mismatch: {_fp_prev.shape} != {fp.shape}"
+        #     # split up fixed points [B*N, D, C] -> [B, N, D, C]
+        #     # [84, 16, 64] -> [4, 21, 16, 64]
+        #     fp = fp.view(args.batch_size, -1, *fp.shape[1:])
+        #     # store fixed points
+        #     # fixed_points[indices] = fp.detach()
+        #     for _idx, _fp in zip(indices, fp):
+        #         # TODO is clone necessary?
+        #         # fixed_points[_idx] = _fp.detach().clone().to(fpdevice)
+        #         fixed_points[_idx] = _fp.detach().to(fpdevice)
+        #     # print(' nsteps:', info["nstep"][0].item())
+        # else:
+        # energy, force
+        pred_y, pred_dy, info = model(
+            data=data,  # for EquiformerV2
+            # for EquiformerV1:
+            # node_atom=data.z,
+            # pos=data.pos,
+            # batch=data.batch,
+            step=global_step,
+            datasplit="train",
+            fpr_loss=args.fpr_loss,
+        )
 
-        target_y = normalizers["energy"](data.y, data.z)  # [NB], [NB]
-        target_dy = normalizers["force"](data.dy, data.z)
+        # Todo@temp
+        # target_y = normalizers["energy"](data.y, data.z)  # [NB], [NB]
+        # target_dy = normalizers["force"](data.dy, data.z)
 
-        natoms = data.natoms[0].item()
+        target_y = copy.deepcopy(data.y)
+        target_dy = copy.deepcopy(data.dy)
 
         # reshape model output [B] (OC20) -> [B,1] (MD17)
         if args.unsqueeze_e_dim and pred_y.dim() == 1:
@@ -1679,8 +1684,9 @@ def train_one_epoch(
         else:
             pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
         
-        if args.norm_by_natoms:
-            loss = loss * args.norm_by_natoms_mul / natoms
+        # natoms = data.natoms[0].item()
+        # if args.norm_by_natoms:
+        #     loss = loss * args.norm_by_natoms_mul / natoms
         
         # Fixed-point correction loss
         # for superior performance and training stability
@@ -1802,12 +1808,13 @@ def train_one_epoch(
         #         step=global_step,
         #     )
 
-        if torch.isnan(pred_y).any():
-            isnan_cnt += 1
+        # Todo@temp
+        # if torch.isnan(pred_y).any():
+        #     isnan_cnt += 1
 
         # .requires_grad=True: loss, loss_e, loss_f, pred_y, pred_dy
         optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-        loss.backward()
+        loss.backward(retain_graph=False)
 
         # if args.grokfast in [None, False, "None"]:
         #     pass
@@ -1820,120 +1827,128 @@ def train_one_epoch(
         # else:
         #     raise NotImplementedError(f"Grokfast {args.grokfast} not implemented.")
 
+        # Todo@temp
         # optionally clip and log grad norm
-        if args.clip_grad_norm:
-            grad_norm = torch.nn.utils.clip_grad_norm_(
-                model.parameters(),
-                max_norm=args.clip_grad_norm,
-            )
-        else:
-            # grad_norm = 0
-            # for p in model.parameters():
-            #     param_norm = p.grad.detach().data.norm(2)
-            #     grad_norm += param_norm.item() ** 2
-            # grad_norm = grad_norm ** 0.5
-            grad_norm = torch.cat(
-                [
-                    param.grad.detach().flatten()
-                    for param in model.parameters()
-                    if param.grad is not None
-                ]
-            ).norm()
-        grad_norm_epoch_avg.append(grad_norm.item())
+        # if args.clip_grad_norm:
+        #     grad_norm = torch.nn.utils.clip_grad_norm_(
+        #         model.parameters(),
+        #         max_norm=args.clip_grad_norm,
+        #     )
+        # else:
+        #     # grad_norm = 0
+        #     # for p in model.parameters():
+        #     #     param_norm = p.grad.detach().data.norm(2)
+        #     #     grad_norm += param_norm.item() ** 2
+        #     # grad_norm = grad_norm ** 0.5
+        #     grad_norm = torch.cat(
+        #         [
+        #             param.grad.detach().flatten()
+        #             for param in model.parameters()
+        #             if param.grad is not None
+        #         ]
+        #     ).norm()
+        # grad_norm_epoch_avg.append(grad_norm.detach().item())
 
         # if args.opt in ["sps"]:
         #     optimizer.step(loss=loss)
         # else:
         optimizer.step()
-        optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+        # optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+
+        # del loss.grad, loss_e.grad, loss_f.grad
+
+        # # if model_ema is not None:
+        # #     model_ema.update(model)
+
+        #######################################
+        # Logging
+        # Todo@temp
+        # if "abs_trace" in info.keys():
+        #     # log fixed-point trajectory
+        #     # if args.log_fixed_point_trace_train:
+        #     logging_utils_deq.log_fixed_point_error(
+        #         info,
+        #         step=global_step,
+        #         datasplit="train",
+        #         log_trace_freq=args.log_trace_freq,
+        #     )
+        #     abs_fixed_point_error.append(info["abs_trace"].mean(dim=0)[-1].item())
+        #     rel_fixed_point_error.append(info["rel_trace"].mean(dim=0)[-1].item())
         
-        # necessary?
-        # data.pos.requires_grad_(False)
+        # if "nstep" in info.keys():
+        #     f_steps_to_fixed_point.append(info["nstep"].mean().item())
 
-        # logging
-        if "abs_trace" in info.keys():
-            # log fixed-point trajectory
-            # if args.log_fixed_point_trace_train:
-            logging_utils_deq.log_fixed_point_error(
-                info,
-                step=global_step,
-                datasplit="train",
-                log_trace_freq=args.log_trace_freq,
-            )
-            abs_fixed_point_error.append(info["abs_trace"].mean(dim=0)[-1].item())
-            rel_fixed_point_error.append(info["rel_trace"].mean(dim=0)[-1].item())
+        # loss_metrics["energy"].update(loss_e.detach().item(), n=pred_y.shape[0])
+        # loss_metrics["force"].update(loss_f.detach().item(), n=pred_dy.shape[0])
+
+        # # energy_err1 = pred_y.detach() * task_std + task_mean - data.y
+        # energy_err = normalizers["energy"].denorm(pred_y.detach(), data.z) - data.y
+        # energy_err = torch.mean(torch.abs(energy_err)).detach().item()
+        # mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
+
+        # # force_err1 = pred_dy.detach() * task_std - data.dy
+        # force_err = normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy 
+        # # based on OC20 and TorchMD-Net, they average over x, y, z
+        # force_err = torch.mean(torch.abs(force_err)).detach().item()  
+        # mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
+
         
-        if "nstep" in info.keys():
-            f_steps_to_fixed_point.append(info["nstep"].mean().item())
+        # if batchstep % print_freq == 0 or batchstep == max_steps - 1:
+        #     w = time.perf_counter() - start_time
+        #     e = (batchstep + 1) / max_steps
+        #     info_str = "Epoch: [{epoch}][{step}/{length}] \t".format(
+        #         epoch=epoch, step=batchstep, length=max_steps
+        #     )
+        #     info_str += "loss_e: {loss_e:.5f}, loss_f: {loss_f:.5f}, e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
+        #         loss_e=loss_metrics["energy"].avg,
+        #         loss_f=loss_metrics["force"].avg,
+        #         e_mae=mae_metrics["energy"].avg,
+        #         f_mae=mae_metrics["force"].avg,
+        #     )
+        #     info_str += "time/step={time_per_step:.0f}ms, ".format(
+        #         time_per_step=(1e3 * w / e / max_steps)
+        #     )
+        #     if "lr" in optimizer.param_groups[0]:
+        #         info_str += "lr={:.2e}".format(optimizer.param_groups[0]["lr"])
+        #     logger.info(info_str)
 
-        loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
-        loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
+        # # if step % args.log_every_step_minor == 0:
+        # logs = {
+        #     "train_loss": loss.detach().item(),
+        #     "grad_norm": grad_norm.detach().item(),
+        #     # energy
+        #     # "energy_pred_mean": pred_y.mean().item(),
+        #     # "energy_pred_std": pred_y.std().item(),
+        #     # "energy_pred_min": pred_y.min().item(),
+        #     # "energy_pred_max": pred_y.max().item(),
+        #     # "energy_target_mean": target_y.mean().item(),
+        #     # "energy_target_std": target_y.std().item(),
+        #     # "energy_target_min": target_y.min().item(),
+        #     # "energy_target_max": target_y.max().item(),
+        #     "scaled_energy_loss": (args.energy_weight * loss_e.detach()).item(),
+        #     # force
+        #     # "force_pred_mean": pred_dy.mean().item(),
+        #     # "force_pred_std": pred_dy.std().item(),
+        #     # "force_pred_min": pred_dy.min().item(),
+        #     # "force_pred_max": pred_dy.max().item(),
+        #     # "force_target_mean": target_dy.mean().item(),
+        #     # "force_target_std": target_dy.std().item(),
+        #     # "force_target_min": target_dy.min().item(),
+        #     # "force_target_max": target_dy.max().item(),
+        #     "scaled_force_loss": (args.force_weight * loss_f.detach()).item(),
+        # }
 
-        # energy_err1 = pred_y.detach() * task_std + task_mean - data.y
-        energy_err = normalizers["energy"].denorm(pred_y.detach(), data.z) - data.y
-        energy_err = torch.mean(torch.abs(energy_err)).item()
-        mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
-
-        # force_err1 = pred_dy.detach() * task_std - data.dy
-        force_err = normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy 
-        # based on OC20 and TorchMD-Net, they average over x, y, z
-        force_err = torch.mean(torch.abs(force_err)).item()  
-        mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
-
-        if model_ema is not None:
-            model_ema.update(model)
-        
-        # torch.cuda.synchronize()
-
-        # logging
-        if batchstep % print_freq == 0 or batchstep == max_steps - 1:
-            w = time.perf_counter() - start_time
-            e = (batchstep + 1) / max_steps
-            info_str = "Epoch: [{epoch}][{step}/{length}] \t".format(
-                epoch=epoch, step=batchstep, length=max_steps
-            )
-            info_str += "loss_e: {loss_e:.5f}, loss_f: {loss_f:.5f}, e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
-                loss_e=loss_metrics["energy"].avg,
-                loss_f=loss_metrics["force"].avg,
-                e_mae=mae_metrics["energy"].avg,
-                f_mae=mae_metrics["force"].avg,
-            )
-            info_str += "time/step={time_per_step:.0f}ms, ".format(
-                time_per_step=(1e3 * w / e / max_steps)
-            )
-            if "lr" in optimizer.param_groups[0]:
-                info_str += "lr={:.2e}".format(optimizer.param_groups[0]["lr"])
-            logger.info(info_str)
-
-        # if step % args.log_every_step_minor == 0:
-        logs = {
-            "train_loss": loss.item(),
-            "grad_norm": grad_norm.item(),
-            # energy
-            # "energy_pred_mean": pred_y.mean().item(),
-            # "energy_pred_std": pred_y.std().item(),
-            # "energy_pred_min": pred_y.min().item(),
-            # "energy_pred_max": pred_y.max().item(),
-            # "energy_target_mean": target_y.mean().item(),
-            # "energy_target_std": target_y.std().item(),
-            # "energy_target_min": target_y.min().item(),
-            # "energy_target_max": target_y.max().item(),
-            "scaled_energy_loss": (args.energy_weight * loss_e).item(),
-            # force
-            # "force_pred_mean": pred_dy.mean().item(),
-            # "force_pred_std": pred_dy.std().item(),
-            # "force_pred_min": pred_dy.min().item(),
-            # "force_pred_max": pred_dy.max().item(),
-            # "force_target_mean": target_dy.mean().item(),
-            # "force_target_std": target_dy.std().item(),
-            # "force_target_min": target_dy.min().item(),
-            # "force_target_max": target_dy.max().item(),
-            "scaled_force_loss": (args.force_weight * loss_f).item(),
-        }
-        
-        wandb.log(logs, step=global_step)
+        # wandb.log(logs, step=global_step)
+        #######################################
 
         global_step += 1
+
+        # Todo@temp
+        del data, pred_y, pred_dy, loss, loss_e, loss_f
+
+        # bandaids, its not going to fix the underlying issue
+        gc.collect() # garbage collector finds unused objects and deletes them
+        torch.cuda.empty_cache() # deletes unused tensor from the cache
 
         if args.torch_profile:
             prof.step()

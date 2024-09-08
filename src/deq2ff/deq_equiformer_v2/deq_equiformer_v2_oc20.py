@@ -4,6 +4,7 @@ import math
 import numpy as np
 import torch
 import torch.nn as nn
+
 from pyexpat.model import XML_CQUANT_OPT
 
 from ocpmodels.common.registry import registry
@@ -229,151 +230,12 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # data.pos: [batch_size*num_atoms, 3])
         # data.atomic_numbers = data.z: [batch_size*num_atoms]
         # data.cell: [batch_size, 3, 3]
-        self.batch_size = len(data.natoms)
-        self.dtype = data.pos.dtype
-        self.device = data.pos.device
-
-        if hasattr(data, "atomic_numbers"):
-            atomic_numbers = data.atomic_numbers.long()
-        else:
-            # MD17
-            atomic_numbers = data.z.long()
-            data.atomic_numbers = data.z
-
-        # When using MD17 instead of OC20
-        # cell is not used unless (otf_graph is False) or (use_pbc is not None)
-        if not hasattr(data, "cell"):
-            data.cell = None
-
-        # molecules in batch can be of different sizes
-        num_atoms = len(atomic_numbers)
-        self.num_atoms = num_atoms
-
-        # pos = data.pos.clone()
-        pos = data.pos.detach()
-        if self.forces_via_grad:
-            # data.pos.requires_grad_(True)
-            pos.requires_grad_(True)
-
-        # basically the same as edge_src, edge_dst, edge_vec, edge_length in V1
-        (
-            edge_index,
-            edge_distance,
-            edge_distance_vec,
-            cell_offsets,
-            _,  # cell offset distances
-            neighbors,
-        ) = self.generate_graph(data=data, pos=pos)
-
-        self.num_edges = edge_distance.shape[0]
-
-        # print_values(
-        #     edge_distance_vec,
-        #     "edge_distance_vec",
-        #     step=step,
-        #     datasplit=datasplit,
-        #     log=True,
-        #     before="-" * 100,
-        # )
-        # print_values(edge_index[0].float(), "edge_index0", log=True)
-        # print_values(edge_index[1].float(), "edge_index1", log=True)
-
-        ###############################################################
-        # Initialize data structures
-        ###############################################################
-
-        # Compute 3x3 rotation matrix per edge
-        # data unused
-        edge_rot_mat = self._init_edge_rot_mat(edge_index=edge_index, edge_distance_vec=edge_distance_vec)
-        # print_values(edge_rot_mat.float(), "edge_rot_mat", log=True)
-
-        # Initialize the WignerD matrices and other values for spherical harmonic calculations
-        for i in range(self.num_resolutions):
-            self.SO3_rotation[i].set_wigner(edge_rot_mat)
-
-        ###############################################################
-        # Initialize node embeddings
-        ###############################################################
-
-        # Init per node representations using an atomic number based embedding
-        # shape: [num_atoms*batch_size, num_coefficients, num_channels]
-        x = SO3_Embedding(
-            num_atoms,
-            self.lmax_list,
-            self.sphere_channels,
-            self.device,
-            self.dtype,
-        )
-        self.shape_batched = x.embedding.shape
-        self.shape_unbatched = (self.batch_size, num_atoms, *x.embedding.shape[1:])
-
-        offset_res = 0
-        offset = 0
-        # Initialize the l = 0, m = 0 coefficients for each resolution
-        for i in range(self.num_resolutions):
-            if self.num_resolutions == 1:
-                x.embedding[:, offset_res, :] = self.sphere_embedding(atomic_numbers)
-            else:
-                x.embedding[:, offset_res, :] = self.sphere_embedding(atomic_numbers)[
-                    :, offset : offset + self.sphere_channels
-                ]
-            offset = offset + self.sphere_channels
-            offset_res = offset_res + int((self.lmax_list[i] + 1) ** 2)
-
-        # Edge encoding (distance and atom edge)
-        edge_distance = self.distance_expansion(edge_distance)
-        if self.share_atom_edge_embedding and self.use_atom_edge_embedding:
-            source_element = atomic_numbers[edge_index[0]]  # Source atom atomic number
-            target_element = atomic_numbers[edge_index[1]]  # Target atom atomic number
-            source_embedding = self.source_embedding(source_element)
-            target_embedding = self.target_embedding(target_element)
-            edge_distance = torch.cat(
-                (edge_distance, source_embedding, target_embedding), dim=1
-            )
-
-        # Edge-degree embedding
-        # first learnable layer?
-        edge_degree = self.edge_degree_embedding(
-            atomic_numbers, edge_distance, edge_index
-        )
-        # both: [num_atoms, num_coefficients, num_channels]
-        # num_coefficients = sum([(2 * l + 1) for l in self.lmax_list])
-        # addition, not concatenation
-        x.embedding = x.embedding + edge_degree.embedding
-
-        # if self.learn_scale_after_encoder:
-        # x.embedding = x.embedding * self.learn_scale_after_encoder
-        if self.norm_enc is not None:
-            x.embedding = self.norm_enc(x.embedding)
-
-        # logging
-        # if step is not None:
-        #     # log the input injection (output of encoder)
-        #     logging_utils_deq.log_fixed_point_norm(
-        #         x.embedding.clone().detach(), step, datasplit, name="emb"
-        #     )
+        x, pos, atomic_numbers, edge_distance, edge_index = self.encode(data)
 
         ###############################################################
         # Update spherical node embeddings
         # "Replaced" by DEQ
         ###############################################################
-
-        # print_values(
-        #     x.embedding,
-        #     "emb",
-        #     step=step,
-        #     datasplit=datasplit,
-        #     log=True,
-        #     before="-" * 80,
-        # )
-        # print_values(edge_degree.embedding, "edgedegreeemb", log=True)
-
-        # if self.skip_blocks:
-        #     pass
-        #     z_pred = [torch.zeros_like(x.embedding)]
-        #     info = {}
-        # else:
-        # emb_SO3 = x
 
         # In Equiformer x are the node features,
         # where x is initialized in the "encoder" and then updated in the transformer blocks. 
@@ -385,14 +247,13 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             z: torch.Tensor = self._init_z(shape=emb.shape, emb=emb)
             reuse = False
         else:
-            reuse = True
             z = fixedpoint.to(emb.device)
+            reuse = True
 
         # from torchdeq
         reset_norm(self.blocks)
 
-        if reset_dropout:
-            self.reset_dropout(z, data.batch)
+        self.reset_dropout(z, data.batch)
 
         # Transformer blocks
         # f = lambda z: self.mfn_forward(z, u)
@@ -401,12 +262,12 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             # if batchify_for_torchdeq is True, x in and out should be [B, N, D, C]
             return self.deq_implicit_layer(
                 _z,
-                # the following is all input injection
+                # the following is input injection
                 emb=emb,
                 edge_index=edge_index,
                 edge_distance=edge_distance,
                 atomic_numbers=atomic_numbers,
-                data=data,
+                batch=data.batch,
             )
 
         # [B*N, D, C] -> [B, N, D, C] # torchdeq batchify
@@ -420,11 +281,12 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         z_pred, info = self.deq(
             func=f, z_star=z, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
         )
-        
+        # z_pred = [emb]
+        info = {} # TODO@temp
+
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             z_pred = [_z.view(self.shape_batched) for _z in z_pred]
-        # info["z_pred"] = z_pred # slow?
 
         ######################################################
         # Fixed-point reuse loss
@@ -473,25 +335,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         ###############################################################
         # Decode the fixed-point estimate
         ###############################################################
-        # save atomic_numbers, edge_distance, edge_index to self
-        # so we can use them in the decode function
-        self.atomic_numbers = atomic_numbers
-        self.edge_distance = edge_distance
-        self.edge_index = edge_index
 
-        return self.decode(
-            data=data,
-            z=z_pred[-1],  # last fixed-point estimate
-            info=info,
-            pos=pos,
-            return_fixedpoint=return_fixedpoint,
-        )
-
-    @conditional_grad(torch.enable_grad())
-    def decode(self, data, z, pos, info, return_fixedpoint=False):
-        """Predict energy and forces from fixed-point estimate.
-        Uses separate heads for energy and forces.
-        """
         # tensor -> S03_Embedding
         x = SO3_Embedding(
             length=self.num_atoms,
@@ -499,117 +343,45 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             num_channels=self.sphere_channels_fixedpoint,
             device=self.device,
             dtype=self.dtype,
-            embedding=z,
+            embedding=z_pred[-1],
         )
-
-        ######################################################
-        # Logging
-        ######################################################
-        # if step is not None:
-        #     # log the final fixed-point
-        #     logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
-        #     # log the input injection (output of encoder)
-        #     logging_utils_deq.log_fixed_point_norm(emb, step, datasplit, name="emb")
 
         # Final layer norm
         x.embedding = self.norm(x.embedding)
 
-        ###############################################################
-        # Energy estimation
-        ###############################################################
-        node_energy = self.energy_block(x)
-        # if self.learn_scale_after_energy_block:
-        node_energy.embedding = (
-            node_energy.embedding * self.learn_scale_after_energy_block
+        return self.decode(
+            data=data,
+            x=x,
+            fp=z_pred[-1].detach(),  # last fixed-point estimate
+            pos=pos,
+            atomic_numbers=atomic_numbers,
+            edge_distance=edge_distance,
+            edge_index=edge_index,
+            info=info,
+            return_fixedpoint=return_fixedpoint,
         )
-        node_energy = node_energy.embedding.narrow(1, 0, 1)
-        energy = torch.zeros(
-            len(data.natoms), device=node_energy.device, dtype=node_energy.dtype
-        )
-        energy.index_add_(dim=0, index=data.batch, source=node_energy.view(-1))
-        energy = energy / self._AVG_NUM_NODES
 
-        ###############################################################
-        # Force estimation
-        ###############################################################
-        if self.regress_forces:
-            if self.forces_via_grad:
-                # [num_atoms*batch_size, 3]
-                forces = -1 * (
-                    torch.autograd.grad(
-                        energy,
-                        pos,
-                        grad_outputs=torch.ones_like(energy),
-                        # we need to retain the graph to call loss.backward() later
-                        create_graph=True,
-                        # retain_graph=True,
-                    )[0]
-                )
-                # Without .detach() we will run into a memory leak:
-                # Exception in thread Thread-5 (_pin_memory_loop) 
-                # RuntimeError: received 0 items of ancdata
-                # z = z.detach()
-
-            else:
-                # atom-wise forces using a block of equivariant graph attention
-                # and treating the output of degree 1 as the predictions
-                forces = self.force_block(
-                    x, self.atomic_numbers, self.edge_distance, self.edge_index
-                )
-                # if self.learn_scale_after_force_block:
-                x.embedding = x.embedding * self.learn_scale_after_force_block
-                forces = forces.embedding.narrow(1, 1, 3)
-                # [num_atoms*batch_size, 3]
-                forces = forces.view(-1, 3)
-                # multiply force on each node by a scalar
-                if self.force_scale_block is not None:
-                    if self.force_scale_head == "FeedForwardNetwork":
-                        force_scale = self.force_scale_block(x)
-                    else:  # SO2EquivariantGraphAttention
-                        force_scale = self.force_scale_block(
-                            x, self.atomic_numbers, self.edge_distance, self.edge_index
-                        )
-                    # select scalars only, one per node # (B, 1, 1)
-                    force_scale = force_scale.embedding.narrow(dim=1, start=0, length=1)
-                    # view: [B, 1]
-                    force_scale = force_scale.view(-1, 1)
-                    # [B, 3]
-                    force_scale = force_scale.expand(-1, 3)
-                    forces = forces * force_scale
-
-        # info = {} # for debugging
-        if self.regress_forces:
-            if return_fixedpoint:
-                # z_pred = sampled fixed point trajectory (tracked gradients)
-                return energy, forces, z.detach(), info 
-            return energy, forces, info
-        else:
-            if return_fixedpoint:
-                # z_pred = sampled fixed point trajectory (tracked gradients)
-                return energy, z.detach(), info
-            return energy, info
-
-    # TODO: deprecated
-    def inject_input(self, z, u):
-        if self.inp_inj == "cat":
-            z = torch.cat([z, u], dim=1)
-        elif self.inp_inj == "add":
-            # we can't use previous of z because we initialize z as 0
-            # norm_before = z.norm()
-            norm_before = u.norm()
-            z = z + u
-            if self.inj_norm == "prev":
-                scale = z.norm() / norm_before
-                z = z / scale
-            elif self.inj_norm == "one":
-                z = z / z.norm()
-        else:
-            raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
-        return z
+    # deprecated
+    # def inject_input(self, z, u):
+    #     if self.inp_inj == "cat":
+    #         z = torch.cat([z, u], dim=1)
+    #     elif self.inp_inj == "add":
+    #         # we can't use previous of z because we initialize z as 0
+    #         # norm_before = z.norm()
+    #         norm_before = u.norm()
+    #         z = z + u
+    #         if self.inj_norm == "prev":
+    #             scale = z.norm() / norm_before
+    #             z = z / scale
+    #         elif self.inj_norm == "one":
+    #             z = z / z.norm()
+    #     else:
+    #         raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
+    #     return z
 
     @conditional_grad(torch.enable_grad())
     def deq_implicit_layer(
-        self, z: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, data,
+        self, z: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, batch,
         step=None, datasplit=None, solver_step=None, stack=0,
     ) -> torch.Tensor:
         """Implicit layer for DEQ that defines the fixed-point.
@@ -657,10 +429,10 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         """ Normalize after input injection """
         # print_values(z, "injprenorm", log=False)
         if self.inj_norm == "prev":
-            scale = z.norm() / norm_before
+            scale = torch.linalg.norm(z) / norm_before
             z = z / scale
         elif self.inj_norm == "one":
-            z = z / z.norm()
+            z = z / torch.linalg.norm(z)
         elif self.inj_norm == "ln":
             # z = self.inj_ln(z)
             raise NotImplementedError("inj_norm=ln: use enc_ln=True inj_norm=null instead.")
@@ -687,7 +459,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 atomic_numbers,
                 edge_distance,
                 edge_index,
-                batch=data.batch,  # for GraphPathDrop
+                batch=batch,  # for GraphPathDrop
             )
             # self.cnt_layer += 1
             # self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit, layer=self.cnt_layer)

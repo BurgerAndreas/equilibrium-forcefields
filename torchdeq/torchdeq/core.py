@@ -88,11 +88,12 @@ class DEQBase(nn.Module):
         **kwargs,
     ):
         super(DEQBase, self).__init__()
+        # print(f"\n{self.__class__.__name__} TorchDEQ kwargs:", kwargs)
 
         self.args = DEQConfig(args)
         self.args.update(**kwargs)
 
-        self.force_train_mode = force_train_mode
+        self.force_train_mode = self.args.get("force_train_mode", force_train_mode)
 
         self.f_solver = get_solver(self.args.get("f_solver", f_solver))
         self.b_solver = get_solver(self.args.get("b_solver", b_solver))

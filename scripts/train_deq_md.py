@@ -678,7 +678,7 @@ def train_md(args):
 
     """ Log number of parameters """
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    _log.info("Number of Model params: {}".format(n_parameters))
+    _log.info("\nNumber of Model params: {}".format(n_parameters))
     wandb.run.summary["Model Parameters"] = n_parameters
     # wandb.config.update({"Model Parameters": n_parameters})
 
@@ -1614,7 +1614,7 @@ def train_one_epoch(
     if hasattr(model, "deq"):
         print("DEQ is in training mode", model.deq.training)
         print("DEQ is in force_train_mode", model.deq.force_train_mode)
-    print("Grad is tracking", outputs.requires_grad)
+    print("Grad is tracking", outputs[0].requires_grad)
     print("Model regress_forces", model.regress_forces)
     print("Model direct_forces", model.direct_forces)
 
@@ -1677,12 +1677,11 @@ def train_one_epoch(
             fpr_loss=args.fpr_loss,
         )
 
-        # Todo@temp
-        # target_y = normalizers["energy"](data.y, data.z)  # [NB], [NB]
-        # target_dy = normalizers["force"](data.dy, data.z)
+        # target_y = copy.deepcopy(data.y)
+        # target_dy = copy.deepcopy(data.dy)
+        target_y = normalizers["energy"](data.y, data.z)  # [NB], [NB]
+        target_dy = normalizers["force"](data.dy, data.z)
 
-        target_y = copy.deepcopy(data.y)
-        target_dy = copy.deepcopy(data.dy)
 
         # reshape model output [B] (OC20) -> [B,1] (MD17)
         if args.unsqueeze_e_dim and pred_y.dim() == 1:
@@ -2103,14 +2102,14 @@ def evaluate(
         data = next(iter(data_loader))
         data = data.to(device)
         data = data.to(device, dtype)
-        outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
+        outputs = model(data=data) #, node_atom=data.z, pos=data.pos, batch=data.batch)
 
         print("Eval:")
         print("Model is in training mode", model.training)
         if hasattr(model, "deq"):
             print("DEQ is in training mode", model.deq.training)
             print("DEQ is in force_train_mode", model.deq.force_train_mode)
-        print("Grad is tracking", outputs.requires_grad)
+        print("Grad is tracking", outputs[0].requires_grad)
         print("Model regress_forces", model.regress_forces)
         print("Model direct_forces", model.direct_forces)
         optimizer.zero_grad(set_to_none=args.set_grad_to_none)
@@ -2187,9 +2186,10 @@ def evaluate(
                     # call model and pass fixedpoint
                     pred_y, pred_dy, fixedpoint, info = model(
                         data=data,  # for EquiformerV2
-                        node_atom=data.z,
-                        pos=data.pos,
-                        batch=data.batch,
+                        # for EquiformerV1:
+                        # node_atom=data.z,
+                        # pos=data.pos,
+                        # batch=data.batch,
                         step=pass_step,
                         datasplit=_datasplit,
                         return_fixedpoint=True,
@@ -2203,9 +2203,10 @@ def evaluate(
                     # energy, force
                     pred_y, pred_dy, info = model(
                         data=data,  # for EquiformerV2
-                        node_atom=data.z,
-                        pos=data.pos,
-                        batch=data.batch,
+                        # for EquiformerV1:
+                        # node_atom=data.z,
+                        # pos=data.pos,
+                        # batch=data.batch,
                         step=pass_step,
                         datasplit=datasplit,
                         fixedpoint=None,

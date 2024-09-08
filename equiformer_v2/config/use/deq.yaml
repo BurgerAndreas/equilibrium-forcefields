@@ -85,6 +85,8 @@ deq_kwargs:
   # Uniformly samples trajectory states from the solver. The backward passes of sampled states will be automactically tracked.
   n_states: 1 
   indexing: null
+
+  force_train_mode: False
   
   # regularization
   # jac_reg: False

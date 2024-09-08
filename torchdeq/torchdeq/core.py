@@ -395,6 +395,7 @@ class DEQIndexing(DEQBase):
         indexing = indexing if (self.training or self.force_train_mode) else None
 
         f_tol = solver_kwargs.pop("f_tol", self.f_tol)
+        f_stop_mode = solver_kwargs.pop("f_stop_mode", self.f_stop_mode)
 
         with torch.no_grad():
             # changed to use f_tol from passed kwargs
@@ -403,7 +404,7 @@ class DEQIndexing(DEQBase):
                 x0=z_init,
                 max_iter=f_max_iter,  # To reuse previous fixed points
                 tol=f_tol,
-                stop_mode=self.f_stop_mode,
+                stop_mode=f_stop_mode,
                 indexing=indexing,
                 **solver_kwargs,
             )
@@ -414,7 +415,7 @@ class DEQIndexing(DEQBase):
         self,
         func,
         z_init,
-        solver_kwargs=None,
+        solver_kwargs={},
         sradius_mode=False,
         backward_writer=None,
         **kwargs,
@@ -451,28 +452,26 @@ class DEQIndexing(DEQBase):
         """
         deq_func, z_init = deq_decorator(func, z_init, no_stat=self.no_stat)
 
-        if solver_kwargs is None:
-            solver_kwargs = dict()
-        # print(f'{self.__class__.__name__}.forward solver_kwargs: {solver_kwargs}')
+        # TODO: solver kwargs is a mess
+        # we can overwrite f_max_iter and f_tol
+        # but not indexing?
+        # anderson takes additionally:     
+        # m=6,
+        # lam=1e-4,
+        # tau=1.0,
+        # return_final=False,
+        # broyden takes additionally:
+        # LBFGS_thres=None,
+        # ls=False,
+        # return_final=False,
+        # with_grad=False,
 
         if self.training or self.force_train_mode:
-            # _recompute_f_iter = (
-            #     type(solver_kwargs.get("f_max_iter", None)) in [int, float]
-            #     or type(solver_kwargs.get("n_states", None)) in [int, float]
-            #     or type(solver_kwargs.get("indexing", None)) is list
-            # )
-            # if _recompute_f_iter:
-            #     indexing = self._compute_f_iter(
-            #         solver_kwargs.get("f_max_iter", self.f_max_iter),
-            #         solver_kwargs=solver_kwargs,
-            #     )
-            # else:
-            #     indexing = self.indexing
-
-            # # if we want to overwrite indexing/n_states, we need to update the grad functions
-            # self.set_grad({"indexing": indexing})
-
-            indexing = self.indexing
+            # if we pass f_max_iter, we need to recompute the indexing
+            if type(solver_kwargs.get('f_max_iter', None)) in [int, float]:
+                indexing = self._compute_f_iter(solver_kwargs['f_max_iter'])
+            else:
+                indexing = self.indexing
 
             # TODO
             # indexing defaults to indexing=[f_max_iter] if not specified otherwise
@@ -498,6 +497,7 @@ class DEQIndexing(DEQBase):
                 )  # See torchdeq.grad for the backward pass
 
             z_out = [deq_func.vec2list(each) for each in z_out]
+
         else:
             # During inference, we directly solve for the fixed point
             z_star, _, info = self._solve_fixed_point(
@@ -506,7 +506,7 @@ class DEQIndexing(DEQBase):
                 f_max_iter=solver_kwargs.get("f_max_iter", self.eval_f_max_iter),
                 solver_kwargs=solver_kwargs,
             )
-
+            # optionally add spectral radius to info
             sradius = (
                 self._sradius(deq_func, z_star)
                 if sradius_mode
@@ -716,15 +716,17 @@ class DEQSliced(DEQBase):
         solver_kwargs = {k: v for k, v in solver_kwargs.items() if k != "f_max_iter"}
 
         f_tol = solver_kwargs.pop("f_tol", self.f_tol)
+        f_stop_mode = solver_kwargs.pop("f_stop_mode", self.f_stop_mode)
 
-        # TODO: gradient tracking
+        # Too@grad: gradient tracking
         with torch.no_grad():
             z_star, _, info = self.f_solver(
                 deq_func,
+                # To reuse the previous fixed point
                 x0=z_init, # .requires_grad=False
-                max_iter=f_max_iter,  # To reuse the previous fixed point
+                max_iter=f_max_iter,  
                 tol=f_tol,
-                stop_mode=self.f_stop_mode,
+                stop_mode=f_stop_mode,
                 **solver_kwargs,
             )
 
@@ -733,7 +735,7 @@ class DEQSliced(DEQBase):
     def forward(
         self,
         func,
-        z_star,
+        z_init,
         solver_kwargs=None,
         sradius_mode=False,
         backward_writer=None,
@@ -764,40 +766,21 @@ class DEQSliced(DEQBase):
                 - dict[str, torch.Tensor]:
                     A dict containing solver statistics in a batch. Please see :class:`torchdeq.solver.stat.SolverStat` for more details.
         """
+        z_star = z_init
         deq_func, z_star = deq_decorator(func, z_star, no_stat=self.no_stat)
 
         if solver_kwargs is None:
             solver_kwargs = dict()
 
         if self.training or self.force_train_mode:
-
-            # TODO@speedupdeq: don't do this every time
-            # _f_max_iter = solver_kwargs.get("f_max_iter", None)
-            # _n_states = solver_kwargs.get("n_states", None)
-            # _indexing = solver_kwargs.get("indexing", None)
-            # _recompute_f_iter = (
-            #     type(_f_max_iter) in [int, float]
-            #     or type(_n_states) in [int, float]
-            #     or type(_indexing) is list
-            # )
-            # if _recompute_f_iter:
-            #     indexing = self._compute_f_iter(
-            #         f_max_iter=solver_kwargs.get("f_max_iter", self.f_max_iter),
-            #         solver_kwargs=solver_kwargs,
-            #     )
-            #     # print('Indexing set to: ', indexing) # REMOVE
-            #     # print(' f_max_iter: ', _f_max_iter) # REMOVE
-            #     # print(' n_states: ', _n_states) # REMOVE
-            #     # print(' indexing: ', _indexing)
-            # else:
-            #     indexing = self.indexing
-
-            # # If we want to overwrite indexing/n_states, we need to update the grad functions
-            # self.set_grad({"indexing": indexing})
-
-            indexing = self.indexing
+            # if we pass f_max_iter, we need to recompute the indexing
+            if type(solver_kwargs.get('f_max_iter', None)) in [int, float]:
+                indexing = self._compute_f_iter(solver_kwargs['f_max_iter'])
+            else:
+                indexing = self.indexing
 
             z_out = []
+            # calc the gradient for every indexing step
             for f_max_iter, produce_grad in zip(indexing, self.produce_grad):
                 z_star, info = self._solve_fixed_point(
                     deq_func, z_star, f_max_iter=f_max_iter, solver_kwargs=solver_kwargs

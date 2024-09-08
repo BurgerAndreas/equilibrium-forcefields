@@ -279,7 +279,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # During inference, returns a list containing the fixed point solution only.
         # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
         z_pred, info = self.deq(
-            func=f, z_star=z, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
+            func=f, z_init=z, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
         )
         # z_pred = [emb]
         info = {} # TODO@temp

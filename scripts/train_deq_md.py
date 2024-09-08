@@ -1605,7 +1605,8 @@ def train_one_epoch(
 
     max_steps = len(data_loader)
     for batchstep, data in enumerate(data_loader):
-        print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_summary())
+        # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_summary())
+        print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
         data = data.to(device)
         data = data.to(device, dtype)
 

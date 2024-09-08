@@ -468,10 +468,11 @@ class DEQIndexing(DEQBase):
 
         if self.training or self.force_train_mode:
             # if we pass f_max_iter, we need to recompute the indexing
-            if type(solver_kwargs.get('f_max_iter', None)) in [int, float]:
-                indexing = self._compute_f_iter(solver_kwargs['f_max_iter'])
-            else:
-                indexing = self.indexing
+            # if type(solver_kwargs.get('f_max_iter', None)) in [int, float]:
+            #     indexing = self._compute_f_iter(solver_kwargs['f_max_iter'])
+            # else:
+            #     indexing = self.indexing
+            indexing = self.indexing
 
             # TODO
             # indexing defaults to indexing=[f_max_iter] if not specified otherwise
@@ -492,7 +493,7 @@ class DEQIndexing(DEQBase):
             z_out = []
             for z_pred, produce_grad in zip(trajectory, self.produce_grad):
                 z_pred = deq_func.detach(z_pred)
-                z_out += produce_grad(
+                z_out += produce_grad( # see backward_factory
                     self, deq_func, z_pred, writer=backward_writer
                 )  # See torchdeq.grad for the backward pass
 
@@ -500,6 +501,7 @@ class DEQIndexing(DEQBase):
 
         else:
             # During inference, we directly solve for the fixed point
+            # trajectory is not needed
             z_star, _, info = self._solve_fixed_point(
                 deq_func,
                 z_init,
@@ -774,10 +776,11 @@ class DEQSliced(DEQBase):
 
         if self.training or self.force_train_mode:
             # if we pass f_max_iter, we need to recompute the indexing
-            if type(solver_kwargs.get('f_max_iter', None)) in [int, float]:
-                indexing = self._compute_f_iter(solver_kwargs['f_max_iter'])
-            else:
-                indexing = self.indexing
+            # if type(solver_kwargs.get('f_max_iter', None)) in [int, float]:
+            #     indexing = self._compute_f_iter(solver_kwargs['f_max_iter'])
+            # else:
+            #     indexing = self.indexing
+            indexing = self.indexing
 
             z_out = []
             # calc the gradient for every indexing step
@@ -808,7 +811,7 @@ class DEQSliced(DEQBase):
             )
             # optionally add spectral radius to info
             sradius = (
-                self._sradius(deq_func, z_star) if sradius_mode else torch.zeros(1)
+                self._sradius(deq_func, z_star) if sradius_mode else torch.zeros(1, device=z_star.device)
             )
             info["sradius"] = sradius
 

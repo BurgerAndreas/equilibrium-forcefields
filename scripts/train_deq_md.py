@@ -1602,6 +1602,21 @@ def train_one_epoch(
             with_stack=True,
         )
         prof.start()
+    
+    # warmup the cuda kernels for accurate timing
+    data = next(iter(data_loader))
+    data = data.to(device)
+    data = data.to(device, dtype)
+    outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
+
+    print("Train:")
+    print("Model is in training mode", model.training)
+    if hasattr(model, "deq"):
+        print("DEQ is in training mode", model.deq.training)
+        print("DEQ is in force_train_mode", model.deq.force_train_mode)
+    print("Grad is tracking", outputs.requires_grad)
+    print("Model regress_forces", model.regress_forces)
+    print("Model direct_forces", model.direct_forces)
 
     max_steps = len(data_loader)
     for batchstep, data in enumerate(data_loader):
@@ -2090,6 +2105,17 @@ def evaluate(
         data = data.to(device, dtype)
         outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
 
+        print("Eval:")
+        print("Model is in training mode", model.training)
+        if hasattr(model, "deq"):
+            print("DEQ is in training mode", model.deq.training)
+            print("DEQ is in force_train_mode", model.deq.force_train_mode)
+        print("Grad is tracking", outputs.requires_grad)
+        print("Model regress_forces", model.regress_forces)
+        print("Model direct_forces", model.direct_forces)
+        optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+        
+
         for fpreuse_test in fpreuse_list:
             # name for logging
             _datasplit = f"{datasplit}_fpreuse" if fpreuse_test else datasplit
@@ -2293,6 +2319,7 @@ def evaluate(
                         fprel,
                     )
 
+                optimizer.zero_grad(set_to_none=args.set_grad_to_none)
                 if (step + 1) >= max_steps:
                     break
 

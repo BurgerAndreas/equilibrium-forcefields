@@ -2,7 +2,7 @@
 # this @package directive solves any nesting problem (if this file is included in another folder)
 
 deq_kwargs:
-  force_train_mode: False
+  force_train_mode: True
 
 model:
   forces_via_grad: True

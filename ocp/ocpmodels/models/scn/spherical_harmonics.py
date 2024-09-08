@@ -172,6 +172,7 @@ class SphericalHarmonicsHelper:
 
         wigner = wigner.view(-1, self.sphere_basis_reduce, self.sphere_basis)
 
+        # Todo@gradforces2
         self.wigner = wigner.detach()
         self.wigner_inv = wigner_inv.detach()
 

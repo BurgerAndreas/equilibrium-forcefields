@@ -520,6 +520,7 @@ def train_md(args):
             **args.model,
             deq_kwargs=args.deq_kwargs,
         )
+        _log.info("deq_kwargs", yaml.dump(args.deq_kwargs))
     else:
         model = create_model(task_mean=task_mean, task_std=task_std, **args.model)
     _log.info(

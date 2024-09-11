@@ -215,10 +215,14 @@ def backward_factory(
                     )
 
                     # TODO: log backwards info?
-                    with torch.no_grad(): # fixes memory leak Todo@temp
-                        grad_star, _, info = b_solver(
-                            func=grad_f, x0=torch.zeros_like(grad), **b_solver_kwargs
-                        )
+                    # with torch.no_grad(): # fixes memory leak Todo@temp
+                    #     grad_star, _, info = b_solver(
+                    #         func=grad_f, x0=torch.zeros_like(grad), **b_solver_kwargs
+                    #     )
+
+                    grad_star, _, info = b_solver(
+                        func=grad_f, x0=torch.zeros_like(grad), **b_solver_kwargs
+                    )
 
                     # writer = ctx.writer
                     # if writer:

@@ -3,7 +3,7 @@
 #SBATCH --partition=gpunodes
 # gres=gpu:<>:1 rtx_4090 rtx_a4000 rtx_a4500 rtx_a2000 rtx_a6000 gtx_1070 gtx_1080_ti rtx_2060 rtx_2070 rtx_2080
 #SBATCH --gres=gpu:1 # any
-#SBATCH constraint="RTX_A4500|RTX_A6000|RTX_4090|RTX_4000" # GTX_1080_Ti 
+#SBATCH --constraint="RTX_A4500|RTX_A6000|RTX_4090|RTX_4000" # GTX_1080_Ti 
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=8 # number of cores
 #SBATCH --ntasks=1

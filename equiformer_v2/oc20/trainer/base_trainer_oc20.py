@@ -294,7 +294,7 @@ class BaseTrainer(ABC):
                 self.config["task"]["dataset"]
             )(self.config["dataset"])
 
-            self.maxdata = self.config["optim"].get("maxdata", -1)
+            self.maxdata = int(self.config["optim"].get("maxdata", -1))
             if self.maxdata > 0:
                 self.train_dataset = torch.utils.data.Subset(self.train_dataset, indices=range(self.maxdata))
                 logging.info(f"Using only {self.maxdata} training samples")

@@ -406,6 +406,12 @@ class BaseTrainer(ABC):
             raise FileNotFoundError(
                 errno.ENOENT, "Checkpoint file not found", checkpoint_path
             )
+        
+        # https://discuss.pytorch.org/t/solved-keyerror-unexpected-key-module-encoder-embedding-weight-in-state-dict/1686
+        # You probably saved the model using nn.DataParallel, which stores the model in module, 
+        # and now you are trying to load it without DataParallel. 
+        # You can either add a nn.DataParallel temporarily in your network for loading purposes, 
+        # or you can load the weights file, create a new ordered dict without the module prefix, and load it back.
 
         logging.info(f"Loading checkpoint from: {checkpoint_path}")
         map_location = torch.device("cpu") if self.cpu else self.device

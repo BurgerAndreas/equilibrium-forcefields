@@ -60,6 +60,7 @@ pip install demjson
 # pip install demjson3
 pip install lmdb==1.1.1
 pip install "ray[tune]"
+pip install submitit
 cd ..
 
 # Get the OCP data (optional)

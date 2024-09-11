@@ -1,0 +1,28 @@
+# @package _global_
+# this @package directive solves any nesting problem (if this file is included in another folder)
+
+deq_kwargs:
+  # core: sliced
+  f_solver: 'anderson'
+  f_stop_mode: 'rel'
+  f_tol: 1e-3
+  b_solver: 'anderson'
+  b_stop_mode: 'rel'
+  b_tol: 1e-6
+  ift: True
+  hook_ift: True
+  
+  force_train_mode: False
+  
+  # n_states: 3
+
+model:
+  torchdeq_norm:
+    norm_type: null
+  path_drop: 0.05
+  use_variational_path_drop: True
+  ln: pp # post or pp
+  ln_type: rms_norm_sh
+  # input injection
+  enc_ln: True
+  inj_norm: null

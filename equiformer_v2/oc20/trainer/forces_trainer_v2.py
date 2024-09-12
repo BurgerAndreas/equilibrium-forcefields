@@ -305,6 +305,8 @@ class ForcesTrainerV2(BaseTrainerV2):
         pp.pprint(self.config)
         logging.info(f"------------------------------")
         self.logger.config.update(self.config)
+        logging.info(f"Size training set: {len(self.train_loader)}")
+        self.logger.log({"num_training_steps": len(self.train_loader)})
 
         eval_every = self.config["optim"].get("eval_every", len(self.train_loader))
         checkpoint_every = self.config["optim"].get("checkpoint_every", eval_every)

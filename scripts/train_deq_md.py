@@ -933,6 +933,9 @@ def train_md(args):
 
         if lr_scheduler is not None:
             lr_scheduler.step(epoch)
+            _log.info(f"lr: {lr_scheduler.get_last_lr()}")
+            _log.handlers[0].flush() # flush logger
+            
         # print('lr:', optimizer.param_groups[0]["lr"])
         # print('lr:', lr_scheduler.get_last_lr())
 
@@ -1017,11 +1020,12 @@ def train_md(args):
             normalizers=normalizers,
         )
         # raytrain.report({"train_fmae": train_err["force"].avg, "train_emae": train_err["energy"].avg})
-        raytrain.report({"val_fmae": val_err["force"].avg, "val_emae": val_err["energy"].avg})
+        # raytrain.report({"val_fmae": val_err["force"].avg, "val_emae": val_err["energy"].avg})
 
         if (epoch + 1) % args.test_interval == 0:
             # test set
             _log.info(f"Testing model after epoch {epoch+1}.")
+            _log.handlers[0].flush() # flush logger
             test_err, test_loss = evaluate(
                 args=args,
                 model=model,
@@ -1040,11 +1044,12 @@ def train_md(args):
                 datasplit="test",
                 normalizers=normalizers,
             )
-            raytrain.report({"test_fmae": test_err["force"].avg, "test_emae": test_err["energy"].avg})
+            # raytrain.report({"test_fmae": test_err["force"].avg, "test_emae": test_err["energy"].avg})
             # equivariance test
-            collate = Collater(follow_batch=None, exclude_keys=None)
-            # device = list(model.parameters())[0].device
-            equivariance_test(args, model, train_dataset, test_dataset_full, device, collate, step=global_step)
+            equivariance_test(
+                args, model, train_dataset, test_dataset_full, device, Collater(follow_batch=None, exclude_keys=None), 
+                step=global_step
+            )
         else:
             test_err, test_loss = None, None
 
@@ -2397,7 +2402,7 @@ def evaluate(
                 step=global_step,
             )
 
-            print(f"Finished evaluation: {_datasplit} ({global_step} training steps, epoch {epoch}).")
+            print(f"Finished evaluation: {_datasplit} ({global_step} training steps, epoch {epoch}).", flush=True)
             # print
             # for k, v in _logs.items():
             #     logger.info(f" {k}: {v}")
@@ -2602,7 +2607,7 @@ def eval_speed(
                 step=global_step,
             )
 
-            print(f"Finished evaluation: {_datasplit} ({global_step} training steps, epoch {epoch}).")
+            print(f"Finished eval_speed: {_datasplit} ({global_step} training steps, epoch {epoch}).")
 
         # fp_reuse True/False finished
 
@@ -2610,7 +2615,11 @@ def eval_speed(
 
 
 
-def equivariance_test(args, model, data_train, data_test, device, collate, step=None):
+def equivariance_test(args, model, data_train, data_test, device, collate, step=None, _log=None):
+    if _log is not None:
+        _log.info("\nEquivariance test start")
+        _log.handlers[0].flush() # flush logger
+
     model.eval()
     # print('Model in train mode:', model.training)
 
@@ -2694,6 +2703,10 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
             }, step=step
             )
     model = model.to(model_dtype)
+    
+    if _log is not None:
+        _log.info("Equivariance test end")
+        _log.handlers[0].flush()
     return
 
 def setup_logging_and_train_md(args):

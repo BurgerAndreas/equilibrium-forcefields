@@ -17,6 +17,8 @@ echo "Inside slurm_launcher.slrm ($0). received arguments: $@"
 
 HOME_DIR=/home/andreasburger
 
+export HSA_OVERRIDE_GFX_VERSION=9.0.8
+
 # export SCRIPTDIR=${HOME_DIR}/equilibrium-forcefields/equilibrium-forcefields/train
 export SCRIPTDIR=${HOME_DIR}/equilibrium-forcefields/equiformer
 if [[ $1 == *"test"* ]]; then
@@ -30,4 +32,4 @@ fi
 # hand over all arguments to the script
 echo "Submitting ${SCRIPTDIR}/$@"
 
-${HOME_DIR}/miniforge3/envs/deq/bin/python ${SCRIPTDIR}/"$@"
+HSA_OVERRIDE_GFX_VERSION=9.0.8 ${HOME_DIR}/miniforge3/envs/deq/bin/python ${SCRIPTDIR}/"$@"

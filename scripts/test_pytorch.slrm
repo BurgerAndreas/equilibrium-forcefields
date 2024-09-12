@@ -16,6 +16,6 @@ echo " "
 
 HOME_DIR=/home/andreasburger
 ${HOME_DIR}/miniforge3/envs/deq/bin/python -c "import torch; import torch; print('torch.__version__', torch.__version__); import torch_geometric; print('torch_geometric.__version__', torch_geometric.__version__)" 
-${HOME_DIR}/miniforge3/envs/deq/bin/python -c "print('torch.version.cuda', torch.version.cuda);"
+${HOME_DIR}/miniforge3/envs/deq/bin/python -c "import torch; print('torch.version.cuda', torch.version.cuda);"
 
 # launch via: sbatch scripts/test_pytorch.slrm

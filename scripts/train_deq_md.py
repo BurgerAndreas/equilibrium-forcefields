@@ -933,7 +933,7 @@ def train_md(args):
 
         if lr_scheduler is not None:
             lr_scheduler.step(epoch)
-            _log.info(f"lr: {optimizer.param_groups[0]["lr"]}")
+            _log.info(f"lr: {optimizer.param_groups[0]['lr']}")
             _log.handlers[0].flush() # flush logger
             
         # print('lr:', optimizer.param_groups[0]["lr"])

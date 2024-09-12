@@ -5,16 +5,21 @@
 #SBATCH --ntasks=1
 #SBATCH --mem-per-cpu=2000
 #SBATCH --job-name=test 
-#SBATCH --output=slurmtest_%j.txt 
-#SBATCH --error=slurmtest_%j.err
+#SBATCH --output=slurmtest.txt 
+#SBATCH --error=slurmtest.err
 
 # module load python pytorch
 module load miniforge3
 
+echo " "
+echo "rocm-smi"
 rocm-smi
 
+echo " "
+echo "apt show rocm-libs -a"
 apt show rocm-libs -a
 
+echo " "
+echo "rocminfo"
 rocminfo
 
-# launch via: sbatch scripts/test_amd.slrm

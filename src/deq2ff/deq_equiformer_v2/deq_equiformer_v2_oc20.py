@@ -139,6 +139,13 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             self.inj_w1 = nn.Parameter(torch.ones(1, 1, sphere_channels))
             self.inj_w2 = nn.Parameter(torch.ones(1, 1, sphere_channels))
 
+        if inj_norm == "ln":
+            self.inj_norm_ln = get_normalization_layer(
+                self.ln_type,
+                lmax=max(self.lmax_list),
+                num_channels=self.sphere_channels,
+            )
+
         # DEQ
         self.torchdeq_norm = torchdeq_norm
         self.deq_kwargs = deq_kwargs
@@ -438,7 +445,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             z = z / torch.linalg.norm(z)
         elif self.inj_norm == "ln":
             # z = self.inj_ln(z)
-            raise NotImplementedError("inj_norm=ln: use enc_ln=True inj_norm=null instead.")
+            z = self.inj_norm_ln(z)
+            # raise NotImplementedError("inj_norm=ln: use enc_ln=True inj_norm=null instead.")
         elif self.inj_norm in [None, False, "none", "None"]:
             pass
         else:

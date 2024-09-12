@@ -42,7 +42,7 @@ def train_one_epoch(
     loss_scaler=None,
     clip_grad=None,
     print_freq: int = 100,
-    logger=None,
+    filelog=None,
 ):
 
     model.train()
@@ -116,7 +116,7 @@ def train_one_epoch(
                 time_per_step=(1e3 * w / e / len(data_loader)),
             )
             info_str += "lr={:.2e}".format(optimizer.param_groups[0]["lr"])
-            logger.info(info_str)
+            filelog.info(info_str)
 
     return mae_metric.avg
 
@@ -129,7 +129,7 @@ def evaluate(
     device,
     amp_autocast=None,
     print_freq=100,
-    logger=None,
+    filelog=None,
 ):
 
     model.eval()
@@ -168,13 +168,13 @@ def evaluate(
     return mae_metric.avg, loss_metric.avg
 
 
-def compute_stats(data_loader, max_radius, logger, print_freq=1000):
+def compute_stats(data_loader, max_radius, filelog, print_freq=1000):
     """
     Compute mean of numbers of nodes and edges
     """
     log_str = "\nCalculating statistics with "
     log_str = log_str + "max_radius={}\n".format(max_radius)
-    logger.info(log_str)
+    filelog.info(log_str)
 
     avg_node = AverageMeter()
     avg_edge = AverageMeter()
@@ -203,6 +203,6 @@ def compute_stats(data_loader, max_radius, logger, print_freq=1000):
             )
             log_str += "avg edge: {}, ".format(avg_edge.avg)
             log_str += "avg degree: {}, ".format(avg_degree.avg)
-            logger.info(log_str)
+            filelog.info(log_str)
 
     return avg_node.avg, avg_edge.avg, avg_degree.avg

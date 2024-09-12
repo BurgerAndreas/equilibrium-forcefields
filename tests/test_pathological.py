@@ -297,7 +297,7 @@ def main(args):
         avg_node, avg_edge, avg_degree = compute_stats(
             train_loader,
             max_radius=args.model.max_radius,
-            logger=_log,
+            filelog=_log,
             print_freq=args.print_freq,
         )
         print(

@@ -221,7 +221,7 @@ def main(args):
         compute_stats(
             train_loader,
             max_radius=args.max_radius,
-            logger=_log,
+            filelog=_log,
             print_freq=args.print_freq,
         )
         return

@@ -12,7 +12,7 @@ import math
 
 
 def get_normalization_layer(
-    ln_type, lmax, num_channels, eps=1e-5, affine=True, normalization="component"
+    ln_type, lmax, num_channels, eps=1e-5, affine=True, normalization="component", centering=True
 ):
     assert ln_type in ["layer_norm", "layer_norm_sh", "rms_norm_sh"]
     if ln_type == "layer_norm":
@@ -289,6 +289,13 @@ class EquivariantRMSNormArraySphericalHarmonicsV2(nn.Module):
     """
     1. Normalize across all m components from degrees L >= 0.
     2. Expand weights and multiply with normalized feature to prevent slicing and concatenation.
+    Args:
+        lmax (int): Maximum degree of spherical harmonics.
+        num_channels (int): Number of channels.
+        eps (float): Epsilon for numerical stability.
+        affine (bool): Whether to use affine transformation i.e. learnable parameters.
+        centering (bool): If False, center features (?) instead of using a bias.
+        normalization (str): Normalization method.
     """
 
     def __init__(

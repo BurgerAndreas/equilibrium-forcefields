@@ -253,7 +253,7 @@ def train_md(args):
         os.makedirs(args.output_dir, exist_ok=True)
     wandb.run.config.update({"output_dir": args.output_dir}, allow_val_change=True)
 
-    _log = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
+    filelog = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
     # _log.info(
     #     f"Args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}"
     # )
@@ -305,16 +305,16 @@ def train_md(args):
             samples.idx, torch.arange(10)
         ), f"idx are not consecutive: {samples.idx}"
 
-    _log.info("")
-    _log.info("Training set size:   {}".format(len(train_dataset)))
-    _log.info("Validation set size: {}".format(len(val_dataset)))
-    _log.info("Testing set size:    {}".format(len(test_dataset)))
+    filelog.info("")
+    filelog.info("Training set size:   {}".format(len(train_dataset)))
+    filelog.info("Validation set size: {}".format(len(val_dataset)))
+    filelog.info("Testing set size:    {}".format(len(test_dataset)))
 
     # statistics
     y = torch.cat([batch.y for batch in train_dataset], dim=0)
     task_mean = float(y.mean())
     task_std = float(y.std())
-    _log.info("Training set mean: {}, std: {}\n".format(task_mean, task_std))
+    filelog.info("Training set mean: {}, std: {}\n".format(task_mean, task_std))
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -426,7 +426,7 @@ def train_md(args):
     normalizers = {"energy": normalizer_e, "force": normalizer_f}
 
     """ Data Loader """
-    _log.info("Creating dataloaders...")
+    filelog.info("Creating dataloaders...")
     # We don't need to shuffle because either the indices are already randomized
     # or we want to keep the order
     # we just keep the shuffle option for the sake of consistency with equiformer
@@ -456,7 +456,7 @@ def train_md(args):
             args.test_patches not in [None, 1] and args.eval_batch_size > 1
         ), f"Warning: test_patches>1 ({args.test_patches}) can only be used with eval_batch_size=1 ({args.eval_batch_size})."
         test_dataset = reorder_dataset(test_dataset, args.eval_batch_size)
-        _log.info(f"Reordered test dataset to be consecutive for fixed-point reuse.")
+        filelog.info(f"Reordered test dataset to be consecutive for fixed-point reuse.")
     test_loader = DataLoader(
         test_dataset,
         batch_size=args.eval_batch_size,
@@ -490,7 +490,7 @@ def train_md(args):
         avg_node, avg_edge, avg_degree = compute_stats(
             train_loader,
             max_radius=args.model.max_radius,
-            logger=_log,
+            filelog=filelog,
             print_freq=args.print_freq,
         )
         print(
@@ -511,7 +511,7 @@ def train_md(args):
         np.random.seed(seedrun)
 
     """ Instantiate Model """
-    _log.info("Creating model...")
+    filelog.info("Creating model...")
     create_model = model_entrypoint(args.model.name)
     if "deq_kwargs" in args:
         model = create_model(
@@ -520,10 +520,10 @@ def train_md(args):
             **args.model,
             deq_kwargs=args.deq_kwargs,
         )
-        _log.info("deq_kwargs", yaml.dump(dict(args.deq_kwargs)))
+        filelog.info("deq_kwargs", yaml.dump(dict(args.deq_kwargs)))
     else:
         model = create_model(task_mean=task_mean, task_std=task_std, **args.model)
-    _log.info(
+    filelog.info(
         f"\nModel {args.model.name} created with kwargs:\n{omegaconf.OmegaConf.to_yaml(args.model)}"
     )
     # _log.info(f"Model: \n{model}")
@@ -531,18 +531,18 @@ def train_md(args):
 
     # log available memory
     if torch.cuda.is_available():
-        _log.info(
+        filelog.info(
             f"Available memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB"
         )
     else:
-        _log.info(f"Warning: torch.cuda not available!\n")
+        filelog.info(f"Warning: torch.cuda not available!\n")
 
     # If you need to move a model to GPU via .cuda() , please do so before constructing optimizers for it.
     # Parameters of a model after .cuda() will be different objects with those before the call.
     model = model.to(device)
 
     """ Instantiate everything else """
-    _log.info("Creating optimizer & co...")
+    filelog.info("Creating optimizer & co...")
     optimizer = create_optimizer(args, model)
     if args.opt in ["sps"]:
         lr_scheduler = None
@@ -584,7 +584,7 @@ def train_md(args):
         if args.checkpoint_path == "auto":
             # args.checkpoint_path = os.path.join(args.output_dir, "checkpoint.pt.tar")
             args.checkpoint_path = args.output_dir
-            _log.info(f"Auto checkpoint path: {args.checkpoint_path}")
+            filelog.info(f"Auto checkpoint path: {args.checkpoint_path}")
         try:
             # pass either a checkpoint or a directory containing checkpoints
             # models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2/epochs@0_e@4.6855_f@20.8729.pth.tar
@@ -625,14 +625,14 @@ def train_md(args):
             if "grads" in saved_state:
                 grads = saved_state["grads"]
             # log
-            _log.info(f"Loaded model from {args.checkpoint_path}")
+            filelog.info(f"Loaded model from {args.checkpoint_path}")
             loaded_checkpoint = True
         except Exception as e:
             # probably checkpoint not found
-            _log.info(
+            filelog.info(
                 f"Error loading checkpoint: {e}. \n List of files: {os.listdir(args.checkpoint_path)}"
             )
-            _log.info(f"Proceeding without checkpoint.")
+            filelog.info(f"Proceeding without checkpoint.")
     wandb.log({"start_epoch": start_epoch, "epoch": start_epoch}, step=global_step)
 
     # if we want to run inference only we want to make sure that the model is loaded
@@ -679,13 +679,13 @@ def train_md(args):
 
     """ Log number of parameters """
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    _log.info("\nNumber of Model params: {}".format(n_parameters))
+    filelog.info("\nNumber of Model params: {}".format(n_parameters))
     wandb.run.summary["Model Parameters"] = n_parameters
     # wandb.config.update({"Model Parameters": n_parameters})
 
     # parameters in transformer blocks / deq implicit layers
     n_parameters = sum(p.numel() for p in model.blocks.parameters() if p.requires_grad)
-    _log.info("Number of DEQLayer params: {}".format(n_parameters))
+    filelog.info("Number of DEQLayer params: {}".format(n_parameters))
     wandb.run.summary["DEQLayer Parameters"] = n_parameters
 
     # decoder
@@ -693,19 +693,19 @@ def train_md(args):
         n_parameters = sum(
             p.numel() for p in model.final_block.parameters() if p.requires_grad
         )
-        _log.info("Number of FinalBlock params: {}".format(n_parameters))
+        filelog.info("Number of FinalBlock params: {}".format(n_parameters))
         wandb.run.summary["FinalBlock Parameters"] = n_parameters
     except:
         n_parameters = sum(
             p.numel() for p in model.energy_block.parameters() if p.requires_grad
         )
-        _log.info("Number of EnergyBlock params: {}".format(n_parameters))
+        filelog.info("Number of EnergyBlock params: {}".format(n_parameters))
         wandb.run.summary["EnergyBlock Parameters"] = n_parameters
         # force prediction
         n_parameters = sum(
             p.numel() for p in model.force_block.parameters() if p.requires_grad
         )
-        _log.info("Number of ForceBlock params: {}".format(n_parameters))
+        filelog.info("Number of ForceBlock params: {}".format(n_parameters))
         wandb.run.summary["ForceBlock Parameters"] = n_parameters
         # print(
         #     f"AttributeError: '{model.__class__.__name__}' object has no attribute 'final_block'"
@@ -754,7 +754,7 @@ def train_md(args):
         args.model._AVG_NUM_NODES = float(_AVG_NUM_NODES)
         args.model._AVG_DEGREE = float(_AVG_DEGREE)
         # wandb.config.update(args)
-        _log.info(
+        filelog.info(
             f"Loaded computed stats: _AVG_NUM_NODES={_AVG_NUM_NODES}, _AVG_DEGREE={_AVG_DEGREE}"
         )
 
@@ -838,7 +838,7 @@ def train_md(args):
                 max_entries=args.max_num_of_mem_events_per_snapshot
             )
         except Exception as e:
-            _log.info(f"Failed to record memory history {e}")
+            filelog.info(f"Failed to record memory history {e}")
 
     """ Inference! """
     if args.eval_speed:
@@ -851,7 +851,7 @@ def train_md(args):
             optimizer=optimizer,
             device=device,
             print_freq=args.print_freq,
-            logger=_log,
+            filelog=filelog,
             print_progress=True,
             max_iter=args.test_max_iter,
             global_step=global_step,
@@ -869,7 +869,7 @@ def train_md(args):
             optimizer=optimizer,
             device=device,
             print_freq=args.print_freq,
-            logger=_log,
+            filelog=filelog,
             print_progress=True,
             max_iter=args.test_max_iter,
             global_step=global_step,
@@ -895,12 +895,12 @@ def train_md(args):
                     f"{args.output_dir}/cuda_memory_snapshot_inference_s{global_step}.pickle"
                 )
             except Exception as e:
-                _log.info(f"Failed to capture memory snapshot {e}")
+                filelog.info(f"Failed to capture memory snapshot {e}")
             # Stop recording memory snapshot history.
             try:
                 torch.cuda.memory._record_memory_history(enabled=None)
             except Exception as e:
-                _log.info(f"Failed to stop recording memory history {e}")
+                filelog.info(f"Failed to stop recording memory history {e}")
 
     if args.equivariance:
         collate = Collater(follow_batch=None, exclude_keys=None)
@@ -924,7 +924,7 @@ def train_md(args):
         fixed_points = None
         fpdevice = None
     # grokfast
-    _log.info("\nStart training!\n")
+    filelog.info("\nStart training!\n")
     start_time = time.perf_counter()
     final_epoch = 0
     for epoch in range(start_epoch, args.max_epochs):
@@ -933,8 +933,8 @@ def train_md(args):
 
         if lr_scheduler is not None:
             lr_scheduler.step(epoch)
-            _log.info(f"lr: {optimizer.param_groups[0]['lr']}")
-            _log.logger.handlers[0].flush() # flush logger
+            filelog.info(f"lr: {optimizer.param_groups[0]['lr']}")
+            filelog.logger.handlers[0].flush() # flush logger
             
         # print('lr:', optimizer.param_groups[0]["lr"])
 
@@ -954,7 +954,7 @@ def train_md(args):
                 global_step=global_step,
                 model_ema=model_ema,
                 print_freq=args.print_freq,
-                logger=_log,
+                filelog=filelog,
                 normalizers=normalizers,
                 fixed_points=fixed_points,
                 indices_to_idx=indices_to_idx,
@@ -964,10 +964,10 @@ def train_md(args):
             )
             epoch_train_time = time.perf_counter() - epoch_start_time
         except Exception as e:
-            _log.info(f"Error in training:\n {e}")
+            filelog.info(f"Error in training:\n {e}")
             wandb.log({"error": str(e)}, step=global_step)
             # print full stack trace
-            _log.info(traceback.format_exc())
+            filelog.info(traceback.format_exc())
             # save checkpoint as example for further analysis
             _cname = f"pathological_ep@{epoch}_e@NaN_f@NaN.pth.tar"
             os.makedirs(args.output_dir, exist_ok=True)
@@ -998,7 +998,7 @@ def train_md(args):
                     f"{args.output_dir}/cuda_memory_snapshot_e{epoch}_s{global_step}.pickle"
                 )
             except Exception as e:
-                _log.info(f"Failed to capture memory snapshot {e}")
+                filelog.info(f"Failed to capture memory snapshot {e}")
 
         val_err, val_loss = evaluate(
             args=args,
@@ -1010,7 +1010,7 @@ def train_md(args):
             optimizer=optimizer,
             device=device,
             print_freq=args.print_freq,
-            logger=_log,
+            filelog=filelog,
             print_progress=False,
             max_iter=-1,
             global_step=global_step,
@@ -1023,8 +1023,8 @@ def train_md(args):
 
         if (epoch + 1) % args.test_interval == 0:
             # test set
-            _log.info(f"Testing model after epoch {epoch+1}.")
-            _log.logger.handlers[0].flush() # flush logger
+            filelog.info(f"Testing model after epoch {epoch+1}.")
+            filelog.logger.handlers[0].flush() # flush logger
             test_err, test_loss = evaluate(
                 args=args,
                 model=model,
@@ -1035,7 +1035,7 @@ def train_md(args):
                 optimizer=optimizer,
                 device=device,
                 print_freq=args.print_freq,
-                logger=_log,
+                filelog=filelog,
                 print_progress=True,
                 max_iter=args.test_max_iter,
                 global_step=global_step,
@@ -1057,7 +1057,7 @@ def train_md(args):
         )
         saved_best_checkpoint = False
         if update_val_result and args.save_best_val_checkpoint:
-            _log.info(f"Saving best val checkpoint.")
+            filelog.info(f"Saving best val checkpoint.")
             os.makedirs(args.output_dir, exist_ok=True)
             torch.save(
                 {
@@ -1085,7 +1085,7 @@ def train_md(args):
             saved_best_checkpoint = True
 
         if update_test_result and args.save_best_test_checkpoint:
-            _log.info(f"Saving best test checkpoint.")
+            filelog.info(f"Saving best test checkpoint.")
             os.makedirs(args.output_dir, exist_ok=True)
             torch.save(
                 {
@@ -1119,7 +1119,7 @@ def train_md(args):
             and not saved_best_checkpoint
             and args.save_checkpoint_after_test
         ):
-            _log.info(f"Saving checkpoint.")
+            filelog.info(f"Saving checkpoint.")
             os.makedirs(args.output_dir, exist_ok=True)
             torch.save(
                 {
@@ -1160,7 +1160,7 @@ def train_md(args):
                 test_err["energy"].avg, test_err["force"].avg
             )
         info_str += "Time: {:.2f}s".format(time.perf_counter() - epoch_start_time)
-        _log.info(info_str)
+        filelog.info(info_str)
 
         # log to wandb
         logs = {
@@ -1194,7 +1194,7 @@ def train_md(args):
         info_str += "test_e_MAE: {:.5f}, test_f_MAE: {:.5f}\n".format(
             best_metrics["test_energy_err"], best_metrics["test_force_err"]
         )
-        _log.info(info_str)
+        filelog.info(info_str)
 
         # if global_step % args.log_every_step_major == 0:
         wandb.log(
@@ -1220,7 +1220,7 @@ def train_md(args):
                 optimizer=optimizer,
                 device=device,
                 print_freq=args.print_freq,
-                logger=_log,
+                filelog=filelog,
                 print_progress=False,
                 global_step=global_step,
                 epoch=epoch,
@@ -1230,7 +1230,7 @@ def train_md(args):
             optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
             if (epoch + 1) % args.test_interval == 0:
-                _log.info(f"Testing EMA model at epoch {epoch}")
+                filelog.info(f"Testing EMA model at epoch {epoch}")
                 ema_test_err, _ = evaluate(
                     args=args,
                     model=model_ema.module,
@@ -1241,7 +1241,7 @@ def train_md(args):
                     optimizer=optimizer,
                     device=device,
                     print_freq=args.print_freq,
-                    logger=_log,
+                    filelog=filelog,
                     print_progress=True,
                     max_iter=args.test_max_iter,
                     global_step=global_step,
@@ -1259,7 +1259,7 @@ def train_md(args):
 
             saved_best_ema_checkpoint = False
             if update_val_result and args.save_best_val_checkpoint:
-                _log.info(f"Saving best EMA val checkpoint")
+                filelog.info(f"Saving best EMA val checkpoint")
                 os.makedirs(args.output_dir, exist_ok=True)
                 torch.save(
                     {
@@ -1289,7 +1289,7 @@ def train_md(args):
                 saved_best_ema_checkpoint = True
 
             if update_test_result and args.save_best_test_checkpoint:
-                _log.info(f"Saving best EMA test checkpoint")
+                filelog.info(f"Saving best EMA test checkpoint")
                 os.makedirs(args.output_dir, exist_ok=True)
                 torch.save(
                     {
@@ -1325,7 +1325,7 @@ def train_md(args):
                 and not saved_best_ema_checkpoint
                 and args.save_checkpoint_after_test
             ):
-                _log.info(f"Saving EMA checkpoint")
+                filelog.info(f"Saving EMA checkpoint")
                 os.makedirs(args.output_dir, exist_ok=True)
                 torch.save(
                     {
@@ -1378,7 +1378,7 @@ def train_md(args):
                 )
 
             info_str += "Time: {:.2f}s".format(time.perf_counter() - epoch_start_time)
-            _log.info(info_str)
+            filelog.info(info_str)
 
             info_str = "Best EMA -- val_epoch={}, test_epoch={}, ".format(
                 best_ema_metrics["val_epoch"], best_ema_metrics["test_epoch"]
@@ -1389,7 +1389,7 @@ def train_md(args):
             info_str += "test_e_MAE: {:.5f}, test_f_MAE: {:.5f}\n".format(
                 best_ema_metrics["test_energy_err"], best_ema_metrics["test_force_err"]
             )
-            _log.info(info_str)
+            filelog.info(info_str)
 
             # log to wandb
             wandb.log(
@@ -1406,14 +1406,14 @@ def train_md(args):
         final_epoch = epoch
         # epoch done
 
-    _log.info("\nAll epochs done!\nFinal test:")
+    filelog.info("\nAll epochs done!\nFinal test:")
 
     if args.torch_record_memory:
         # Stop recording memory snapshot history.
         try:
             torch.cuda.memory._record_memory_history(enabled=None)
         except Exception as e:
-            _log.info(f"Failed to stop recording memory history {e}")
+            filelog.info(f"Failed to stop recording memory history {e}")
 
     # all epochs done
     # equivariance test
@@ -1435,7 +1435,7 @@ def train_md(args):
             optimizer=optimizer,
             device=device,
             print_freq=args.print_freq,
-            logger=_log,
+            filelog=filelog,
             print_progress=True,
             max_iter=args.test_max_iter_final,  # -1 means evaluate the whole dataset
             global_step=global_step,
@@ -1448,7 +1448,7 @@ def train_md(args):
 
     # save the final model
     if args.save_final_checkpoint:
-        _log.info(f"Saving final checkpoint")
+        filelog.info(f"Saving final checkpoint")
         os.makedirs(args.output_dir, exist_ok=True)
         torch.save(
             {
@@ -1471,7 +1471,7 @@ def train_md(args):
             ),
         )
 
-    _log.info(
+    filelog.info(
         f"Final test error: MAE_e={test_err['energy'].avg}, MAE_f={test_err['force'].avg}"
     )
     # log to wandb
@@ -1482,7 +1482,7 @@ def train_md(args):
         },
         step=global_step,
     )
-    _log.info(f"Done!")
+    filelog.info(f"Done!")
     return True
 
 
@@ -1539,7 +1539,7 @@ def train_one_epoch(
     global_step: int,
     model_ema: Optional[ModelEma] = None,
     print_freq: int = 100,
-    logger=None,
+    filelog=None,
     normalizers={"energy": None, "force": None},
     # fixed-point reuse
     fixed_points=None,
@@ -1553,12 +1553,12 @@ def train_one_epoch(
     """
     collate = Collater(None, None)
 
-    logger.info(f"Init train epoch {epoch}")
-    logger.handlers[0].flush() # flush logger
+    filelog.info(f"Init train epoch {epoch}")
+    filelog.logger.handlers[0].flush() # flush logger
 
     model.train()
-    logger.info(f"Set model to train")
-    logger.handlers[0].flush() # flush logger
+    filelog.info(f"Set model to train")
+    filelog.logger.handlers[0].flush() # flush logger
     
     criterion_energy.train()
     criterion_force.train()
@@ -1578,8 +1578,8 @@ def train_one_epoch(
     # triplet loss
     triplet_lossfn = TripletLoss(margin=args.tripletloss_margin)
 
-    logger.info(f"Resetting optimizer")
-    logger.handlers[0].flush() # flush logger
+    filelog.info(f"Resetting optimizer")
+    filelog.logger.handlers[0].flush() # flush logger
     optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
     # statistics over epoch
@@ -1617,14 +1617,14 @@ def train_one_epoch(
         prof.start()
     
     
-    logger.info(f"test forward pass")
-    logger.handlers[0].flush() # flush logger
+    filelog.info(f"test forward pass")
+    filelog.logger.handlers[0].flush() # flush logger
     # warmup the cuda kernels for accurate timing
     data = next(iter(data_loader))
     data = data.to(device)
     data = data.to(device, dtype)
     outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
-    logger.info(f"test forward pass done")
+    filelog.info(f"test forward pass done")
 
     # print("\nTrain:")
     # print("Model is in training mode", model.training)
@@ -1939,7 +1939,7 @@ def train_one_epoch(
             )
             if "lr" in optimizer.param_groups[0]:
                 info_str += "lr={:.2e}".format(optimizer.param_groups[0]["lr"])
-            logger.info(info_str)
+            filelog.info(info_str)
 
         # if step % args.log_every_step_minor == 0:
         logs = {
@@ -2035,7 +2035,7 @@ def evaluate(
     optimizer: torch.optim.Optimizer,
     device: torch.device,
     print_freq: int = 100,
-    logger=None,
+    filelog=None,
     print_progress=False,
     max_iter=-1,
     global_step=None,
@@ -2302,7 +2302,7 @@ def evaluate(
                     info_str += "time/step={time_per_step:.0f}ms".format(
                         time_per_step=(1e3 * w / e / max_steps)
                     )
-                    logger.info(info_str)
+                    filelog.info(info_str)
 
                 if loss_per_idx:  # and log_fp:
                     # "idx", "e_mae", "f_mae", "nstep", "nstep_std", "nstep_max", "nstep_min"
@@ -2416,7 +2416,7 @@ def evaluate(
             print(f"Finished evaluation: {_datasplit} ({global_step} training steps, epoch {epoch}).", flush=True)
             # print
             # for k, v in _logs.items():
-            #     logger.info(f" {k}: {v}")
+            #     filelog.info(f" {k}: {v}")
 
         # fp_reuse True/False finished
 
@@ -2432,7 +2432,7 @@ def eval_speed(
     optimizer: torch.optim.Optimizer,
     device: torch.device,
     print_freq: int = 100,
-    logger=None,
+    filelog=None,
     print_progress=False,
     max_iter=-1,
     global_step=None,
@@ -2588,7 +2588,7 @@ def eval_speed(
                     info_str += "time/step={time_per_step:.0f}ms".format(
                         time_per_step=(1e3 * w / e / max_steps)
                     )
-                    logger.info(info_str)
+                    filelog.info(info_str)
 
                 if (step + 1) >= max_steps:
                     break
@@ -2626,10 +2626,10 @@ def eval_speed(
 
 
 
-def equivariance_test(args, model, data_train, data_test, device, collate, step=None, _log=None):
-    if _log is not None:
-        _log.info("\nEquivariance test start")
-        _log.logger.handlers[0].flush() # flush logger
+def equivariance_test(args, model, data_train, data_test, device, collate, step=None, filelog=None):
+    if filelog is not None:
+        filelog.info("\nEquivariance test start")
+        filelog.logger.handlers[0].flush() # flush logger
 
     model.eval()
     # print('Model in train mode:', model.training)
@@ -2715,9 +2715,9 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
             )
     model = model.to(model_dtype)
     
-    if _log is not None:
-        _log.info("Equivariance test end")
-        _log.logger.handlers[0].flush()
+    if filelog is not None:
+        filelog.info("Equivariance test end")
+        filelog.logger.handlers[0].flush()
     return
 
 def setup_logging_and_train_md(args):

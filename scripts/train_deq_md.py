@@ -1553,7 +1553,13 @@ def train_one_epoch(
     """
     collate = Collater(None, None)
 
+    logger.info(f"Init train epoch {epoch}")
+    logger.handlers[0].flush() # flush logger
+
     model.train()
+    logger.info(f"Set model to train")
+    logger.handlers[0].flush() # flush logger
+    
     criterion_energy.train()
     criterion_force.train()
     # crit_fpc = lambda x, y: (x - y).abs().mean()
@@ -1572,6 +1578,8 @@ def train_one_epoch(
     # triplet loss
     triplet_lossfn = TripletLoss(margin=args.tripletloss_margin)
 
+    logger.info(f"Resetting optimizer")
+    logger.handlers[0].flush() # flush logger
     optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
     # statistics over epoch
@@ -1608,11 +1616,15 @@ def train_one_epoch(
         )
         prof.start()
     
+    
+    logger.info(f"test forward pass")
+    logger.handlers[0].flush() # flush logger
     # warmup the cuda kernels for accurate timing
     data = next(iter(data_loader))
     data = data.to(device)
     data = data.to(device, dtype)
     outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
+    logger.info(f"test forward pass done")
 
     # print("\nTrain:")
     # print("Model is in training mode", model.training)

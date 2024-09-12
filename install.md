@@ -47,7 +47,8 @@ mamba create -n deq python=3.10
 mamba activate deq
 
 # get the Open Catalyst Project (required for Equiformerv2)
-# git clone git@github.com:Open-Catalyst-Project/ocp.git
+# outdated: git clone git@github.com:Open-Catalyst-Project/ocp.git
+# https://github.com/FAIR-Chem/fairchem/blob/v0.1.0
 cd ocp
 # no longer necessary
 # git checkout v0.1.0

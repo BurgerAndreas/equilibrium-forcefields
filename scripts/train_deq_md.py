@@ -934,7 +934,7 @@ def train_md(args):
         if lr_scheduler is not None:
             lr_scheduler.step(epoch)
             _log.info(f"lr: {optimizer.param_groups[0]['lr']}")
-            _log.handlers[0].flush() # flush logger
+            _log.logger.handlers[0].flush() # flush logger
             
         # print('lr:', optimizer.param_groups[0]["lr"])
 
@@ -1024,7 +1024,7 @@ def train_md(args):
         if (epoch + 1) % args.test_interval == 0:
             # test set
             _log.info(f"Testing model after epoch {epoch+1}.")
-            _log.handlers[0].flush() # flush logger
+            _log.logger.handlers[0].flush() # flush logger
             test_err, test_loss = evaluate(
                 args=args,
                 model=model,
@@ -2617,7 +2617,7 @@ def eval_speed(
 def equivariance_test(args, model, data_train, data_test, device, collate, step=None, _log=None):
     if _log is not None:
         _log.info("\nEquivariance test start")
-        _log.handlers[0].flush() # flush logger
+        _log.logger.handlers[0].flush() # flush logger
 
     model.eval()
     # print('Model in train mode:', model.training)
@@ -2705,7 +2705,7 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
     
     if _log is not None:
         _log.info("Equivariance test end")
-        _log.handlers[0].flush()
+        _log.logger.handlers[0].flush()
     return
 
 def setup_logging_and_train_md(args):

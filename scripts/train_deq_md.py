@@ -933,11 +933,10 @@ def train_md(args):
 
         if lr_scheduler is not None:
             lr_scheduler.step(epoch)
-            _log.info(f"lr: {lr_scheduler.get_last_lr()}")
+            _log.info(f"lr: {optimizer.param_groups[0]["lr"]}")
             _log.handlers[0].flush() # flush logger
             
         # print('lr:', optimizer.param_groups[0]["lr"])
-        # print('lr:', lr_scheduler.get_last_lr())
 
         try:
             train_err, train_loss, global_step, fixed_points, grads = train_one_epoch(

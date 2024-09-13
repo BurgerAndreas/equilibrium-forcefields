@@ -1636,11 +1636,17 @@ def train_one_epoch(
     # print("Model direct_forces", model.direct_forces)
 
     max_steps = len(data_loader)
+    filelog.info(f"max_steps done")
+    filelog.logger.handlers[0].flush() # flush logger
     for batchstep, data in enumerate(data_loader):
         # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_summary())
         # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
         data = data.to(device)
+        filelog.info(f"step{batchstep} data.to(device) done")
+        filelog.logger.handlers[0].flush() # flush logger
         data = data.to(device, dtype)
+        filelog.info(f"step{batchstep} data.to(device, dtype) done")
+        filelog.logger.handlers[0].flush() # flush logger
 
         # reinit DEQ to make sure nothing is stored in the buffers
         # if hasattr(model, "deq"):
@@ -1693,12 +1699,13 @@ def train_one_epoch(
             datasplit="train",
             fpr_loss=args.fpr_loss,
         )
+        filelog.info(f"step{batchstep} pred done")
+        filelog.logger.handlers[0].flush() # flush logger
 
         # target_y = copy.deepcopy(data.y)
         # target_dy = copy.deepcopy(data.dy)
         target_y = normalizers["energy"](data.y, data.z)  # [NB], [NB]
         target_dy = normalizers["force"](data.dy, data.z)
-
 
         # reshape model output [B] (OC20) -> [B,1] (MD17)
         if args.unsqueeze_e_dim and pred_y.dim() == 1:
@@ -1707,6 +1714,9 @@ def train_one_epoch(
         # reshape data [B,1] (MD17) -> [B] (OC20)
         if args.squeeze_e_dim and target_y.dim() == 2:
             target_y = target_y.squeeze(1)
+        
+        filelog.info(f"step{batchstep} norm & squeeze done")
+        filelog.logger.handlers[0].flush() # flush logger
 
         loss_e = criterion_energy(pred_y, target_y)
         loss = args.energy_weight * loss_e
@@ -1715,6 +1725,9 @@ def train_one_epoch(
             loss += args.force_weight * loss_f
         else:
             pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
+        
+        filelog.info(f"step{batchstep} loss done")
+        filelog.logger.handlers[0].flush() # flush logger
         
         # natoms = data.natoms[0].item()
         # if args.norm_by_natoms:
@@ -1845,7 +1858,11 @@ def train_one_epoch(
 
         # .requires_grad=True: loss, loss_e, loss_f, pred_y, pred_dy
         optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+        filelog.info(f"step{batchstep} zero_grad done")
+        filelog.logger.handlers[0].flush() # flush logger
         loss.backward(retain_graph=False)
+        filelog.info(f"step{batchstep} backward done")
+        filelog.logger.handlers[0].flush() # flush logger
 
         # if args.grokfast in [None, False, "None"]:
         #     pass
@@ -1884,6 +1901,8 @@ def train_one_epoch(
         # else:
         optimizer.step()
         # optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+        filelog.info(f"step{batchstep} optimizer.step() done")
+        filelog.logger.handlers[0].flush() # flush logger
 
         # del loss.grad, loss_e.grad, loss_f.grad
 
@@ -1975,9 +1994,12 @@ def train_one_epoch(
         # Todo@temp
         # del data, pred_y, pred_dy, loss, loss_e, loss_f
 
+        filelog.info(f"step{batchstep} done")
+        filelog.logger.handlers[0].flush() # flush logger
+
         # bandaids, its not going to fix the underlying issue
-        gc.collect() # garbage collector finds unused objects and deletes them
-        torch.cuda.empty_cache() # deletes unused tensor from the cache
+        # gc.collect() # garbage collector finds unused objects and deletes them
+        # torch.cuda.empty_cache() # deletes unused tensor from the cache
 
         if args.torch_profile:
             prof.step()

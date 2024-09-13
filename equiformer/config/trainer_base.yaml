@@ -96,7 +96,7 @@ model_ema_force_cpu: False
 dtype: float32
 
 # .zero_grad(set_to_none=True) will delete the .grad attributes and will thus free memory
-set_grad_to_none: False
+set_grad_to_none: True
 
 # 'Optimizer (default: adamw' (str)
 opt: "adamw"

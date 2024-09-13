@@ -660,7 +660,7 @@ class BaseTrainerV2(BaseTrainer):
 
     def _backward(self, loss):
         if self.grad_accumulation_steps == 1:
-            self.optimizer.zero_grad()
+            self.optimizer.zero_grad(set_to_none=self.config["optim"]["set_grad_to_none"])
 
         loss.backward()
 
@@ -701,7 +701,7 @@ class BaseTrainerV2(BaseTrainer):
 
         if self.grad_accumulation_steps != 1:
             if self.step % self.grad_accumulation_steps == 0:
-                self.optimizer.zero_grad()
+                self.optimizer.zero_grad(set_to_none=self.config["optim"]["set_grad_to_none"])
 
     def compute_stats(self):
         """

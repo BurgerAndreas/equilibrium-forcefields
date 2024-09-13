@@ -43,6 +43,7 @@ def train_one_epoch(
     clip_grad=None,
     print_freq: int = 100,
     filelog=None,
+    set_grad_to_none=True,
 ):
 
     model.train()
@@ -81,7 +82,7 @@ def train_one_epoch(
 
             loss = criterion(pred, (data.y[:, target] - task_mean) / task_std)
 
-        optimizer.zero_grad()
+        optimizer.zero_grad(set_to_none=set_grad_to_none)
         if loss_scaler is not None:
             loss_scaler(loss, optimizer, parameters=model.parameters())
         else:

@@ -89,6 +89,8 @@ optim:
   checkpoint_every: 5000
 
   maxdata: -1
+
+  set_grad_to_none: True
   
 val_max_iter: 1000
 hide_eval_progressbar: False      

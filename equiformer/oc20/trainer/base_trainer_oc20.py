@@ -644,7 +644,7 @@ class BaseTrainer(ABC):
         """Derived classes should implement this function."""
 
     def _backward(self, loss):
-        self.optimizer.zero_grad()
+        self.optimizer.zero_grad(set_to_none=self.config["optim"]["set_grad_to_none"])
         loss.backward()
         # Scale down the gradients of shared parameters
         if hasattr(self.model.module, "shared_parameters"):

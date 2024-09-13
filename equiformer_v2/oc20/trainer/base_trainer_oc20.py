@@ -289,15 +289,18 @@ class BaseTrainer(ABC):
 
         self.train_loader = self.val_loader = self.test_loader = None
 
+        # from oc20.trainer.lmdb_dataset import LmdbDatasetV2
         if self.config.get("dataset", None):
             self.train_dataset = registry.get_dataset_class(
-                self.config["task"]["dataset"]
+                self.config["task"]["dataset"] # trajectory_lmdb_v2
             )(self.config["dataset"])
 
             self.maxdata = int(self.config["optim"].get("maxdata", -1))
-            if self.maxdata > 0:
-                self.train_dataset = torch.utils.data.Subset(self.train_dataset, indices=range(self.maxdata))
-                logging.info(f"Using only {self.maxdata} training samples.")
+            # This does not work:
+            # AttributeError: 'Subset' object has no attribute 'close_db'
+            # if self.maxdata > 0:
+            #     self.train_dataset = torch.utils.data.Subset(self.train_dataset, indices=range(self.maxdata))
+            #     logging.info(f"Using only {self.maxdata} training samples.")
 
             self.train_sampler = self.get_sampler(
                 self.train_dataset,

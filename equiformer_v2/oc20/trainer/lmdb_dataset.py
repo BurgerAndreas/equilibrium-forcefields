@@ -61,6 +61,7 @@ class LmdbDatasetV2(Dataset):
         super(LmdbDatasetV2, self).__init__()
         self.config = config
 
+        # load the lmdb file
         self.path = Path(self.config["src"])
         if not self.path.is_file():
             db_paths = sorted(self.path.glob("*.lmdb"))
@@ -79,6 +80,7 @@ class LmdbDatasetV2(Dataset):
             keylens = [len(k) for k in self._keys]
             self._keylen_cumulative = np.cumsum(keylens).tolist()
             self.num_samples = sum(keylens)
+
         else:
             self.metadata_path = self.path.parent / "metadata.npz"
             self.env = self.connect_db(self.path)

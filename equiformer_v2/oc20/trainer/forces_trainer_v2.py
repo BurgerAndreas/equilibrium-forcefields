@@ -339,8 +339,18 @@ class ForcesTrainerV2(BaseTrainerV2):
             # desc="Training",
             unit="steps",
         )
+
+        # Only take a subset of the training data without changing the dataloader
+        if self.maxdata > 0:
+            max_steps = min(
+                len(self.train_loader), 
+                self.maxdata // self.config["optim"]["batch_size"]
+            )
+        else:
+            max_steps = len(self.train_loader)
+
         logging.info(f"Starting training at step {self.step}.")
-        logging.info(f"Steps per epoch: {len(self.train_loader)}")
+        logging.info(f"Steps per epoch: {max_steps}")
         for epoch_int in range(start_epoch, self.config["optim"]["max_epochs"]):
             self.train_sampler.set_epoch(epoch_int)
             skip_steps = self.step % len(self.train_loader)
@@ -348,7 +358,8 @@ class ForcesTrainerV2(BaseTrainerV2):
 
             self.metrics = {}
 
-            for i in range(skip_steps, len(self.train_loader)):
+            # loop over batches
+            for i in range(skip_steps, max_steps):
                 self.epoch = epoch_int + (i + 1) / len(self.train_loader)
                 self.step = epoch_int * len(self.train_loader) + i + 1
                 self.model.train()

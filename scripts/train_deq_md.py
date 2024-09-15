@@ -18,6 +18,7 @@ import copy
 import math
 import traceback
 import tracemalloc
+import pprint
 
 # add the root of the project to the path so it can find equiformer
 # root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -483,6 +484,9 @@ def train_md(args):
             "idx_to_indices": idx_to_indices,
             "indices_to_idx": indices_to_idx,
         }
+    
+    # log memory after loading data
+    wandb.log({"memalloc-allocated_after_loading_data": torch.cuda.memory_allocated()}, step=0)
 
     """ Compute stats """
     # Compute _AVG_NUM_NODES, _AVG_DEGREE
@@ -541,6 +545,9 @@ def train_md(args):
     # Parameters of a model after .cuda() will be different objects with those before the call.
     model = model.to(device)
 
+    # log memory after moving model to device
+    wandb.log({"memalloc-data_model": torch.cuda.memory_allocated()}, step=0)
+
     """ Instantiate everything else """
     filelog.info("Creating optimizer & co...")
     optimizer = create_optimizer(args, model)
@@ -577,6 +584,9 @@ def train_md(args):
     loss_fn = load_loss({"energy": args.loss_energy, "force": args.loss_force})
     criterion_energy = loss_fn["energy"]
     criterion_force = loss_fn["force"]
+
+    # log memory after moving model to device
+    wandb.log({"memalloc-data_model_opt": torch.cuda.memory_allocated()}, step=0)
 
     """ Load checkpoint """
     loaded_checkpoint = False
@@ -761,6 +771,9 @@ def train_md(args):
     # update all config args
     # wandb.config.update(OmegaConf.to_container(args, resolve=True), allow_val_change=True)
 
+    # log memory before forward pass
+    wandb.log({"memalloc-pre_forward_test": torch.cuda.memory_allocated()}, step=global_step)
+
     """ Dryrun of forward pass for testing """
     first_batch = next(iter(train_loader))
 
@@ -768,6 +781,10 @@ def train_md(args):
     data = data.to(device, dtype)
 
     # energy, force
+    model.train()
+    # criterion.train()
+    criterion_energy.train()
+    criterion_force.train()
     pred_y, pred_dy, info = model(
         data=data,  # for EquiformerV2
         node_atom=data.z,
@@ -782,15 +799,14 @@ def train_md(args):
     # print(f'data.y: {data.y.shape}')
     # print(f'data.dy: {data.dy.shape}')
 
+    # log memory before forward pass
+    wandb.log({"memalloc-post_forward_test": torch.cuda.memory_allocated()}, step=global_step)
+
     if args.test_forward:
         return True
 
     """ Dryrun for logging shapes """
     try:
-        model.train()
-        # criterion.train()
-        criterion_energy.train()
-        criterion_force.train()
 
         for step, data in enumerate(train_loader):
             data = data.to(device) 
@@ -810,10 +826,8 @@ def train_md(args):
         shapes_to_log["NumNodes"] = shapes_to_log["NumNodes"] // args.batch_size
         shapes_to_log["NumEdges"] = shapes_to_log["NumEdges"] // args.batch_size
 
-        import pprint
-
         ppr = pprint.PrettyPrinter(indent=4)
-        print(f"Shapes (target={args.target}):")
+        filelog.info(f"Shapes (target={args.target}):")
         ppr.pprint(shapes_to_log)
         wandb.run.summary.update(shapes_to_log)
 
@@ -821,11 +835,11 @@ def train_md(args):
         node_embedding_batch_shape = shapes_to_log["NodeEmbeddingShape"]
         node_embedding_shape = list(node_embedding_batch_shape)
         node_embedding_shape[0] = node_embedding_shape[0] // args.batch_size
-        print(f"node_embedding_shape: {node_embedding_shape}")
-        print(f"node_embedding_batch_shape: {node_embedding_batch_shape}")
+        filelog.info(f"node_embedding_shape: {node_embedding_shape}")
+        filelog.info(f"node_embedding_batch_shape: {node_embedding_batch_shape}")
     except Exception as e:
-        print(f"Failed to log shapes: {e}")
-        print(traceback.format_exc()) # print full stack trace
+        filelog.info(f"Failed to log shapes: {e}")
+        filelog.info(traceback.format_exc()) # print full stack trace
         node_embedding_batch_shape = None
         node_embedding_shape = None
 
@@ -908,6 +922,9 @@ def train_md(args):
 
     if args.evaluate or args.eval_speed or args.equivariance:
         return True
+    
+    # log memory before training
+    wandb.log({"memalloc-allocated_before_train": torch.cuda.memory_allocated()}, step=global_step)
 
     """ Train! """
     if node_embedding_shape is not None:
@@ -933,8 +950,8 @@ def train_md(args):
 
         if lr_scheduler is not None:
             lr_scheduler.step(epoch)
-            filelog.info(f"lr: {optimizer.param_groups[0]['lr']}")
-            filelog.logger.handlers[0].flush() # flush logger
+            # filelog.info(f"lr: {optimizer.param_groups[0]['lr']}")
+            # filelog.logger.handlers[0].flush() # flush logger
             
         # print('lr:', optimizer.param_groups[0]["lr"])
 
@@ -1023,8 +1040,8 @@ def train_md(args):
 
         if (epoch + 1) % args.test_interval == 0:
             # test set
-            filelog.info(f"Testing model after epoch {epoch+1}.")
-            filelog.logger.handlers[0].flush() # flush logger
+            # filelog.info(f"Testing model after epoch {epoch+1}.")
+            # filelog.logger.handlers[0].flush() # flush logger
             test_err, test_loss = evaluate(
                 args=args,
                 model=model,
@@ -1553,12 +1570,12 @@ def train_one_epoch(
     """
     collate = Collater(None, None)
 
-    filelog.info(f"Init train epoch {epoch}")
-    filelog.logger.handlers[0].flush() # flush logger
+    # filelog.info(f"Init train epoch {epoch}")
+    # filelog.logger.handlers[0].flush() # flush logger
 
     model.train()
-    filelog.info(f"Set model to train")
-    filelog.logger.handlers[0].flush() # flush logger
+    # filelog.info(f"Set model to train")
+    # filelog.logger.handlers[0].flush() # flush logger
     
     criterion_energy.train()
     criterion_force.train()
@@ -1578,8 +1595,8 @@ def train_one_epoch(
     # triplet loss
     triplet_lossfn = TripletLoss(margin=args.tripletloss_margin)
 
-    filelog.info(f"Resetting optimizer")
-    filelog.logger.handlers[0].flush() # flush logger
+    # filelog.info(f"Resetting optimizer")
+    # filelog.logger.handlers[0].flush() # flush logger
     optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
     # statistics over epoch
@@ -1617,8 +1634,8 @@ def train_one_epoch(
         prof.start()
     
     
-    filelog.info(f"test forward pass")
-    filelog.logger.handlers[0].flush() # flush logger
+    # filelog.info(f"test forward pass")
+    # filelog.logger.handlers[0].flush() # flush logger
     # warmup the cuda kernels for accurate timing
     data = next(iter(data_loader))
     data = data.to(device)
@@ -1636,17 +1653,18 @@ def train_one_epoch(
     # print("Model direct_forces", model.direct_forces)
 
     max_steps = len(data_loader)
-    filelog.info(f"max_steps done")
-    filelog.logger.handlers[0].flush() # flush logger
+    # filelog.info(f"max_steps done")
+    # filelog.logger.handlers[0].flush() # flush logger
     for batchstep, data in enumerate(data_loader):
+        wandb.log({"memalloc-pre_batch": torch.cuda.memory_allocated()}, step=global_step)
         # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_summary())
         # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
         data = data.to(device)
-        filelog.info(f"step{batchstep} data.to(device) done")
-        filelog.logger.handlers[0].flush() # flush logger
+        # filelog.info(f"step{batchstep} data.to(device) done")
+        # filelog.logger.handlers[0].flush() # flush logger
         data = data.to(device, dtype)
-        filelog.info(f"step{batchstep} data.to(device, dtype) done")
-        filelog.logger.handlers[0].flush() # flush logger
+        # filelog.info(f"step{batchstep} data.to(device, dtype) done")
+        # filelog.logger.handlers[0].flush() # flush logger
 
         # reinit DEQ to make sure nothing is stored in the buffers
         # if hasattr(model, "deq"):
@@ -1699,8 +1717,8 @@ def train_one_epoch(
             datasplit="train",
             fpr_loss=args.fpr_loss,
         )
-        filelog.info(f"step{batchstep} pred done")
-        filelog.logger.handlers[0].flush() # flush logger
+        # filelog.info(f"step{batchstep} pred done")
+        # filelog.logger.handlers[0].flush() # flush logger
 
         # target_y = copy.deepcopy(data.y)
         # target_dy = copy.deepcopy(data.dy)
@@ -1715,8 +1733,8 @@ def train_one_epoch(
         if args.squeeze_e_dim and target_y.dim() == 2:
             target_y = target_y.squeeze(1)
         
-        filelog.info(f"step{batchstep} norm & squeeze done")
-        filelog.logger.handlers[0].flush() # flush logger
+        # filelog.info(f"step{batchstep} norm & squeeze done")
+        # filelog.logger.handlers[0].flush() # flush logger
 
         loss_e = criterion_energy(pred_y, target_y)
         loss = args.energy_weight * loss_e
@@ -1726,8 +1744,8 @@ def train_one_epoch(
         else:
             pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
         
-        filelog.info(f"step{batchstep} loss done")
-        filelog.logger.handlers[0].flush() # flush logger
+        # filelog.info(f"step{batchstep} loss done")
+        # filelog.logger.handlers[0].flush() # flush logger
         
         # natoms = data.natoms[0].item()
         # if args.norm_by_natoms:
@@ -1858,11 +1876,13 @@ def train_one_epoch(
 
         # .requires_grad=True: loss, loss_e, loss_f, pred_y, pred_dy
         optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-        filelog.info(f"step{batchstep} zero_grad done")
-        filelog.logger.handlers[0].flush() # flush logger
+        # filelog.info(f"step{batchstep} zero_grad done")
+        # filelog.logger.handlers[0].flush() # flush logger
+        wandb.log({"memalloc-pre_backward": torch.cuda.memory_allocated()}, step=global_step)
         loss.backward(retain_graph=False)
-        filelog.info(f"step{batchstep} backward done")
-        filelog.logger.handlers[0].flush() # flush logger
+        wandb.log({"memalloc-post_backward": torch.cuda.memory_allocated()}, step=global_step)
+        # filelog.info(f"step{batchstep} backward done")
+        # filelog.logger.handlers[0].flush() # flush logger
 
         # if args.grokfast in [None, False, "None"]:
         #     pass
@@ -1901,8 +1921,8 @@ def train_one_epoch(
         # else:
         optimizer.step()
         # optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-        filelog.info(f"step{batchstep} optimizer.step() done")
-        filelog.logger.handlers[0].flush() # flush logger
+        # filelog.info(f"step{batchstep} optimizer.step() done")
+        # filelog.logger.handlers[0].flush() # flush logger
 
         # del loss.grad, loss_e.grad, loss_f.grad
 
@@ -1994,8 +2014,8 @@ def train_one_epoch(
         # Todo@temp
         # del data, pred_y, pred_dy, loss, loss_e, loss_f
 
-        filelog.info(f"step{batchstep} done")
-        filelog.logger.handlers[0].flush() # flush logger
+        # filelog.info(f"step{batchstep} done")
+        # filelog.logger.handlers[0].flush() # flush logger
 
         # bandaids, its not going to fix the underlying issue
         # gc.collect() # garbage collector finds unused objects and deletes them

@@ -13,7 +13,7 @@ from deq2ff.plotting.style import (
     set_seaborn_style,
     PALETTE,
     entity,
-    project,
+    projectmd,
     plotfolder,
     acclabels,
     timelabels,
@@ -459,7 +459,7 @@ if __name__ == "__main__":
         # get all runs with tag 'inference_speed'
         api = wandb.Api()
         runs = api.runs(
-            project,
+            projectmd,
             {
                 "tags": "inference2",
                 "state": "finished",

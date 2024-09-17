@@ -11,7 +11,7 @@ from deq2ff.plotting.style import (
     PALETTE,
     combine_legend,
     entity,
-    project,
+    projectmd,
     plotfolder,
 )
 
@@ -86,7 +86,7 @@ for r in runs:
     run_id = r["run_id"]
     # run = api.run(project + "/" + run_id)
     api = wandb.Api()
-    run = api.run(project + "/" + run_id)
+    run = api.run(projectmd + "/" + run_id)
     info = {
         "run_id": run_id,
         "run_name": run.name,
@@ -101,7 +101,7 @@ for r in runs:
     # memory runs do not include test accuracy
     run_id = r["run_id_acc"]
     api = wandb.Api()
-    run = api.run(project + "/" + run_id)
+    run = api.run(projectmd + "/" + run_id)
     info.update(
         {
             "run_id_acc": run_id,

@@ -31,7 +31,7 @@ src/deq2ff/plotting/plot_loss_per_idx/*
 
 # torchdeq
 TorchDEQ_tutorial.ipynb
-*.ipynb
+# *.ipynb
 
 checkpoints
 

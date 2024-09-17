@@ -13,7 +13,7 @@ from deq2ff.plotting.style import (
     set_seaborn_style,
     PALETTE,
     entity,
-    project,
+    projectmd,
     plotfolder,
     acclabels,
     timelabels,
@@ -21,7 +21,7 @@ from deq2ff.plotting.style import (
     myrc,
 )
 
-project = "Equi2"
+projectmd = "Equi2"
 
 nans = ["NaN", pd.NA, None, float("inf"), np.nan]
 
@@ -503,7 +503,7 @@ if __name__ == "__main__":
         # get all runs with tag 'inference_speed'
         api = wandb.Api()
         runs = api.runs(
-            project,
+            projectmd,
             {
                 # "tags": "inference2",
                 "$and": [{"tags": "md17"}, {"tags": "eval"}],

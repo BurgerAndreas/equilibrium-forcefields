@@ -13,7 +13,7 @@ from deq2ff.plotting.style import (
     set_seaborn_style,
     PALETTE,
     entity,
-    project,
+    projectmd,
     plotfolder,
     acclabels,
     timelabels,
@@ -26,7 +26,7 @@ def main(run_id: str, ymax=None, xmax=None, logscale=False):
     # https://github.com/wandb/wandb/issues/3966
 
     api = wandb.Api()
-    run = api.run(f"{project}/{run_id}")
+    run = api.run(f"{projectmd}/{run_id}")
     n_fsolver_steps_test = run.summary["n_fsolver_steps_test"]
     n_fsolver_steps_test_fpreuse = run.summary["n_fsolver_steps_test_fpreuse"]
 
@@ -208,7 +208,7 @@ if __name__ == "__main__":
     # get all runs with tag 'inference_speed'
     api = wandb.Api()
     runs = api.runs(
-        project,
+        projectmd,
         {
             "tags": "inference",
             # "$or": [{"tags": "md17"}, {"tags": "md22"}, {"tags": "main2"}],

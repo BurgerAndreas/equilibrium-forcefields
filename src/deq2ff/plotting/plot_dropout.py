@@ -10,7 +10,7 @@ from deq2ff.plotting.style import (
     set_seaborn_style,
     PALETTE,
     entity,
-    project,
+    projectmd,
     plotfolder,
     timelabels,
     acclabels,
@@ -37,7 +37,7 @@ layers_equi = [4]  # [8] [1, 4, 8]
 api = wandb.Api()
 # runs = api.runs("username/project", filters={"tags": {"$in": ["best"]}})
 # runs = api.runs(project, {"$or": [{"config.experiment_name": "foo"}, {"config.experiment_name": "bar"}]})
-runs = api.runs(project, {"tags": "drop"})
+runs = api.runs(projectmd, {"tags": "drop"})
 # runs = api.runs(project, {"$or": [{"tags": "md17"}, {"tags": "md22"}]})
 # runs = api.runs(project, {"$and": [{"tags": "depth"}, {"state": "finished"}]})
 # state finished or crashed

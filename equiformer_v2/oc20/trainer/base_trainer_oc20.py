@@ -14,6 +14,8 @@ import subprocess
 from abc import ABC, abstractmethod
 from collections import defaultdict
 
+import wandb
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -301,6 +303,16 @@ class BaseTrainer(ABC):
             # if self.maxdata > 0:
             #     self.train_dataset = torch.utils.data.Subset(self.train_dataset, indices=range(self.maxdata))
             #     logging.info(f"Using only {self.maxdata} training samples.")
+
+            # wandb add train_dataset size
+            if wandb.run is not None:
+                # https://docs.wandb.ai/guides/track/config#set-the-configuration-throughout-your-script
+                # wandb.config.update({"dataset_size": len(self.train_dataset)})
+                # wandb.run.summary["dataset_size"] = len(self.train_dataset)
+                wandb.run.config["dataset_size"] = len(self.train_dataset)
+                wandb.config["dataset_size"] = len(self.train_dataset)
+                # wandb.run.update()
+            self.logger.log({"dataset_size": len(self.train_dataset)}, step=0, split="train")
 
             self.train_sampler = self.get_sampler(
                 self.train_dataset,

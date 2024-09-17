@@ -15,7 +15,7 @@ from deq2ff.plotting.style import (
     set_seaborn_style,
     PALETTE,
     entity,
-    project,
+    projectmd,
     plotfolder,
     set_style_after,
 )
@@ -35,7 +35,7 @@ def main(
     alias = "latest"
 
     api = wandb.Api()
-    run = api.run(project + "/" + run_id)
+    run = api.run(projectmd + "/" + run_id)
     run_name = run.name
     print("\nrun_id:", run_id)
     print("name:", run.name)

@@ -13,7 +13,7 @@ from deq2ff.plotting.style import (
     set_seaborn_style,
     PALETTE,
     entity,
-    project,
+    projectmd,
     plotfolder,
     acclabels,
     timelabels,
@@ -25,6 +25,8 @@ nans = ["NaN", pd.NA, None, float("inf"), np.nan]
 
 
 def print_table(_df, runs_with_dropout, mode="Force", add_nfe=False):
+    """
+    """
     assert mode in [
         "Force",
         "Energy",
@@ -206,6 +208,8 @@ def print_table(_df, runs_with_dropout, mode="Force", add_nfe=False):
 
 
 def print_table_time_forces(_df, runs_with_dropout):
+    """
+    """
     # filter for target=aspirin
     # _df = _df[_df["Target"] == "aspirin"]
 
@@ -464,7 +468,7 @@ if __name__ == "__main__":
         # get all runs with tag 'inference_speed'
         api = wandb.Api()
         runs = api.runs(
-            project,
+            projectmd,
             {
                 "tags": "inference2",
                 "state": "finished",

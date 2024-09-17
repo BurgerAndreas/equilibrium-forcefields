@@ -11,7 +11,7 @@ from deq2ff.plotting.style import (
     set_seaborn_style,
     PALETTE,
     entity,
-    project,
+    projectmd,
     plotfolder,
 )
 
@@ -55,7 +55,7 @@ api = wandb.Api()
 
 # get runs with accuracy
 runs_acc = api.runs(
-    project,
+    projectmd,
     filters={
         "$or": [{"tags": "md17"}, {"tags": "depth"}, {"tags": "inference_acc"}],
         "state": "finished",

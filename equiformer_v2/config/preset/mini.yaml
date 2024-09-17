@@ -4,6 +4,8 @@
 defaults:
   - base
 
+preset_name: "mini"
+
 model:
 
   # num_layers (int): Number of layers in the GNN

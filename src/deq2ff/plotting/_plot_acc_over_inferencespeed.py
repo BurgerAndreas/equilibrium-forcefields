@@ -13,7 +13,7 @@ from deq2ff.plotting.style import (
     set_seaborn_style,
     PALETTE,
     entity,
-    project,
+    projectmd,
     plotfolder,
     acclabels,
     timelabels,
@@ -48,13 +48,13 @@ acclabels.update({f"{k}_lowest": v for k, v in acclabels.items()})
 if download_data:
     # get all runs with tag 'inference_speed'
     api = wandb.Api()
-    runs = api.runs(project, {"tags": "inference_speed", "state": "finished"})
+    runs = api.runs(projectmd, {"tags": "inference_speed", "state": "finished"})
     run_ids = [run.id for run in runs]
     print(f"Found {len(run_ids)} runs with tag 'inference_speed'")
 
     # get runs with accuracy
     runs_acc = api.runs(
-        project,
+        projectmd,
         filters={
             "$or": [{"tags": "md17"}, {"tags": "depth"}, {"tags": "inference_acc"}],
             "state": "finished",

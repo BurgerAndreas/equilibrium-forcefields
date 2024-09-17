@@ -9,7 +9,7 @@ from deq2ff.plotting.style import (
     set_seaborn_style,
     PALETTE,
     entity,
-    project,
+    projectmd,
     plotfolder,
     set_style_after,
 )
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     # runs = api.runs(project, {"$and": [{"tags": "depth"}, {"state": "finished"}]})
     # state finished or crashed
     runs = api.runs(
-        project,
+        projectmd,
         {
             "$and": [
                 {"tags": "depth"},

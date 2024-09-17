@@ -4,6 +4,8 @@
 defaults:
   - base
 
+preset_name: "reg_half"
+
 model:
   # num_layers (int): Number of layers in the GNN
   num_layers: 4 # 8 12

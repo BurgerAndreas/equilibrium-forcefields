@@ -4,7 +4,8 @@ import os, sys, pathlib
 
 # andreas-burger/EquilibriumEquiFormer
 entity = "andreas-burger"
-project = "EquilibriumEquiFormer"
+projectmd = "Equi2" # previously: "EquilibriumEquiFormer"
+projectoc = "oc20-ev2"
 
 # parent folder of the plot
 plotfolder = pathlib.Path(__file__).parent.absolute()
@@ -88,20 +89,34 @@ def set_style_after(ax, fs=15, legend=True, loc='best'):
         ax.get_legend().remove()
 
 
-timelabels = {
+
+labels = {
+    "avg_n_fsolver_steps_test_fpreuse": "Number of solver steps, FP-reuse",
+    # setup
+    "num_atoms": "Number of Atoms",
+    "target": "Molecule",
+    # accuracy
+    "test_fpreuse_f_mae": "Force MAE, FP-reuse",
+    "train_loss_f": "Training Loss",
+    "best_test_f_mae": r"Best force MAE [kcal/mol/$\AA$]",
+    # "test_f_mae": "Force MAE",
+    "test_f_mae": r"Force MAE [kcal/mol/$\AA$]",
+    "best_test_e_mae": "Best energy MAE [kcal/mol]",
+    "test_e_mae": "Energy MAE [kcal/mol]",
+    "nfe": "NFE",
+    # time
     "time_test": "Test time for 1000 samples [s]",
     "time_forward_per_batch_test": "Forward time per batch [s]",
     "time_forward_total_test": "Total forward time for 1000 samples [s]",
     "nfe": "NFE",
 }
-acclabels = {
-    "best_test_f_mae": r"Best force MAE [kcal/mol/$\AA$]",
-    "test_f_mae": r"Force MAE [kcal/mol/$\AA$]",
-    "best_test_e_mae": "Best energy MAE [kcal/mol]",
-    "test_e_mae": "Energy MAE [kcal/mol]",
-    "nfe": "NFE",
-}
 
+def human_labels(lab):
+    lab = lab.split(".")[-1]
+    if lab in labels:
+        return labels[lab]
+    else:
+        return lab
 
 def combine_legend(ax, colorstyle_dict, markerstyle):
     # https://stackoverflow.com/questions/68591271/how-can-i-combine-hue-and-style-groups-in-a-seaborn-legend

@@ -10,7 +10,7 @@ from deq2ff.plotting.style import (
     set_seaborn_style,
     PALETTE,
     entity,
-    project,
+    projectmd,
     plotfolder,
 )
 
@@ -23,7 +23,7 @@ runs_with_dropout = False
 api = wandb.Api()
 # runs = api.runs(project, {"$or": [{"config.experiment_name": "foo"}, {"config.experiment_name": "bar"}]})
 # runs = api.runs(project, {"tags": "md17"})
-runs = api.runs(project, {"$or": [{"tags": "md17"}, {"tags": "md22"}]})
+runs = api.runs(projectmd, {"$or": [{"tags": "md17"}, {"tags": "md22"}]})
 run_ids = [run.id for run in runs]
 print(f"Found {len(run_ids)} runs with tag 'inference_speed'")
 

@@ -351,6 +351,7 @@ class ForcesTrainerV2(BaseTrainerV2):
 
         logging.info(f"Starting training at step {self.step}.")
         logging.info(f"Steps per epoch: {max_steps}")
+        self.logger.log({"max_steps": int(max_steps*self.config["optim"]["max_epochs"])}, split="train", step=self.step)
         for epoch_int in range(start_epoch, self.config["optim"]["max_epochs"]):
             self.train_sampler.set_epoch(epoch_int)
             skip_steps = self.step % len(self.train_loader)

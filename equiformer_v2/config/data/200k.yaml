@@ -12,7 +12,8 @@ dataset:
     grad_target_mean: 0.0
     grad_target_std: 2.887317180633545
   - src: ocp/data/s2ef/all/val_id/
-  split: 200k
+
+datasplit: 200k
 
 task:
   dataset: trajectory_lmdb_v2 # default: trajectory_lmdb, equiformer_v2: trajectory_lmdb_v2

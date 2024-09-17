@@ -4,6 +4,7 @@
 trainer: forces_v2
 
 # https://github.com/Open-Catalyst-Project/ocp/blob/main/configs/s2ef/2M/base.yml
+# https://github.com/atomicarchitects/equiformer_v2/blob/9841d0e591e170b3080f62904376ec9cd7939e34/oc20/configs/s2ef/2M/equiformer_v2/equiformer_v2_N%4012_L%406_M%402.yml
 dataset:
   - src: ocp/data/s2ef/2M/train/
     normalize_labels: True
@@ -12,7 +13,8 @@ dataset:
     grad_target_mean: 0.0
     grad_target_std: 2.887317180633545
   - src: ocp/data/s2ef/all/val_id/
-  split: 2M
+
+datasplit: 2M
 
 task:
   dataset: trajectory_lmdb_v2 # default: trajectory_lmdb, equiformer_v2: trajectory_lmdb_v2

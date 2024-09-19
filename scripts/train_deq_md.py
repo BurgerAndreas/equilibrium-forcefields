@@ -1668,7 +1668,9 @@ def train_one_epoch(
 
         # reinit DEQ to make sure nothing is stored in the buffers
         # if hasattr(model, "deq"):
-        #     model.deq = get_deq(**model.deq_kwargs)
+        #     deq_kwargs = args.deq_kwargs
+        #     deq_kwargs.update(args.deq_kwargs_test)
+        #     model.deq = get_deq(**deq_kwargs)
 
         # if args.fpreuse_across_epochs and epoch >= args.fpreuse_start_epoch:
         #     indices = [idx_to_indices[_idx.item()] for _idx in data.idx]

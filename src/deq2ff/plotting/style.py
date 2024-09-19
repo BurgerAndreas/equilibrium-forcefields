@@ -118,6 +118,27 @@ def human_labels(lab):
     else:
         return lab
 
+# rename targets to be more human readable
+# http://www.sgdml.org/#datasets
+mol_names = {
+    "aspirin": "Aspirin",
+    "ethanol": "Ethanol",
+    "malonaldehyde": "Malonaldehyde",
+    "naphthalene": "Naphthalene",
+    "toluene": "Toluene",
+    "salicylic_acid": "Salicylic acid",
+    "sucrose": "Sucrose",
+    "uracil": "Uracil",
+    "benzene": "Benzene",
+    "stachyose": "Stachyose",
+    "DHA": "DHA", # "Docosahexaenoic acid",
+    "AT_AT": "AT-AT",
+    "AT_AT_CG_CG": "AT-AT-CG-CG",
+    "dw_nanotube": "Double-walled nanotube",
+    "buckyball_catcher": "Buckyball catcher",
+    "Ac_Ala3_NHMe": "Ac-Ala3-NHMe",
+}
+
 def combine_legend(ax, colorstyle_dict, markerstyle):
     # https://stackoverflow.com/questions/68591271/how-can-i-combine-hue-and-style-groups-in-a-seaborn-legend
 

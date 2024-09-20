@@ -224,100 +224,7 @@ def compute_loss(args, y, dy, target_y, target_dy, criterion_energy, criterion_f
         dy, loss_f = get_force_placeholder(target_dy, loss_e)
     return loss, loss_e, loss_f
 
-
-def train_md(args):
-
-    # set environment values if they are not None
-    # if args.broyden_print_values is not None:
-    #     os.environ["PRINT_VALUES"] = args.broyden_print_values
-    # if args.fix_broyden is not None:
-    #     os.environ["FIX_BROYDEN"] = args.fix_broyden
-    torch.autograd.set_detect_anomaly(args.torch_detect_anomaly)
-
-    dtype = eval("torch." + args.dtype)
-    torch.set_default_dtype(dtype)
-
-    # create output directory
-    if args.output_dir == "auto":
-        # args.output_dir = os.path.join('outputs', datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
-        # models/md17/equiformer/test
-        mname = args.checkpoint_wandb_name  # wandb.run.name
-        # remove special characters
-        mname = "".join(e for e in mname if e.isalnum())
-        args.output_dir = f"models/{args.dname}/{args.model.name}/{args.target}/{mname}"
-        print(f"Set output directory automatically: {args.output_dir}")
-    elif args.output_dir == "checkpoint_path":
-        # args.output_dir = args.checkpoint_path
-        args.output_dir = os.path.dirname(args.checkpoint_path)
-        print(f"Set output directory: {args.output_dir}")
-    if args.output_dir is not None:
-        os.makedirs(args.output_dir, exist_ok=True)
-    wandb.run.config.update({"output_dir": args.output_dir}, allow_val_change=True)
-
-    filelog = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
-    # _log.info(
-    #     f"Args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}"
-    # )
-
-    # set random seed for reproducibility
-    torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
-
-    """ Dataset """
-    if args.use_original_datasetcreation:
-        import equiformer.datasets.pyg.md17 as md17_dataset
-
-        train_dataset, val_dataset, test_dataset = md17_dataset.get_md17_datasets(
-            root=os.path.join(args.data_path, "md17", args.target),
-            dataset_arg=args.target,
-            train_size=args.train_size,
-            val_size=args.val_size,
-            test_patch_size=None,
-            seed=args.seed,
-            # order="consecutive_test" if args.fpreuse_test else None,
-        )
-        test_dataset_full = test_dataset
-    else:
-        import equiformer.datasets.pyg.md_all as md_all
-
-        (
-            train_dataset,
-            val_dataset,
-            test_dataset,
-            test_dataset_full,
-            all_dataset,
-        ) = md_all.get_md_datasets(
-            root=args.data_path,
-            dataset_arg=args.target,
-            dname=args.dname,
-            train_size=args.train_size,
-            val_size=args.val_size,
-            test_patch_size=None,  # influences data splitting
-            test_patch_size_select=args.test_patch_size,  # doesn't influence data splitting
-            seed=args.seed,
-            order=md_all.get_order(args),
-            num_test_patches=args.test_patches,
-        )
-        # assert that dataset is consecutive
-        samples = Collater(follow_batch=None, exclude_keys=None)(
-            [all_dataset[i] for i in range(10)]
-        )
-        assert torch.allclose(
-            samples.idx, torch.arange(10)
-        ), f"idx are not consecutive: {samples.idx}"
-
-    filelog.info("")
-    filelog.info("Training set size:   {}".format(len(train_dataset)))
-    filelog.info("Validation set size: {}".format(len(val_dataset)))
-    filelog.info("Testing set size:    {}".format(len(test_dataset)))
-
-    # statistics
-    y = torch.cat([batch.y for batch in train_dataset], dim=0)
-    task_mean = float(y.mean())
-    task_std = float(y.std())
-    filelog.info("Training set mean: {}, std: {}\n".format(task_mean, task_std))
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def get_normalizers(args, train_dataset, device, task_mean, task_std):
 
     # More statistics for normalizing forces
     if args.std_forces == "std":
@@ -424,7 +331,103 @@ def train_md(args):
         else:
             normalizer_f = NormalizerByAtomtype(mean=mean, std=std, device=device)
 
-    normalizers = {"energy": normalizer_e, "force": normalizer_f}
+    return {"energy": normalizer_e, "force": normalizer_f}
+
+def train_md(args):
+
+    # set environment values if they are not None
+    # if args.broyden_print_values is not None:
+    #     os.environ["PRINT_VALUES"] = args.broyden_print_values
+    # if args.fix_broyden is not None:
+    #     os.environ["FIX_BROYDEN"] = args.fix_broyden
+    torch.autograd.set_detect_anomaly(args.torch_detect_anomaly)
+
+    dtype = eval("torch." + args.dtype)
+    torch.set_default_dtype(dtype)
+
+    # create output directory
+    if args.output_dir == "auto":
+        # args.output_dir = os.path.join('outputs', datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+        # models/md17/equiformer/test
+        mname = args.checkpoint_wandb_name  # wandb.run.name
+        # remove special characters
+        mname = "".join(e for e in mname if e.isalnum())
+        args.output_dir = f"models/{args.dname}/{args.model.name}/{args.target}/{mname}"
+        print(f"Set output directory automatically: {args.output_dir}")
+    elif args.output_dir == "checkpoint_path":
+        # args.output_dir = args.checkpoint_path
+        args.output_dir = os.path.dirname(args.checkpoint_path)
+        print(f"Set output directory: {args.output_dir}")
+    if args.output_dir is not None:
+        os.makedirs(args.output_dir, exist_ok=True)
+    wandb.run.config.update({"output_dir": args.output_dir}, allow_val_change=True)
+
+    filelog = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
+    # _log.info(
+    #     f"Args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}"
+    # )
+
+    # set random seed for reproducibility
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+
+    """ Dataset """
+    if args.use_original_datasetcreation:
+        import equiformer.datasets.pyg.md17 as md17_dataset
+
+        train_dataset, val_dataset, test_dataset = md17_dataset.get_md17_datasets(
+            root=os.path.join(args.data_path, "md17", args.target),
+            dataset_arg=args.target,
+            train_size=args.train_size,
+            val_size=args.val_size,
+            test_patch_size=None,
+            seed=args.seed,
+            # order="consecutive_test" if args.fpreuse_test else None,
+        )
+        test_dataset_full = test_dataset
+    else:
+        import equiformer.datasets.pyg.md_all as md_all
+
+        (
+            train_dataset,
+            val_dataset,
+            test_dataset,
+            test_dataset_full,
+            all_dataset,
+        ) = md_all.get_md_datasets(
+            root=args.data_path,
+            dataset_arg=args.target,
+            dname=args.dname,
+            train_size=args.train_size,
+            val_size=args.val_size,
+            test_patch_size=None,  # influences data splitting
+            test_patch_size_select=args.test_patch_size,  # doesn't influence data splitting
+            seed=args.seed,
+            order=md_all.get_order(args),
+            num_test_patches=args.test_patches,
+        )
+        # assert that dataset is consecutive
+        samples = Collater(follow_batch=None, exclude_keys=None)(
+            [all_dataset[i] for i in range(10)]
+        )
+        assert torch.allclose(
+            samples.idx, torch.arange(10)
+        ), f"idx are not consecutive: {samples.idx}"
+
+    filelog.info("")
+    filelog.info("Training set size:   {}".format(len(train_dataset)))
+    filelog.info("Validation set size: {}".format(len(val_dataset)))
+    filelog.info("Testing set size:    {}".format(len(test_dataset)))
+        
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # statistics
+    y = torch.cat([batch.y for batch in train_dataset], dim=0)
+    task_mean = float(y.mean())
+    task_std = float(y.std())
+    filelog.info("Training set mean: {}, std: {}\n".format(task_mean, task_std))
+    
+    normalizers = get_normalizers(args, train_dataset, device, task_mean, task_std)
 
     """ Data Loader """
     filelog.info("Creating dataloaders...")
@@ -1641,7 +1644,7 @@ def train_one_epoch(
     data = data.to(device)
     data = data.to(device, dtype)
     outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
-    filelog.info(f"test forward pass done")
+    # filelog.info(f"test forward pass done")
 
     # print("\nTrain:")
     # print("Model is in training mode", model.training)

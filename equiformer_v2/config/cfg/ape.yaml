@@ -10,7 +10,7 @@ deq_kwargs:
   b_stop_mode: 'rel'
   b_tol: 1e-6
   ift: True
-  hook_ift: True
+  hook_ift: False
   
   force_train_mode: False
   

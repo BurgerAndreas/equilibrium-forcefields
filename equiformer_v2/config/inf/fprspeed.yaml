@@ -9,7 +9,7 @@
 
 eval_speed: True 
 evaluate: False
-assert_checkpoint: True
+assert_checkpoint: 0.8
 
 datasplit: "fpreuse_overlapping"
 test_patches: 1

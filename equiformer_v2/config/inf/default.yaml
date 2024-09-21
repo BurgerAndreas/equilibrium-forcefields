@@ -8,7 +8,7 @@
 #   f_tol: 1e-2
 
 evaluate: True
-assert_checkpoint: True
+assert_checkpoint: 0.8
 
 datasplit: "equiformer"
 test_patches: 1

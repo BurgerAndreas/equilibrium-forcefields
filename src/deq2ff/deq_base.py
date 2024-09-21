@@ -13,6 +13,8 @@ def _init_deq(
     # implicit_layer,
     torchdeq_norm, # omegaconf.OmegaConf
     deq_kwargs, # {}
+    deq_kwargs_eval, # {}
+    deq_kwargs_fpr,
     **kwargs,
 ):
     """Initializes TorchDEQ solver and normalization."""
@@ -21,6 +23,16 @@ def _init_deq(
     # print(f"Passed deq_kwargs: {deq_kwargs}")
     # self.deq = get_deq(f_solver='broyden', f_max_iter=20, f_tol=1e-6)
     self.deq = get_deq(**deq_kwargs)
+
+
+    deq_kwargs1 = copy.deepcopy(deq_kwargs)
+    deq_kwargs1.update(deq_kwargs_eval)
+    self.deq_eval = get_deq(**deq_kwargs1)
+
+    deq_kwargs2 = copy.deepcopy(deq_kwargs)
+    # deq_kwargs2.update(deq_kwargs_eval)
+    deq_kwargs2.update(deq_kwargs_fpr)
+    self.deq_eval_fpr = get_deq(**deq_kwargs2)
 
     # weight/spectral normalization for better stability
     # Using norm_type='none' in `kwargs` can also skip it.

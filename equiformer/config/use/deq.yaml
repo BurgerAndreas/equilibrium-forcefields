@@ -54,13 +54,11 @@ model:
   # DPA, DPANorm, FF, FFNorm, FFNormResidual
   deq_block: null
 
-deq_kwargs_test:
-  # on test set only when passed a fixed-point estimate
-  fpreuse_f_max_iter: _default
-  fpreuse_f_tol: _default
-  # on test set
-  f_max_iter: _default
-  f_tol: _default
+deq_kwargs_eval:
+  f_solver: 'anderson'
+
+deq_kwargs_fpr:
+  f_solver: 'anderson'
 
 # passed to torchdeq
 deq_kwargs:
@@ -68,9 +66,9 @@ deq_kwargs:
   core: sliced # sliced, indexed
   # 'anderson', 'broyden', 'fixed_point_iter', 'simple_fixed_point_iter'
   # (str, optional) – The forward solver function. Default 'fixed_point_iter'
-  f_solver: 'broyden'
+  f_solver: 'anderson'
   # (str, optional) – The backward solver function. Default 'fixed_point_iter'.
-  b_solver: 'fixed_point_iter'
+  b_solver: 'anderson'
   # f_tol (float, optional) – The forward pass solver stopping criterion. Default 1e-3.
   f_tol: 1e-3
   # b_tol (float, optional) – The backward pass solver stopping criterion. Default 1e-6.

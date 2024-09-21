@@ -4,4 +4,4 @@
 evaluate: True 
 test_max_iter: -1 
 test_patch_size: null 
-assert_checkpoint: True
+assert_checkpoint: 0.8

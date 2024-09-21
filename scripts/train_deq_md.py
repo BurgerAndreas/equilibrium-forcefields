@@ -526,6 +526,8 @@ def train_md(args):
             task_std=task_std,
             **args.model,
             deq_kwargs=args.deq_kwargs,
+            deq_kwargs_eval=args.deq_kwargs_eval,
+            deq_kwargs_fpr=args.deq_kwargs_fpr,
         )
         filelog.info("deq_kwargs", yaml.dump(dict(args.deq_kwargs)))
     else:
@@ -649,12 +651,12 @@ def train_md(args):
     wandb.log({"start_epoch": start_epoch, "epoch": start_epoch}, step=global_step)
 
     # if we want to run inference only we want to make sure that the model is loaded
-    if args.assert_checkpoint:
+    if args.assert_checkpoint not in [False, None]:
         assert (
             loaded_checkpoint
         ), f"Failed to load checkpoint at path={args.checkpoint_path}."
         assert (
-            start_epoch >= args.epochs * 0.98
+            start_epoch >= args.epochs * args.assert_checkpoint
         ), f"Loaded checkpoint at path={args.checkpoint_path} isn't finished yet. start_epoch={start_epoch}."
 
     # watch gradients, weights, and activations

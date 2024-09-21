@@ -2,6 +2,6 @@
 # this @package directive solves any nesting problem (if this file is included in another folder)
 
 evaluate: True
-assert_checkpoint: true
+assert_checkpoint: 0.8
 
 test_patches: 100

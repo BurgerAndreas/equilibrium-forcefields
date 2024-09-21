@@ -82,6 +82,8 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         self,
         torchdeq_norm,
         deq_kwargs,
+        deq_kwargs_eval,
+        deq_kwargs_fpr,
         # not used but necessary for OC20 compatibility
         num_atoms=None,  # not used
         bond_feat_dim=None,  # not used
@@ -149,7 +151,12 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # DEQ
         self.torchdeq_norm = torchdeq_norm
         self.deq_kwargs = deq_kwargs
-        self._init_deq(torchdeq_norm=torchdeq_norm, deq_kwargs=deq_kwargs)
+        self._init_deq(
+            torchdeq_norm=torchdeq_norm, 
+            deq_kwargs=deq_kwargs,
+            deq_kwargs_eval=deq_kwargs_eval,
+            deq_kwargs_fpr=deq_kwargs_fpr,
+        )
 
     def build_blocks(self):
         # Initialize the blocks for each layer of EquiformerV2
@@ -264,7 +271,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         # Transformer blocks
         # f = lambda z: self.mfn_forward(z, u)
-        def f(_z):
+        def func(_z):
             # x is a tensor, not SO3_Embedding
             # if batchify_for_torchdeq is True, x in and out should be [B, N, D, C]
             return self.deq_implicit_layer(
@@ -285,11 +292,13 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
         # During inference, returns a list containing the fixed point solution only.
         # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
-        z_pred, info = self.deq(
-            func=f, z_init=z, solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
-        )
+        if self.eval() and reuse:
+            z_pred, info = self.deq_eval_fpr(func=func, z_init=z)
+        elif self.eval():
+            z_pred, info = self.deq_eval(func=func, z_init=z)
+        else:
+            z_pred, info = self.deq(func=func, z_init=z)
         # z_pred = [emb]
-        # info = {} # TODO@temp
 
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:

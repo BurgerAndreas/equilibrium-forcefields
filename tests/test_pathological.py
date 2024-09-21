@@ -407,7 +407,7 @@ def main(args):
     wandb.log({"start_epoch": start_epoch, "epoch": start_epoch}, step=global_step)
 
     # if we want to run inference only we want to make sure that the model is loaded
-    if args.assert_checkpoint:
+    if args.assert_checkpoint not in [False, None]:
         assert (
             loaded_checkpoint
         ), f"Failed to load checkpoint at path={args.checkpoint_path}."

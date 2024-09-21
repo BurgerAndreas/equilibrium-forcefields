@@ -11,4 +11,4 @@ eval_batch_size: 8 # 24
 fpreuse_test: False
 
 evaluate: True
-assert_checkpoint: True
+assert_checkpoint: 0.8

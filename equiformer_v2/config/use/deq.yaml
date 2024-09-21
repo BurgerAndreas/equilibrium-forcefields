@@ -42,14 +42,11 @@ model:
   path_norm: "none"
   irrep_norm: null
 
-deq_kwargs_test:
-  # on test set only when passed a fixed-point estimate
-  fpreuse_f_max_iter: _default
-  fpreuse_f_tol: _default
-  # on test set
-  f_max_iter: _default
-  f_tol: _default
-  f_stop_mode: _default
+deq_kwargs_eval:
+  f_solver: 'anderson'
+
+deq_kwargs_fpr:
+  f_solver: 'anderson'
 
 # if you want to specify a different solver for test set
 # only works if evaluate is True

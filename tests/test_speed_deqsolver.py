@@ -69,17 +69,6 @@ def hydra_wrapper(args: DictConfig) -> None:
     device = list(model.parameters())[0].device
     dtype = model.parameters().__next__().dtype
 
-    # statistics
-    y = torch.cat([batch.y for batch in train_dataset], dim=0)
-    task_mean = float(y.mean())
-    task_std = float(y.std())    
-    normalizers = get_normalizers(args, train_dataset, device, task_mean, task_std)
-
-    # criterion = L2MAELoss()
-    loss_fn = load_loss({"energy": args.loss_energy, "force": args.loss_force})
-    criterion_energy = loss_fn["energy"]
-    criterion_force = loss_fn["force"]
-
     # eval mode
     model.train()
     
@@ -104,19 +93,31 @@ def hydra_wrapper(args: DictConfig) -> None:
     ######################################
     # loop forward
     for batchstep, data in enumerate(train_loader):
-        wandb.log({"memalloc-pre_batch": torch.cuda.memory_allocated()}, step=batchstep)
+        # wandb.log({"memalloc-pre_batch": torch.cuda.memory_allocated()}, step=batchstep)
         data = data.to(device)
         data = data.to(device, dtype)
 
-        pred_y, pred_dy, info = model(
-            data=data,  # for EquiformerV2
-            # for EquiformerV1:
-            # node_atom=data.z,
-            # pos=data.pos,
-            # batch=data.batch,
-            # step=global_step,
-            datasplit="train",
-            fpr_loss=args.fpr_loss,
+        # make up inputs
+        z = torch.zeros(shape, device=self.device) # [batch_size, dim]
+        emb = torch.randn(shape)
+
+        # pred_y, pred_dy, info = model(data=data)
+
+        def func(_z):
+            # x is a tensor, not SO3_Embedding
+            # if batchify_for_torchdeq is True, x in and out should be [B, N, D, C]
+            return model.deq_implicit_layer(
+                _z,
+                # the following is input injection
+                emb=emb,
+                edge_index=edge_index,
+                edge_distance=edge_distance,
+                atomic_numbers=atomic_numbers,
+                batch=data.batch,
+            )
+        
+        z_pred, info = model.deq(
+            func=func, z_init=z,
         )
 
         if args.torch_profile:

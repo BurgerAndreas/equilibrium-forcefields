@@ -169,6 +169,9 @@ IGNORE_OVERRIDES = [
 # e.g. inference kwargs
 IGNORE_OVERRIDES_CHECKPOINT = [
     "deq_kwargs_test",
+    "deq_kwargs_eval",
+    "deq_kwargs_fpr",
+    "deq_kwargs_eval_fpr",
     "fpreuse_f_tol",
     "fpreuse_test",
     "eval_batch_size",
@@ -189,7 +192,6 @@ IGNORE_OVERRIDES_CHECKPOINT = [
     "inf",
     "fulleval",
     "test_solver",
-    "deq_kwargs_test",
 ]
 
 REPLACE = {

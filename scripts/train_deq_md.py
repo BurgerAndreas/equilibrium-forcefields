@@ -630,7 +630,13 @@ def train_md(args):
                 state_dict[new_key] = saved_state["state_dict"].pop(key)
             # write state_dict
             model.load_state_dict(state_dict, strict=False)
-            optimizer.load_state_dict(saved_state["optimizer"])
+            try:
+                optimizer.load_state_dict(saved_state["optimizer"])
+            except:
+                filelog.info(
+                    f"Warning: Failed to load optimizer state_dict. \nKeys: \n{saved_state['optimizer'].keys()}"
+                    f"\nOptimizer keys: \n{optimizer.state_dict().keys()}"
+                )
             if lr_scheduler is not None:
                 lr_scheduler.load_state_dict(saved_state["lr_scheduler"])
             start_epoch = saved_state["epoch"]

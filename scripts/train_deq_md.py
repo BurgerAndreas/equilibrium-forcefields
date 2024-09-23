@@ -2604,8 +2604,6 @@ def eval_speed(
                     solver_kwargs=solver_kwargs,
                 )
                 model_forward_end = time.perf_counter()
-                if fpreuse_test:
-                    reuse = True
                 
                 # torch.cuda.synchronize()
                 # forward_end_time = time.perf_counter()
@@ -2667,6 +2665,9 @@ def eval_speed(
                 #         time_per_step=(1e3 * w / e / max_steps)
                 #     )
                 #     filelog.info(info_str)
+                
+                if fpreuse_test:
+                    reuse = True
 
                 if (step + 1) >= max_steps:
                     break
@@ -2691,6 +2692,7 @@ def eval_speed(
                     f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
                     f"{_datasplit}_f_mae": mae_metrics["force"].avg,
                     f"f_steps_to_fixed_point{_datasplit}": np.mean(f_steps_to_fixed_point),
+                    f"avg_n_fsolver_steps_{_datasplit}": np.mean(f_steps_to_fixed_point),
                     # f"f_steps_to_fixed_point": np.mean(f_steps_to_fixed_point),
                     f"time_{_datasplit}": eval_time,
                     f"time_forward_per_batch{_datasplit}": np.mean(model_forward_times),

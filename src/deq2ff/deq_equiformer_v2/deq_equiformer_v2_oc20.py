@@ -285,7 +285,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         # Transformer blocks
         # f = lambda z: self.mfn_forward(z, u)
-        @conditional_grad(torch.enable_grad())
+        # @conditional_grad(torch.enable_grad())
         def func(_z):
             # x is a tensor, not SO3_Embedding
             # if batchify_for_torchdeq is True, x in and out should be [B, N, D, C]

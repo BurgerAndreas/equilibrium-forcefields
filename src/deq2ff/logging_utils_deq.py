@@ -143,12 +143,14 @@ def log_fixed_point_error(
             # https://github.com/wandb/wandb/issues/3966
             _abs = f_abs_trace.detach().cpu().numpy().tolist()
             _rel = f_rel_trace.detach().cpu().numpy().tolist()
+            print(f'step={step}, abs trace', datasplit, _abs)
             # print('   _abs', _abs)
             # only log if the list does not contain NaNs or Nones
             if all([x is not None for x in _abs]) and all(
                 [x is not None for x in _rel]
             ):
                 # print('   _abs', 'not None')
+                print(f"Logging fixed point error trajectory. (split: {datasplit} at step {step}).")
                 wandb.log(
                     {
                         f"abs_fixed_point_error_traj{n}": _abs,

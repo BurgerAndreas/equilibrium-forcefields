@@ -39,8 +39,8 @@ class SolverStat(dict):
         self["nstep"] = self.get("nstep", torch.tensor([-1.0]))
         self["sradius"] = self.get("sradius", torch.tensor([-1.0]))
         # added
-        self["abs_trace64"] = self.get("abs_trace64", torch.tensor([[-1.0]]))
-        self["rel_trace64"] = self.get("rel_trace64", torch.tensor([[-1.0]]))
+        # self["abs_trace64"] = self.get("abs_trace64", torch.tensor([[-1.0]]))
+        # self["rel_trace64"] = self.get("rel_trace64", torch.tensor([[-1.0]]))
 
     @classmethod
     def from_solver_info(cls, stop_mode, lowest_dict, trace_dict, lowest_step_dict):
@@ -65,9 +65,9 @@ class SolverStat(dict):
         }
         # added
         # add 64-bit precision if available
-        if "abs64" in trace_dict:
-            info["abs_trace64"] = torch.stack(trace_dict["abs64"], dim=1)
-            info["rel_trace64"] = torch.stack(trace_dict["rel64"], dim=1)
+        # if "abs64" in trace_dict:
+        #     info["abs_trace64"] = torch.stack(trace_dict["abs64"], dim=1)
+        #     info["rel_trace64"] = torch.stack(trace_dict["rel64"], dim=1)
         return cls(**info)
 
     @classmethod

@@ -26,8 +26,9 @@ from deq2ff.plotting.style import (
 # launchrun +use=deq +cfg=fpc_of +inf=fptrace model.num_layers=2
 
 
-def main(
-    run_id: str, datasplit: str = "train", error_type="abs", ymax=None, logscale=False
+def plot_fp_error_traj(
+    run_id: str, datasplit: str = "train", error_type="abs", ymax=None, logscale=False,
+    save_plot=False,
 ):
     # https://github.com/wandb/wandb/issues/3966
 
@@ -52,7 +53,7 @@ def main(
     print("Downloading run history...")
     df = run.history()
     print(f"Processing run history (length {len(df)})...")
-    print(f"df: {df}")
+    # print(f"df: \n{df}")
 
     # abs_fixed_point_error_train
     # abs_fixed_point_error_traj_train
@@ -73,6 +74,10 @@ def main(
     df = df.rename(columns={"abs_fixed_point_error_traj_train": "abs"})
     df = df.rename(columns={"rel_fixed_point_error_traj_train": "rel"})
 
+    # drop all rows where rel is NaN
+    df = df[df["rel"].notna()]
+    print("len(df):", len(df))
+
     df = df["abs"]
     dfs = []
     # loop over the rows of the dataframe
@@ -92,6 +97,8 @@ def main(
 
     # concatenate the list of dataframes
     df = pd.concat(dfs)
+
+    fig, ax = plt.subplots()
 
     sns.lineplot(data=df, y="abs", x="solver_step", hue="_step", ax=ax)
 
@@ -115,19 +122,23 @@ def main(
 
     plt.tight_layout()
 
-    fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{error_type}_{run_id.split('/')[-1]}_{mname}.png"
-    plt.savefig(fname)
-    print(f"Saved plot to \n {fname}")
+    if save_plot:
+        fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{error_type}_{run_id.split('/')[-1]}_{mname}.png"
+        plt.savefig(fname)
+        print(f"Saved plot to \n {fname}")
 
+    return fig
     # close the plot
-    plt.cla()
-    plt.clf()
-    plt.close()
+    # plt.cla()
+    # plt.clf()
+    # plt.close()
 
 
 if __name__ == "__main__":
 
     # ----------------- E2 paper -----------------
     # DEQE2 fpcof inf-fptrace numlayers-2 iew27536
+    # run_id = "iew27536"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
     run_id = "iew27536"
-    main(run_id, error_type="abs", datasplit="train", logscale=True)
+    plot_fp_error_traj(run_id, error_type="abs", datasplit="train", logscale=True, save_plot=True)

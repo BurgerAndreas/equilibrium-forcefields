@@ -13,7 +13,7 @@
 #   f_stop_mode: 'rel'
 #   f_tol: 1e-2
 
-evaluate: True
+evaluate_speed: True
 eval_batch_size: 1
 assert_checkpoint: 0.8
 

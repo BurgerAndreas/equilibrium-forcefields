@@ -601,53 +601,59 @@ def train_md(args):
             args.checkpoint_path = args.output_dir
             filelog.info(f"Auto checkpoint path: {args.checkpoint_path}")
         try:
-            # pass either a checkpoint or a directory containing checkpoints
-            # models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2/epochs@0_e@4.6855_f@20.8729.pth.tar
-            # models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2
-            if os.path.isdir(args.checkpoint_path):
-                # get the latest checkpoint
-                checkpoints = sorted(
-                    [
-                        f
-                        for f in os.listdir(args.checkpoint_path)
-                        if f.endswith(".pth.tar")
-                    ],
-                    key=lambda x: int(x.split("@")[1].split("_")[0]),
-                )
-                # remove checkpoints
-                checkpoints = [_c for _c in checkpoints if "pathological" not in _c]
-                args.checkpoint_path = os.path.join(
-                    args.checkpoint_path, checkpoints[-1]
-                )
-                print(f"Found checkpoints: {checkpoints}")
-            saved_state = torch.load(args.checkpoint_path)
-            # replace old keys with new keys (due to renaming parts of the model)
-            state_dict = {}
-            for key in list(saved_state["state_dict"].keys()):
-                new_key = key
-                for k, v in old_to_new_keys.items():
-                    new_key = new_key.replace(k, v)
-                state_dict[new_key] = saved_state["state_dict"].pop(key)
-            # write state_dict
-            model.load_state_dict(state_dict, strict=False)
-            try:
-                optimizer.load_state_dict(saved_state["optimizer"])
-            except:
-                filelog.info(
-                    f"Warning: Failed to load optimizer state_dict. \nKeys: \n{saved_state['optimizer'].keys()}"
-                    f"\nOptimizer keys: \n{optimizer.state_dict().keys()}"
-                )
-            if lr_scheduler is not None:
-                lr_scheduler.load_state_dict(saved_state["lr_scheduler"])
-            start_epoch = saved_state["epoch"]
-            global_step = saved_state["global_step"]
-            best_metrics = saved_state["best_metrics"]
-            best_ema_metrics = saved_state["best_ema_metrics"]
-            if "grads" in saved_state:
-                grads = saved_state["grads"]
-            # log
-            filelog.info(f"Loaded model from {args.checkpoint_path}")
-            loaded_checkpoint = True
+            if args.load_checkpoint:
+                # pass either a checkpoint or a directory containing checkpoints
+                # models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2/epochs@0_e@4.6855_f@20.8729.pth.tar
+                # models/md17/deq_equiformer_v2_oc20/aspirin/DEQE2
+                if os.path.isdir(args.checkpoint_path):
+                    # get the latest checkpoint
+                    checkpoints = sorted(
+                        [
+                            f
+                            for f in os.listdir(args.checkpoint_path)
+                            if f.endswith(".pth.tar")
+                        ],
+                        key=lambda x: int(x.split("@")[1].split("_")[0]),
+                    )
+                    # remove checkpoints
+                    checkpoints = [_c for _c in checkpoints if "pathological" not in _c]
+                    args.checkpoint_path = os.path.join(
+                        args.checkpoint_path, checkpoints[-1]
+                    )
+                    filelog.info(f"Found checkpoints: {checkpoints}")
+                else:
+                    # assert os.path.isfile(args.checkpoint_path)
+                    filelog.info(f"File not found: {args.checkpoint_path}")
+                saved_state = torch.load(args.checkpoint_path)
+                # replace old keys with new keys (due to renaming parts of the model)
+                state_dict = {}
+                for key in list(saved_state["state_dict"].keys()):
+                    new_key = key
+                    for k, v in old_to_new_keys.items():
+                        new_key = new_key.replace(k, v)
+                    state_dict[new_key] = saved_state["state_dict"].pop(key)
+                # write state_dict
+                model.load_state_dict(state_dict, strict=False)
+                try:
+                    optimizer.load_state_dict(saved_state["optimizer"])
+                except:
+                    filelog.info(
+                        f"Warning: Failed to load optimizer state_dict. \nKeys: \n{saved_state['optimizer'].keys()}"
+                        f"\nOptimizer keys: \n{optimizer.state_dict().keys()}"
+                    )
+                if lr_scheduler is not None:
+                    lr_scheduler.load_state_dict(saved_state["lr_scheduler"])
+                start_epoch = saved_state["epoch"]
+                global_step = saved_state["global_step"]
+                best_metrics = saved_state["best_metrics"]
+                best_ema_metrics = saved_state["best_ema_metrics"]
+                if "grads" in saved_state:
+                    grads = saved_state["grads"]
+                # log
+                filelog.info(f"Loaded model from {args.checkpoint_path}")
+                loaded_checkpoint = True
+            else:
+                filelog.info(f"Skipping checkpoint.")
         except Exception as e:
             # probably checkpoint not found
             filelog.info(

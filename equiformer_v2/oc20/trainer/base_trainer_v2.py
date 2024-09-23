@@ -244,9 +244,11 @@ class BaseTrainerV2(BaseTrainer):
         else:
             # remove spaces and special characters
             # checkpoint_folder = re.sub(r"[^A-Za-z0-9]+", "", self.checkpoint_wandb_name)
-            checkpoint_folder = "".join(e for e in self.checkpoint_wandb_name if e.isalnum())
+            checkpoint_folder = "".join(
+                e for e in self.checkpoint_wandb_name if e.isalnum()
+            )
             checkpoint_folder_extended = f"{self.timestamp_id}-{checkpoint_folder}"
-            
+
         self.config = {
             "task": task,
             "model": model.pop("name"),
@@ -263,17 +265,30 @@ class BaseTrainerV2(BaseTrainer):
                 "timestamp_id": self.timestamp_id,
                 "commit": commit_hash,
                 # create checkpoint dir based on name
-                "checkpoint_dir": os.path.abspath(os.path.join(
-                    self.proj_root_dir, run_dir, "checkpoints", checkpoint_folder
-                )),
+                "checkpoint_dir": os.path.abspath(
+                    os.path.join(
+                        self.proj_root_dir, run_dir, "checkpoints", checkpoint_folder
+                    )
+                ),
                 "checkpoint_path": self.checkpoint_path,
                 "assert_checkpoint": self.assert_checkpoint,
-                "results_dir":  os.path.abspath(os.path.join(
-                    self.proj_root_dir, run_dir, "results", checkpoint_folder_extended
-                )),
-                "logs_dir":  os.path.abspath(os.path.join(
-                    self.proj_root_dir, run_dir, "logs", logger_name, checkpoint_folder_extended
-                )),
+                "results_dir": os.path.abspath(
+                    os.path.join(
+                        self.proj_root_dir,
+                        run_dir,
+                        "results",
+                        checkpoint_folder_extended,
+                    )
+                ),
+                "logs_dir": os.path.abspath(
+                    os.path.join(
+                        self.proj_root_dir,
+                        run_dir,
+                        "logs",
+                        logger_name,
+                        checkpoint_folder_extended,
+                    )
+                ),
             },
             "slurm": slurm,
             "noddp": noddp,
@@ -290,7 +305,9 @@ class BaseTrainerV2(BaseTrainer):
         if len(deq_kwargs) > 0:
             self.config["model_attributes"]["deq_kwargs"] = deq_kwargs
         if model_is_deq:
-            assert (not self.config["model_is_deq"]) or ("deq_kwargs" in self.config["model_attributes"])
+            assert (not self.config["model_is_deq"]) or (
+                "deq_kwargs" in self.config["model_attributes"]
+            )
 
         if "SLURM_JOB_ID" in os.environ and "folder" in self.config["slurm"]:
             self.config["slurm"]["job_id"] = os.environ["SLURM_JOB_ID"]
@@ -368,7 +385,7 @@ class BaseTrainerV2(BaseTrainer):
         self.load()
 
         self.evaluator = Evaluator(task=name)
-    
+
     def look_for_checkpoint(self):
         logging.info("\nLooking for checkpoint...")
         # TODO: load model from checkpoint
@@ -387,7 +404,9 @@ class BaseTrainerV2(BaseTrainer):
 
             # load the checkpoint
             if os.path.isfile(checkpoint_path):
-                checkpoint_loaded = self.load_checkpoint(checkpoint_path=checkpoint_path)
+                checkpoint_loaded = self.load_checkpoint(
+                    checkpoint_path=checkpoint_path
+                )
             else:
                 if distutils.is_master():
                     logging.warning(f"Checkpoint not found at {checkpoint_path}")
@@ -411,7 +430,6 @@ class BaseTrainerV2(BaseTrainer):
         self.look_for_checkpoint()
         logging.info("Trainer loaded.")
 
-
     def load_seed_from_config(self):
         # https://pytorch.org/docs/stable/notes/randomness.html
         seed = self.config["cmd"]["seed"]
@@ -434,12 +452,16 @@ class BaseTrainerV2(BaseTrainer):
         # TODO: depricated, remove.
         bond_feat_dim = None
         bond_feat_dim = self.config["model_attributes"].get("num_gaussians", 50)
-        
+
         import deq2ff.register_all_models
 
         # dataloaders
         loader = self.train_loader or self.val_loader or self.test_loader
-        if loader and hasattr(loader.dataset[0], "x") and loader.dataset[0].x is not None:
+        if (
+            loader
+            and hasattr(loader.dataset[0], "x")
+            and loader.dataset[0].x is not None
+        ):
             x_shape = loader.dataset[0].x.shape[-1]
         else:
             x_shape = None
@@ -447,7 +469,7 @@ class BaseTrainerV2(BaseTrainer):
         # instantiate model
         # https://github.com/atomicarchitects/equiformer_v2/blob/main/nets/equiformer_v2/equiformer_v2_oc20.py
         self.model = registry.get_model_class(self.config["model"])(
-            num_atoms = x_shape,
+            num_atoms=x_shape,
             bond_feat_dim=bond_feat_dim,
             num_targets=self.num_targets,
             **self.config["model_attributes"],
@@ -660,7 +682,9 @@ class BaseTrainerV2(BaseTrainer):
 
     def _backward(self, loss):
         if self.grad_accumulation_steps == 1:
-            self.optimizer.zero_grad(set_to_none=self.config["optim"]["set_grad_to_none"])
+            self.optimizer.zero_grad(
+                set_to_none=self.config["optim"]["set_grad_to_none"]
+            )
 
         loss.backward()
 
@@ -701,7 +725,9 @@ class BaseTrainerV2(BaseTrainer):
 
         if self.grad_accumulation_steps != 1:
             if self.step % self.grad_accumulation_steps == 0:
-                self.optimizer.zero_grad(set_to_none=self.config["optim"]["set_grad_to_none"])
+                self.optimizer.zero_grad(
+                    set_to_none=self.config["optim"]["set_grad_to_none"]
+                )
 
     def compute_stats(self):
         """

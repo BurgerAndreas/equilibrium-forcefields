@@ -29,18 +29,19 @@ deq2 = "DEQ2"
 
 nans = ["NaN", pd.NA, None, float("inf"), np.nan]
 
+
 def get_runs_from_wandb(
-        download_data = True, # from wandb or from file
-        project = projectmd,
-        filters = {
-            # "tags": "inference2",
-            # "$and": [{"tags": "md17"}, {"tags": "eval"}],
-            # "state": "finished",
-            # "$or": [{"tags": "md17"}, {"tags": "main2"}, {"tags": "inference"}],
-            # "state": "finished",
-            "$or": [{"state": "finished"}, {"state": "crashed"}],
-        },
-        fname = "",
+    download_data=True,  # from wandb or from file
+    project=projectmd,
+    filters={
+        # "tags": "inference2",
+        # "$and": [{"tags": "md17"}, {"tags": "eval"}],
+        # "state": "finished",
+        # "$or": [{"tags": "md17"}, {"tags": "main2"}, {"tags": "inference"}],
+        # "state": "finished",
+        "$or": [{"state": "finished"}, {"state": "crashed"}],
+    },
+    fname="",
 ):
     """Download runs from wandb and save to file."""
     # hosts, hostname = ["tacozoid11", "tacozoid10"], "taco"
@@ -115,6 +116,7 @@ def get_runs_from_wandb(
 
     return df
 
+
 def add_best_run(df_in, df_out, criteria, anti_criteria, metric):
     """Util function for filter_best_runs.
     Filter the best run from a dataframe based on criteria and anti-criteria.
@@ -133,14 +135,15 @@ def add_best_run(df_in, df_out, criteria, anti_criteria, metric):
     df_out.append(_df_in)
     return df_out
 
+
 def filter_best_runs(
-        df,
-        error_metric = "summary.test_f_mae",
-        criteria = {"config.model.attn_alpha_channels": 16},
-        anti_criteria = {"config.dname": "ccsd"},
-        deqlayers = [1, 2],
-        equiformerlayers = [1, 4, 8],
-    ):
+    df,
+    error_metric="summary.test_f_mae",
+    criteria={"config.model.attn_alpha_channels": 16},
+    anti_criteria={"config.dname": "ccsd"},
+    deqlayers=[1, 2],
+    equiformerlayers=[1, 4, 8],
+):
     """Get the best runs from a dataframe based on criteria and anti-criteria.
     df: all runs you have
     returns: dataframe with one run per combination of target, model type, and number of layers.
@@ -155,19 +158,28 @@ def filter_best_runs(
         # best DEQ
         for deqlayer in deqlayers:
             criteria_deq = {
-                "config.model_is_deq": True, "config.model.num_layers": deqlayer, 
+                "config.model_is_deq": True,
+                "config.model.num_layers": deqlayer,
                 # "config.deq_kwargs.f_tol": 1e-2
             }
             criteria_deq.update(criteriatarget)
-            df_best_runs = add_best_run(df, df_best_runs, criteria_deq, anti_criteria, error_metric)
+            df_best_runs = add_best_run(
+                df, df_best_runs, criteria_deq, anti_criteria, error_metric
+            )
 
         # best Equiformer
         for elayer in equiformerlayers:
-            criteria_e = {"config.model_is_deq": False, "config.model.num_layers": elayer}
+            criteria_e = {
+                "config.model_is_deq": False,
+                "config.model.num_layers": elayer,
+            }
             criteria_e.update(criteriatarget)
-            df_best_runs = add_best_run(df, df_best_runs, criteria_e, anti_criteria, error_metric)
+            df_best_runs = add_best_run(
+                df, df_best_runs, criteria_e, anti_criteria, error_metric
+            )
 
     return pd.concat(df_best_runs)
+
 
 def preprocess_df(df, project, error_metric):
     """Add and rename columns.
@@ -197,16 +209,16 @@ def preprocess_df(df, project, error_metric):
     # if model_is_deq is False, then Model is "E", else "DEQ"
     df.loc[:, "Class"] = df["config.model_is_deq"].apply(
         lambda x: "E" if not x else "DEQ"
-    ) 
+    )
     df.loc[:, "Model"] = df["config.model_is_deq"].apply(
         lambda x: "E" if not x else "DEQ"
-    ) + df["config.model.num_layers"].apply(str) 
+    ) + df["config.model.num_layers"].apply(str)
     # new column mtarget that combines target and Model
     df.loc[:, "mtarget"] = df["Model"] + " " + df["config.target"]
 
     # add training progress to model name
     # if project == projectmd:
-    #     df["Model"] = df["Model"] + " (" + df["summary.epoch"].apply(int).apply(str) + ")" 
+    #     df["Model"] = df["Model"] + " (" + df["summary.epoch"].apply(int).apply(str) + ")"
     # elif project == projectoc:
     #     df["Model"] = df["Model"] + " (" + df["summary.train/step"].apply(
     #             lambda x: str(int(x // 100))
@@ -232,14 +244,15 @@ def preprocess_df(df, project, error_metric):
 
     # for OC20 determine how much data was used
     if project == projectoc:
-        df["config.target"] = "0" # placeholder
-        
+        df["config.target"] = "0"  # placeholder
+
         # earlier runs just have data-2M in the run name
         tempdf = df[df["run_name"].str.contains("data-")]
         tempdf["config.target"] = tempdf["run_name"].apply(
             # get the first word after data- in the run name
-            lambda x: x[x.find("data-") + len("data-"):].split(" ")[0]
-            if "data-" in x else tempdf["config.target"]
+            lambda x: x[x.find("data-") + len("data-") :].split(" ")[0]
+            if "data-" in x
+            else tempdf["config.target"]
         )
         # overwrite the target in the main df
         df.loc[tempdf.index, "config.target"] = tempdf["config.target"]
@@ -255,24 +268,32 @@ def preprocess_df(df, project, error_metric):
             df["config.target"] = df["config.dataset_size"].apply(
                 lambda x: f"{int(x / 1000)}k" if pd.notna(x) else df["config.target"]
             )
-        
+
         # where target=0, fill in "200k" as default
-        print(f"replacing {df[df['config.target'] == '0'].shape[0]}/{df.shape[0]} 0's with 200k")
+        print(
+            f"replacing {df[df['config.target'] == '0'].shape[0]}/{df.shape[0]} 0's with 200k"
+        )
         df["config.target"] = df["config.target"].replace("0", "200k")
         # df["config.target"] = df["config.target"].apply(lambda x: f"200k" if x == '0' else x)
 
         # config.optim.maxdata
-        print(f'Adding maxdata to target')
+        print(f"Adding maxdata to target")
         if "config.optim.maxdata" in df.columns:
             # where maxdata is > 0, append it to the target
             tempdf = df[df["config.optim.maxdata"] > 0]
             tempdf["config.target"] = tempdf["config.optim.maxdata"].apply(
-                lambda x: f"{int(x / 1000)}k/" # if x > 0 else ""
+                lambda x: f"{int(x / 1000)}k/"  # if x > 0 else ""
             )
-            df.loc[tempdf.index, "config.target"] = tempdf["config.target"] + df["config.target"]
-        
+            df.loc[tempdf.index, "config.target"] = (
+                tempdf["config.target"] + df["config.target"]
+            )
+
         print(f"Adding optim.max_epochs to target")
-        df["config.target"] = df["config.target"] + " e" + df["config.optim.max_epochs"].apply(int).apply(str)
+        df["config.target"] = (
+            df["config.target"]
+            + " e"
+            + df["config.optim.max_epochs"].apply(int).apply(str)
+        )
 
     """
     SettingWithCopyWarning: 
@@ -283,7 +304,7 @@ def preprocess_df(df, project, error_metric):
 
     if project == projectoc:
         df["config.dname"] = "oc20"
-    
+
     # add num_atoms of target molecule and sort
     if project == projectmd:
         # load datasets/statistics.json
@@ -311,19 +332,22 @@ def preprocess_df(df, project, error_metric):
         #     num_atoms = num_atoms[max_radius]
         #     num_atoms = num_atoms["avg_node"]
         #     df.at[i, "num_atoms"] = num_atoms
-        df["num_atoms"] = df["config.target"].apply(lambda x: statistics[x][max_radius]["avg_node"])
+        df["num_atoms"] = df["config.target"].apply(
+            lambda x: statistics[x][max_radius]["avg_node"]
+        )
 
         # sort target by num_atoms
         df = df.sort_values(["num_atoms", "config.target"])
-    
+
     return df
 
 
 def mark_sota(
-        _df, comparison = "pairwise", 
-        error_metric = "summary.test_f_mae",
-        sotaname = "sota",
-    ):
+    _df,
+    comparison="pairwise",
+    error_metric="summary.test_f_mae",
+    sotaname="sota",
+):
     """Add a column 'sota' to the dataframe that marks the best run for each target."""
 
     if comparison in [False, None]:
@@ -355,18 +379,21 @@ def mark_sota(
             _df_best = _df_best[_df_best["Model"].isin([e8, deq2])]
             _df_best = _df_best[_df_best[error_metric] == _df_best[error_metric].min()]
             _df.loc[_df_best.index, sotaname] = True
-            
+
     else:
         raise ValueError(f"Unknown comparison {comparison}")
-    
+
     return _df
 
+
 def print_table_acc_time(
-        df, error_metric, time_metric, 
-        dnames=["md17"], 
-        ex_targets=["dw_nanotube"], 
-        models=["E1", "E4", "E8", "DEQ1", "DEQ2"]
-    ):
+    df,
+    error_metric,
+    time_metric,
+    dnames=["md17"],
+    ex_targets=["dw_nanotube"],
+    models=["E1", "E4", "E8", "DEQ1", "DEQ2"],
+):
     _df = df.copy()
 
     # select dname=md17
@@ -393,9 +420,13 @@ def print_table_acc_time(
 
     \midrule[1.2pt]
     """
-    lines += ["\begin{tabular}{l}" + ("c" * (num_targets*2)) + "}"]
+    lines += ["\begin{tabular}{l}" + ("c" * (num_targets * 2)) + "}"]
     lines += ["\toprule[1.2pt]"]
-    lines += [" & " + " & ".join([f"\multicolumn{2}{{c}}{{{mol_names[t]}}}" for t in targets]) + " \\"]
+    lines += [
+        " & "
+        + " & ".join([f"\multicolumn{2}{{c}}{{{mol_names[t]}}}" for t in targets])
+        + " \\"
+    ]
     lines += ["\cmidrule[0.6pt]{2-" + f"{int(num_targets*2 + 1)}" + "}"]
     lines += ["\midrule[1.2pt]"]
 
@@ -405,9 +436,9 @@ def print_table_acc_time(
         if row == "DEQ1":
             lines += ["\midrule[0.6pt]"]
         # rename Model
-        rname = row.replace('E', "\equiformer{} ")
-        rname = rname.replace('D\equiformer{} Q', "DEQ")
-        rname = rname.replace('DEQ', "DEQ ")
+        rname = row.replace("E", "\equiformer{} ")
+        rname = rname.replace("D\equiformer{} Q", "DEQ")
+        rname = rname.replace("DEQ", "DEQ ")
         rname = rname.split(" ")
         rname = rname[0] + " (" + rname[1] + " layers)"
         rname = rname.replace("1 layers", "1 layer")
@@ -424,28 +455,29 @@ def print_table_acc_time(
                 if _df_t["sota"].values[0]:
                     line += f" & \\textbf{{{_err:.2f}}}"
                 else:
-                    line += f" & {_err:.2f}" 
+                    line += f" & {_err:.2f}"
 
-                # timing 
+                # timing
                 if _df_t["sotatime"].values[0]:
                     line += f" & \\textbf{{{float(_df_t[time_metric]):.2f}}}"
                 else:
-                    line += f" & {float(_df_t[time_metric]):.2f}" 
+                    line += f" & {float(_df_t[time_metric]):.2f}"
 
         lines += [line]
 
     print("\n".join(lines))
     return lines
 
+
 def prep_df_for_table(_df, error_metric="summary.test_f_mae"):
     if "config.model.num_layers" in _df.columns:
         _df["Layers"] = _df["config.model.num_layers"]
     if "config.target" in _df.columns:
         _df["Target"] = _df["config.target"]
-    
+
     _df["Class"] = _df["config.model_is_deq"].apply(
         lambda x: "Equiformer" if not x else "DEQ"
-    ) 
+    )
 
     _df["Model"] = _df["Class"] + " (" + _df["Layers"].astype(str) + " layers)"
     _df["Model"] = _df["Model"].str.replace("1 layers", "1 layer")
@@ -469,12 +501,14 @@ def prep_df_for_table(_df, error_metric="summary.test_f_mae"):
 
     return _df
 
+
 def print_table_avg_seeds(
-        _df, mode="Force", 
-        add_nfe=False, 
-        compare_pairwise=False, # Todo replace with mark_sota
-        error_metric="summary.test_f_mae"
-    ):
+    _df,
+    mode="Force",
+    add_nfe=False,
+    compare_pairwise=False,  # Todo replace with mark_sota
+    error_metric="summary.test_f_mae",
+):
     """
     format
     cols: Aspirin & Benzene & Ethanol & Malonaldehyde & Naphthalene & Salicylic acid & Toluene & Uracil
@@ -487,7 +521,7 @@ def print_table_avg_seeds(
         "Energy",
         "Time",
     ], f"mode={mode} not in ['Force', 'Energy', 'Time']"
-    
+
     _df = prep_df_for_table(_df, error_metric=error_metric)
 
     # print(f'\n{mode} df:\n', _df[["Model", "Class", "Layers", "Target", "seed", error_metric, "test_e_mae"]])
@@ -510,7 +544,9 @@ def print_table_avg_seeds(
         nfe_line = []
         # print(_df[_df["Model"] == row].pivot(index="Target", columns="Model", values=error_metric).to_latex(float_format="%.2f"))
         for _c, col in enumerate(list(_df["Target"].unique())):
-            val = _df[(_df["Model"] == row) & (_df["Target"] == col)][error_metric].values
+            val = _df[(_df["Model"] == row) & (_df["Target"] == col)][
+                error_metric
+            ].values
             seeds = _df[(_df["Model"] == row) & (_df["Target"] == col)]["seed"].values
             nfe_val = _df[(_df["Model"] == row) & (_df["Target"] == col)]["NFE"].values
             # print(f'type={row}, target={col}, metric={subcol}:', val, type(val))
@@ -655,11 +691,12 @@ def print_table_avg_seeds(
 
 
 def print_table_time_forces_avg_seeds(
-        _df, compare_pairwise=False,
-        error_metric="summary.test_f_mae",
-        # energy_metric="summary.test_e_mae",
-    ):
-    
+    _df,
+    compare_pairwise=False,
+    error_metric="summary.test_f_mae",
+    # energy_metric="summary.test_e_mae",
+):
+
     _df = prep_df_for_table(_df, error_metric=error_metric)
 
     # padding of 9 chars to compensate for 'mathbf{}'
@@ -670,10 +707,12 @@ def print_table_time_forces_avg_seeds(
     for mode in ["Force", "Time"]:
         first_deq = True
         lines = []
-        mean_values = np.zeros((len(_df["Model"].unique()), len(_df["Target"].unique())))
+        mean_values = np.zeros(
+            (len(_df["Model"].unique()), len(_df["Target"].unique()))
+        )
         if mode == "Force":
             metric = error_metric
-        else: # Time
+        else:  # Time
             metric = "time_forward_per_batch_test_lowest"
         for _r, row in enumerate(list(_df["Model"].unique())):
             line = [row + " & "]
@@ -805,14 +844,10 @@ def print_table_time_forces_avg_seeds(
             (_df["Model"] == "DEQuiformer (2 layers)") & (_df["Target"] == col)
         ]["time_forward_per_batch_test_lowest"].values
         if len(val_eq8) == 0:
-            print(
-                f" Warning: No value for Equiformer 8 layers for {col}"
-            )
+            print(f" Warning: No value for Equiformer 8 layers for {col}")
             continue
         if len(val_deq2) == 0:
-            print(
-                f" Warning: No value for DEQ 2 layers for {col}"
-            )
+            print(f" Warning: No value for DEQ 2 layers for {col}")
             continue
         for seed in range(1, 4):
             try:

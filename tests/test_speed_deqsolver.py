@@ -31,6 +31,8 @@ parent_dir = os.path.dirname(file_dir)
 use with:
 +use=deq +cfg=ap
 """
+
+
 @hydra.main(
     config_name="md17", config_path="../equiformer_v2/config", version_base="1.3"
 )
@@ -52,9 +54,8 @@ def hydra_wrapper(args: DictConfig) -> None:
     # ensure we load a checkpoint of a trained model
     # args.assert_checkpoint = True
 
-
     # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
-    args.wandb = False # TODO: we are not logging anything
+    args.wandb = False  # TODO: we are not logging anything
     run_id = init_wandb(args)
 
     datas = train_md(args)
@@ -65,13 +66,13 @@ def hydra_wrapper(args: DictConfig) -> None:
     # test_dataset = datas["test_dataset"]
     test_loader = datas["test_loader"]
     optimizer = datas["optimizer"]
-    
+
     device = list(model.parameters())[0].device
     dtype = model.parameters().__next__().dtype
 
     # eval mode
     model.train()
-    
+
     ######################################
     if args.torch_profile:
         # In this example with wait=1, warmup=1, active=2, repeat=1,
@@ -98,7 +99,7 @@ def hydra_wrapper(args: DictConfig) -> None:
         data = data.to(device, dtype)
 
         # make up inputs
-        z = torch.zeros(shape, device=self.device) # [batch_size, dim]
+        z = torch.zeros(shape, device=self.device)  # [batch_size, dim]
         emb = torch.randn(shape)
 
         # pred_y, pred_dy, info = model(data=data)
@@ -115,14 +116,15 @@ def hydra_wrapper(args: DictConfig) -> None:
                 atomic_numbers=atomic_numbers,
                 batch=data.batch,
             )
-        
+
         z_pred, info = model.deq(
-            func=func, z_init=z,
+            func=func,
+            z_init=z,
         )
 
         if args.torch_profile:
             prof.step()
-        
+
     # end of epoch
     if args.torch_profile:
         prof.stop()
@@ -136,7 +138,7 @@ def hydra_wrapper(args: DictConfig) -> None:
         print("Saved trace to:", f"{parent_dir}/traces/{mname}.json")
         exit()
 
-    print('\nDone!')
+    print("\nDone!")
 
 
 if __name__ == "__main__":

@@ -40,6 +40,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 # https://github.com/FAIR-Chem/fairchem/blob/v0.1.0/ocpmodels/common/flags.py
 # https://github.com/atomicarchitects/equiformer_v2/blob/main/oc20/configs/s2ef/2M/equiformer_v2/equiformer_v2_N%4012_L%406_M%402.yml
 
+
 class Runner(submitit.helpers.Checkpointable):
     def __init__(self):
         self.config = None
@@ -64,9 +65,11 @@ class Runner(submitit.helpers.Checkpointable):
                 timestamp_id=config.get("timestamp_id", None),
                 # checkpointing
                 run_dir=config.get("run_dir", "./"),
-                checkpoint_path=config.get("checkpoint_path", None), # checkpoint to load
-                checkpoint_wandb_name=config.get("checkpoint_wandb_name", None), 
-                checkpoint_name=config.get("checkpoint.pt", None), # Provide
+                checkpoint_path=config.get(
+                    "checkpoint_path", None
+                ),  # checkpoint to load
+                checkpoint_wandb_name=config.get("checkpoint_wandb_name", None),
+                checkpoint_name=config.get("checkpoint.pt", None),  # Provide
                 assert_checkpoint=config.get("assert_checkpoint", False),
                 is_debug=config.get("is_debug", False),
                 print_every=config.get("print_every", 10),
@@ -87,7 +90,7 @@ class Runner(submitit.helpers.Checkpointable):
             if config.get("compute_stats", False):
                 config["mode"] = "compute_stats"
             self.task = registry.get_task_class(config["mode"])(self.config)
-            print('Running task: ', self.task.__class__.__name__)
+            print("Running task: ", self.task.__class__.__name__)
             self.task.setup(self.trainer)
             start_time = time.time()
             print(f"Starting task: {self.task.__class__.__name__}")

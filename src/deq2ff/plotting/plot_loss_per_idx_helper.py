@@ -167,7 +167,6 @@ def get_data(run_id, datasplit="test_fpreuse"):
     contrastive_loss = run.config["contrastive_loss"]
     deq = run.config["model_is_deq"]
 
-
     # load the data
     import equiformer.datasets.pyg.md_all as md_all
 
@@ -229,7 +228,7 @@ def get_data(run_id, datasplit="test_fpreuse"):
             z = data.z
             z = [_z.item() for _z in z]
             df.at[i, "z"] = z
-        
+
         # add DEQ or Equ to the dataframe in the "DEQ" column
         df["Model"] = ["DEQ" if deq else "Equ"] * df.shape[0]
         df["target"] = [target] * df.shape[0]
@@ -549,8 +548,19 @@ line_kws = {"lw": 2}
 
 
 def plot_loss_per_idx(
-        dffp, dfall, datasplit, run_id, logy=False, fig=None, alpha=1., xmin=None, xmax=None, ymin=None, ymax=None, style="scatter"
-    ):
+    dffp,
+    dfall,
+    datasplit,
+    run_id,
+    logy=False,
+    fig=None,
+    alpha=1.0,
+    xmin=None,
+    xmax=None,
+    ymin=None,
+    ymax=None,
+    style="scatter",
+):
     """Only considers the fpreuse idxs."""
 
     # columns: "idx", "e_mae", "f_mae", "nstep"
@@ -648,7 +658,9 @@ def plot_fmae_count(
     ax.set_ylabel("Probability")
     set_style_after(ax, legend=None)
 
-    plt.title(f"{dffp['target'].iloc[0].capitalize()} {dffp['Model'].iloc[0]} ({fpr_label})")
+    plt.title(
+        f"{dffp['target'].iloc[0].capitalize()} {dffp['Model'].iloc[0]} ({fpr_label})"
+    )
     plt.tight_layout()
 
     # save the plot
@@ -675,7 +687,9 @@ def plot_step_count(dffp, dfall, dataset, datasplit, run_id, wofpreuse=False):
     ax.set_ylabel("Count")
     set_style_after(ax, legend=None)
 
-    plt.title(f"{dffp['target'].iloc[0].capitalize()} {dffp['target'].iloc[0].capitalize()} ({fpr_label})")
+    plt.title(
+        f"{dffp['target'].iloc[0].capitalize()} {dffp['target'].iloc[0].capitalize()} ({fpr_label})"
+    )
     plt.tight_layout()
 
     # save the plot
@@ -715,14 +729,13 @@ def plot_x_vs_y(
     fpr_label = "FPreuse only" if wofpreuse else "w/o FPreuse"
     if wofpreuse:
         _df = dfall
-    
+
     try:
         _ = _df[x]
         _ = _df[y]
     except Exception as e:
-        print(f'Columns in df: {_df.columns}')
+        print(f"Columns in df: {_df.columns}")
         raise e
-
 
     if style == "kde":
         fig, ax = plt.subplots()
@@ -782,7 +795,9 @@ def plot_x_vs_y(
     # ax.legend()
     set_style_after(ax, legend=None)
 
-    plt.title(f"{dffp['target'].iloc[0].capitalize()} {dffp['Model'].iloc[0]} ({fpr_label})")
+    plt.title(
+        f"{dffp['target'].iloc[0].capitalize()} {dffp['Model'].iloc[0]} ({fpr_label})"
+    )
     plt.tight_layout()
 
     # save the plot

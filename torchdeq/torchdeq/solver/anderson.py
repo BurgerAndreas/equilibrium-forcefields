@@ -83,9 +83,13 @@ def anderson_solver(
     F[:, 1] = func(F[:, 0].view_as(x0)).reshape_as(F[:, 0])
 
     # Initialize tensors for the Anderson mixing process
-    H = torch.zeros(bsz, m + 1, m + 1, dtype=x0.dtype, device=x0.device, requires_grad=False)
+    H = torch.zeros(
+        bsz, m + 1, m + 1, dtype=x0.dtype, device=x0.device, requires_grad=False
+    )
     H[:, 0, 1:] = H[:, 1:, 0] = 1
-    y = torch.zeros(bsz, m + 1, 1, dtype=x0.dtype, device=x0.device, requires_grad=False)
+    y = torch.zeros(
+        bsz, m + 1, 1, dtype=x0.dtype, device=x0.device, requires_grad=False
+    )
     y[:, 0] = 1
 
     trace_dict, lowest_dict, lowest_step_dict = init_solver_info(bsz, x0.device)
@@ -99,7 +103,8 @@ def anderson_solver(
         G = F[:, :n] - X[:, :n]
         H[:, 1 : n + 1, 1 : n + 1] = (
             torch.bmm(G, G.transpose(1, 2))
-            + lam * torch.eye(n, dtype=x0.dtype, device=x0.device, requires_grad=False)[None]
+            + lam
+            * torch.eye(n, dtype=x0.dtype, device=x0.device, requires_grad=False)[None]
         )
         alpha = torch.linalg.solve(H[:, : n + 1, : n + 1], y[:, : n + 1])[
             :, 1 : n + 1, 0
@@ -141,7 +146,9 @@ def anderson_solver(
         if not return_final and trace_dict[stop_mode][-1].max() < tol:
             for _ in range(max_iter - 1 - k):
                 trace_dict[stop_mode].append(lowest_dict[stop_mode].detach())
-                trace_dict[alternative_mode].append(lowest_dict[alternative_mode].detach())
+                trace_dict[alternative_mode].append(
+                    lowest_dict[alternative_mode].detach()
+                )
             break
 
     # If no solution was stored during the iteration process, store the final estimate

@@ -155,7 +155,9 @@ class BaseTrainer(ABC):
                     "models",
                     "OC20",
                     "equiformer_v2",
-                    self.timestamp_id if self.checkpoint_wandb_name is None else self.checkpoint_wandb_name,
+                    self.timestamp_id
+                    if self.checkpoint_wandb_name is None
+                    else self.checkpoint_wandb_name,
                 ),
                 "checkpoint_name": checkpoint_name,
                 "results_dir": os.path.join(run_dir, "results", self.timestamp_id),
@@ -294,7 +296,7 @@ class BaseTrainer(ABC):
         # from oc20.trainer.lmdb_dataset import LmdbDatasetV2
         if self.config.get("dataset", None):
             self.train_dataset = registry.get_dataset_class(
-                self.config["task"]["dataset"] # trajectory_lmdb_v2
+                self.config["task"]["dataset"]  # trajectory_lmdb_v2
             )(self.config["dataset"])
 
             self.maxdata = int(self.config["optim"].get("maxdata", -1))
@@ -312,7 +314,9 @@ class BaseTrainer(ABC):
                 wandb.run.config["dataset_size"] = len(self.train_dataset)
                 wandb.config["dataset_size"] = len(self.train_dataset)
                 # wandb.run.update()
-            self.logger.log({"dataset_size": len(self.train_dataset)}, step=0, split="train")
+            self.logger.log(
+                {"dataset_size": len(self.train_dataset)}, step=0, split="train"
+            )
 
             self.train_sampler = self.get_sampler(
                 self.train_dataset,
@@ -421,11 +425,11 @@ class BaseTrainer(ABC):
             raise FileNotFoundError(
                 errno.ENOENT, "Checkpoint file not found", checkpoint_path
             )
-        
+
         # https://discuss.pytorch.org/t/solved-keyerror-unexpected-key-module-encoder-embedding-weight-in-state-dict/1686
-        # You probably saved the model using nn.DataParallel, which stores the model in module, 
-        # and now you are trying to load it without DataParallel. 
-        # You can either add a nn.DataParallel temporarily in your network for loading purposes, 
+        # You probably saved the model using nn.DataParallel, which stores the model in module,
+        # and now you are trying to load it without DataParallel.
+        # You can either add a nn.DataParallel temporarily in your network for loading purposes,
         # or you can load the weights file, create a new ordered dict without the module prefix, and load it back.
 
         logging.info(f"Loading checkpoint from: {checkpoint_path}")
@@ -470,7 +474,7 @@ class BaseTrainer(ABC):
                 self.normalizers[key].load_state_dict(checkpoint["normalizers"][key])
             if self.scaler and checkpoint["amp"]:
                 self.scaler.load_state_dict(checkpoint["amp"])
-        
+
         return True
 
     def load_loss(self):
@@ -593,7 +597,6 @@ class BaseTrainer(ABC):
                 )
                 if self.ema:
                     self.ema.restore()
-        
 
     def save_hpo(self, epoch, step, metrics, checkpoint_every):
         # default is no checkpointing

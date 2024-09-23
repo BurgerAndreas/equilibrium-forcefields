@@ -3,12 +3,13 @@ import logging
 
 class FileLogger:
     """Wrapper around logging module to log to console and file.
-    Access via 
+    Access via
     _log = FileLogger(is_master, is_rank0, output_dir, logger_name)
     _log.console("message")
     _log.info("message2")
     _log.logger.handlers[0].flush()
     """
+
     def __init__(
         self, is_master=False, is_rank0=False, output_dir=None, logger_name="training"
     ):

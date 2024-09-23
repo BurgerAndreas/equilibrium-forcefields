@@ -208,14 +208,19 @@ class MDAll(InMemoryDataset):
         elif self.dname == "ccsd":
             # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/datasets/md17.html#MD17
             # name = self.file_names[self.name]
-            return [MDAll.molecule_files[self.dname][mol + " CCSD"] for mol in self.molecules]
+            return [
+                MDAll.molecule_files[self.dname][mol + " CCSD"]
+                for mol in self.molecules
+            ]
         elif self.dname == "fhi":
             # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/datasets/md17.html#MD17
-            return [MDAll.molecule_files[self.dname][mol + " FHI"] for mol in self.molecules]
+            return [
+                MDAll.molecule_files[self.dname][mol + " FHI"] for mol in self.molecules
+            ]
         else:
             # MD17
             return [MDAll.molecule_files[self.dname][mol] for mol in self.molecules]
-    
+
     @property
     def raw_file_names(self):
         """Get names of the files containing the raw data as on the local machine after downloading and unzipping.
@@ -223,12 +228,26 @@ class MDAll(InMemoryDataset):
         Returns a list.
         """
         if self.dname == "ccsd":
-            names = [MDAll.molecule_files[self.dname][mol + " CCSD"] for mol in self.molecules]
-            return [name[:-4] + '-train.npz' for name in names] + [name[:-4] + '-test.npz' for name in names]
+            names = [
+                MDAll.molecule_files[self.dname][mol + " CCSD"]
+                for mol in self.molecules
+            ]
+            return [name[:-4] + "-train.npz" for name in names] + [
+                name[:-4] + "-test.npz" for name in names
+            ]
         elif self.dname == "fhi":
             # datasets/ccsd/benzenefhi/raw/
             # E.npy  F.npy  md5.npy  name.npy  R.npy  theory.npy  type.npy  z.npy
-            return ["E.npy",  "F.npy",  "md5.npy",  "name.npy",  "R.npy",  "theory.npy", " type.npy",  "z.npy"]
+            return [
+                "E.npy",
+                "F.npy",
+                "md5.npy",
+                "name.npy",
+                "R.npy",
+                "theory.npy",
+                " type.npy",
+                "z.npy",
+            ]
         else:
             # nothing to unzip?
             return self.raw_zip_file_names
@@ -247,7 +266,9 @@ class MDAll(InMemoryDataset):
         elif self.dname == "md17":
             return [f"md17-{mol}.pt" for mol in self.molecules]
         elif self.dname == "ccsd":
-            return [f"ccsd-{mol}-train.pt" for mol in self.molecules] + [f"ccsd-{mol}-test.pt" for mol in self.molecules]
+            return [f"ccsd-{mol}-train.pt" for mol in self.molecules] + [
+                f"ccsd-{mol}-test.pt" for mol in self.molecules
+            ]
         else:
             raise ValueError(f"Unknown dataset name: {self.dname}")
 
@@ -292,7 +313,7 @@ class MDAll(InMemoryDataset):
         assert np.allclose(
             ["test" in f for f in self.raw_paths],
             ["test" in f for f in self.processed_paths],
-        ), f'Raw and processed paths do not match:\n {self.raw_paths}\n {self.processed_paths}'
+        ), f"Raw and processed paths do not match:\n {self.raw_paths}\n {self.processed_paths}"
 
         it = zip(self.raw_paths, self.processed_paths)
         old_indices = None
@@ -376,7 +397,9 @@ def fix_train_val_test_patch_size(train_size, val_size, test_patch_size, dset_le
     # if we provide the sizes as percentages
     train_size = round(dset_len * train_size) if is_float[0] else train_size
     val_size = round(dset_len * val_size) if is_float[1] else val_size
-    test_patch_size = round(dset_len * test_patch_size) if is_float[2] else test_patch_size
+    test_patch_size = (
+        round(dset_len * test_patch_size) if is_float[2] else test_patch_size
+    )
 
     if train_size is None:
         train_size = dset_len - val_size - test_patch_size
@@ -401,7 +424,9 @@ def fix_train_val_test_patch_size(train_size, val_size, test_patch_size, dset_le
 
 
 # From https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L54
-def train_val_test_split(dset_len, train_size, val_size, test_patch_size, seed, order=None):
+def train_val_test_split(
+    dset_len, train_size, val_size, test_patch_size, seed, order=None
+):
 
     if order in [None, "equiformer", "default"]:
         order = None
@@ -618,7 +643,10 @@ def get_md_datasets(
             test_patch_size_select <= test_patch_size
         ), f"Warning: test_patch_size_select ({test_patch_size_select}) is greater than test_patch_size ({test_patch_size})."
         start_idx = np.linspace(
-            start=0, stop=test_patch_size - test_patch_size_select, num=num_test_patches, dtype=int
+            start=0,
+            stop=test_patch_size - test_patch_size_select,
+            num=num_test_patches,
+            dtype=int,
         )
         test_indices = np.hstack(
             [np.arange(s, s + test_patch_size_select) for s in start_idx]

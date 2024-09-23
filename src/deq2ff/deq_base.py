@@ -11,9 +11,9 @@ from torchdeq.loss import fp_correction
 def _init_deq(
     self,
     # implicit_layer,
-    torchdeq_norm, # omegaconf.OmegaConf
-    deq_kwargs, # {}
-    deq_kwargs_eval, # {}
+    torchdeq_norm,  # omegaconf.OmegaConf
+    deq_kwargs,  # {}
+    deq_kwargs_eval,  # {}
     deq_kwargs_fpr,
     **kwargs,
 ):
@@ -23,7 +23,6 @@ def _init_deq(
     # print(f"Passed deq_kwargs: {deq_kwargs}")
     # self.deq = get_deq(f_solver='broyden', f_max_iter=20, f_tol=1e-6)
     self.deq = get_deq(**deq_kwargs)
-
 
     deq_kwargs1 = copy.deepcopy(deq_kwargs)
     deq_kwargs1.update(deq_kwargs_eval)

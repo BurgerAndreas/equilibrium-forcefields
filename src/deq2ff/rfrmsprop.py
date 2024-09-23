@@ -7,19 +7,19 @@ import torch.optim as optim
 class RfRmsProp(optim.Optimizer):
     # root-free RMSProp
     def __init__(
-        self, 
-        params, 
-        lr=1e-2, 
-        alpha=0.99, 
+        self,
+        params,
+        lr=1e-2,
+        alpha=0.99,
         eps=1e-8,
-        weight_decay=0, 
+        weight_decay=0,
         momentum=0,
-        batch_averaged=True, 
+        batch_averaged=True,
         batch_size=None,
         cast_dtype=torch.float32,
         model=None,
-        dummy_init = False,
-        dummy_scaling = False,
+        dummy_init=False,
+        dummy_scaling=False,
     ):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -32,16 +32,18 @@ class RfRmsProp(optim.Optimizer):
         if not 0.0 <= alpha:
             raise ValueError("Invalid alpha value: {}".format(alpha))
 
-        print('rf-rmsprop', cast_dtype)
-        defaults = dict(lr=lr, momentum=momentum, alpha=alpha, eps=eps, weight_decay=weight_decay)
+        print("rf-rmsprop", cast_dtype)
+        defaults = dict(
+            lr=lr, momentum=momentum, alpha=alpha, eps=eps, weight_decay=weight_decay
+        )
 
-        self.dummy_init=dummy_init
+        self.dummy_init = dummy_init
         if self.dummy_init:
-            print( 'enable zero init')
+            print("enable zero init")
 
-        self.dummy_scaling=dummy_scaling
+        self.dummy_scaling = dummy_scaling
         if self.dummy_scaling:
-            print( 'enable default scaling')
+            print("enable default scaling")
 
         self.cast_dtype = cast_dtype
         self.batch_averaged = batch_averaged
@@ -49,7 +51,6 @@ class RfRmsProp(optim.Optimizer):
             assert batch_size is not None
         self.batch_size = batch_size
         super(RfRmsProp, self).__init__(params, defaults)
-
 
     @torch.no_grad()
     def step(self, closure=None):
@@ -64,7 +65,6 @@ class RfRmsProp(optim.Optimizer):
             with torch.enable_grad():
                 loss = closure()
 
-
         factor = 1.0  # since grad is unscaled
         if self.dummy_scaling:
             factor = 1.0
@@ -73,7 +73,7 @@ class RfRmsProp(optim.Optimizer):
                 factor *= self.batch_size
 
         for group in self.param_groups:
-            for p in group['params']:
+            for p in group["params"]:
                 if p.grad is None:
                     continue
                 grad = p.grad.to(self.cast_dtype)
@@ -81,33 +81,33 @@ class RfRmsProp(optim.Optimizer):
 
                 # State initialization
                 if len(state) == 0:
-                    state['step'] = 0
+                    state["step"] = 0
                     if self.dummy_init:
-                        state['square_avg'] = torch.zeros_like(grad)
+                        state["square_avg"] = torch.zeros_like(grad)
                     else:
-                        state['square_avg'] = torch.ones_like(grad)/factor
+                        state["square_avg"] = torch.ones_like(grad) / factor
 
-                    if group['momentum'] > 0:
-                        state['momentum_buffer'] = torch.zeros_like(grad)
+                    if group["momentum"] > 0:
+                        state["momentum_buffer"] = torch.zeros_like(grad)
 
-                square_avg = state['square_avg']
-                alpha = group['alpha']
-                state['step'] += 1
+                square_avg = state["square_avg"]
+                alpha = group["alpha"]
+                state["step"] += 1
 
-###################################################################
-                lr_cov = 1.0-alpha
-                lr0 = group['lr']
+                ###################################################################
+                lr_cov = 1.0 - alpha
+                lr0 = group["lr"]
 
-                square_avg.mul_(1.0-lr_cov).addcmul_(grad, grad, value=lr_cov)
-###################################################################
-                grad.div_( (square_avg*factor + group['eps']) )
+                square_avg.mul_(1.0 - lr_cov).addcmul_(grad, grad, value=lr_cov)
+                ###################################################################
+                grad.div_((square_avg * factor + group["eps"]))
 
-                if group['weight_decay'] != 0:
-                    grad.add_(p.data, alpha=group['weight_decay'])
+                if group["weight_decay"] != 0:
+                    grad.add_(p.data, alpha=group["weight_decay"])
 
-                if group['momentum'] != 0:
-                    buf = state['momentum_buffer']
-                    buf.mul_(group['momentum']).add_(grad)
+                if group["momentum"] != 0:
+                    buf = state["momentum_buffer"]
+                    buf.mul_(group["momentum"]).add_(grad)
                 else:
                     buf = grad
 

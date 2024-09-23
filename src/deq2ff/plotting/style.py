@@ -4,7 +4,7 @@ import os, sys, pathlib
 
 # andreas-burger/EquilibriumEquiFormer
 entity = "andreas-burger"
-projectmd = "Equi2" # previously: "EquilibriumEquiFormer"
+projectmd = "Equi2"  # previously: "EquilibriumEquiFormer"
 projectoc = "oc20-ev2"
 
 # parent folder of the plot
@@ -56,7 +56,7 @@ PALETTE = "dark"
 # set sns color palette to one blue, three shades of orange
 # sns.set_palette(sns.color_palette(["#1f77b4", "#ff7f0e", "#ffbb78", "#2ca02c"]))
 # sns.set_palette(sns.color_palette(["#1f77b4", "#E97451", "#E3963E", "#FFC000"]))
-# sns.set_palette(sns.color_palette(["#1f77b4", "#E97451", "#FFC000", "#EC5800"])) 
+# sns.set_palette(sns.color_palette(["#1f77b4", "#E97451", "#FFC000", "#EC5800"]))
 # oranges: #fdbe85 #fd8d3c #e6550d #a63603
 # okka #fe9929
 # blues: # #8c96c6 #8856a7
@@ -68,18 +68,18 @@ cdict = {
     # oranges
     "E1": "#b2e2e2",
     "E4": "#66c2a4",
-    "E8": "#2b8cbe", # 2ca25f 2b8cbe
+    "E8": "#2b8cbe",  # 2ca25f 2b8cbe
 }
 cdict = {
     # https://www.colorhexa.com/ffb347
     # https://www.colorhexa.com/ffb347
-    "DEQ1": "#F8A874", # F8A874 #FBCEB1
+    "DEQ1": "#F8A874",  # F8A874 #FBCEB1
     "DEQ2": "#F58238",
-    # https://www.picmonkey.com/colors/blue/pastel-blue 
+    # https://www.picmonkey.com/colors/blue/pastel-blue
     # https://www.picmonkey.com/colors/gray/slate
     "E1": "#AEC6CF",
     "E4": "#5E8D9F",
-    "E8": "#476A77", # 2ca25f 2b8cbe
+    "E8": "#476A77",  # 2ca25f 2b8cbe
 }
 
 
@@ -97,7 +97,7 @@ def set_seaborn_style(
     )
 
 
-def set_style_after(ax, fs=15, legend=True, loc='best'):
+def set_style_after(ax, fs=15, legend=True, loc="best"):
     # loc: {'best', 'upper right', 'upper left', 'lower left', 'lower right', 'right', 'center left', 'center right', 'lower center', 'upper center', 'center'}
     plt.grid(False)
     plt.grid(which="major", axis="y", linestyle="-", linewidth="1.0", color="lightgray")
@@ -118,7 +118,6 @@ def set_style_after(ax, fs=15, legend=True, loc='best'):
         pass
     else:
         ax.get_legend().remove()
-
 
 
 labels = {
@@ -142,12 +141,14 @@ labels = {
     "nfe": "NFE",
 }
 
+
 def human_labels(lab):
     lab = lab.split(".")[-1]
     if lab in labels:
         return labels[lab]
     else:
         return lab
+
 
 # rename targets to be more human readable
 # http://www.sgdml.org/#datasets
@@ -162,13 +163,14 @@ mol_names = {
     "uracil": "Uracil",
     "benzene": "Benzene",
     "stachyose": "Stachyose",
-    "DHA": "DHA", # "Docosahexaenoic acid",
+    "DHA": "DHA",  # "Docosahexaenoic acid",
     "AT_AT": "AT-AT",
     "AT_AT_CG_CG": "AT-AT-CG-CG",
     "dw_nanotube": "Double-walled nanotube",
     "buckyball_catcher": "Buckyball catcher",
     "Ac_Ala3_NHMe": "Ac-Ala3-NHMe",
 }
+
 
 def combine_legend(ax, colorstyle_dict, markerstyle):
     # https://stackoverflow.com/questions/68591271/how-can-i-combine-hue-and-style-groups-in-a-seaborn-legend

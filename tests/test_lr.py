@@ -24,7 +24,6 @@ from scripts.train_deq_md import train_md
 import deq2ff.register_all_models
 
 
-
 @hydra.main(
     config_name="md17", config_path="../equiformer_v2/config", version_base="1.3"
 )
@@ -38,7 +37,6 @@ def hydra_wrapper(args: DictConfig) -> None:
     # argsmd17.update(args)
     # args = argsmd17
 
-    
     args.return_model_and_data = True
     # args.model.max_num_elements = 10
 
@@ -58,10 +56,9 @@ def hydra_wrapper(args: DictConfig) -> None:
     plt.plot(lr)
     plt.show()
 
-    print('lr:', lr)
+    print("lr:", lr)
 
-
-    print('\nDone!')
+    print("\nDone!")
 
 
 if __name__ == "__main__":

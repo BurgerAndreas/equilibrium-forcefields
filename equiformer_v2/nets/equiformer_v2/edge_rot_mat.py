@@ -51,4 +51,4 @@ def init_edge_rot_mat(edge_distance_vec):
     edge_rot_mat = torch.transpose(edge_rot_mat_inv, 1, 2)
 
     # return edge_rot_mat.detach()
-    return edge_rot_mat # Todo@gradforces
+    return edge_rot_mat  # Todo@gradforces

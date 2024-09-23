@@ -343,15 +343,19 @@ class ForcesTrainerV2(BaseTrainerV2):
         # Only take a subset of the training data without changing the dataloader
         if self.maxdata > 0:
             max_steps = min(
-                len(self.train_loader), 
-                self.maxdata // self.config["optim"]["batch_size"]
+                len(self.train_loader),
+                self.maxdata // self.config["optim"]["batch_size"],
             )
         else:
             max_steps = len(self.train_loader)
 
         logging.info(f"Starting training at step {self.step}.")
         logging.info(f"Steps per epoch: {max_steps}")
-        self.logger.log({"max_steps": int(max_steps*self.config["optim"]["max_epochs"])}, split="train", step=self.step)
+        self.logger.log(
+            {"max_steps": int(max_steps * self.config["optim"]["max_epochs"])},
+            split="train",
+            step=self.step,
+        )
         for epoch_int in range(start_epoch, self.config["optim"]["max_epochs"]):
             self.train_sampler.set_epoch(epoch_int)
             skip_steps = self.step % len(self.train_loader)
@@ -391,7 +395,6 @@ class ForcesTrainerV2(BaseTrainerV2):
                     self.metrics,
                 )
 
-
                 # Log metrics.
                 log_dict = {k: self.metrics[k]["metric"] for k in self.metrics}
                 log_dict.update(
@@ -423,7 +426,7 @@ class ForcesTrainerV2(BaseTrainerV2):
 
                 # if torch.isnan(log_dict['forces_mae']):
                 # if log_dict['forces_mae'] == float("nan"): # nan, inf, -inf
-                if math.isnan(log_dict['forces_mae']):
+                if math.isnan(log_dict["forces_mae"]):
                     isnan_cnt += 1
                     if isnan_cnt > len(self.train_loader) // 10:
                         raise ValueError("NaN detected in forces_mae. Exiting.")
@@ -535,7 +538,7 @@ class ForcesTrainerV2(BaseTrainerV2):
             "model_attributes"
         ].get("use_auxiliary_task", False):
             out["forces"] = out_forces
-        
+
         if "nstep" in info:
             out["nstep"] = info["nstep"].mean().item()
 
@@ -966,7 +969,7 @@ class ForcesTrainerV2(BaseTrainerV2):
 
         def get_pbar_desc(step):
             return f"Validate (device {distutils.get_rank()}) Step={step}"
-        
+
         start_time = time.perf_counter()
 
         for i, batch in tqdm(
@@ -986,7 +989,7 @@ class ForcesTrainerV2(BaseTrainerV2):
             metrics = evaluator.update("loss", loss.item(), metrics)
             if "nstep" in out:
                 metrics = evaluator.update("nstep", out["nstep"], metrics)
-        
+
         # if distutils.is_master():
         time_total = time.perf_counter() - start_time
 

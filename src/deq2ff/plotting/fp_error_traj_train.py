@@ -27,7 +27,11 @@ from deq2ff.plotting.style import (
 
 
 def plot_fp_error_traj(
-    run_id: str, datasplit: str = "train", error_type="abs", ymax=None, logscale=False,
+    run_id: str,
+    datasplit: str = "train",
+    error_type="abs",
+    ymax=None,
+    logscale=False,
     xmax=None,
     save_plot=False,
 ):
@@ -142,4 +146,6 @@ if __name__ == "__main__":
     # run_id = "iew27536"
     # main(run_id, error_type="abs", datasplit="train", logscale=True)
     run_id = "iew27536"
-    plot_fp_error_traj(run_id, error_type="abs", datasplit="train", logscale=True, save_plot=True)
+    plot_fp_error_traj(
+        run_id, error_type="abs", datasplit="train", logscale=True, save_plot=True
+    )

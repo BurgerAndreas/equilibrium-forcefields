@@ -265,7 +265,9 @@ class EquiformerV2_OC20(BaseModel):
         # compute forces via gradient of the energy w.r.t. positions
         self.forces_via_grad = forces_via_grad
         # compute forces directly via prediction head
-        self.direct_forces = regress_forces and not forces_via_grad # for ocp models conditional_grad
+        self.direct_forces = (
+            regress_forces and not forces_via_grad
+        )  # for ocp models conditional_grad
         self.otf_graph = otf_graph
         self.max_neighbors = max_neighbors
         self.max_radius = max_radius
@@ -641,7 +643,9 @@ class EquiformerV2_OC20(BaseModel):
 
         # Compute 3x3 rotation matrix per edge
         # data unused
-        edge_rot_mat = self._init_edge_rot_mat(edge_index=edge_index, edge_distance_vec=edge_distance_vec)
+        edge_rot_mat = self._init_edge_rot_mat(
+            edge_index=edge_index, edge_distance_vec=edge_distance_vec
+        )
 
         # Initialize the WignerD matrices and other values for spherical harmonic calculations
         for i in range(self.num_resolutions):
@@ -706,19 +710,19 @@ class EquiformerV2_OC20(BaseModel):
             "NodeEmbeddingShape": x.embedding.shape,
         }
         return logs
-    
+
     def measure_oversmoothing(self, x, batch, step=None, split=None, layer=None):
-        """ 
+        """
         From https://arxiv.org/pdf/1909.03211:
         Mean Average Distance (MAD), which calculates the mean average distance
-        among node representations in the graph to measure the smoothness of the graph 
+        among node representations in the graph to measure the smoothness of the graph
         (smoothness means similarity of graph nodes representation)
         x: node representations
         """
         similarity_euclidean = []
         similarity_cosine = []
         for b in range(max(batch) + 1):
-            mask = batch == b # [NB]
+            mask = batch == b  # [NB]
             if mask.sum() == 0:
                 # empty batch
                 continue
@@ -726,10 +730,8 @@ class EquiformerV2_OC20(BaseModel):
             # x[n]: [D, C]
             idx = torch.arange(x.shape[0], device=x.device)[mask]
             for i, n1 in enumerate(idx):
-                for n2 in idx[i+1:]:
-                    similarity_euclidean.append(
-                        torch.norm(x[n1] - x[n2], p=2).detach()
-                    )
+                for n2 in idx[i + 1 :]:
+                    similarity_euclidean.append(torch.norm(x[n1] - x[n2], p=2).detach())
                     # dim=0 or dim=1?
                     similarity_cosine.append(
                         F.cosine_similarity(x[n1], x[n2]).mean().detach()
@@ -745,9 +747,9 @@ class EquiformerV2_OC20(BaseModel):
             # "sim_cos_min": torch.min(torch.tensor(similarity_cosine)),
         }
         if split is not None:
-            _logs = {k+f"_{split}": v for k, v in _logs.items()}
+            _logs = {k + f"_{split}": v for k, v in _logs.items()}
         if layer is not None:
-            _logs = {k+f"_l{layer}": v for k, v in _logs.items()}
+            _logs = {k + f"_l{layer}": v for k, v in _logs.items()}
         if step is not None:
             wandb.log(_logs, step=step)
         return _logs
@@ -765,7 +767,7 @@ class EquiformerV2_OC20(BaseModel):
                 # which depends on the molecule configuration
                 # mask_before = self.blocks[i].graph_attention.alpha_dropout.mask
                 alpha_mask = self.blocks[i].graph_attention.alpha_dropout.update_mask(
-                    shape=[self.num_edges, 1, self.num_heads, 1], # TODO: check shape
+                    shape=[self.num_edges, 1, self.num_heads, 1],  # TODO: check shape
                     dtype=x.dtype,
                     device=x.device,
                 )
@@ -779,7 +781,7 @@ class EquiformerV2_OC20(BaseModel):
                 self.blocks[i].noise_in.update_mask(x.shape, x.dtype, x.device)
             if self.blocks[i].noise_out is not None:
                 self.blocks[i].noise_out.update_mask(x.shape, x.dtype, x.device)
-    
+
     def set_current_deq(self, reuse=False):
         """We use different DEQ solvers for training, evaluation, and fixed-point reuse."""
         pass
@@ -828,7 +830,9 @@ class EquiformerV2_OC20(BaseModel):
         ###############################################################
 
         # Compute 3x3 rotation matrix per edge
-        edge_rot_mat = self._init_edge_rot_mat(edge_index=edge_index, edge_distance_vec=edge_distance_vec)
+        edge_rot_mat = self._init_edge_rot_mat(
+            edge_index=edge_index, edge_distance_vec=edge_distance_vec
+        )
 
         # Initialize the WignerD matrices and other values for spherical harmonic calculations
         for i in range(self.num_resolutions):
@@ -897,7 +901,9 @@ class EquiformerV2_OC20(BaseModel):
     # from OCP models to predict F=dE/dx
     # not needed since we are predicting forces directly with another head
     @conditional_grad(torch.enable_grad())
-    def forward(self, data, step=None, datasplit=None, return_fixedpoint=False, **kwargs):
+    def forward(
+        self, data, step=None, datasplit=None, return_fixedpoint=False, **kwargs
+    ):
 
         x, pos, atomic_numbers, edge_distance, edge_index = self.encode(data)
 
@@ -930,8 +936,9 @@ class EquiformerV2_OC20(BaseModel):
         # corresponding to DEQ
         info = {
             "nstep": torch.tensor(
-                [self.num_layers] * x.embedding.shape[0], 
-                dtype=torch.float16, device=x.embedding.device
+                [self.num_layers] * x.embedding.shape[0],
+                dtype=torch.float16,
+                device=x.embedding.device,
             )
         }
 
@@ -954,12 +961,19 @@ class EquiformerV2_OC20(BaseModel):
             info=info,
             return_fixedpoint=return_fixedpoint,
         )
-    
+
     @conditional_grad(torch.enable_grad())
     def decode(
-        self, data, x, fp, pos, 
-        atomic_numbers, edge_distance, edge_index,
-        info, return_fixedpoint=False
+        self,
+        data,
+        x,
+        fp,
+        pos,
+        atomic_numbers,
+        edge_distance,
+        edge_index,
+        info,
+        return_fixedpoint=False,
     ):
         """Predict energy and forces from fixed-point estimate.
         Uses separate heads for energy and forces.
@@ -973,7 +987,6 @@ class EquiformerV2_OC20(BaseModel):
         #     logging_utils_deq.log_fixed_point_norm(z_pred, step, datasplit)
         #     # log the input injection (output of encoder)
         #     logging_utils_deq.log_fixed_point_norm(emb, step, datasplit, name="emb")
-
 
         ###############################################################
         # Energy estimation
@@ -1044,7 +1057,7 @@ class EquiformerV2_OC20(BaseModel):
         if self.regress_forces:
             if return_fixedpoint:
                 # z_pred = sampled fixed point trajectory (tracked gradients)
-                return energy, forces, fp, info 
+                return energy, forces, fp, info
             return energy, forces, info
         else:
             if return_fixedpoint:

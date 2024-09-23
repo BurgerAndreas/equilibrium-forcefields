@@ -379,9 +379,7 @@ def plot_norms_layer(args):
             norms = np.array(norms)
 
             # plot
-            ax1.plot(
-                norms[:, 0], label=f"{ln_type} {ln_norm}", color=colors[i]
-            )
+            ax1.plot(norms[:, 0], label=f"{ln_type} {ln_norm}", color=colors[i])
             ax2.plot(
                 norms[:, 1],
                 label=f"{ln_type} {ln_norm}",

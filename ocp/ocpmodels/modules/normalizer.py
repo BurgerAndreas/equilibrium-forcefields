@@ -44,10 +44,10 @@ class Normalizer(object):
     def to(self, device):
         self.mean = self.mean.to(device)
         self.std = self.std.to(device)
-    
+
     def __call__(self, *args, **kwds):
         return self.norm(*args, **kwds)
-    
+
     def norm(self, tensor, z=None):
         """_summary_
 
@@ -70,12 +70,13 @@ class Normalizer(object):
         self.mean = state_dict["mean"].to(self.mean.device)
         self.std = state_dict["std"].to(self.mean.device)
 
+
 class NormalizerByAtomtype(Normalizer):
     """Normalize a Tensor by atom type and denorm it later."""
 
     def __init__(self, tensor=None, mean=None, std=None, device=None):
         super().__init__(tensor, mean, std, device)
-        assert len(self.mean.shape) == 1, self.mean.shape # [Atoms]
+        assert len(self.mean.shape) == 1, self.mean.shape  # [Atoms]
         assert self.mean.shape == self.std.shape
 
     def norm(self, tensor, z=None):
@@ -85,13 +86,14 @@ class NormalizerByAtomtype(Normalizer):
     def denorm(self, normed_tensor, z=None):
         """tensor: [N, 3], z: [N]"""
         return normed_tensor * self.std[z].unsqueeze(1) + self.mean[z].unsqueeze(1)
-    
+
+
 class NormalizerByAtomtype3D(Normalizer):
     """Normalize a Tensor componentwise and by atom type, denorm it later."""
 
     def __init__(self, tensor=None, mean=None, std=None, device=None):
         super().__init__(tensor, mean, std, device)
-        assert len(self.mean.shape) == 2, self.mean.shape # [Atoms]
+        assert len(self.mean.shape) == 2, self.mean.shape  # [Atoms]
         assert self.mean.shape == self.std.shape
 
     def norm(self, tensor, z=None):

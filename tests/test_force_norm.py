@@ -17,21 +17,32 @@ from scripts.train_deq_md import train_md
 # register all models
 import deq2ff.register_all_models
 
-def plot_norm_forces_per_element(args, norm_mean_atom, norm_std_atom, test_dataset_full, fname=""):
+
+def plot_norm_forces_per_element(
+    args, norm_mean_atom, norm_std_atom, test_dataset_full, fname=""
+):
     import matplotlib.pyplot as plt
     import seaborn as sns
     from deq2ff.plotting.style import set_seaborn_style, set_style_after
+
     # set everything to default
-    plt.style.use('default')
+    plt.style.use("default")
     # Barplot of mean and std of norm of forces per atom type in test_dataset_full
     fig, ax = plt.subplots()
     set_seaborn_style()
     ax.bar(np.arange(len(norm_mean_atom)), norm_mean_atom)
     # ax.bar(np.arange(len(mean_atom)), mean_atom, yerr=std_atom)
     # add standard deviation
-    ax.errorbar(np.arange(len(norm_mean_atom)), norm_mean_atom, yerr=norm_std_atom, fmt="none", capsize=5, c="black")
+    ax.errorbar(
+        np.arange(len(norm_mean_atom)),
+        norm_mean_atom,
+        yerr=norm_std_atom,
+        fmt="none",
+        capsize=5,
+        c="black",
+    )
     ax.set_xticks(np.arange(len(norm_mean_atom)))
-    ax.set_xticklabels(chemical_symbols[:len(norm_mean_atom)])
+    ax.set_xticklabels(chemical_symbols[: len(norm_mean_atom)])
     ax.set_xlabel("Element")
     ax.set_ylabel("Norm of force")
     set_style_after(ax, legend=None)
@@ -45,44 +56,57 @@ def plot_norm_forces_per_element(args, norm_mean_atom, norm_std_atom, test_datas
     plt.clf()
     plt.close()
 
-def plot_norm_forces3d_per_element(args, mean3d_atom2, std3d_atom2, test_dataset_full, fname="", use_df=False):
+
+def plot_norm_forces3d_per_element(
+    args, mean3d_atom2, std3d_atom2, test_dataset_full, fname="", use_df=False
+):
     """Barplot grouped by element with three different colors for xyz."""
     import matplotlib.pyplot as plt
     import seaborn as sns
     from deq2ff.plotting.style import set_seaborn_style, set_style_after
+
     # set everything to default
-    plt.style.use('default')
+    plt.style.use("default")
     # Barplot of mean and std of norm of forces per atom type in test_dataset_full
     set_seaborn_style()
     if use_df:
         # data to dataframe
         atom_dict = {
-            "atom": chemical_symbols[:mean3d_atom2.shape[0]] * 3, 
-            "mean": torch.hstack([mean3d_atom2[:, 0], mean3d_atom2[:, 1], mean3d_atom2[:, 2]]).abs(), 
-            "std": torch.hstack([std3d_atom2[:, 0], std3d_atom2[:, 1], std3d_atom2[:, 2]]).abs(),
-            # "mean": mean3d_atom2.flatten().abs(), 
+            "atom": chemical_symbols[: mean3d_atom2.shape[0]] * 3,
+            "mean": torch.hstack(
+                [mean3d_atom2[:, 0], mean3d_atom2[:, 1], mean3d_atom2[:, 2]]
+            ).abs(),
+            "std": torch.hstack(
+                [std3d_atom2[:, 0], std3d_atom2[:, 1], std3d_atom2[:, 2]]
+            ).abs(),
+            # "mean": mean3d_atom2.flatten().abs(),
             # "std": std3d_atom2.flatten().abs(),
-            "xyz": ["x"] * len(mean3d_atom2) + ["y"] * len(mean3d_atom2) + ["z"] * len(mean3d_atom2)
+            "xyz": ["x"] * len(mean3d_atom2)
+            + ["y"] * len(mean3d_atom2)
+            + ["z"] * len(mean3d_atom2),
         }
         _df = pd.DataFrame(atom_dict)
         # Barplot
         g = sns.catplot(
-            data=_df, kind="bar",
-            x="atom", y="mean", hue="xyz",
-            # errorbar="sd", 
-            # palette="dark", 
-            # alpha=.6, 
+            data=_df,
+            kind="bar",
+            x="atom",
+            y="mean",
+            hue="xyz",
+            # errorbar="sd",
+            # palette="dark",
+            # alpha=.6,
             # height=6
         )
         # add error bars ?
         # get axes
-        ax = g.axes[0,0]
+        ax = g.axes[0, 0]
         ax.set_xticks(np.arange(len(mean3d_atom2)))
-        ax.set_xticklabels(chemical_symbols[:len(mean3d_atom2)])
+        ax.set_xticklabels(chemical_symbols[: len(mean3d_atom2)])
     else:
         fig, ax = plt.subplots()
         x = np.arange(len(mean3d_atom2), dtype=float)
-        xlabels = chemical_symbols[:len(mean3d_atom2)]
+        xlabels = chemical_symbols[: len(mean3d_atom2)]
         width = 0.2
         offset = width / 2
         # remove rows which contain nan
@@ -95,13 +119,33 @@ def plot_norm_forces3d_per_element(args, mean3d_atom2, std3d_atom2, test_dataset
         mean3d_atom2 = mean3d_atom2.numpy()
         std3d_atom2 = std3d_atom2.numpy()
         # plot
-        kws = {"width": width, "linewidth": 0, "ecolor": "gray", "capsize": 5, "error_kw": {"capsize": 5, "elinewidth": 0.5}}
+        kws = {
+            "width": width,
+            "linewidth": 0,
+            "ecolor": "gray",
+            "capsize": 5,
+            "error_kw": {"capsize": 5, "elinewidth": 0.5},
+        }
         # barsabove
         # https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.errorbar.html#matplotlib.axes.Axes.errorbar
-        plt.bar(x=x-offset, height=mean3d_atom2[:, 0], label="x", yerr=std3d_atom2[:, 0], **kws)
-        plt.bar(x=x, height=mean3d_atom2[:, 1], label="y", yerr=std3d_atom2[:, 1], **kws)
-        plt.bar(x=x+offset, height=mean3d_atom2[:, 2], label="z", yerr=std3d_atom2[:, 2], **kws)
-        
+        plt.bar(
+            x=x - offset,
+            height=mean3d_atom2[:, 0],
+            label="x",
+            yerr=std3d_atom2[:, 0],
+            **kws,
+        )
+        plt.bar(
+            x=x, height=mean3d_atom2[:, 1], label="y", yerr=std3d_atom2[:, 1], **kws
+        )
+        plt.bar(
+            x=x + offset,
+            height=mean3d_atom2[:, 2],
+            label="z",
+            yerr=std3d_atom2[:, 2],
+            **kws,
+        )
+
         ax.set_xticks(x)
         ax.set_xticklabels(xlabels)
 
@@ -109,7 +153,7 @@ def plot_norm_forces3d_per_element(args, mean3d_atom2, std3d_atom2, test_dataset
     # ax.bar(np.arange(len(mean_atom)), mean_atom, yerr=std_atom)
     # add standard deviation
     # ax.errorbar(np.arange(len(mean3d_atom2)), mean3d_atom2, yerr=std3d_atom2, fmt="none", capsize=5, c="black")
-    
+
     ax.set_xlabel("Element")
     ax.set_ylabel("|Force|")
     set_style_after(ax, loc="upper left")
@@ -137,7 +181,6 @@ def hydra_wrapper(args: DictConfig) -> None:
     # argsmd17.update(args)
     # args = argsmd17
 
-    
     args.return_data = True
     args.model.max_num_elements = 10
     args.norm_forces_by_atom = "normmean"
@@ -170,24 +213,25 @@ def hydra_wrapper(args: DictConfig) -> None:
         std_atom[i] = dy[mask].std()
         mean3d_atom[i] = dy[mask].mean(0)
         std3d_atom[i] = dy[mask].std(0)
-    
-    plot_norm_forces_per_element(args, norm_mean_atom, norm_std_atom, test_dataset_full, fname="")
-    plot_norm_forces3d_per_element(args, mean3d_atom, std3d_atom, test_dataset_full, fname="")
+
+    plot_norm_forces_per_element(
+        args, norm_mean_atom, norm_std_atom, test_dataset_full, fname=""
+    )
+    plot_norm_forces3d_per_element(
+        args, mean3d_atom, std3d_atom, test_dataset_full, fname=""
+    )
 
     # norm all the forces
-    print('Normalizing forces...')
+    print("Normalizing forces...")
     normed_full_dataset = []
     normalizer_f = datas["normalizers"]["force"]
     device = normalizer_f.device
     for i in tqdm(range(len(test_dataset_full))):
         batch = test_dataset_full[i]
-        normed_full_dataset.append((
-            normalizer_f.norm(
-                batch.dy.to(device), batch.z.to(device)
-            ),
-            batch.z
-        ))
-    
+        normed_full_dataset.append(
+            (normalizer_f.norm(batch.dy.to(device), batch.z.to(device)), batch.z)
+        )
+
     # recompute statistics
     norm_mean_atom2 = torch.ones(args.model.max_num_elements)
     norm_std_atom2 = torch.ones(args.model.max_num_elements)
@@ -208,11 +252,15 @@ def hydra_wrapper(args: DictConfig) -> None:
         std_atom2[i] = dy[mask].std()
         mean3d_atom2[i] = dy[mask].mean(0)
         std3d_atom2[i] = dy[mask].std(0)
-    
-    plot_norm_forces_per_element(args, norm_mean_atom2, norm_std_atom2, normed_full_dataset, fname="_normed")
-    plot_norm_forces3d_per_element(args, mean3d_atom2, std3d_atom2, normed_full_dataset, fname="_normed")
-    
-    print('Done!')
+
+    plot_norm_forces_per_element(
+        args, norm_mean_atom2, norm_std_atom2, normed_full_dataset, fname="_normed"
+    )
+    plot_norm_forces3d_per_element(
+        args, mean3d_atom2, std3d_atom2, normed_full_dataset, fname="_normed"
+    )
+
+    print("Done!")
 
 
 if __name__ == "__main__":

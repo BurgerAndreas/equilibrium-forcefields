@@ -708,7 +708,7 @@ class DEQDotProductAttentionTransformerMD17(torch.nn.Module, EquiformerDEQBase):
     @torch.enable_grad()
     def decode(
         self,
-        node_features, # fixed-point
+        node_features,  # fixed-point
         node_attr,
         edge_src,
         edge_dst,

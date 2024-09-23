@@ -27,8 +27,8 @@ nans = ["NaN", pd.NA, None, float("inf"), np.nan]
 
 
 def print_table(
-        _df, runs_with_dropout, mode="Force", add_nfe=False, compare_pairwise=False
-    ):
+    _df, runs_with_dropout, mode="Force", add_nfe=False, compare_pairwise=False
+):
     assert mode in [
         "Force",
         "Energy",
@@ -231,9 +231,7 @@ def print_table(
     return
 
 
-def print_table_time_forces(
-        _df, runs_with_dropout, compare_pairwise=False
-    ):
+def print_table_time_forces(_df, runs_with_dropout, compare_pairwise=False):
     # filter for target=aspirin
     # _df = _df[_df["Target"] == "aspirin"]
 
@@ -282,7 +280,7 @@ def print_table_time_forces(
             metric = "test_f_mae"
         elif mode == "Energy":
             metric = "test_e_mae"
-        else: # Time
+        else:  # Time
             metric = "time_forward_per_batch_test_lowest"
         for _r, row in enumerate(list(_df["type"].unique())):
             line = [row + " & "]
@@ -414,14 +412,10 @@ def print_table_time_forces(
             (_df["type"] == "DEQuiformer (2 layers)") & (_df["Target"] == col)
         ]["time_forward_per_batch_test_lowest"].values
         if len(val_eq8) == 0:
-            print(
-                f" Warning: No value for Equiformer 8 layers for {col}"
-            )
+            print(f" Warning: No value for Equiformer 8 layers for {col}")
             continue
         if len(val_deq2) == 0:
-            print(
-                f" Warning: No value for DEQ 2 layers for {col}"
-            )
+            print(f" Warning: No value for DEQ 2 layers for {col}")
             continue
         for seed in range(1, 4):
             try:
@@ -442,13 +436,14 @@ def print_table_time_forces(
             print("\midrule[0.6pt]")
         print("".join(line))
 
+
 # andreas-burger/Equi2
 if __name__ == "__main__":
     """Options"""
     filter_eval_batch_size = 1  # 1 or 4
     # filter_fpreuseftol = [1e1, 1e0, 1e-1, 1e-2, 1e-3, 1e-4]
     # filter_fpreuseftol = {"max": 1e1, "min": 1e-4}
-    set_fpreuseftol = 1e-2 # 2e-1
+    set_fpreuseftol = 1e-2  # 2e-1
     # seeds = [1]
     seeds = [1]
     Target = "aspirin"  # aspirin, all, malonaldehyde, ethanol

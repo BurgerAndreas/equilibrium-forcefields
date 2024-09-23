@@ -95,7 +95,12 @@ def create_optimizer(args, model, filter_bias_and_bn=True):
     """Legacy optimizer factory for backwards compatibility.
     NOTE: Use create_optimizer_v2 for new code.
     """
-    if "opt_batch_size" in args and args["opt_batch_size"] not in [None, "none", "None", "null"]:
+    if "opt_batch_size" in args and args["opt_batch_size"] not in [
+        None,
+        "none",
+        "None",
+        "null",
+    ]:
         batch_size = args["opt_batch_size"]
     else:
         batch_size = args["batch_size"]
@@ -205,20 +210,22 @@ def create_optimizer_v2(
     elif opt_lower == "rfrmsprop":
         # root free RMSprop
         optimizer = RfRmsProp(
-            parameters, alpha=0.9, momentum=momentum, 
+            parameters,
+            alpha=0.9,
+            momentum=momentum,
             batch_size=batch_size,
             batch_averaged=batch_averaged,
             cast_dtype=dtype,
-            **opt_args
+            **opt_args,
         )
     elif opt_lower == "rfadamw":
         # root free AdamW
         optimizer = RfAdamW(
-            parameters, 
+            parameters,
             cast_dtype=dtype,
             batch_size=batch_size,
             batch_averaged=batch_averaged,
-            **opt_args
+            **opt_args,
         )
     # elif opt_lower == 'fusedsgd':
     #    opt_args.pop('eps', None)

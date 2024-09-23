@@ -98,7 +98,7 @@ def apply_norm(
     prefix_filter_out=None,
     filter_out=None,
     args=None,
-    **norm_kwargs
+    **norm_kwargs,
 ):
     """
     Auto applies normalization to all weights of a given layer based on the ``norm_type``.

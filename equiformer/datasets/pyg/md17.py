@@ -145,7 +145,9 @@ class MD17(InMemoryDataset):
 
 
 # From https://github.com/torchmd/torchmd-net/blob/72cdc6f077b2b880540126085c3ed59ba1b6d7e0/torchmdnet/utils.py#L54
-def train_val_test_split(dset_len, train_size, val_size, test_patch_size, seed, order=None):
+def train_val_test_split(
+    dset_len, train_size, val_size, test_patch_size, seed, order=None
+):
     assert (train_size is None) + (val_size is None) + (
         test_patch_size is None
     ) <= 1, "Only one of train_size, val_size, test_patch_size is allowed to be None."
@@ -157,7 +159,9 @@ def train_val_test_split(dset_len, train_size, val_size, test_patch_size, seed, 
 
     train_size = round(dset_len * train_size) if is_float[0] else train_size
     val_size = round(dset_len * val_size) if is_float[1] else val_size
-    test_patch_size = round(dset_len * test_patch_size) if is_float[2] else test_patch_size
+    test_patch_size = (
+        round(dset_len * test_patch_size) if is_float[2] else test_patch_size
+    )
 
     if train_size is None:
         train_size = dset_len - val_size - test_patch_size

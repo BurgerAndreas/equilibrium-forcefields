@@ -372,4 +372,3 @@ def reset_dropout(model):
     for module in model.modules():
         if isinstance(module, _VariationalDropoutNd):
             module.mask = None
-

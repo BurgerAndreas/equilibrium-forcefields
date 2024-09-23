@@ -25,7 +25,11 @@ from deq2ff.plotting.style import (
 
 
 def plot_fptraj_list(
-    run_id: str, datasplit: str = "train", error_type="abs", ymax=None, logscale=False,
+    run_id: str,
+    datasplit: str = "train",
+    error_type="abs",
+    ymax=None,
+    logscale=False,
     xmax=None,
     save_plot=False,
     download=True,
@@ -148,7 +152,7 @@ def plot_fptraj_list(
         fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{error_type}_{run_id.split('/')[-1]}_{mname}.png"
         plt.savefig(fname)
         print(f"Saved plot to \n {fname}")
-    
+
     return fig, ax
 
     # close the plot

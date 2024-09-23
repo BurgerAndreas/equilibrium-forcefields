@@ -66,8 +66,9 @@ def tune_hyperparameters(num_samples=10, max_num_epochs=10, gpus_per_trial=2):
     print(f"Best trial config: {best_trial.config}")
     # print(f"Best trial final validation loss: {best_trial.last_result['loss']}")
     # print(f"Best trial final validation accuracy: {best_trial.last_result['accuracy']}")
-    
+
     return
+
 
 def tune_hyperparameters_baysianopt(args):
     """
@@ -117,6 +118,7 @@ def tune_hyperparameters_baysianopt(args):
     print("Best hyperparameters found were: ", results.best_config)
     return
 
+
 @hydra.main(config_name="md17", config_path="../equiformer/config", version_base="1.3")
 def hydra_wrapper_tune_md(args: DictConfig) -> None:
     """Run training loop."""
@@ -133,8 +135,8 @@ def hydra_wrapper_tune_md(args: DictConfig) -> None:
     # train_md(args)
     tune_hyperparameters_baysianopt(args)
 
+
 if __name__ == "__main__":
     # You can change the number of GPUs per trial here:
     # tune_hyperparameters(num_samples=10, max_num_epochs=10, gpus_per_trial=0)
     hydra_wrapper_tune_md()
-    

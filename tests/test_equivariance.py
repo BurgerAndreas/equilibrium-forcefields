@@ -21,6 +21,7 @@ from scripts.train_deq_md import train_md, equivariance_test
 # register all models
 import deq2ff.register_all_models
 
+
 @hydra.main(
     config_name="md17", config_path="../equiformer_v2/config", version_base="1.3"
 )
@@ -34,7 +35,6 @@ def hydra_wrapper(args: DictConfig) -> None:
     # argsmd17.update(args)
     # args = argsmd17
 
-    
     args.return_model_and_data = True
     # args.model.max_num_elements = 10
 
@@ -50,9 +50,8 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     collate = Collater(follow_batch=None, exclude_keys=None)
     equivariance_test(args, model, train_dataset, test_dataset_full, device, collate)
-    
 
-    print('\nDone!')
+    print("\nDone!")
 
 
 if __name__ == "__main__":

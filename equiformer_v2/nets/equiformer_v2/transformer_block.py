@@ -933,7 +933,7 @@ class TransBlockV2(torch.nn.Module):
             "pre",
             "post",
         ], "ln must be 'pre', 'pp' or 'post' but got {}".format(ln)
-        if ln in ['both']:
+        if ln in ["both"]:
             ln = "pp"
         self.ln = ln
         self.final_ln = final_ln
@@ -1028,7 +1028,7 @@ class TransBlockV2(torch.nn.Module):
             )
         else:
             self.ffn_shortcut = None
-        
+
         if self.final_ln:
             self.norm_final = get_normalization_layer(
                 ln_type,
@@ -1131,7 +1131,7 @@ class TransBlockV2(torch.nn.Module):
             output_embedding.embedding = self.norm_2_post(output_embedding.embedding)
         if self.final_ln:
             output_embedding.embedding = self.norm_final(output_embedding.embedding)
-        
+
         output_embedding.embedding = self.noise_out(output_embedding.embedding)
 
         return output_embedding

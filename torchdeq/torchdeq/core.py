@@ -281,8 +281,10 @@ class DEQIndexing(DEQBase):
         print(
             f"\n{self.__class__.__name__} TorchDEQ args set:",
             f"\n{yaml.dump(self.grad_args)}",
-            "n_states=", n_states,
-            "\nindexing=", self.indexing
+            "n_states=",
+            n_states,
+            "\nindexing=",
+            self.indexing,
         )
 
     def set_grad(self, grad_args={}):
@@ -456,7 +458,7 @@ class DEQIndexing(DEQBase):
         # TODO: solver kwargs is a mess
         # we can overwrite f_max_iter and f_tol
         # but not indexing?
-        # anderson takes additionally:     
+        # anderson takes additionally:
         # m=6,
         # lam=1e-4,
         # tau=1.0,
@@ -496,9 +498,9 @@ class DEQIndexing(DEQBase):
                 z_pred = deq_func.detach(z_pred)
                 # See torchdeq.grad backward_factory for the backward pass
                 # torch.tensor
-                z_out += produce_grad( 
+                z_out += produce_grad(
                     trainer=self, func=deq_func, z_pred=z_pred, writer=backward_writer
-                )  
+                )
                 # Todo@temp IFT
                 # _out: list[tuple(torch.tensor, <torchdeq.utils.layer_utils.DEQWrapper object>, None)]
 
@@ -578,7 +580,7 @@ class DEQSliced(DEQBase):
         self,
         # args specified by the user
         args=None,
-        #default args if not specified
+        # default args if not specified
         ift=False,
         hook_ift=False,
         grad=1,
@@ -622,8 +624,10 @@ class DEQSliced(DEQBase):
         print(
             f"\n{self.__class__.__name__} TorchDEQ args set:",
             f"\n{yaml.dump(self.args)}",
-            "n_states=", n_states,
-            "\nindexing=", self.indexing
+            "n_states=",
+            n_states,
+            "\nindexing=",
+            self.indexing,
         )
 
     def set_grad(self, grad_args={}):
@@ -730,8 +734,8 @@ class DEQSliced(DEQBase):
             z_star, _, info = self.f_solver(
                 deq_func,
                 # To reuse the previous fixed point
-                x0=z_init, # .requires_grad=False
-                max_iter=f_max_iter,  
+                x0=z_init,  # .requires_grad=False
+                max_iter=f_max_iter,
                 tol=f_tol,
                 stop_mode=f_stop_mode,
                 **solver_kwargs,
@@ -798,7 +802,9 @@ class DEQSliced(DEQBase):
                 z_star = deq_func.detach(z_star)
 
                 # Calc gradients. See torchdeq.grad for implementations
-                z_out += produce_grad(trainer=self, func=deq_func, z_pred=z_star, writer=backward_writer)
+                z_out += produce_grad(
+                    trainer=self, func=deq_func, z_pred=z_star, writer=backward_writer
+                )
 
                 # z_out is of len=1 unless indexing or n_states is specified
                 z_star = z_out[-1]  # Add the gradient chain to the solver.
@@ -816,7 +822,9 @@ class DEQSliced(DEQBase):
             )
             # optionally add spectral radius to info
             sradius = (
-                self._sradius(deq_func, z_star) if sradius_mode else torch.zeros(1, device=z_star.device)
+                self._sradius(deq_func, z_star)
+                if sradius_mode
+                else torch.zeros(1, device=z_star.device)
             )
             info["sradius"] = sradius
 

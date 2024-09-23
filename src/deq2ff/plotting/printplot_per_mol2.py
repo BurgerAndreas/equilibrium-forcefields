@@ -25,8 +25,7 @@ nans = ["NaN", pd.NA, None, float("inf"), np.nan]
 
 
 def print_table(_df, runs_with_dropout, mode="Force", add_nfe=False):
-    """
-    """
+    """ """
     assert mode in [
         "Force",
         "Energy",
@@ -208,8 +207,7 @@ def print_table(_df, runs_with_dropout, mode="Force", add_nfe=False):
 
 
 def print_table_time_forces(_df, runs_with_dropout):
-    """
-    """
+    """ """
     # filter for target=aspirin
     # _df = _df[_df["Target"] == "aspirin"]
 
@@ -395,6 +393,7 @@ def print_table_time_forces(_df, runs_with_dropout):
         if _l == first_deq:
             print("\midrule[0.6pt]")
         print("".join(line))
+
 
 # andreas-burger/Equi2
 if __name__ == "__main__":

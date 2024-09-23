@@ -27,6 +27,7 @@ from torch.profiler import profile, record_function, ProfilerActivity
 file_dir = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.dirname(file_dir)
 
+
 @hydra.main(
     config_name="md17", config_path="../equiformer_v2/config", version_base="1.3"
 )
@@ -48,9 +49,8 @@ def hydra_wrapper(args: DictConfig) -> None:
     # ensure we load a checkpoint of a trained model
     # args.assert_checkpoint = True
 
-
     # init_wandb(args, project="equilibrium-forcefields-equiformer_v2")
-    args.wandb = False # TODO: we are not logging anything
+    args.wandb = False  # TODO: we are not logging anything
     run_id = init_wandb(args)
 
     datas = train_md(args)
@@ -61,14 +61,14 @@ def hydra_wrapper(args: DictConfig) -> None:
     # test_dataset = datas["test_dataset"]
     test_loader = datas["test_loader"]
     optimizer = datas["optimizer"]
-    
+
     device = list(model.parameters())[0].device
     dtype = model.parameters().__next__().dtype
 
     # statistics
     y = torch.cat([batch.y for batch in train_dataset], dim=0)
     task_mean = float(y.mean())
-    task_std = float(y.std())    
+    task_std = float(y.std())
     normalizers = get_normalizers(args, train_dataset, device, task_mean, task_std)
 
     # criterion = L2MAELoss()
@@ -78,7 +78,7 @@ def hydra_wrapper(args: DictConfig) -> None:
 
     # eval mode
     model.train()
-    
+
     ######################################
     if args.torch_profile:
         # In this example with wait=1, warmup=1, active=2, repeat=1,
@@ -131,7 +131,7 @@ def hydra_wrapper(args: DictConfig) -> None:
         loss = args.energy_weight * loss_e
         loss_f = criterion_force(pred_dy, target_dy)
         loss += args.force_weight * loss_f
-    
+
         optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
         # optionally clip and log grad norm
@@ -145,7 +145,7 @@ def hydra_wrapper(args: DictConfig) -> None:
 
         if args.torch_profile:
             prof.step()
-        
+
     # end of epoch
     if args.torch_profile:
         prof.stop()
@@ -159,7 +159,7 @@ def hydra_wrapper(args: DictConfig) -> None:
         print("Saved trace to:", f"{parent_dir}/traces/{mname}.json")
         exit()
 
-    print('\nDone!')
+    print("\nDone!")
 
 
 if __name__ == "__main__":

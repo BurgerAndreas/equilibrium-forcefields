@@ -310,8 +310,10 @@ class EquivariantDropoutArraySphericalHarmonics(nn.Module):
     def extra_repr(self):
         return "drop_prob={}, drop_graph={}".format(self.drop_prob, self.drop_graph)
 
+
 class RecurrentNoise(nn.Module):
     """Adds noise to the input (e.g. features or model input)."""
+
     def __init__(
         self,
         use_mul: bool = False,
@@ -324,7 +326,7 @@ class RecurrentNoise(nn.Module):
         # mul_min: float = 1e-4,
         # add_max: float = 1e-2,
         # add_min: float = 1e-4,
-        recurrent: bool = False, # if true, use the same noise for all time steps (until reset)
+        recurrent: bool = False,  # if true, use the same noise for all time steps (until reset)
         start_step: int = 0,
     ):
         super().__init__()
@@ -341,14 +343,18 @@ class RecurrentNoise(nn.Module):
         # register buffers
         self.register_buffer("m_mul", None)
         self.register_buffer("m_add", None)
-    
+
     def update_mask(self, shape, dtype, device):
-        self.m_mul = torch.normal(mean=self.mul_mean, std=self.mul_std, size=shape, dtype=dtype, device=device)
-        self.m_add = torch.normal(mean=self.add_mean, std=self.add_std, size=shape, dtype=dtype, device=device)
+        self.m_mul = torch.normal(
+            mean=self.mul_mean, std=self.mul_std, size=shape, dtype=dtype, device=device
+        )
+        self.m_add = torch.normal(
+            mean=self.add_mean, std=self.add_std, size=shape, dtype=dtype, device=device
+        )
 
     def forward(self, f, step=0):
         if step < self.start_step or not self.training:
-            return f 
+            return f
         # optionally reset the mask
         if not self.recurrent:
             self.update_mask(f.shape, f.dtype, f.device)

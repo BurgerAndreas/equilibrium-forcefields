@@ -8,6 +8,7 @@ import torch
 import numpy as np
 from torch_geometric.loader import DataLoader
 from torch_geometric.loader.dataloader import Collater
+
 # from torch_geometric.data import collate
 
 import os
@@ -65,9 +66,14 @@ import wandb
 from typing import List
 import tracemalloc
 
-from ocpmodels.modules.normalizer import Normalizer, NormalizerByAtomtype, NormalizerByAtomtype3D
+from ocpmodels.modules.normalizer import (
+    Normalizer,
+    NormalizerByAtomtype,
+    NormalizerByAtomtype3D,
+)
 
 import ray.train as raytrain
+
 # from ray.train import Checkpoint, get_checkpoint
 # from ray.tune.schedulers import ASHAScheduler
 # import ray.cloudpickle as pickle
@@ -113,6 +119,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 import gc
+
 # https://github.com/pytorch/pytorch/issues/973
 # torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -224,6 +231,7 @@ def compute_loss(args, y, dy, target_y, target_dy, criterion_energy, criterion_f
         dy, loss_f = get_force_placeholder(target_dy, loss_e)
     return loss, loss_e, loss_f
 
+
 def get_normalizers(args, train_dataset, device, task_mean, task_std):
 
     # More statistics for normalizing forces
@@ -258,7 +266,7 @@ def get_normalizers(args, train_dataset, device, task_mean, task_std):
     # normalize forces by each atom type separately
     if args.norm_forces_by_atom in [False, None, "None"]:
         # Default normalization that Equiformer used
-        normalizer_f = Normalizer( 
+        normalizer_f = Normalizer(
             mean=0,
             std=std_f,
             device=device,
@@ -332,6 +340,7 @@ def get_normalizers(args, train_dataset, device, task_mean, task_std):
             normalizer_f = NormalizerByAtomtype(mean=mean, std=std, device=device)
 
     return {"energy": normalizer_e, "force": normalizer_f}
+
 
 def train_md(args):
 
@@ -418,7 +427,7 @@ def train_md(args):
     filelog.info("Training set size:   {}".format(len(train_dataset)))
     filelog.info("Validation set size: {}".format(len(val_dataset)))
     filelog.info("Testing set size:    {}".format(len(test_dataset)))
-        
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # statistics
@@ -426,7 +435,7 @@ def train_md(args):
     task_mean = float(y.mean())
     task_std = float(y.std())
     filelog.info("Training set mean: {}, std: {}\n".format(task_mean, task_std))
-    
+
     normalizers = get_normalizers(args, train_dataset, device, task_mean, task_std)
 
     """ Data Loader """
@@ -452,7 +461,10 @@ def train_md(args):
     indices_to_idx = {v: k for k, v in idx_to_indices.items()}
     # added drop_last=True to avoid error with fixed-point reuse
     val_loader = DataLoader(
-        val_dataset, batch_size=args.eval_batch_size, shuffle=False, drop_last=args.drop_last_val
+        val_dataset,
+        batch_size=args.eval_batch_size,
+        shuffle=False,
+        drop_last=args.drop_last_val,
     )
     if args.datasplit.startswith("fpreuse"):
         # reorder test dataset to be consecutive
@@ -467,7 +479,9 @@ def train_md(args):
         shuffle=args.shuffle_test,
         drop_last=args.drop_last_test,
     )
-    assert len(test_loader) > 0, f"Empty test_loader: len(test_loader)={len(test_loader)}"
+    assert (
+        len(test_loader) > 0
+    ), f"Empty test_loader: len(test_loader)={len(test_loader)}"
     # full dataset for final evaluation
     test_loader_full = DataLoader(
         test_dataset_full,
@@ -487,9 +501,11 @@ def train_md(args):
             "idx_to_indices": idx_to_indices,
             "indices_to_idx": indices_to_idx,
         }
-    
+
     # log memory after loading data
-    wandb.log({"memalloc-allocated_after_loading_data": torch.cuda.memory_allocated()}, step=0)
+    wandb.log(
+        {"memalloc-allocated_after_loading_data": torch.cuda.memory_allocated()}, step=0
+    )
 
     """ Compute stats """
     # Compute _AVG_NUM_NODES, _AVG_DEGREE
@@ -508,7 +524,7 @@ def train_md(args):
             "avg_edge": avg_edge,
             "avg_degree": avg_degree.item(),
         }
-    
+
     # datasplit has been generated with "seed".
     # "seedrun" is used to initialize model weights and training
     # without affecting datasplit
@@ -675,7 +691,7 @@ def train_md(args):
     # https://docs.wandb.ai/ref/python/watch
     if args.watch_model:
         wandb.watch(model, log="all", log_freq=args.log_every_step_major)
-    
+
     if args.return_model:
         return model
     if args.return_model_and_data:
@@ -789,12 +805,14 @@ def train_md(args):
     # wandb.config.update(OmegaConf.to_container(args, resolve=True), allow_val_change=True)
 
     # log memory before forward pass
-    wandb.log({"memalloc-pre_forward_test": torch.cuda.memory_allocated()}, step=global_step)
+    wandb.log(
+        {"memalloc-pre_forward_test": torch.cuda.memory_allocated()}, step=global_step
+    )
 
     """ Dryrun of forward pass for testing """
     first_batch = next(iter(train_loader))
 
-    data = first_batch.to(device) 
+    data = first_batch.to(device)
     data = data.to(device, dtype)
 
     # energy, force
@@ -817,7 +835,9 @@ def train_md(args):
     # print(f'data.dy: {data.dy.shape}')
 
     # log memory before forward pass
-    wandb.log({"memalloc-post_forward_test": torch.cuda.memory_allocated()}, step=global_step)
+    wandb.log(
+        {"memalloc-post_forward_test": torch.cuda.memory_allocated()}, step=global_step
+    )
 
     if args.test_forward:
         return True
@@ -826,7 +846,7 @@ def train_md(args):
     try:
 
         for step, data in enumerate(train_loader):
-            data = data.to(device) 
+            data = data.to(device)
             data = data.to(device, dtype)
 
             # energy, force
@@ -856,7 +876,7 @@ def train_md(args):
         filelog.info(f"node_embedding_batch_shape: {node_embedding_batch_shape}")
     except Exception as e:
         filelog.info(f"Failed to log shapes: {e}")
-        filelog.info(traceback.format_exc()) # print full stack trace
+        filelog.info(traceback.format_exc())  # print full stack trace
         node_embedding_batch_shape = None
         node_embedding_shape = None
 
@@ -935,13 +955,24 @@ def train_md(args):
 
     if args.equivariance:
         collate = Collater(follow_batch=None, exclude_keys=None)
-        equivariance_test(args, model, train_dataset, test_dataset_full, device, collate, step=global_step)
+        equivariance_test(
+            args,
+            model,
+            train_dataset,
+            test_dataset_full,
+            device,
+            collate,
+            step=global_step,
+        )
 
     if args.evaluate or args.eval_speed or args.equivariance:
         return True
-    
+
     # log memory before training
-    wandb.log({"memalloc-allocated_before_train": torch.cuda.memory_allocated()}, step=global_step)
+    wandb.log(
+        {"memalloc-allocated_before_train": torch.cuda.memory_allocated()},
+        step=global_step,
+    )
 
     """ Train! """
     if node_embedding_shape is not None:
@@ -969,7 +1000,7 @@ def train_md(args):
             lr_scheduler.step(epoch)
             # filelog.info(f"lr: {optimizer.param_groups[0]['lr']}")
             # filelog.logger.handlers[0].flush() # flush logger
-            
+
         # print('lr:', optimizer.param_groups[0]["lr"])
 
         try:
@@ -1080,8 +1111,13 @@ def train_md(args):
             # raytrain.report({"test_fmae": test_err["force"].avg, "test_emae": test_err["energy"].avg})
             # equivariance test
             equivariance_test(
-                args, model, train_dataset, test_dataset_full, device, Collater(follow_batch=None, exclude_keys=None), 
-                step=global_step
+                args,
+                model,
+                train_dataset,
+                test_dataset_full,
+                device,
+                Collater(follow_batch=None, exclude_keys=None),
+                step=global_step,
             )
         else:
             test_err, test_loss = None, None
@@ -1453,8 +1489,9 @@ def train_md(args):
     # equivariance test
     collate = Collater(follow_batch=None, exclude_keys=None)
     # device = list(model.parameters())[0].device
-    equivariance_test(args, model, train_dataset, test_dataset_full, device, collate, step=global_step)
-    
+    equivariance_test(
+        args, model, train_dataset, test_dataset_full, device, collate, step=global_step
+    )
 
     # evaluate on the whole testing set
     if args.do_final_test:
@@ -1593,7 +1630,7 @@ def train_one_epoch(
     model.train()
     # filelog.info(f"Set model to train")
     # filelog.logger.handlers[0].flush() # flush logger
-    
+
     criterion_energy.train()
     criterion_force.train()
     # crit_fpc = lambda x, y: (x - y).abs().mean()
@@ -1651,8 +1688,7 @@ def train_one_epoch(
             with_stack=True,
         )
         prof.start()
-    
-    
+
     # filelog.info(f"test forward pass")
     # filelog.logger.handlers[0].flush() # flush logger
     # warmup the cuda kernels for accurate timing
@@ -1675,7 +1711,9 @@ def train_one_epoch(
     # filelog.info(f"max_steps done")
     # filelog.logger.handlers[0].flush() # flush logger
     for batchstep, data in enumerate(data_loader):
-        wandb.log({"memalloc-pre_batch": torch.cuda.memory_allocated()}, step=global_step)
+        wandb.log(
+            {"memalloc-pre_batch": torch.cuda.memory_allocated()}, step=global_step
+        )
         # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_summary())
         # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
         data = data.to(device)
@@ -1753,7 +1791,7 @@ def train_one_epoch(
         # reshape data [B,1] (MD17) -> [B] (OC20)
         if args.squeeze_e_dim and target_y.dim() == 2:
             target_y = target_y.squeeze(1)
-        
+
         # filelog.info(f"step{batchstep} norm & squeeze done")
         # filelog.logger.handlers[0].flush() # flush logger
 
@@ -1764,14 +1802,14 @@ def train_one_epoch(
             loss += args.force_weight * loss_f
         else:
             pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
-        
+
         # filelog.info(f"step{batchstep} loss done")
         # filelog.logger.handlers[0].flush() # flush logger
-        
+
         # natoms = data.natoms[0].item()
         # if args.norm_by_natoms:
         #     loss = loss * args.norm_by_natoms_mul / natoms
-        
+
         # Fixed-point correction loss
         # for superior performance and training stability
         # https://arxiv.org/abs/2204.08442
@@ -1899,9 +1937,13 @@ def train_one_epoch(
         optimizer.zero_grad(set_to_none=args.set_grad_to_none)
         # filelog.info(f"step{batchstep} zero_grad done")
         # filelog.logger.handlers[0].flush() # flush logger
-        wandb.log({"memalloc-pre_backward": torch.cuda.memory_allocated()}, step=global_step)
+        wandb.log(
+            {"memalloc-pre_backward": torch.cuda.memory_allocated()}, step=global_step
+        )
         loss.backward(retain_graph=False)
-        wandb.log({"memalloc-post_backward": torch.cuda.memory_allocated()}, step=global_step)
+        wandb.log(
+            {"memalloc-post_backward": torch.cuda.memory_allocated()}, step=global_step
+        )
         # filelog.info(f"step{batchstep} backward done")
         # filelog.logger.handlers[0].flush() # flush logger
 
@@ -1963,7 +2005,7 @@ def train_one_epoch(
             )
             abs_fixed_point_error.append(info["abs_trace"].mean(dim=0)[-1].item())
             rel_fixed_point_error.append(info["rel_trace"].mean(dim=0)[-1].item())
-        
+
         if "nstep" in info.keys():
             f_steps_to_fixed_point.append(info["nstep"].mean().item())
 
@@ -1976,12 +2018,11 @@ def train_one_epoch(
         mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
 
         # force_err1 = pred_dy.detach() * task_std - data.dy
-        force_err = normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy 
+        force_err = normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy
         # based on OC20 and TorchMD-Net, they average over x, y, z
-        force_err = torch.mean(torch.abs(force_err)).detach().item()  
+        force_err = torch.mean(torch.abs(force_err)).detach().item()
         mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
-        
         if batchstep % print_freq == 0 or batchstep == max_steps - 1:
             w = time.perf_counter() - start_time
             e = (batchstep + 1) / max_steps
@@ -2071,12 +2112,9 @@ def train_one_epoch(
         abs_fixed_point_error = []
         rel_fixed_point_error = []
         f_steps_to_fixed_point = []
-    
+
     # epoch statistics
-    wandb.log(
-        {"grad_norm_epoch_avg": np.mean(grad_norm_epoch_avg)}, 
-        step=global_step
-    )
+    wandb.log({"grad_norm_epoch_avg": np.mean(grad_norm_epoch_avg)}, step=global_step)
 
     # if loss_metrics is all nan
     # probably because deq_kwargs.f_solver=broyden,anderson did not converge
@@ -2117,7 +2155,7 @@ def evaluate(
         solver_kwargs = args.deq_kwargs_test
     else:
         solver_kwargs = {}
-    
+
     # if we use fpreuse_test, also try without to get a comparison
     if datasplit == "test" and args.fpreuse_test == True:
         if args.fpreuse_test_only == True:
@@ -2158,7 +2196,7 @@ def evaluate(
     if (max_iter != -1) and (max_iter < max_steps):
         max_steps = max_iter
     max_samples = max_iter * args.eval_batch_size
-        
+
     # if we stitch together a series of samples that are consecutive within but not across patches
     # e.g. [42,...,5042, 10042, ..., 15042, ..., 20042] -> patch_size=5000
     # patch_size is used to reinit the fixed point
@@ -2166,13 +2204,12 @@ def evaluate(
         patch_size = len(data_loader) // args.test_patches
     else:
         patch_size = max_steps + 10  # +10 to avoid accidents
-    
-    dtype = model.parameters().__next__().dtype
 
+    dtype = model.parameters().__next__().dtype
 
     # remove because of torchdeq and force prediction via dE/dx
     # with torch.no_grad():
-    # grad_test = torch.tensor(1., requires_grad=True) 
+    # grad_test = torch.tensor(1., requires_grad=True)
     with torch.set_grad_enabled(args.test_w_grad):
         # B = grad_test + 1
         # print(f'tracking gradients: {B.requires_grad}')
@@ -2181,7 +2218,9 @@ def evaluate(
         data = next(iter(data_loader))
         data = data.to(device)
         data = data.to(device, dtype)
-        outputs = model(data=data) #, node_atom=data.z, pos=data.pos, batch=data.batch)
+        outputs = model(
+            data=data
+        )  # , node_atom=data.z, pos=data.pos, batch=data.batch)
 
         # print("\nEval:")
         # print("Model is in training mode", model.training)
@@ -2192,7 +2231,6 @@ def evaluate(
         # print("Model regress_forces", model.regress_forces)
         # print("Model direct_forces", model.direct_forces)
         optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-        
 
         for fpreuse_test in fpreuse_list:
             # name for logging
@@ -2225,7 +2263,7 @@ def evaluate(
             fixedpoint = None
             prev_idx = None
 
-            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, but not the actual GPU execution time of the kernel. 
+            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, but not the actual GPU execution time of the kernel.
             # torch.cuda.synchronize() waits for all tasks in the GPU to complete, thereby providing an accurate measure of time taken to execute
             torch.cuda.synchronize()
             start_time = time.perf_counter()
@@ -2321,12 +2359,16 @@ def evaluate(
                 loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
 
                 # energy_err = pred_y.detach() * task_std + task_mean - data.y
-                energy_err = normalizers["energy"].denorm(pred_y.detach(), data.z) - data.y
+                energy_err = (
+                    normalizers["energy"].denorm(pred_y.detach(), data.z) - data.y
+                )
                 energy_err = torch.mean(torch.abs(energy_err)).item()
                 mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
 
                 # force_err = pred_dy.detach() * task_std - data.dy
-                force_err = normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy 
+                force_err = (
+                    normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy
+                )
                 force_err = torch.mean(
                     torch.abs(force_err)
                 ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
@@ -2420,7 +2462,9 @@ def evaluate(
             wandb.log(
                 {
                     f"time_{_datasplit}": eval_time,
-                    f"time_forward_per_batch_{_datasplit}": np.mean(model_forward_times),
+                    f"time_forward_per_batch_{_datasplit}": np.mean(
+                        model_forward_times
+                    ),
                     # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_times),
                     f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
                 },
@@ -2480,7 +2524,10 @@ def evaluate(
                 step=global_step,
             )
 
-            print(f"Finished evaluation: {_datasplit} ({global_step} training steps, epoch {epoch}).", flush=True)
+            print(
+                f"Finished evaluation: {_datasplit} ({global_step} training steps, epoch {epoch}).",
+                flush=True,
+            )
             # print
             # for k, v in _logs.items():
             #     filelog.info(f" {k}: {v}")
@@ -2488,6 +2535,7 @@ def evaluate(
         # fp_reuse True/False finished
 
     return mae_metrics, loss_metrics
+
 
 def eval_speed(
     args,
@@ -2518,7 +2566,7 @@ def eval_speed(
         solver_kwargs = args.deq_kwargs_test
     else:
         solver_kwargs = {}
-    
+
     fpreuse_list = [True]
 
     if args.test_w_eval_mode is True:
@@ -2532,7 +2580,7 @@ def eval_speed(
     if (max_iter != -1) and (max_iter < max_steps):
         max_steps = max_iter
     max_samples = max_iter * args.eval_batch_size
-        
+
     # if we stitch together a series of samples that are consecutive within but not across patches
     # e.g. [42,...,5042, 10042, ..., 15042, ..., 20042] -> patch_size=5000
     # patch_size is used to reinit the fixed point
@@ -2540,12 +2588,12 @@ def eval_speed(
         patch_size = len(data_loader) // args.test_patches
     else:
         patch_size = max_steps + 10  # +10 to avoid accidents
-    
+
     dtype = model.parameters().__next__().dtype
 
     # remove because of torchdeq and force prediction via dE/dx
     # with torch.no_grad():
-    # grad_test = torch.tensor(1., requires_grad=True) 
+    # grad_test = torch.tensor(1., requires_grad=True)
     with torch.set_grad_enabled(args.test_w_grad):
         # B = grad_test + 1
         # print(f'tracking gradients: {B.requires_grad}')
@@ -2572,7 +2620,7 @@ def eval_speed(
             reuse = False
             prev_idx = None
 
-            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, but not the actual GPU execution time of the kernel. 
+            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, but not the actual GPU execution time of the kernel.
             # torch.cuda.synchronize() waits for all tasks in the GPU to complete, thereby providing an accurate measure of time taken to execute
             # torch.cuda.synchronize()
             start_time = time.perf_counter()
@@ -2589,7 +2637,7 @@ def eval_speed(
 
                 # torch.cuda.synchronize()
                 # forward_start_time = time.perf_counter()
-                
+
                 # call model and pass fixedpoint
                 model_forward_begin = time.perf_counter()
                 pred_y, pred_dy, fixedpoint, info = model(
@@ -2604,11 +2652,11 @@ def eval_speed(
                     solver_kwargs=solver_kwargs,
                 )
                 model_forward_end = time.perf_counter()
-                
+
                 # torch.cuda.synchronize()
                 # forward_end_time = time.perf_counter()
                 # model_forward_times += [forward_end_time - forward_start_time]
-                    
+
                 target_y = normalizers["energy"](data.y, data.z)
                 target_dy = normalizers["force"](data.dy, data.z)
 
@@ -2633,17 +2681,20 @@ def eval_speed(
                 loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
 
                 # energy_err = pred_y.detach() * task_std + task_mean - data.y
-                energy_err = normalizers["energy"].denorm(pred_y.detach(), data.z) - data.y
+                energy_err = (
+                    normalizers["energy"].denorm(pred_y.detach(), data.z) - data.y
+                )
                 energy_err = torch.mean(torch.abs(energy_err)).item()
                 mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
 
                 # force_err = pred_dy.detach() * task_std - data.dy
-                force_err = normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy 
+                force_err = (
+                    normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy
+                )
                 force_err = torch.mean(
                     torch.abs(force_err)
                 ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
-
 
                 if reuse:
                     model_forward_times.append(model_forward_end - model_forward_begin)
@@ -2665,7 +2716,7 @@ def eval_speed(
                 #         time_per_step=(1e3 * w / e / max_steps)
                 #     )
                 #     filelog.info(info_str)
-                
+
                 if fpreuse_test:
                     reuse = True
 
@@ -2686,13 +2737,17 @@ def eval_speed(
             #         {f"n_fsolver_steps_{_datasplit}": n_fsolver_steps}, step=global_step
             #     )
 
-            # log 
+            # log
             wandb.log(
                 {
                     f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
                     f"{_datasplit}_f_mae": mae_metrics["force"].avg,
-                    f"f_steps_to_fixed_point{_datasplit}": np.mean(f_steps_to_fixed_point),
-                    f"avg_n_fsolver_steps_{_datasplit}": np.mean(f_steps_to_fixed_point),
+                    f"f_steps_to_fixed_point{_datasplit}": np.mean(
+                        f_steps_to_fixed_point
+                    ),
+                    f"avg_n_fsolver_steps_{_datasplit}": np.mean(
+                        f_steps_to_fixed_point
+                    ),
                     # f"f_steps_to_fixed_point": np.mean(f_steps_to_fixed_point),
                     f"time_{_datasplit}": eval_time,
                     f"time_forward_per_batch{_datasplit}": np.mean(model_forward_times),
@@ -2701,18 +2756,21 @@ def eval_speed(
                 step=global_step,
             )
 
-            print(f"Finished eval_speed: {_datasplit} ({global_step} training steps, epoch {epoch}).")
+            print(
+                f"Finished eval_speed: {_datasplit} ({global_step} training steps, epoch {epoch})."
+            )
 
         # fp_reuse True/False finished
 
     return mae_metrics, loss_metrics
 
 
-
-def equivariance_test(args, model, data_train, data_test, device, collate, step=None, filelog=None):
+def equivariance_test(
+    args, model, data_train, data_test, device, collate, step=None, filelog=None
+):
     if filelog is not None:
         filelog.info("\nEquivariance test start")
-        filelog.logger.handlers[0].flush() # flush logger
+        filelog.logger.handlers[0].flush()  # flush logger
 
     model.eval()
     # print('Model in train mode:', model.training)
@@ -2723,7 +2781,7 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
 
     print(f"Equivariance result {modeltype}:")
     # for prec, cast_to_float64 in zip(["float64", "float32"], [True, False]):
-    for dataype, dataset in zip(['train', 'test'], [data_train, data_test]):
+    for dataype, dataset in zip(["train", "test"], [data_train, data_test]):
         max_off_e_list = []
         avg_off_e_list = []
         max_off_f_list = []
@@ -2765,10 +2823,10 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
             max_off_f_list.append(max_off_f)
             avg_off_f_list.append(avg_off_f)
 
-            print( 
+            print(
                 f"\n{solver_type} {sample.pos.dtype}, {dataype}, sample={idx}:",
                 # energy should be invariant
-                # f"\nEnergy:", 
+                # f"\nEnergy:",
                 # # f"\ne-7:", torch.allclose(energy1, energy_rot, atol=1.0e-7),
                 # # f"\ne-5:", torch.allclose(energy1, energy_rot, atol=1.0e-5),
                 # # f"\ne-3:", torch.allclose(energy1, energy_rot, atol=1.0e-3),
@@ -2777,7 +2835,7 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
                 # (energy1 - energy_rot).item(),
                 # forces should be equivariant
                 # model(rot(f)) == rot(model(f))
-                "\nForces:", 
+                "\nForces:",
                 # f"\ne-7:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-7),
                 # f"\ne-5:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-5),
                 # f"\ne-3:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-3),
@@ -2789,19 +2847,22 @@ def equivariance_test(args, model, data_train, data_test, device, collate, step=
 
         if step is not None:
             _n = f"{dataype}"
-            wandb.log({
-                # "equ_max_e" + _n: max_off_e,
-                # "equ_avg_e" + _n: avg_off_e,
-                "equ_max_f" + _n: max(max_off_f_list),
-                "equ_avg_f" + _n: np.mean(avg_off_f_list),
-            }, step=step
+            wandb.log(
+                {
+                    # "equ_max_e" + _n: max_off_e,
+                    # "equ_avg_e" + _n: avg_off_e,
+                    "equ_max_f" + _n: max(max_off_f_list),
+                    "equ_avg_f" + _n: np.mean(avg_off_f_list),
+                },
+                step=step,
             )
     model = model.to(model_dtype)
-    
+
     if filelog is not None:
         filelog.info("Equivariance test end")
         filelog.logger.handlers[0].flush()
     return
+
 
 def setup_logging_and_train_md(args):
     """Process args, initialize wandb logging, train."""
@@ -2811,13 +2872,12 @@ def setup_logging_and_train_md(args):
     # args = OmegaConf.to_container(args, resolve=True)
 
     train_md(args)
-    
+
 
 @hydra.main(config_name="md17", config_path="../equiformer/config", version_base="1.3")
 def hydra_wrapper_md(args: DictConfig) -> None:
     """Construct args configuration from passed arguments and yaml files"""
     setup_logging_and_train_md(args)
-
 
 
 if __name__ == "__main__":

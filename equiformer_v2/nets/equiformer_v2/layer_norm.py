@@ -12,7 +12,13 @@ import math
 
 
 def get_normalization_layer(
-    ln_type, lmax, num_channels, eps=1e-5, affine=True, normalization="component", centering=True
+    ln_type,
+    lmax,
+    num_channels,
+    eps=1e-5,
+    affine=True,
+    normalization="component",
+    centering=True,
 ):
     assert ln_type in ["layer_norm", "layer_norm_sh", "rms_norm_sh"]
     if ln_type == "layer_norm":

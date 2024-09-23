@@ -113,31 +113,30 @@ def plot_fptraj_list(
         # losses = [row["Loss"] for row in history]
 
         # turn history into dataframe
-        history = pd.DataFrame(history)
+        df = pd.DataFrame(history)
         # rename artifact_name to error_type
-        history = history.rename(columns={artifact_name: error_type})
-        print(f'len(history): {len(history)}')
+        df = df.rename(columns={artifact_name: error_type})
+        print(f'len(df): {len(df)}')
 
         # drop rows that are None
-        history = history.dropna(subset=[error_type])
-        print(f'len(history): {len(history)}')
+        df = df.dropna(subset=[error_type])
+        print(f'len(df): {len(df)}')
 
         # turn _step into a list of same length as trace
-        length = len(history[error_type].iloc[0])
-        # history["train_step"] = history["_step"].astype(int)
-        # history["train_step"] = history["_step"].astype(str)
-        history["train_step"] = history["_step"].apply(lambda x: [x] * length)
+        length = len(df[error_type].iloc[0])
+        # df["train_step"] = df["_step"].astype(int)
+        # df["train_step"] = df["_step"].astype(str)
+        df["train_step"] = df["_step"].apply(lambda x: [x] * length)
 
         # solver_step is a list [0, 1, 2, ...]
-        # history["solver_step"] = history.index
-        history["solver_step"] = history[error_type].apply(lambda x: list(range(len(x))))
+        # df["solver_step"] = df.index
+        df["solver_step"] = df[error_type].apply(lambda x: list(range(len(x))))
+        print('df: \n', df.head())
 
         # flatten
-        history = history.explode(["train_step", "solver_step", error_type])
-        print(f'len(history) after flatten: {len(history)}')
+        df = df.explode(["train_step", "solver_step", error_type])
+        print(f'len(df) after flatten: {len(df)}')
         
-        df = history
-
         print('df: \n', df.head())
 
         # save dataframe using runname

@@ -43,7 +43,7 @@ pkmn_type_colors = [
 ]
 
 # dark, muterd, deep
-PALETTE = "dark"
+PALETTE = "deep"
 # sns.color_palette("Set3", 10)
 
 # sns.color_palette("crest", as_cmap=True)

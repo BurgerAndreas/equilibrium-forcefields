@@ -19,6 +19,7 @@ from deq2ff.plotting.style import (
     set_style_after,
     myrc,
     mol_names,
+    human_labels,
 )
 
 e1 = "E1"
@@ -468,6 +469,154 @@ def print_table_acc_time(
     print("\n".join(lines))
     return lines
 
+def plot_acc_vs_speed(
+        _df, 
+        x,
+        y,
+        target=None,
+        xlabel=None,
+        ylabel=None,
+        title="Error vs Time",
+    ):
+    data = _df.copy()
+
+    if target is not None:
+        data = data[data["config.target"] == target]
+
+    # plot
+    fig, ax = plt.subplots()
+    sns.scatterplot(
+        x=x,
+        y=y,
+        hue="Class",
+        data=data,
+        ax=ax,
+        # palette=cdict
+    )
+    plt.legend()
+    plt.xlabel(xlabel if xlabel is not None else human_labels(x))
+    plt.ylabel(ylabel if ylabel is not None else human_labels(y))
+
+    if title is not None:
+        plt.title(title)
+
+    # vertical xtick labels
+    # plt.xticks(rotation=90)
+
+    # horizontal grid
+    plt.grid(axis="y")
+
+    # # save
+    # # plt.savefig(f"{plotfolder}/n_steps.png")
+    # plt.show()
+
+    return fig, ax
+
+def plot_acc_vs_speed_errorbar(
+        _df, 
+        x,
+        y,
+        target=None,
+        xlabel=None,
+        ylabel=None,
+        title="Error vs Time",
+        errbar="sd", # std, sem, ci
+        ymin=0,
+        ymax=None,
+    ):
+    data = _df.copy()
+
+    if target is not None:
+        data = data[data["config.target"] == target]
+
+    # plot
+    fig, ax = plt.subplots()
+    # sns.pointplot(
+    #     x=x,
+    #     y=y,
+    #     hue="Class",
+    #     data=data,
+    #     ax=ax,
+    #     errorbar="sd", #  “ci”, “pi”, “se”, or “sd"
+    #     native_scale=True,
+    #     # markers=["o", "x"],
+    #     # linestyles=["-", "--"],
+    #     # palette=cdict
+    # )
+
+    data = data[["Model", x, y]]
+
+    # new df with error_metric mean 
+    _mean = data.groupby(["Model"]).mean().reset_index()
+    _mean["Class"] = _mean["Model"].apply(lambda x: "DEQ" if "DEQ" in x else "E")
+    _mean = _mean.sort_values(by=["Class", "Model"], ascending=[False, True])
+
+    if errbar == "std":
+        _err = data.groupby(["Model"]).std().reset_index()
+    elif errbar == "sem":
+        # unbiased standard error of the mean
+        _err = data.groupby(["Model"]).sem().reset_index()
+    elif errbar == "ci":
+        # compute 90% confidence interval
+        _err = data.groupby(["Model"]).agg(lambda x: x.quantile(0.95) - x.mean()).reset_index()
+    elif errbar == "sd":
+        _err = data.groupby(["Model"]).std().reset_index()
+    else:
+        raise ValueError(f"Unknown errbar {errbar}")
+    _err["Class"] = _err["Model"].apply(lambda x: "DEQ" if "DEQ" in x else "E")
+
+    # scatterplot with mean of error_metric and time_metric
+    sns.scatterplot(
+        x=x,
+        y=y,
+        hue="Class",
+        data=_mean,
+        ax=ax,
+        # palette=cdict
+    )
+
+    # colors from current sns palette
+    colors = sns.color_palette()
+
+    for _class, _color in zip(["E", 'DEQ'], colors):
+        _data = _mean[_mean["Class"] == _class]
+        _err_data = _err[_err["Class"] == _class]
+        ax.errorbar(
+            x=_data[x],
+            y=_data[y],
+            xerr=_err_data[x],
+            yerr=_err_data[y],
+            fmt="none", # none, o
+            color=_color,
+            elinewidth=1,
+            capsize=3,
+            capthick=1,
+        )
+
+
+    plt.legend()
+    plt.xlabel(xlabel if xlabel is not None else human_labels(x))
+    plt.ylabel(ylabel if ylabel is not None else human_labels(y))
+
+    if ymin is not None:
+        plt.ylim(bottom=ymin)
+    if ymax is not None:
+        plt.ylim(top=ymax)
+
+    if title is not None:
+        plt.title(title)
+
+    # vertical xtick labels
+    # plt.xticks(rotation=90)
+
+    # horizontal grid
+    plt.grid(axis="y")
+
+    # # save
+    # # plt.savefig(f"{plotfolder}/n_steps.png")
+    # plt.show()
+
+    return fig, ax
 
 def prep_df_for_table(_df, error_metric="summary.test_f_mae"):
     if "config.model.num_layers" in _df.columns:

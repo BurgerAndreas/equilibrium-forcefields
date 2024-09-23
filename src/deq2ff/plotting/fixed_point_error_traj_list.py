@@ -74,37 +74,71 @@ def plot_fptraj_list(
             print(f"File not found: {csvname}")
     if download:
         print("Downloading run history...")
-        history = run.scan_history()
-        print("Processing run history...")
-        losses = [
-            [row[artifact_name], row["_step"]]
-            for row in history
-            if artifact_name in row.keys()
-        ]
-        print(f" Losses found: {len(losses[0][0]) if len(losses) > 0 else None}")
+        history = run.scan_history(keys=[artifact_name, "_step"])
 
-        print(f"Filtering out None values...")
-        losses_nonone = [[r, s] for r, s in losses if r is not None]
-        print(
-            f" Rows that were None: {len(losses) - len(losses_nonone)} / {len(losses)}"
-        )
-        losses = losses_nonone
+        # https://github.com/wandb/wandb/blob/v0.18.0/wandb/apis/public/history.py#L80
+        print(f'History: {type(history)}, len={len(history.rows)}')
 
-        print(f"Combining data into dataframe...")
-        # losses = [[r, s, [*range(len(r))]] for r, s in losses]
-        losses = [
-            {
-                error_type: pd.Series(r),
-                "train_step": pd.Series([s] * len(r)),
-                "solver_step": pd.Series(range(len(r))),
-            }
-            for r, s in losses
-        ]
-        losses_concat = {
-            k: pd.concat([d[k] for d in losses], axis=0) for k in losses[0].keys()
-        }
-        # print(f"losses_concat: {losses_concat}")
-        df = pd.DataFrame(losses_concat)
+        # print("Processing run history...")
+        # losses = [
+        #     [row[artifact_name], row["_step"]]
+        #     for row in history
+        #     if artifact_name in row.keys()
+        # ]
+        # print(f" Losses found: {len(losses[0][0]) if len(losses) > 0 else None}")
+
+        # print(f"Filtering out None values...")
+        # losses_nonone = [[r, s] for r, s in losses if r is not None]
+        # print(
+        #     f" Rows that were None: {len(losses) - len(losses_nonone)} / {len(losses)}"
+        # )
+        # losses = losses_nonone
+
+        # print(f"Combining data into dataframe...")
+        # # losses = [[r, s, [*range(len(r))]] for r, s in losses]
+        # losses = [
+        #     {
+        #         error_type: pd.Series(r),
+        #         "train_step": pd.Series([s] * len(r)),
+        #         "solver_step": pd.Series(range(len(r))),
+        #     }
+        #     for r, s in losses
+        # ]
+        # losses_concat = {
+        #     k: pd.concat([d[k] for d in losses], axis=0) for k in losses[0].keys()
+        # }
+        # # print(f"losses_concat: {losses_concat}")
+        # df = pd.DataFrame(losses_concat)
+
+        # losses = [row["Loss"] for row in history]
+
+        # turn history into dataframe
+        history = pd.DataFrame(history)
+        # rename artifact_name to error_type
+        history = history.rename(columns={artifact_name: error_type})
+        print(f'len(history): {len(history)}')
+
+        # drop rows that are None
+        history = history.dropna(subset=[error_type])
+        print(f'len(history): {len(history)}')
+
+        # turn _step into a list of same length as trace
+        length = len(history[error_type].iloc[0])
+        # history["train_step"] = history["_step"].astype(int)
+        # history["train_step"] = history["_step"].astype(str)
+        history["train_step"] = history["_step"].apply(lambda x: [x] * length)
+
+        # solver_step is a list [0, 1, 2, ...]
+        # history["solver_step"] = history.index
+        history["solver_step"] = history[error_type].apply(lambda x: list(range(len(x))))
+
+        # flatten
+        history = history.explode(["train_step", "solver_step", error_type])
+        print(f'len(history) after flatten: {len(history)}')
+        
+        df = history
+
+        print('df: \n', df.head())
 
         # save dataframe using runname
         df.to_csv(csvname)

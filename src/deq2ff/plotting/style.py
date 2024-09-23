@@ -119,6 +119,20 @@ def set_style_after(ax, fs=15, legend=True, loc="best"):
     else:
         ax.get_legend().remove()
 
+def reset_plot_styles():
+    # Reset matplotlib settings to defaults
+    plt.rcdefaults()
+    
+    # Reset seaborn settings to defaults
+    sns.reset_orig()
+
+    # Reset matplotlib settings to defaults (including styles)
+    plt.rcParams.update(plt.rcParamsDefault)
+
+    # Clear any active styling
+    plt.style.use('default')
+
+    return
 
 labels = {
     "avg_n_fsolver_steps_test_fpreuse": "Number of solver steps, FP-reuse",

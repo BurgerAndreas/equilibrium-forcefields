@@ -21,18 +21,17 @@ from deq2ff.plotting.style import (
 )
 
 
-# columns = ['abs', 'rel', 'solver_step', 'train_step']
-
-# launchrun +use=deq +cfg=fpc_of +inf=fptrace model.num_layers=2
-
+"""
+Careful: results are stochastic since wandb returns randomly sampled datapoints from history
+"""
 
 def plot_fp_error_traj(
     run_id: str,
     datasplit: str = "train",
     error_type="abs",
+    xmax=None,
     ymax=None,
     logscale=False,
-    xmax=None,
     save_plot=False,
 ):
     # https://github.com/wandb/wandb/issues/3966
@@ -64,14 +63,15 @@ def plot_fp_error_traj(
     # abs_fixed_point_error_traj_train
     # print("abs_fixed_point_error_traj_train\n", df["abs_fixed_point_error_traj_train"])
 
+    # make step same as index
+    df["step"] = df.index
+    df["step"] = df["step"].astype(int)
     # drop first row
     df = df.drop(df.index[0])
 
     # take one epoch first rows
     maxsteps = 950 // 4
     df = df.head(maxsteps)
-
-    set_seaborn_style()
 
     # plot each row of the df as a line
     df = df.rename(columns={"abs_fixed_point_error_traj_train": "abs"})
@@ -80,19 +80,22 @@ def plot_fp_error_traj(
     # drop all rows where rel is NaN
     df = df[df["rel"].notna()]
     print("len(df) notna:", len(df))
+    print(df[["abs"]])
 
-    df = df["abs"]
+    # df = df["abs"]
     dfs = []
     # loop over the rows of the dataframe
     for i in range(len(df)):
         # get the row
         row = df.iloc[i]
         # create a new dataframe from the list
+        print('row["abs"]:', row["abs"])
         dfi = pd.DataFrame(
             {
-                "abs": row,
-                "solver_step": range(len(row)),
-                "_step": i,
+                "abs": row["abs"],
+                "solver_step": range(len(row["abs"])),
+                # "_step": i,
+                "_step": [row["step"].item()] * len(row["abs"]),  # Expand scalar to match length
             }
         )
         # append the new dataframe to the list
@@ -101,6 +104,7 @@ def plot_fp_error_traj(
     # concatenate the list of dataframes
     df = pd.concat(dfs)
 
+    set_seaborn_style()
     fig, ax = plt.subplots()
 
     sns.lineplot(data=df, y="abs", x="solver_step", hue="_step", ax=ax)
@@ -114,7 +118,7 @@ def plot_fp_error_traj(
         # plt.ylim(1e-12, ymax)
         plt.ylim(top=ymax)
     if xmax is not None:
-        plt.xlim(right=xmax)
+        plt.xlim(left=0, right=xmax)
     # legend title
     # plt.title(f"{run_name}")
     plt.title(f"Fixed-Point Trace over Training")

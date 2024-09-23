@@ -1627,9 +1627,17 @@ def train_one_epoch(
     # filelog.info(f"Init train epoch {epoch}")
     # filelog.logger.handlers[0].flush() # flush logger
 
+    filelog.info(f"Resetting optimizer")
+    filelog.logger.handlers[0].flush() # flush logger
+    optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+    filelog.info(f"Optimizer reset")
+    filelog.logger.handlers[0].flush() # flush logger
     model.train()
-    # filelog.info(f"Set model to train")
-    # filelog.logger.handlers[0].flush() # flush logger
+    filelog.info(f"Set model to train")
+    filelog.logger.handlers[0].flush() # flush logger
+    model.set_current_deq()
+    filelog.info(f"Set DEQ")
+    filelog.logger.handlers[0].flush() # flush logger
 
     criterion_energy.train()
     criterion_force.train()
@@ -1649,9 +1657,6 @@ def train_one_epoch(
     # triplet loss
     triplet_lossfn = TripletLoss(margin=args.tripletloss_margin)
 
-    # filelog.info(f"Resetting optimizer")
-    # filelog.logger.handlers[0].flush() # flush logger
-    optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
     # statistics over epoch
     abs_fixed_point_error = []
@@ -1665,7 +1670,6 @@ def train_one_epoch(
 
     dtype = model.parameters().__next__().dtype
 
-    model.set_current_deq()
 
     # for debugging
     # if we don't set model.eval()
@@ -2166,12 +2170,21 @@ def evaluate(
     else:
         fpreuse_list = [False]
 
+    filelog.info(f"Resetting optimizer")
+    filelog.logger.handlers[0].flush() # flush logger
+    optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+    filelog.info(f"Optimizer reset")
+    filelog.logger.handlers[0].flush() # flush logger
     if args.test_w_eval_mode is True:
         model.eval()
         # criterion.eval()
         criterion_energy.eval()
         criterion_force.eval()
+    filelog.info(f"Model set to eval mode")
+    filelog.logger.handlers[0].flush() # flush logger
     model.set_current_deq()
+    filelog.info(f"Model set to current deq")
+    filelog.logger.handlers[0].flush() # flush logger
 
     # logging loss for each data index only makes sense with batch_size=1
     loss_per_idx = False
@@ -2230,7 +2243,6 @@ def evaluate(
         # print("Grad is tracking", outputs[0].requires_grad)
         # print("Model regress_forces", model.regress_forces)
         # print("Model direct_forces", model.direct_forces)
-        optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
         for fpreuse_test in fpreuse_list:
             # name for logging

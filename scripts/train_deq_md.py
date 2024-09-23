@@ -2294,7 +2294,8 @@ def evaluate(
                     )
                 torch.cuda.synchronize()
                 forward_end_time = time.perf_counter()
-                model_forward_times += [forward_end_time - forward_start_time]
+                if log_fp:
+                    model_forward_times += [forward_end_time - forward_start_time]
 
                 target_y = normalizers["energy"](data.y, data.z)
                 target_dy = normalizers["force"](data.dy, data.z)
@@ -2565,8 +2566,7 @@ def eval_speed(
             abs_fixed_point_error = []
             rel_fixed_point_error = []
             f_steps_to_fixed_point = []
-            f_steps_to_fixed_point_fpr = []
-            model_forward_times_fpr = []
+            model_forward_times = []
             n_fsolver_steps = []
             fixedpoint = None
             reuse = False
@@ -2604,7 +2604,8 @@ def eval_speed(
                     solver_kwargs=solver_kwargs,
                 )
                 model_forward_end = time.perf_counter()
-                reuse = True
+                if fpreuse_test:
+                    reuse = True
                 
                 # torch.cuda.synchronize()
                 # forward_end_time = time.perf_counter()
@@ -2647,10 +2648,7 @@ def eval_speed(
 
 
                 if reuse:
-                    model_forward_times_fpr.append(model_forward_end - model_forward_begin)
-                    if len(info) > 0:
-                        f_steps_to_fixed_point_fpr.append(info["nstep"].mean().item())
-                else:
+                    model_forward_times.append(model_forward_end - model_forward_begin)
                     if len(info) > 0:
                         f_steps_to_fixed_point.append(info["nstep"].mean().item())
 
@@ -2690,12 +2688,13 @@ def eval_speed(
             # log 
             wandb.log(
                 {
-                    f"time_{_datasplit}": eval_time,
                     f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
                     f"{_datasplit}_f_mae": mae_metrics["force"].avg,
-                    f"f_steps_to_fixed_point_fpr": np.mean(f_steps_to_fixed_point_fpr),
+                    f"f_steps_to_fixed_point{_datasplit}": np.mean(f_steps_to_fixed_point),
                     # f"f_steps_to_fixed_point": np.mean(f_steps_to_fixed_point),
-                    f"time_forward_per_batch_fpr": np.mean(model_forward_times_fpr),
+                    f"time_{_datasplit}": eval_time,
+                    f"time_forward_per_batch{_datasplit}": np.mean(model_forward_times),
+                    f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
                 },
                 step=global_step,
             )

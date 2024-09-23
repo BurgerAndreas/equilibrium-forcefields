@@ -1628,6 +1628,8 @@ def train_one_epoch(
 
     dtype = model.parameters().__next__().dtype
 
+    model.set_current_deq()
+
     # for debugging
     # if we don't set model.eval()
     # params like the batchnorm layers in the model will be updated.
@@ -2131,6 +2133,7 @@ def evaluate(
         # criterion.eval()
         criterion_energy.eval()
         criterion_force.eval()
+    model.set_current_deq()
 
     # logging loss for each data index only makes sense with batch_size=1
     loss_per_idx = False
@@ -2165,6 +2168,7 @@ def evaluate(
         patch_size = max_steps + 10  # +10 to avoid accidents
     
     dtype = model.parameters().__next__().dtype
+
 
     # remove because of torchdeq and force prediction via dE/dx
     # with torch.no_grad():
@@ -2237,6 +2241,7 @@ def evaluate(
                     prev_idx = None
                     # for time and nsteps only keep samples where we used the fixed-point
                     log_fp = False
+                model.set_current_deq(reuse=True if fixedpoint is not None else False)
 
                 # if we pass step, things will be logged to wandb
                 # note that global_step is only updated in train_one_epoch
@@ -2520,6 +2525,7 @@ def eval_speed(
         # criterion.eval()
         criterion_energy.eval()
         criterion_force.eval()
+    model.set_current_deq()
 
     max_steps = len(data_loader)
     if (max_iter != -1) and (max_iter < max_steps):
@@ -2559,9 +2565,11 @@ def eval_speed(
             abs_fixed_point_error = []
             rel_fixed_point_error = []
             f_steps_to_fixed_point = []
-            model_forward_times = []
+            f_steps_to_fixed_point_fpr = []
+            model_forward_times_fpr = []
             n_fsolver_steps = []
             fixedpoint = None
+            reuse = False
             prev_idx = None
 
             # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, but not the actual GPU execution time of the kernel. 
@@ -2576,11 +2584,14 @@ def eval_speed(
                 if fpreuse_test and (step % patch_size == 0):
                     # reset fixed-point
                     fixedpoint = None
+                    reuse = False
+                model.set_current_deq(reuse=True if fixedpoint is not None else False)
 
                 # torch.cuda.synchronize()
                 # forward_start_time = time.perf_counter()
                 
                 # call model and pass fixedpoint
+                model_forward_begin = time.perf_counter()
                 pred_y, pred_dy, fixedpoint, info = model(
                     data=data,  # for EquiformerV2
                     node_atom=data.z,
@@ -2592,6 +2603,8 @@ def eval_speed(
                     fixedpoint=fixedpoint,
                     solver_kwargs=solver_kwargs,
                 )
+                model_forward_end = time.perf_counter()
+                reuse = True
                 
                 # torch.cuda.synchronize()
                 # forward_end_time = time.perf_counter()
@@ -2632,24 +2645,30 @@ def eval_speed(
                 ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
-                if len(info) > 0:
-                    f_steps_to_fixed_point.append(info["nstep"].mean().item())
 
-                if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
-                    # torch.cuda.synchronize()
-                    w = time.perf_counter() - start_time
-                    e = (step + 1) / max_steps
-                    info_str = (
-                        f"[{step}/{max_steps}]{'(fpreuse)' if fpreuse_test else ''} \t"
-                    )
-                    info_str += "e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
-                        e_mae=mae_metrics["energy"].avg,
-                        f_mae=mae_metrics["force"].avg,
-                    )
-                    info_str += "time/step={time_per_step:.0f}ms".format(
-                        time_per_step=(1e3 * w / e / max_steps)
-                    )
-                    filelog.info(info_str)
+                if reuse:
+                    model_forward_times_fpr.append(model_forward_end - model_forward_begin)
+                    if len(info) > 0:
+                        f_steps_to_fixed_point_fpr.append(info["nstep"].mean().item())
+                else:
+                    if len(info) > 0:
+                        f_steps_to_fixed_point.append(info["nstep"].mean().item())
+
+                # if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
+                #     # torch.cuda.synchronize()
+                #     w = time.perf_counter() - start_time
+                #     e = (step + 1) / max_steps
+                #     info_str = (
+                #         f"[{step}/{max_steps}]{'(fpreuse)' if fpreuse_test else ''} \t"
+                #     )
+                #     info_str += "e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
+                #         e_mae=mae_metrics["energy"].avg,
+                #         f_mae=mae_metrics["force"].avg,
+                #     )
+                #     info_str += "time/step={time_per_step:.0f}ms".format(
+                #         time_per_step=(1e3 * w / e / max_steps)
+                #     )
+                #     filelog.info(info_str)
 
                 if (step + 1) >= max_steps:
                     break
@@ -2674,7 +2693,9 @@ def eval_speed(
                     f"time_{_datasplit}": eval_time,
                     f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
                     f"{_datasplit}_f_mae": mae_metrics["force"].avg,
-                    f"{f_steps_to_fixed_point}_{_datasplit}": np.mean(f_steps_to_fixed_point),
+                    f"f_steps_to_fixed_point_fpr": np.mean(f_steps_to_fixed_point_fpr),
+                    # f"f_steps_to_fixed_point": np.mean(f_steps_to_fixed_point),
+                    f"time_forward_per_batch_fpr": np.mean(model_forward_times_fpr),
                 },
                 step=global_step,
             )

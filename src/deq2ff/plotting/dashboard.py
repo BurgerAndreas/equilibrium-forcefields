@@ -201,6 +201,8 @@ def preprocess_df(df, project, error_metric):
     df.loc[:, "Model"] = df["config.model_is_deq"].apply(
         lambda x: "E" if not x else "DEQ"
     ) + df["config.model.num_layers"].apply(str) 
+    # new column mtarget that combines target and Model
+    df.loc[:, "mtarget"] = df["Model"] + " " + df["config.target"]
 
     # add training progress to model name
     # if project == projectmd:
@@ -222,6 +224,11 @@ def preprocess_df(df, project, error_metric):
     # For Equiformer use the number of layers as NFE
     df["NFE"] = df["nstep"]
     df["NFE"] = df["NFE"].fillna(df["config.model.num_layers"])
+
+    # where Model is DEQ, set NFE to 2*num_layers
+    df.loc[df["Model"] == "DEQ2", "NFE"] = df.loc[df["Model"] == "DEQ2", "NFE"] * 2
+
+    df["NFE_time"] = df["NFE"] * 1.131
 
     # for OC20 determine how much data was used
     if project == projectoc:
@@ -312,7 +319,11 @@ def preprocess_df(df, project, error_metric):
     return df
 
 
-def mark_sota(_df, comparison = "pairwise", error_metric = "summary.test_f_mae"):
+def mark_sota(
+        _df, comparison = "pairwise", 
+        error_metric = "summary.test_f_mae",
+        sotaname = "sota",
+    ):
     """Add a column 'sota' to the dataframe that marks the best run for each target."""
 
     if comparison in [False, None]:
@@ -320,30 +331,30 @@ def mark_sota(_df, comparison = "pairwise", error_metric = "summary.test_f_mae")
 
     elif comparison in "best":
         # mark the run with the lowest error_metric for each target
-        _df["sota"] = False
+        _df[sotaname] = False
         for target in _df["config.target"].unique():
             _df_best = _df[_df["config.target"] == target]
             _df_best = _df_best[_df_best[error_metric] == _df_best[error_metric].min()]
-            _df.loc[_df_best.index, "sota"] = True
+            _df.loc[_df_best.index, sotaname] = True
 
     elif comparison in "pairwise":
         print("Models:", _df["Model"].unique())
 
         # we compare models of similar inference time
         # first pick out E4 and DEQ1 models and mark the best one
-        _df["sota"] = False
+        _df[sotaname] = False
         for target in _df["config.target"].unique():
             _df_best = _df[_df["config.target"] == target]
             _df_best = _df_best[_df_best["Model"].isin([e4, deq1])]
             _df_best = _df_best[_df_best[error_metric] == _df_best[error_metric].min()]
-            _df.loc[_df_best.index, "sota"] = True
+            _df.loc[_df_best.index, sotaname] = True
 
         # then pick out E8 and DEQ2 models and mark the best one
         for target in _df["config.target"].unique():
             _df_best = _df[_df["config.target"] == target]
             _df_best = _df_best[_df_best["Model"].isin([e8, deq2])]
             _df_best = _df_best[_df_best[error_metric] == _df_best[error_metric].min()]
-            _df.loc[_df_best.index, "sota"] = True
+            _df.loc[_df_best.index, sotaname] = True
             
     else:
         raise ValueError(f"Unknown comparison {comparison}")
@@ -414,15 +425,13 @@ def print_table_acc_time(
                     line += f" & \\textbf{{{_err:.2f}}}"
                 else:
                     line += f" & {_err:.2f}" 
-                # TODO
+
                 # timing 
-                # if _df_t["sotatime"].values[0]:
-                #     line += f" & \\textbf{{{float(_df_t[time_metric]):.2f}}}"
-                # else:
-                #     line += f" & {float(_df_t[time_metric]):.2f}" 
-                time = "..." # int(_df_t['summary.epoch'])
-                line += f" & {time}"
-        line += " \\"
+                if _df_t["sotatime"].values[0]:
+                    line += f" & \\textbf{{{float(_df_t[time_metric]):.2f}}}"
+                else:
+                    line += f" & {float(_df_t[time_metric]):.2f}" 
+
         lines += [line]
 
     print("\n".join(lines))

@@ -779,6 +779,10 @@ class EquiformerV2_OC20(BaseModel):
                 self.blocks[i].noise_in.update_mask(x.shape, x.dtype, x.device)
             if self.blocks[i].noise_out is not None:
                 self.blocks[i].noise_out.update_mask(x.shape, x.dtype, x.device)
+    
+    def set_current_deq(self, reuse=False):
+        """We use different DEQ solvers for training, evaluation, and fixed-point reuse."""
+        pass
 
     @conditional_grad(torch.enable_grad())
     def encode(self, data):

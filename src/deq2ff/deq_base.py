@@ -34,6 +34,8 @@ def _init_deq(
     deq_kwargs2.update(deq_kwargs_fpr)
     self.deq_eval_fpr = get_deq(**deq_kwargs2)
 
+    self.deq_current = self.deq
+
     # weight/spectral normalization for better stability
     # Using norm_type='none' in `kwargs` can also skip it.
     if torchdeq_norm["norm_type"] in [None, "none", False]:

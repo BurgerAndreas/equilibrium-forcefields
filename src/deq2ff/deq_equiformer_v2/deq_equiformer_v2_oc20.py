@@ -212,6 +212,17 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
     def _init_deq(self, torchdeq_norm, deq_kwargs, **kwargs):
         return _init_deq(self, torchdeq_norm=torchdeq_norm, deq_kwargs=deq_kwargs, **kwargs)
 
+    def set_current_deq(self, reuse=False):
+        """We use different DEQ solvers for training, evaluation, and fixed-point reuse."""
+        # if self.eval() and reuse:
+        if reuse:
+            self.deq_current = self.deq_eval_fpr
+        elif self.eval():
+            self.deq_current = self.deq_eval
+        else:
+            self.deq_current = self.deq
+
+
     @conditional_grad(torch.enable_grad())
     def forward(
         self,
@@ -285,24 +296,19 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             )
 
         # [B*N, D, C] -> [B, N, D, C] # torchdeq batchify
-        if self.batchify_for_torchdeq:
-            z = z.view(self.shape_unbatched)
+        # if self.batchify_for_torchdeq:
+        #     z = z.view(self.shape_unbatched)
 
         # find fixed-point
         # During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
         # During inference, returns a list containing the fixed point solution only.
         # z_pred, info = self.deq(f, z, solver_kwargs=solver_kwargs)
-        if self.eval() and reuse:
-            z_pred, info = self.deq_eval_fpr(func=func, z_init=z)
-        elif self.eval():
-            z_pred, info = self.deq_eval(func=func, z_init=z)
-        else:
-            z_pred, info = self.deq(func=func, z_init=z)
+        z_pred, info = self.deq_current(func=func, z_init=z)
         # z_pred = [emb]
 
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
-        if self.batchify_for_torchdeq:
-            z_pred = [_z.view(self.shape_batched) for _z in z_pred]
+        # if self.batchify_for_torchdeq:
+        #     z_pred = [_z.view(self.shape_batched) for _z in z_pred]
         
         # print('z_pred.shape:', z_pred[-1])
         # print('z_pred.shape:', z_pred[-1].shape)
@@ -409,70 +415,21 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             z: torch.Tensor, [B, N, D, C]: fixed-point estimate (node features)
             emb: torch.Tensor, [B, N, D, C]: input injection (output of encoder)
         """
-        """ Input injection """
-        # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
-        if self.batchify_for_torchdeq:
-            z = z.view(self.shape_batched)
         # we can't use previous of x because we initialize z as 0
-        # norm_before = z.norm()
-        # norm_before = torch.linalg.norm(z, ord=2, dim=-1)
         norm_before = torch.linalg.norm(emb)
         # input injection
-        channels = self.sphere_channels
-        if self.inp_inj == "cat":
-            # z = torch.cat([z, emb], dim=-1)
-            z = torch.cat([z, emb], dim=-1)
-            channels = self.sphere_channels + self.sphere_channels_fixedpoint
-        elif self.inp_inj == "add":
-            z = z + emb
-        elif self.inp_inj == "lc":
-            # linear combination with scalar weights
-            z = self.inj_w1 * z + self.inj_w2 * emb
-        elif self.inp_inj == "nlc":
-            # linear combination with scalar weights
-            z = self.inj_w1 * z + (1-self.inj_w1) * emb
-        elif self.inp_inj == "cwlc":
-            # linear combination with matrix weights
-            # inj_w1: [D,C] -> [B*N, D, C]
-            # inj_w1 = self.inj_w1.unsqueeze(0).expand(x.shape[0], -1, -1)
-            inj_w1 = self.inj_w1.repeat(z.shape[0], 1, 1)
-            inj_w2 = self.inj_w2.repeat(z.shape[0], 1, 1)
-            z = inj_w1 * z + inj_w2 * emb
-        elif self.inp_inj == "swlc":
-            inj_w1 = self.inj_w1.repeat(z.shape[0], z.shape[1], 1)
-            inj_w2 = self.inj_w2.repeat(z.shape[0], z.shape[1], 1)
-            z = inj_w1 * z + inj_w2 * emb
-        else:
-            raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
-        
-        """ Normalize after input injection """
-        # print_values(z, "injprenorm", log=False)
-        if self.inj_norm == "prev":
-            scale = torch.linalg.norm(z) / norm_before
-            z = z / scale
-        elif self.inj_norm == "one":
-            z = z / torch.linalg.norm(z)
-        elif self.inj_norm == "ln":
-            # z = self.inj_ln(z)
-            z = self.inj_norm_ln(z)
-            # raise NotImplementedError("inj_norm=ln: use enc_ln=True inj_norm=null instead.")
-        elif self.inj_norm in [None, False, "none", "None"]:
-            pass
-        else:
-            raise ValueError(f"Invalid inj_norm: {self.inj_norm}")
+        z = z + emb
+        # Normalize after input injection 
+        z = z / (torch.linalg.norm(z) / norm_before)
         z = SO3_Embedding(
             length=z.shape[0],
             lmax_list=self.lmax_list,
-            num_channels=channels,
+            num_channels=self.sphere_channels,
             device=self.device,
             dtype=self.dtype,
             embedding=z,
         )
-        # print_values(x.embedding, "postinj", log=False)
-
-        """ Layers / Transformer blocks """
-        # prev_layers = self.num_layers_per_stack * stack
-        # for i in range(prev_layers, prev_layers + self.num_layers_per_stack):
+        # Layers / Transformer blocks
         for i in range(self.num_layers):
             z = self.blocks[i](
                 z,  # SO3_Embedding
@@ -481,13 +438,98 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
                 edge_index,
                 batch=batch,  # for GraphPathDrop
             )
-            # self.cnt_layer += 1
-            # self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit, layer=self.cnt_layer)
         z = z.embedding
         # [B*N, D, C] -> [B, N, D, C] # torchdeq batchify
-        if self.batchify_for_torchdeq:
-            z = z.view(self.shape_unbatched)
         return z
+
+    # @conditional_grad(torch.enable_grad())
+    # def deq_implicit_layer(
+    #     self, z: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, batch,
+    #     step=None, datasplit=None, solver_step=None, stack=0,
+    # ) -> torch.Tensor:
+    #     """Implicit layer for DEQ that defines the fixed-point.
+    #     Make sure to inputs and outputs are torch.tensor, not SO3_Embedding, to not break TorchDEQ.
+    #     Args:
+    #         z: torch.Tensor, [B, N, D, C]: fixed-point estimate (node features)
+    #         emb: torch.Tensor, [B, N, D, C]: input injection (output of encoder)
+    #     """
+    #     """ Input injection """
+    #     # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
+    #     if self.batchify_for_torchdeq:
+    #         z = z.view(self.shape_batched)
+    #     # we can't use previous of x because we initialize z as 0
+    #     norm_before = torch.linalg.norm(emb)
+    #     # input injection
+    #     channels = self.sphere_channels
+    #     if self.inp_inj == "cat":
+    #         # z = torch.cat([z, emb], dim=-1)
+    #         z = torch.cat([z, emb], dim=-1)
+    #         channels = self.sphere_channels + self.sphere_channels_fixedpoint
+    #     elif self.inp_inj == "add":
+    #         z = z + emb
+    #     elif self.inp_inj == "lc":
+    #         # linear combination with scalar weights
+    #         z = self.inj_w1 * z + self.inj_w2 * emb
+    #     elif self.inp_inj == "nlc":
+    #         # linear combination with scalar weights
+    #         z = self.inj_w1 * z + (1-self.inj_w1) * emb
+    #     elif self.inp_inj == "cwlc":
+    #         # linear combination with matrix weights
+    #         # inj_w1: [D,C] -> [B*N, D, C]
+    #         # inj_w1 = self.inj_w1.unsqueeze(0).expand(x.shape[0], -1, -1)
+    #         inj_w1 = self.inj_w1.repeat(z.shape[0], 1, 1)
+    #         inj_w2 = self.inj_w2.repeat(z.shape[0], 1, 1)
+    #         z = inj_w1 * z + inj_w2 * emb
+    #     elif self.inp_inj == "swlc":
+    #         inj_w1 = self.inj_w1.repeat(z.shape[0], z.shape[1], 1)
+    #         inj_w2 = self.inj_w2.repeat(z.shape[0], z.shape[1], 1)
+    #         z = inj_w1 * z + inj_w2 * emb
+    #     else:
+    #         raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
+        
+    #     """ Normalize after input injection """
+    #     # print_values(z, "injprenorm", log=False)
+    #     if self.inj_norm == "prev":
+    #         scale = torch.linalg.norm(z) / norm_before
+    #         z = z / scale
+    #     elif self.inj_norm == "one":
+    #         z = z / torch.linalg.norm(z)
+    #     elif self.inj_norm == "ln":
+    #         # z = self.inj_ln(z)
+    #         z = self.inj_norm_ln(z)
+    #         # raise NotImplementedError("inj_norm=ln: use enc_ln=True inj_norm=null instead.")
+    #     elif self.inj_norm in [None, False, "none", "None"]:
+    #         pass
+    #     else:
+    #         raise ValueError(f"Invalid inj_norm: {self.inj_norm}")
+    #     z = SO3_Embedding(
+    #         length=z.shape[0],
+    #         lmax_list=self.lmax_list,
+    #         num_channels=channels,
+    #         device=self.device,
+    #         dtype=self.dtype,
+    #         embedding=z,
+    #     )
+    #     # print_values(x.embedding, "postinj", log=False)
+
+    #     """ Layers / Transformer blocks """
+    #     # prev_layers = self.num_layers_per_stack * stack
+    #     # for i in range(prev_layers, prev_layers + self.num_layers_per_stack):
+    #     for i in range(self.num_layers):
+    #         z = self.blocks[i](
+    #             z,  # SO3_Embedding
+    #             atomic_numbers,
+    #             edge_distance,
+    #             edge_index,
+    #             batch=batch,  # for GraphPathDrop
+    #         )
+    #         # self.cnt_layer += 1
+    #         # self.measure_oversmoothing(x=x.embedding, batch=data.batch, step=step, split=datasplit, layer=self.cnt_layer)
+    #     z = z.embedding
+    #     # [B*N, D, C] -> [B, N, D, C] # torchdeq batchify
+    #     if self.batchify_for_torchdeq:
+    #         z = z.view(self.shape_unbatched)
+    #     return z
 
     def _init_z(self, shape, emb=None):
         """Initializes fixed-point for DEQ

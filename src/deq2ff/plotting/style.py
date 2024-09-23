@@ -53,6 +53,37 @@ PALETTE = "dark"
 # https://colorbrewer2.org/#type=sequential&scheme=Oranges&n=4
 
 
+# set sns color palette to one blue, three shades of orange
+# sns.set_palette(sns.color_palette(["#1f77b4", "#ff7f0e", "#ffbb78", "#2ca02c"]))
+# sns.set_palette(sns.color_palette(["#1f77b4", "#E97451", "#E3963E", "#FFC000"]))
+# sns.set_palette(sns.color_palette(["#1f77b4", "#E97451", "#FFC000", "#EC5800"])) 
+# oranges: #fdbe85 #fd8d3c #e6550d #a63603
+# okka #fe9929
+# blues: # #8c96c6 #8856a7
+# teals: #b2e2e2 #66c2a4 #2ca25f
+cdict = {
+    # blues
+    "DEQ1": "#fdcc8a",
+    "DEQ2": "#fe9929",
+    # oranges
+    "E1": "#b2e2e2",
+    "E4": "#66c2a4",
+    "E8": "#2b8cbe", # 2ca25f 2b8cbe
+}
+cdict = {
+    # https://www.colorhexa.com/ffb347
+    # https://www.colorhexa.com/ffb347
+    "DEQ1": "#F8A874", # F8A874 #FBCEB1
+    "DEQ2": "#F58238",
+    # https://www.picmonkey.com/colors/blue/pastel-blue 
+    # https://www.picmonkey.com/colors/gray/slate
+    "E1": "#AEC6CF",
+    "E4": "#5E8D9F",
+    "E8": "#476A77", # 2ca25f 2b8cbe
+}
+
+
+######################################################################################
 def set_seaborn_style(
     style="whitegrid", palette=PALETTE, context="poster", figsize=(8, 6), font_scale=0.8
 ):

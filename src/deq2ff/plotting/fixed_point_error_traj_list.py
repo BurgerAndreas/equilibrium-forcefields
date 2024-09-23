@@ -24,8 +24,11 @@ from deq2ff.plotting.style import (
 # columns = ['abs', 'rel', 'solver_step', 'train_step']
 
 
-def main(
-    run_id: str, datasplit: str = "train", error_type="abs", ymax=None, logscale=False
+def plot_fptraj_list(
+    run_id: str, datasplit: str = "train", error_type="abs", ymax=None, logscale=False,
+    xmax=None,
+    save_plot=False,
+    download=True,
 ):
     # https://github.com/wandb/wandb/issues/3966
 
@@ -57,11 +60,15 @@ def main(
         f"{plotfolder}/{run.id}_{error_type}_fixed_point_error_traj_{datasplit}.csv"
     )
     # try to load from csv
-    try:
-        df = pd.read_csv(csvname)
-        print(f"Loaded from csv: {csvname}")
+    if download == False:
+        try:
+            df = pd.read_csv(csvname)
+            print(f"Loaded from csv: {csvname}")
 
-    except FileNotFoundError:
+        except FileNotFoundError:
+            download = True
+            print(f"File not found: {csvname}")
+    if download:
         print("Downloading run history...")
         history = run.scan_history()
         print("Processing run history...")
@@ -123,6 +130,8 @@ def main(
         # cant plot 0 on logscale
         # plt.ylim(1e-12, ymax)
         plt.ylim(top=ymax)
+    if xmax is not None:
+        plt.xlim(right=xmax)
     # legend title
     # plt.title(f"{run_name}")
     plt.title(f"Fixed-Point Trace over Training")
@@ -135,14 +144,17 @@ def main(
 
     plt.tight_layout()
 
-    fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{error_type}_{run_id.split('/')[-1]}_{mname}.png"
-    plt.savefig(fname)
-    print(f"Saved plot to \n {fname}")
+    if save_plot:
+        fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{error_type}_{run_id.split('/')[-1]}_{mname}.png"
+        plt.savefig(fname)
+        print(f"Saved plot to \n {fname}")
+    
+    return fig, ax
 
     # close the plot
-    plt.cla()
-    plt.clf()
-    plt.close()
+    # plt.cla()
+    # plt.clf()
+    # plt.close()
 
 
 if __name__ == "__main__":
@@ -150,21 +162,21 @@ if __name__ == "__main__":
     # ----------------- E2 paper -----------------
     # DEQE2 fpcof droppathrate-005 numlayers-2 target-aspirin 44347 y74fi59q
     run_id = "y74fi59q"
-    main(run_id, error_type="abs", datasplit="train", logscale=True)
+    plot_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=True)
 
     # DEQE2 fpcof droppathrate-005 numlayers-2 seed-3 44235 l4967hbt
     run_id = "l4967hbt"
-    main(run_id, error_type="abs", datasplit="train", logscale=False)
+    plot_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=False)
 
     # DEQE2 fpcof numlayers-2 44195 6ovbmv0v
     run_id = "6ovbmv0v"
-    main(run_id, error_type="abs", datasplit="train", logscale=False)
-    main(run_id, error_type="rel", datasplit="train", logscale=False)
+    plot_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=False)
+    plot_fptraj_list(run_id, error_type="rel", datasplit="train", logscale=False)
 
     # DEQE2 fpcof numlayers-2 seed-2 44196 ef3trp9e
     run_id = "ef3trp9e"
-    main(run_id, error_type="abs", datasplit="train", logscale=False)
-    main(run_id, error_type="rel", datasplit="train", logscale=False)
+    plot_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=False)
+    plot_fptraj_list(run_id, error_type="rel", datasplit="train", logscale=False)
 
     # launchrun +use=deq +cfg=[fpc_of,fptrace] model.num_layers=2
 

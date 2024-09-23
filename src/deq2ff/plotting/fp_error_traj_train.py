@@ -28,6 +28,7 @@ from deq2ff.plotting.style import (
 
 def plot_fp_error_traj(
     run_id: str, datasplit: str = "train", error_type="abs", ymax=None, logscale=False,
+    xmax=None,
     save_plot=False,
 ):
     # https://github.com/wandb/wandb/issues/3966
@@ -57,7 +58,7 @@ def plot_fp_error_traj(
 
     # abs_fixed_point_error_train
     # abs_fixed_point_error_traj_train
-    print("abs_fixed_point_error_traj_train\n", df["abs_fixed_point_error_traj_train"])
+    # print("abs_fixed_point_error_traj_train\n", df["abs_fixed_point_error_traj_train"])
 
     # drop first row
     df = df.drop(df.index[0])
@@ -68,15 +69,13 @@ def plot_fp_error_traj(
 
     set_seaborn_style()
 
-    fig, ax = plt.subplots()
-
     # plot each row of the df as a line
     df = df.rename(columns={"abs_fixed_point_error_traj_train": "abs"})
     df = df.rename(columns={"rel_fixed_point_error_traj_train": "rel"})
 
     # drop all rows where rel is NaN
     df = df[df["rel"].notna()]
-    print("len(df):", len(df))
+    print("len(df) notna:", len(df))
 
     df = df["abs"]
     dfs = []
@@ -110,6 +109,8 @@ def plot_fp_error_traj(
         # cant plot 0 on logscale
         # plt.ylim(1e-12, ymax)
         plt.ylim(top=ymax)
+    if xmax is not None:
+        plt.xlim(right=xmax)
     # legend title
     # plt.title(f"{run_name}")
     plt.title(f"Fixed-Point Trace over Training")
@@ -127,7 +128,7 @@ def plot_fp_error_traj(
         plt.savefig(fname)
         print(f"Saved plot to \n {fname}")
 
-    return fig
+    return fig, ax
     # close the plot
     # plt.cla()
     # plt.clf()

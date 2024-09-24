@@ -176,6 +176,8 @@ class BaseTrainerV2(BaseTrainer):
         noddp=False,
         # added
         deq_kwargs={},
+        deq_kwargs_eval={},
+        deq_kwargs_fpr={},
         model_is_deq=False,
         val_max_iter=-1,
         test_w_eval_mode=True,
@@ -304,6 +306,11 @@ class BaseTrainerV2(BaseTrainer):
         # if we are using DEQ, ensure that the kwargs are present
         if len(deq_kwargs) > 0:
             self.config["model_attributes"]["deq_kwargs"] = deq_kwargs
+        if len(deq_kwargs_eval) > 0:
+            self.config["model_attributes"]["deq_kwargs_eval"] = deq_kwargs_eval
+        if len(deq_kwargs_fpr) > 0:
+            self.config["model_attributes"]["deq_kwargs_fpr"] = deq_kwargs_fpr
+        
         if model_is_deq:
             assert (not self.config["model_is_deq"]) or (
                 "deq_kwargs" in self.config["model_attributes"]

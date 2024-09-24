@@ -84,6 +84,8 @@ class Runner(submitit.helpers.Checkpointable):
                 val_max_iter=config.get("val_max_iter", -1),
                 model_is_deq=config.get("model_is_deq", False),
                 deq_kwargs=config.get("deq_kwargs", {}),
+                deq_kwargs_eval=config.get("deq_kwargs_eval", {}),
+                deq_kwargs_fpr=config.get("deq_kwargs_fpr", {}),
                 # test_w_eval_mode
             )
             # overwrite mode

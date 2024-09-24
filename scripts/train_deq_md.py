@@ -1635,27 +1635,30 @@ def train_one_epoch(
     model.train()
     filelog.info(f"Set model to train")
     filelog.logger.handlers[0].flush() # flush logger
-    model.set_current_deq()
-    filelog.info(f"Set DEQ")
-    filelog.logger.handlers[0].flush() # flush logger
+
+    # filelog.info(f"Setting DEQ")
+    # filelog.logger.handlers[0].flush() # flush logger
+    # model.set_current_deq()
+    # filelog.info(f"Set DEQ")
+    # filelog.logger.handlers[0].flush() # flush logger
 
     criterion_energy.train()
     criterion_force.train()
     # crit_fpc = lambda x, y: (x - y).abs().mean()
-    criterion_fpc = nn.MSELoss()
-    criterion_contrastive = nn.MSELoss()
-    criterion_fpr = nn.MSELoss()
+    # criterion_fpc = nn.MSELoss()
+    # criterion_contrastive = nn.MSELoss()
+    # criterion_fpr = nn.MSELoss()
 
     loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
     mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
 
     start_time = time.perf_counter()
 
-    task_mean = model.task_mean
-    task_std = model.task_std
+    # task_mean = model.task_mean
+    # task_std = model.task_std
 
-    # triplet loss
-    triplet_lossfn = TripletLoss(margin=args.tripletloss_margin)
+    # # triplet loss
+    # triplet_lossfn = TripletLoss(margin=args.tripletloss_margin)
 
 
     # statistics over epoch
@@ -1669,7 +1672,8 @@ def train_one_epoch(
     isnan_cnt = 0
 
     dtype = model.parameters().__next__().dtype
-
+    filelog.info(f"Got dtype")
+    filelog.logger.handlers[0].flush() # flush logger
 
     # for debugging
     # if we don't set model.eval()
@@ -1700,6 +1704,7 @@ def train_one_epoch(
     data = data.to(device)
     data = data.to(device, dtype)
     outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
+    optimizer.zero_grad(set_to_none=args.set_grad_to_none)
     # filelog.info(f"test forward pass done")
 
     # print("\nTrain:")
@@ -2180,11 +2185,12 @@ def evaluate(
         # criterion.eval()
         criterion_energy.eval()
         criterion_force.eval()
-    filelog.info(f"Model set to eval mode")
-    filelog.logger.handlers[0].flush() # flush logger
-    model.set_current_deq()
-    filelog.info(f"Model set to current deq")
-    filelog.logger.handlers[0].flush() # flush logger
+
+    # filelog.info(f"Model set to eval mode")
+    # filelog.logger.handlers[0].flush() # flush logger
+    # model.set_current_deq()
+    # filelog.info(f"Model set to current deq")
+    # filelog.logger.handlers[0].flush() # flush logger
 
     # logging loss for each data index only makes sense with batch_size=1
     loss_per_idx = False
@@ -2291,7 +2297,11 @@ def evaluate(
                     prev_idx = None
                     # for time and nsteps only keep samples where we used the fixed-point
                     log_fp = False
-                model.set_current_deq(reuse=True if fixedpoint is not None else False)
+                # filelog.info(f"Setting DEQ")
+                # filelog.logger.handlers[0].flush() # flush logger
+                # model.set_current_deq(reuse=True if fixedpoint is not None else False)
+                # filelog.info(f"Set DEQ")
+                # filelog.logger.handlers[0].flush() # flush logger
 
                 # if we pass step, things will be logged to wandb
                 # note that global_step is only updated in train_one_epoch
@@ -2586,7 +2596,11 @@ def eval_speed(
         # criterion.eval()
         criterion_energy.eval()
         criterion_force.eval()
-    model.set_current_deq()
+    # filelog.info(f"Setting DEQ")
+    # filelog.logger.handlers[0].flush() # flush logger
+    # model.set_current_deq()
+    # filelog.info(f"Set DEQ")
+    # filelog.logger.handlers[0].flush() # flush logger
 
     max_steps = len(data_loader)
     if (max_iter != -1) and (max_iter < max_steps):
@@ -2645,7 +2659,11 @@ def eval_speed(
                     # reset fixed-point
                     fixedpoint = None
                     reuse = False
-                model.set_current_deq(reuse=True if fixedpoint is not None else False)
+                # filelog.info(f"Setting DEQ")
+                # filelog.logger.handlers[0].flush() # flush logger
+                # model.set_current_deq(reuse=True if fixedpoint is not None else False)
+                # filelog.info(f"Set DEQ")
+                # filelog.logger.handlers[0].flush() # flush logger
 
                 # torch.cuda.synchronize()
                 # forward_start_time = time.perf_counter()

@@ -1697,15 +1697,16 @@ def train_one_epoch(
         )
         prof.start()
 
-    # filelog.info(f"test forward pass")
-    # filelog.logger.handlers[0].flush() # flush logger
+    filelog.info(f"test forward pass")
+    filelog.logger.handlers[0].flush() # flush logger
     # warmup the cuda kernels for accurate timing
     data = next(iter(data_loader))
     data = data.to(device)
     data = data.to(device, dtype)
     outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
     optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-    # filelog.info(f"test forward pass done")
+    filelog.info(f"test forward pass done")
+    filelog.logger.handlers[0].flush() # flush logger
 
     # print("\nTrain:")
     # print("Model is in training mode", model.training)
@@ -1723,14 +1724,17 @@ def train_one_epoch(
         wandb.log(
             {"memalloc-pre_batch": torch.cuda.memory_allocated()}, step=global_step
         )
+        filelog.info(f"logged memory")
+        filelog.logger.handlers[0].flush() # flush logger
         # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_summary())
         # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
         data = data.to(device)
-        # filelog.info(f"step{batchstep} data.to(device) done")
-        # filelog.logger.handlers[0].flush() # flush logger
+        filelog.info(f"step{batchstep} data.to(device) done")
+        filelog.logger.handlers[0].flush() # flush logger
+        
         data = data.to(device, dtype)
-        # filelog.info(f"step{batchstep} data.to(device, dtype) done")
-        # filelog.logger.handlers[0].flush() # flush logger
+        filelog.info(f"step{batchstep} data.to(device, dtype) done")
+        filelog.logger.handlers[0].flush() # flush logger
 
         # reinit DEQ to make sure nothing is stored in the buffers
         # if hasattr(model, "deq"):

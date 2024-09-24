@@ -20,6 +20,8 @@ from deq2ff.plotting.style import (
     myrc,
     mol_names,
     human_labels,
+    marks,
+    reset_plot_styles,
 )
 
 e1 = "E1"
@@ -215,7 +217,10 @@ def preprocess_df(df, project, error_metric):
         lambda x: "E" if not x else "DEQ"
     ) + df["config.model.num_layers"].apply(str)
     # new column mtarget that combines target and Model
-    df.loc[:, "mtarget"] = df["Model"] + " " + df["config.target"]
+    if project == projectmd:
+        df.loc[:, "mtarget"] = df["Model"] + " " + df["config.target"]
+    elif project == projectoc:
+        df.loc[:, "mtarget"] = df["Model"]
 
     # add training progress to model name
     # if project == projectmd:
@@ -241,7 +246,7 @@ def preprocess_df(df, project, error_metric):
     # where Model is DEQ, set NFE to 2*num_layers
     df.loc[df["Model"] == "DEQ2", "NFE"] = df.loc[df["Model"] == "DEQ2", "NFE"] * 2
 
-    df["NFE_time"] = df["NFE"] * 1.131
+    df["NFE_time"] = df["NFE"] * 1.231
 
     # for OC20 determine how much data was used
     if project == projectoc:
@@ -387,19 +392,24 @@ def mark_sota(
     return _df
 
 
-def print_table_acc_time(
+def print_table_acc( 
     df,
     error_metric,
-    time_metric,
-    dnames=["md17"],
+    corner=True,
+    mname="Force",
+    dnames=["oc20"],
     ex_targets=["dw_nanotube"],
     models=["E1", "E4", "E8", "DEQ1", "DEQ2"],
 ):
     _df = df.copy()
 
     # select dname=md17
-    for dname in dnames:
-        _df = _df[_df["config.dname"] == dname]
+    _df = _df[_df["config.dname"].isin(dnames)]
+
+    if corner == True:
+        corner = " ".join([_n.upper() for _n in dnames])
+    elif not isinstance(corner, str):
+        corner = ""
 
     # exclude dw_nanotube
     for ex_target in ex_targets:
@@ -412,62 +422,218 @@ def print_table_acc_time(
     lines = []
 
     # first lines: header
-    """
+    r"""
     \begin{tabular}{lcccccccccccccccc}
     \toprule[1.2pt]
-                            & \multicolumn{2}{c}{Aspirin} & \multicolumn{2}{c}{Benzene} & \multicolumn{2}{c}{Ethanol} & \multicolumn{2}{c}{Malonaldehyde} & \multicolumn{2}{c}{Naphthalene} & \multicolumn{2}{c}{Salicylic acid} & \multicolumn{2}{c}{Toluene} & \multicolumn{2}{c}{Uracil} \\
+     & \multicolumn{2}{c}{Aspirin} & \multicolumn{2}{c}{Benzene} & \multicolumn{2}{c}{Ethanol} & \multicolumn{2}{c}{Malonaldehyde} & \multicolumn{2}{c}{Naphthalene} & \multicolumn{2}{c}{Salicylic acid} & \multicolumn{2}{c}{Toluene} & \multicolumn{2}{c}{Uracil} \\
     \cmidrule[0.6pt]{2-17}
-    Methods                                               & Forces       & Time       & Forces       & Time       & Forces       & Time       & Forces          & Time          & Forces         & Time         & Forces           & Time          & Forces       & Time       & Forces       & Time      \\
-
+    Methods & Forces & Time & Forces & Time & Forces & Time & Forces& Time & Forces   & Time   & Forces   & Time   & Forces  & Time  & Forces  & Time  \\
     \midrule[1.2pt]
     """
-    lines += ["\begin{tabular}{l}" + ("c" * (num_targets * 2)) + "}"]
-    lines += ["\toprule[1.2pt]"]
-    lines += [
-        " & "
-        + " & ".join([f"\multicolumn{2}{{c}}{{{mol_names[t]}}}" for t in targets])
-        + " \\"
-    ]
-    lines += ["\cmidrule[0.6pt]{2-" + f"{int(num_targets*2 + 1)}" + "}"]
-    lines += ["\midrule[1.2pt]"]
+    lines += [r"\begin{tabular}{l" + (r"c" * num_targets) + r"}"]
+    lines += [r"\toprule[1.2pt]"]
+    # if there is more than one target, add a line with the target names
+    if num_targets > 1:
+        lines += [
+            r" & "
+            + r" & ".join([r"\multicolumn{1}{c}{" + f"{mol_names[t]}"  + r"}" for t in targets])
+            + r" \\"
+        ]
+        lines += [r"\cmidrule[0.6pt]{2-" + f"{int(num_targets + 1)}" + r"}"]
+    lines += [corner + r" & " + r" & ".join([mname for t in targets]) + r" \\"]
+    lines += [r"\midrule[1.2pt]"]
 
     # lines with results
     for _r, row in enumerate(models):
         # mark DEQ with a horizontal line
         if row == "DEQ1":
-            lines += ["\midrule[0.6pt]"]
+            lines += [r"\midrule[0.6pt]"]
         # rename Model
-        rname = row.replace("E", "\equiformer{} ")
-        rname = rname.replace("D\equiformer{} Q", "DEQ")
-        rname = rname.replace("DEQ", "DEQ ")
+        rname = row.replace("E", r"\equiformer{} ")
+        rname = rname.replace(r"D\equiformer{} Q", r"DEQ")
+        rname = rname.replace(r"DEQ", r"DEQ ")
         rname = rname.split(" ")
-        rname = rname[0] + " (" + rname[1] + " layers)"
-        rname = rname.replace("1 layers", "1 layer")
+        rname = rname[0] + r" (" + rname[1] + r" layers)"
+        rname = rname.replace(r"1 layers", r"1 layer")
         line = f"{rname}"
         # add results
         for t in targets:
             _df_t = _df[_df["config.target"] == t]
             _df_t = _df_t[_df_t["Model"] == row]
             if len(_df_t) == 0:
-                line += " & & "
+                line += r" & "
             else:
                 # accuracy
-                _err = float(_df_t[error_metric].iloc[0])
+                _err = f"{_df_t[error_metric].iloc[0]:.3f}"
                 if _df_t["sota"].values[0]:
-                    line += f" & \\textbf{{{_err:.2f}}}"
+                    line += r" & $\mathbf{" + _err + r"}$"
                 else:
-                    line += f" & {_err:.2f}"
-
-                # timing
-                if _df_t["sotatime"].values[0]:
-                    line += f" & \\textbf{{{float(_df_t[time_metric]):.2f}}}"
-                else:
-                    line += f" & {float(_df_t[time_metric]):.2f}"
-
+                    line += r" & $" + _err + r"$"
+        # newline
+        line += r" \\"
         lines += [line]
 
+    # print(' ')
     print("\n".join(lines))
+    # print(' ')
     return lines
+
+def print_table_acc_time(
+    df,
+    error_metric,
+    time_metric,
+    dnames=["md17"],
+    corner=True,
+    ex_targets=["dw_nanotube"],
+    models=["E1", "E4", "E8", "DEQ1", "DEQ2"],
+):
+    _df = df.copy()
+
+    # select dname=md17
+    _df = _df[_df["config.dname"].isin(dnames)]
+    
+    if corner == True:
+        corner = " ".join([_n.upper() for _n in dnames])
+    elif not isinstance(corner, str):
+        corner = ""
+
+    # exclude dw_nanotube
+    for ex_target in ex_targets:
+        _df = _df[_df["config.target"] != ex_target]
+    # _df = _df[_df["config.target"] != "dw_nanotube"]
+
+    targets = list(_df["config.target"].unique())
+    num_targets = len(targets)
+
+    lines = []
+
+    # first lines: header
+    r"""
+    \begin{tabular}{lcccccccccccccccc}
+    \toprule[1.2pt]
+     & \multicolumn{2}{c}{Aspirin} & \multicolumn{2}{c}{Benzene} & \multicolumn{2}{c}{Ethanol} & \multicolumn{2}{c}{Malonaldehyde} & \multicolumn{2}{c}{Naphthalene} & \multicolumn{2}{c}{Salicylic acid} & \multicolumn{2}{c}{Toluene} & \multicolumn{2}{c}{Uracil} \\
+    \cmidrule[0.6pt]{2-17}
+    Methods & Forces & Time & Forces & Time & Forces & Time & Forces& Time & Forces   & Time   & Forces   & Time   & Forces  & Time  & Forces  & Time  \\
+    \midrule[1.2pt]
+    """
+    lines += [r"\begin{tabular}{l" + (r"c" * (num_targets * 2)) + r"}"]
+    lines += [r"\toprule[1.2pt]"]
+    # if there is more than one target, add a line with the target names
+    if num_targets > 1:
+        lines += [
+            r" & "
+            + r" & ".join([r"\multicolumn{2}{c}{" + f"{mol_names[t]}"  + r"}" for t in targets])
+            + r" \\"
+        ]
+        lines += [r"\cmidrule[0.6pt]{2-" + f"{int(num_targets*2 + 1)}" + r"}"]
+    lines += [corner + r" & " + r" & ".join([r"Force & Time" for t in targets]) + r" \\"]
+    lines += [r"\midrule[1.2pt]"]
+
+    # lines with results
+    for _r, row in enumerate(models):
+        # mark DEQ with a horizontal line
+        if row == "DEQ1":
+            lines += [r"\midrule[0.6pt]"]
+        # rename Model
+        rname = row.replace("E", r"\equiformer{} ")
+        rname = rname.replace(r"D\equiformer{} Q", r"DEQ")
+        rname = rname.replace(r"DEQ", r"DEQ ")
+        rname = rname.split(" ")
+        rname = rname[0] + r" (" + rname[1] + r" layers)"
+        rname = rname.replace(r"1 layers", r"1 layer")
+        line = f"{rname}"
+        # add results
+        for t in targets:
+            _df_t = _df[_df["config.target"] == t]
+            _df_t = _df_t[_df_t["Model"] == row]
+            if len(_df_t) == 0:
+                line += r" & & "
+            else:
+                # accuracy
+                _err = f"{_df_t[error_metric].iloc[0]:.3f}"
+                if _df_t["sota"].values[0]:
+                    line += r" & $\mathbf{" + _err + r"}$"
+                else:
+                    line += r" & $" + _err + r"$"
+
+                # timing
+                _time = f"{float(_df_t[time_metric].iloc[0]):.3f}"
+                if _df_t["sotatime"].values[0]:
+                    line += r" & $\mathbf{" + _time + r"}$"
+                else:
+                    line += r" & $" + _time + r"$"
+        # newline
+        line += r" \\"
+        lines += [line]
+
+    # print(' ')
+    print("\n".join(lines))
+    # print(' ')
+    return lines
+
+def norm_targets(data, norm_scheme="minmax", error_metric="summary.test_f_mae"):
+    """Normalize all target molecules to be in the same range.
+    Modifies in place.
+    """
+    # data = normalize(data, norm_scheme=norm_scheme)
+    # normalize
+    ylabel = error_metric
+    if norm_scheme == "minmax":
+        data[error_metric] = data.groupby("config.target")[error_metric].transform(
+            lambda x: (x - x.min()) / (x.max() - x.min())
+        )
+        ylabel = human_labels(error_metric) + " (minmax)"
+    elif norm_scheme == "minmax2":
+        # instead of [0, 1], normalize to [-1, 1]
+        data[error_metric] = data.groupby("config.target")[error_metric].transform(
+            lambda x: 2 * (x - x.min()) / (x.max() - x.min()) - 1
+        )
+        ylabel = human_labels(error_metric) + " (normed to [-1, 1])"
+
+    elif norm_scheme == "minmax3":
+        # normalize to [0.1, 1]
+        data[error_metric] = data.groupby("config.target")[error_metric].transform(
+            lambda x: 0.9 * (x - x.min()) / (x.max() - x.min()) + 0.1
+        )
+        ylabel = human_labels(error_metric) + " (normed to [0.1, 1])"
+
+    elif norm_scheme == "mean":
+        data[error_metric] = data.groupby("config.target")[error_metric].transform(
+            lambda x: x / x.mean()
+        )
+        ylabel = human_labels(error_metric) + " (zero mean)"
+    elif norm_scheme == "zscore":
+        data[error_metric] = data.groupby("config.target")[error_metric].transform(
+            lambda x: (x - x.mean()) / x.std()
+        )
+        ylabel = human_labels(error_metric) + " (zscore)"
+    elif norm_scheme == "zscoree4":
+        # instead of substracing the mean, substract E4
+        for t in data["config.target"].unique():
+            _mean = data[(data["config.target"] == t) & (data["Model"] == "E4")][
+                error_metric
+            ].mean()
+            _std = data[data["config.target"] == t][error_metric].std()
+            data.loc[data["config.target"] == t, error_metric] = (
+                data[data["config.target"] == t][error_metric] - _mean
+            ) / _std
+        ylabel = human_labels(error_metric) + " (zscore around mean=E4)"
+
+    elif norm_scheme == "zscoree4":
+        # instead of substracing the mean, substract E4
+        for t in data["config.target"].unique():
+            _mean = data[(data["config.target"] == t) & (data["Model"] == "E8")][
+                error_metric
+            ].mean()
+            _std = data[data["config.target"] == t][error_metric].std()
+            data.loc[data["config.target"] == t, error_metric] = (
+                data[data["config.target"] == t][error_metric] - _mean
+            ) / _std
+        ylabel = human_labels(error_metric) + " (zscore around mean=E8)"
+    else:
+        raise NotImplementedError
+
+    return data, ylabel
 
 def plot_acc_vs_speed(
         _df, 
@@ -477,13 +643,26 @@ def plot_acc_vs_speed(
         xlabel=None,
         ylabel=None,
         title="Error vs Time",
+        shapestyle=None, # None, config.num_layers
+        fname=False,
     ):
     data = _df.copy()
 
     if target is not None:
         data = data[data["config.target"] == target]
 
+    if shapestyle is not None:
+        shapekwargs = {
+            "shape": shapestyle,
+            "markers": marks[: len(list(data[shapestyle].unique()))]
+        }
+        data[shapekwargs].rename(columns={shapestyle: human_labels(shapestyle)}, inplace=True)
+    else:
+        shapekwargs = {}
+
     # plot
+    reset_plot_styles()
+    set_seaborn_style(palette=PALETTE)
     fig, ax = plt.subplots()
     sns.scatterplot(
         x=x,
@@ -492,6 +671,7 @@ def plot_acc_vs_speed(
         data=data,
         ax=ax,
         # palette=cdict
+        **shapekwargs,
     )
     plt.legend()
     plt.xlabel(xlabel if xlabel is not None else human_labels(x))
@@ -505,10 +685,12 @@ def plot_acc_vs_speed(
 
     # horizontal grid
     plt.grid(axis="y")
+    set_style_after(ax=ax)
 
-    # # save
-    # # plt.savefig(f"{plotfolder}/n_steps.png")
-    # plt.show()
+    # save
+    if fname:
+        plt.savefig(f"{plotfolder}/{fname}.png")
+        print(f"Saved plot to \n {plotfolder}/{fname}.png")
 
     return fig, ax
 
@@ -523,13 +705,64 @@ def plot_acc_vs_speed_errorbar(
         errbar="sd", # std, sem, ci
         ymin=0,
         ymax=None,
+        markershape=None, # None, config.num_layers
+        fname=False,
     ):
+    """_summary_
+
+    Args:
+        _df (_type_): normed but not averaged df
+    """
     data = _df.copy()
 
     if target is not None:
         data = data[data["config.target"] == target]
 
+
+    data = data[["Model", x, y]]
+
+    # new df with error_metric mean 
+    # observed only applies if any of the groupers are Categoricals. If True: only show observed values for categorical groupers. If False: show all values for categorical groupers
+    _mean = data.groupby(["Model"], observed=False).mean().reset_index()
+    # columns and naming
+    _mean["Class"] = _mean["Model"].apply(lambda x: "DEQ" if "DEQ" in x else "E")
+    _mean["num_layers"] = _mean["Model"].apply(lambda x: int(x[-1]))
+    _mean = _mean.sort_values(by=["Class", "Model"], ascending=[False, True])
+
+    if errbar is not None:
+        if errbar == "std":
+            _err = data.groupby(["Model"]).std().reset_index()
+        elif errbar == "sem":
+            # unbiased standard error of the mean
+            _err = data.groupby(["Model"]).sem().reset_index()
+        elif errbar == "ci":
+            # compute 90% confidence interval
+            _err = data.groupby(["Model"]).agg(lambda x: x.quantile(0.95) - x.mean()).reset_index()
+        elif errbar == "sd":
+            _err = data.groupby(["Model"]).std().reset_index()
+        else:
+            raise ValueError(f"Unknown errbar {errbar}")
+        _err["Class"] = _err["Model"].apply(lambda x: "DEQ" if "DEQ" in x else "E")
+        _err["num_layers"] = _err["Model"].apply(lambda x: int(x[-1]))
+        _err = _err.sort_values(by=["Class", "Model"], ascending=[False, True])
+
+    if markershape is not None:
+        # make pretty
+        _mean.rename(columns={markershape: human_labels(markershape)}, inplace=True)
+        if errbar is not None: 
+            _err.rename(columns={markershape: human_labels(markershape)}, inplace=True)
+        markershape = human_labels(markershape)
+        # set markers
+        shapekwargs = {
+            "style": markershape,
+            "markers": marks[: len(list(_mean[markershape].unique()))]
+        }
+    else:
+        shapekwargs = {}
+
     # plot
+    reset_plot_styles()
+    set_seaborn_style(palette=PALETTE)
     fig, ax = plt.subplots()
     # sns.pointplot(
     #     x=x,
@@ -544,27 +777,6 @@ def plot_acc_vs_speed_errorbar(
     #     # palette=cdict
     # )
 
-    data = data[["Model", x, y]]
-
-    # new df with error_metric mean 
-    _mean = data.groupby(["Model"]).mean().reset_index()
-    _mean["Class"] = _mean["Model"].apply(lambda x: "DEQ" if "DEQ" in x else "E")
-    _mean = _mean.sort_values(by=["Class", "Model"], ascending=[False, True])
-
-    if errbar == "std":
-        _err = data.groupby(["Model"]).std().reset_index()
-    elif errbar == "sem":
-        # unbiased standard error of the mean
-        _err = data.groupby(["Model"]).sem().reset_index()
-    elif errbar == "ci":
-        # compute 90% confidence interval
-        _err = data.groupby(["Model"]).agg(lambda x: x.quantile(0.95) - x.mean()).reset_index()
-    elif errbar == "sd":
-        _err = data.groupby(["Model"]).std().reset_index()
-    else:
-        raise ValueError(f"Unknown errbar {errbar}")
-    _err["Class"] = _err["Model"].apply(lambda x: "DEQ" if "DEQ" in x else "E")
-
     # scatterplot with mean of error_metric and time_metric
     sns.scatterplot(
         x=x,
@@ -573,26 +785,27 @@ def plot_acc_vs_speed_errorbar(
         data=_mean,
         ax=ax,
         # palette=cdict
+        **shapekwargs,
     )
 
-    # colors from current sns palette
-    colors = sns.color_palette()
+    if errbar is not None:
+        # colors from current sns palette
+        colors = sns.color_palette()
 
-    for _class, _color in zip(["E", 'DEQ'], colors):
-        _data = _mean[_mean["Class"] == _class]
-        _err_data = _err[_err["Class"] == _class]
-        ax.errorbar(
-            x=_data[x],
-            y=_data[y],
-            xerr=_err_data[x],
-            yerr=_err_data[y],
-            fmt="none", # none, o
-            color=_color,
-            elinewidth=1,
-            capsize=3,
-            capthick=1,
-        )
-
+        for _class, _color in zip(["E", 'DEQ'], colors):
+            _data = _mean[_mean["Class"] == _class]
+            _err_data = _err[_err["Class"] == _class]
+            ax.errorbar(
+                x=_data[x],
+                y=_data[y],
+                xerr=_err_data[x],
+                yerr=_err_data[y],
+                fmt="none", # none, o
+                color=_color,
+                elinewidth=1,
+                capsize=3,
+                capthick=1,
+            )
 
     plt.legend()
     plt.xlabel(xlabel if xlabel is not None else human_labels(x))
@@ -611,10 +824,12 @@ def plot_acc_vs_speed_errorbar(
 
     # horizontal grid
     plt.grid(axis="y")
+    set_style_after(ax=ax)
 
-    # # save
-    # # plt.savefig(f"{plotfolder}/n_steps.png")
-    # plt.show()
+    # save
+    if fname:
+        plt.savefig(f"{plotfolder}/{fname}.png")
+        print(f"Saved plot to \n {plotfolder}/{fname}.png")
 
     return fig, ax
 

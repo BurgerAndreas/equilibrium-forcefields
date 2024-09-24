@@ -119,6 +119,11 @@ def set_style_after(ax, fs=15, legend=True, loc="best"):
     else:
         ax.get_legend().remove()
 
+    plt.tight_layout(pad=0.1)
+
+    return
+    
+
 def reset_plot_styles():
     # Reset matplotlib settings to defaults
     plt.rcdefaults()
@@ -145,21 +150,25 @@ labels = {
     "best_test_f_mae": r"Best force MAE [kcal/mol/$\AA$]",
     # "test_f_mae": "Force MAE",
     "test_f_mae": r"Force MAE [kcal/mol/$\AA$]",
-    "best_test_e_mae": "Best energy MAE [kcal/mol]",
+    "val/forces_mae": r"Force MAE [kcal/mol/$\AA$]",
     "test_e_mae": "Energy MAE [kcal/mol]",
+    "val/energy_mae": "Energy MAE [kcal/mol]",
+    "best_test_e_mae": "Best energy MAE [kcal/mol]",
     "nfe": "NFE",
     # time
     "time_test": "Test time for 1000 samples [s]",
     "time_forward_per_batch_test": "Forward time per batch [s]",
     "time_forward_total_test": "Total forward time for 1000 samples [s]",
     "nfe": "NFE",
+    "num_layers": "Number of Layers",
+    "modelparameters": "Model Parameters",
 }
 
 
 def human_labels(lab):
     lab = lab.split(".")[-1]
-    if lab in labels:
-        return labels[lab]
+    if lab.lower() in labels:
+        return labels[lab.lower()]
     else:
         return lab
 
@@ -183,8 +192,14 @@ mol_names = {
     "dw_nanotube": "Double-walled nanotube",
     "buckyball_catcher": "Buckyball catcher",
     "Ac_Ala3_NHMe": "Ac-Ala3-NHMe",
+    #
+    '200k e3': 'OC20 200k',
 }
 
+# https://stackoverflow.com/a/64403147/18361030
+# marks = ["o", "s", "^"]
+marks = ["o", "X", "^", "P", "D"]
+# marks = ["o", "P", "^"]
 
 def combine_legend(ax, colorstyle_dict, markerstyle):
     # https://stackoverflow.com/questions/68591271/how-can-i-combine-hue-and-style-groups-in-a-seaborn-legend

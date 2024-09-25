@@ -1536,6 +1536,8 @@ def train_md(args):
             os.path.join(
                 args.output_dir,
                 "final_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
+                    # if test_err is None, it will raise a TypeError
+                    # TypeError: 'NoneType' object is not subscriptable
                     final_epoch, test_err["energy"].avg, test_err["force"].avg
                 ),
             ),
@@ -2162,7 +2164,7 @@ def evaluate(
 ):
     """Val or test split."""
 
-    filelog.info("Evaluating...", datasplit if datasplit is not None else "")
+    filelog.info(f"Evaluating... ({datasplit})")
 
     # Techniques for faster inference
     # e.g. fixed-point reuse, relaxed FP-error threshold, etc.

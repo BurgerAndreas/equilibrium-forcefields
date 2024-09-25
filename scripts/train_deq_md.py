@@ -810,24 +810,24 @@ def train_md(args):
     )
 
     """ Dryrun of forward pass for testing """
-    first_batch = next(iter(train_loader))
+    # first_batch = next(iter(train_loader))
 
-    data = first_batch.to(device)
-    data = data.to(device, dtype)
+    # data = first_batch.to(device)
+    # data = data.to(device, dtype)
 
-    # energy, force
-    model.train()
-    # criterion.train()
-    criterion_energy.train()
-    criterion_force.train()
-    pred_y, pred_dy, info = model(
-        data=data,  # for EquiformerV2
-        node_atom=data.z,
-        pos=data.pos,
-        batch=data.batch,
-        # step=global_step,
-        # datasplit="train",
-    )
+    # # energy, force
+    # model.train()
+    # # criterion.train()
+    # criterion_energy.train()
+    # criterion_force.train()
+    # pred_y, pred_dy, info = model(
+    #     data=data,  # for EquiformerV2
+    #     node_atom=data.z,
+    #     pos=data.pos,
+    #     batch=data.batch,
+    #     # step=global_step,
+    #     # datasplit="train",
+    # )
 
     # print(f'pred_y: {pred_y.shape}')
     # print(f'pred_dy: {pred_dy.shape}')

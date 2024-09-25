@@ -172,7 +172,7 @@ def broyden_solver(
     max_iter, # 50
     tol, # 1e-3
     stop_mode, # 'abs'
-    indexing, # None
+    indexing=None, # None
     LBFGS_thres=None,
     ls=False,
     return_final=False,

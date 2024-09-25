@@ -18,7 +18,7 @@ def anderson_solver(
     max_iter, # 50
     tol, # 1e-3
     stop_mode, # 'abs'
-    indexing, # None
+    indexing=None, # None
     m=6, # 6
     lam=1e-4, # 1e-4
     tau=1.0, # 1.0

@@ -16,7 +16,7 @@ def fixed_point_iter(
     max_iter, # 
     tol, # 1e-3
     stop_mode, # 'abs'
-    indexing, # None
+    indexing=None, # None
     tau=1.0,
     return_final=False,
     **kwargs

@@ -147,6 +147,7 @@ def backward_factory(
                         )[0]
                         + grad,
                         torch.zeros_like(grad),
+                        indexing=b_solver_kwargs.get("indexing", None),
                         **b_solver_kwargs
                     )
                     if writer:

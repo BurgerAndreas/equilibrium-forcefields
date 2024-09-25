@@ -2264,6 +2264,7 @@ def evaluate(
             # initialize metrics
             loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
             mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
+            mae_metrics_fpr = {"energy": AverageMeter(), "force": AverageMeter()}
             abs_fixed_point_error = []
             rel_fixed_point_error = []
             f_steps_to_fixed_point = []
@@ -2362,6 +2363,7 @@ def evaluate(
                 torch.cuda.synchronize()
                 forward_end_time = time.perf_counter()
                 if log_fp:
+                    # during fpreuse_test only measure for samples where we reused the fixed-point
                     model_forward_times += [forward_end_time - forward_start_time]
 
                 target_y = normalizers["energy"](data.y, data.z)
@@ -2403,6 +2405,11 @@ def evaluate(
                 ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
+                if log_fp:
+                    # during fpreuse_test only measure for samples where we reused the fixed-point
+                    mae_metrics_fpr["force"].update(force_err, n=pred_dy.shape[0])
+                    mae_metrics_fpr["energy"].update(energy_err, n=pred_y.shape[0])
+
                 # --- logging ---
                 if "abs_trace" in info.keys():
                     if pass_step is not None:
@@ -2422,6 +2429,7 @@ def evaluate(
 
                 if "nstep" in info.keys():
                     if log_fp:
+                        # during fpreuse_test only measure for samples where we reused the fixed-point
                         # duplicates kept for legacy reasons
                         f_steps_to_fixed_point.append(info["nstep"].mean().item())
                         n_fsolver_steps.append(info["nstep"].mean().item())
@@ -2482,20 +2490,28 @@ def evaluate(
             _logs = {
                 f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
                 f"{_datasplit}_f_mae": mae_metrics["force"].avg,
+                f"{_datasplit}_fpr_e_mae": mae_metrics_fpr["energy"].avg,
+                f"{_datasplit}_fpr_f_mae": mae_metrics_fpr["force"].avg,
                 f"time_{_datasplit}": eval_time,
                 f"time_forward_per_batch_{_datasplit}": np.mean(model_forward_times),
                 # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_times)
                 f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
             }
-            # log the time
             wandb.log(
                 {
+                    # log the time
                     f"time_{_datasplit}": eval_time,
                     f"time_forward_per_batch_{_datasplit}": np.mean(
                         model_forward_times
                     ),
                     # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_times),
                     f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
+                    # log test error
+                    f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
+                    f"{_datasplit}_f_mae": mae_metrics["force"].avg,
+                    # during fpreuse_test only measured for samples where we reused the fixed-point
+                    f"{_datasplit}_fpr_e_mae": mae_metrics_fpr["energy"].avg,
+                    f"{_datasplit}_fpr_f_mae": mae_metrics_fpr["force"].avg,
                 },
                 step=global_step,
             )
@@ -2543,15 +2559,6 @@ def evaluate(
                 wandb.log(
                     {f"n_fsolver_steps_{_datasplit}": n_fsolver_steps}, step=global_step
                 )
-
-            # log test error
-            wandb.log(
-                {
-                    f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
-                    f"{_datasplit}_f_mae": mae_metrics["force"].avg,
-                },
-                step=global_step,
-            )
 
             print(
                 f"Finished evaluation: {_datasplit} ({global_step} training steps, epoch {epoch}).",
@@ -2645,6 +2652,7 @@ def eval_speed(
             # initialize metrics
             loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
             mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
+            mae_metrics_fpr = {"energy": AverageMeter(), "force": AverageMeter()}
             abs_fixed_point_error = []
             rel_fixed_point_error = []
             f_steps_to_fixed_point = []
@@ -2735,9 +2743,12 @@ def eval_speed(
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
                 if reuse:
+                    # during fpreuse_test only measured for samples where we reused the fixed-point
                     model_forward_times.append(model_forward_end - model_forward_begin)
                     if len(info) > 0:
                         f_steps_to_fixed_point.append(info["nstep"].mean().item())
+                    mae_metrics_fpr["force"].update(force_err, n=pred_dy.shape[0])
+                    mae_metrics_fpr["energy"].update(energy_err, n=pred_y.shape[0])
 
                 # if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
                 #     # torch.cuda.synchronize()
@@ -2778,8 +2789,6 @@ def eval_speed(
             # log
             wandb.log(
                 {
-                    f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
-                    f"{_datasplit}_f_mae": mae_metrics["force"].avg,
                     f"f_steps_to_fixed_point{_datasplit}": np.mean(
                         f_steps_to_fixed_point
                     ),
@@ -2790,6 +2799,12 @@ def eval_speed(
                     f"time_{_datasplit}": eval_time,
                     f"time_forward_per_batch{_datasplit}": np.mean(model_forward_times),
                     f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
+                    # log test error
+                    f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
+                    f"{_datasplit}_f_mae": mae_metrics["force"].avg,
+                    # # during fpreuse_test only measured for samples where we reused the fixed-point
+                    f"{_datasplit}_fpr_e_mae": mae_metrics_fpr["energy"].avg,
+                    f"{_datasplit}_fpr_f_mae": mae_metrics_fpr["force"].avg,
                 },
                 step=global_step,
             )

@@ -1297,7 +1297,6 @@ def train_md(args):
         #         datasplit="ema_val",
         #         normalizers=normalizers,
         #     )
-        #     optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
         #     if (epoch + 1) % args.test_interval == 0:
         #         filelog.info(f"Testing EMA model at epoch {epoch}")
@@ -1319,7 +1318,6 @@ def train_md(args):
         #             datasplit="ema_test",
         #             normalizers=normalizers,
         #         )
-        #         optimizer.zero_grad(set_to_none=args.set_grad_to_none)
         #     else:
         #         ema_test_err, ema_test_loss = None, None
 
@@ -1498,7 +1496,6 @@ def train_md(args):
 
     # evaluate on the whole testing set
     if args.do_final_test:
-        optimizer.zero_grad(set_to_none=args.set_grad_to_none)
         test_err, test_loss = evaluate(
             args=args,
             model=model,
@@ -1518,7 +1515,6 @@ def train_md(args):
             normalizers=normalizers,
             final_test=True,
         )
-        optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
     # save the final model
     if args.save_final_checkpoint:
@@ -1630,11 +1626,6 @@ def train_one_epoch(
     # filelog.info(f"Init train epoch {epoch}")
     # filelog.logger.handlers[0].flush() # flush logger
 
-    # filelog.info(f"Resetting optimizer")
-    # filelog.logger.handlers[0].flush() # flush logger
-    # optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-    # filelog.info(f"Optimizer reset")
-    # filelog.logger.handlers[0].flush() # flush logger
     model.train()
     filelog.info(f"Set model to train")
     filelog.logger.handlers[0].flush() # flush logger
@@ -1709,7 +1700,6 @@ def train_one_epoch(
     # data = data.to(device)
     # data = data.to(device, dtype)
     # outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
-    # optimizer.zero_grad(set_to_none=args.set_grad_to_none)
     filelog.info(f"test forward pass done")
     filelog.logger.handlers[0].flush() # flush logger
 
@@ -2192,11 +2182,6 @@ def evaluate(
     else:
         fpreuse_list = [False]
 
-    filelog.info(f"Resetting optimizer")
-    filelog.logger.handlers[0].flush() # flush logger
-    optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-    filelog.info(f"Optimizer reset")
-    filelog.logger.handlers[0].flush() # flush logger
     if args.test_w_eval_mode is True:
         model.eval()
         # criterion.eval()
@@ -2392,8 +2377,6 @@ def evaluate(
                 else:
                     pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
 
-                optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-
                 # --- metrics ---
                 loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
                 loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
@@ -2495,8 +2478,6 @@ def evaluate(
                         log_fp,
                     )
 
-                optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-
                 if (step + 1) >= max_steps:
                     break
 
@@ -2566,7 +2547,6 @@ def evaluate(
 
         # fp_reuse True/False finished
 
-    optimizer.zero_grad(set_to_none=args.set_grad_to_none)
     return mae_metrics, loss_metrics
 
 
@@ -2716,7 +2696,6 @@ def eval_speed(
                 else:
                     pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
 
-                optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
                 # --- metrics ---
                 loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])

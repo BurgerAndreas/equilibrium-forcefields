@@ -1253,7 +1253,6 @@ def train_md(args):
         #     logs["test_e_mae"] = test_err["energy"].avg
         #     logs["test_f_mae"] = test_err["force"].avg
         # if global_step % args.log_every_step_minor == 0:
-        wandb.log(logs, step=global_step)
 
         info_str = "Best -- val_epoch={}, test_epoch={}, ".format(
             best_metrics["val_epoch"], best_metrics["test_epoch"]
@@ -1269,6 +1268,7 @@ def train_md(args):
         # if global_step % args.log_every_step_major == 0:
         wandb.log(
             {
+                **logs,
                 "best_val_e_mae": best_metrics["val_energy_err"],
                 "best_val_f_mae": best_metrics["val_force_err"],
                 "best_test_e_mae": best_metrics["test_energy_err"],
@@ -1279,199 +1279,202 @@ def train_md(args):
         )
 
         # evaluation with EMA
-        if model_ema is not None:
-            ema_val_err, _ = evaluate(
-                args=args,
-                model=model_ema.module,
-                # criterion=criterion,
-                criterion_energy=criterion_energy,
-                criterion_force=criterion_force,
-                data_loader=val_loader,
-                optimizer=optimizer,
-                device=device,
-                print_freq=args.print_freq,
-                filelog=filelog,
-                print_progress=False,
-                global_step=global_step,
-                epoch=epoch,
-                datasplit="ema_val",
-                normalizers=normalizers,
-            )
-            optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+        # if model_ema is not None:
+        #     ema_val_err, _ = evaluate(
+        #         args=args,
+        #         model=model_ema.module,
+        #         # criterion=criterion,
+        #         criterion_energy=criterion_energy,
+        #         criterion_force=criterion_force,
+        #         data_loader=val_loader,
+        #         optimizer=optimizer,
+        #         device=device,
+        #         print_freq=args.print_freq,
+        #         filelog=filelog,
+        #         print_progress=False,
+        #         global_step=global_step,
+        #         epoch=epoch,
+        #         datasplit="ema_val",
+        #         normalizers=normalizers,
+        #     )
+        #     optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
-            if (epoch + 1) % args.test_interval == 0:
-                filelog.info(f"Testing EMA model at epoch {epoch}")
-                ema_test_err, _ = evaluate(
-                    args=args,
-                    model=model_ema.module,
-                    # criterion=criterion,
-                    criterion_energy=criterion_energy,
-                    criterion_force=criterion_force,
-                    data_loader=test_loader,
-                    optimizer=optimizer,
-                    device=device,
-                    print_freq=args.print_freq,
-                    filelog=filelog,
-                    print_progress=True,
-                    max_iter=args.test_max_iter,
-                    global_step=global_step,
-                    epoch=epoch,
-                    datasplit="ema_test",
-                    normalizers=normalizers,
-                )
-                optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-            else:
-                ema_test_err, ema_test_loss = None, None
+        #     if (epoch + 1) % args.test_interval == 0:
+        #         filelog.info(f"Testing EMA model at epoch {epoch}")
+        #         ema_test_err, _ = evaluate(
+        #             args=args,
+        #             model=model_ema.module,
+        #             # criterion=criterion,
+        #             criterion_energy=criterion_energy,
+        #             criterion_force=criterion_force,
+        #             data_loader=test_loader,
+        #             optimizer=optimizer,
+        #             device=device,
+        #             print_freq=args.print_freq,
+        #             filelog=filelog,
+        #             print_progress=True,
+        #             max_iter=args.test_max_iter,
+        #             global_step=global_step,
+        #             epoch=epoch,
+        #             datasplit="ema_test",
+        #             normalizers=normalizers,
+        #         )
+        #         optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+        #     else:
+        #         ema_test_err, ema_test_loss = None, None
 
-            update_val_result, update_test_result = update_best_results(
-                args, best_ema_metrics, ema_val_err, ema_test_err, epoch
-            )
+        #     update_val_result, update_test_result = update_best_results(
+        #         args, best_ema_metrics, ema_val_err, ema_test_err, epoch
+        #     )
 
-            saved_best_ema_checkpoint = False
-            if update_val_result and args.save_best_val_checkpoint:
-                filelog.info(f"Saving best EMA val checkpoint")
-                os.makedirs(args.output_dir, exist_ok=True)
-                torch.save(
-                    {
-                        "state_dict": get_state_dict(model_ema),
-                        "grads": grads,
-                        "optimizer": optimizer.state_dict(),
-                        "lr_scheduler": lr_scheduler.state_dict()
-                        if lr_scheduler is not None
-                        else None,
-                        "epoch": epoch,
-                        "global_step": global_step,
-                        "best_metrics": best_metrics,
-                        "best_ema_metrics": best_ema_metrics,
-                    },
-                    os.path.join(
-                        args.output_dir,
-                        "best_ema_val_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-                            epoch, ema_val_err["energy"].avg, ema_val_err["force"].avg
-                        ),
-                    ),
-                )
-                remove_extra_checkpoints(
-                    args.output_dir,
-                    args.max_checkpoints,
-                    startswith="best_ema_val_epochs@",
-                )
-                saved_best_ema_checkpoint = True
+        #     saved_best_ema_checkpoint = False
+        #     if update_val_result and args.save_best_val_checkpoint:
+        #         filelog.info(f"Saving best EMA val checkpoint")
+        #         os.makedirs(args.output_dir, exist_ok=True)
+        #         torch.save(
+        #             {
+        #                 "state_dict": get_state_dict(model_ema),
+        #                 "grads": grads,
+        #                 "optimizer": optimizer.state_dict(),
+        #                 "lr_scheduler": lr_scheduler.state_dict()
+        #                 if lr_scheduler is not None
+        #                 else None,
+        #                 "epoch": epoch,
+        #                 "global_step": global_step,
+        #                 "best_metrics": best_metrics,
+        #                 "best_ema_metrics": best_ema_metrics,
+        #             },
+        #             os.path.join(
+        #                 args.output_dir,
+        #                 "best_ema_val_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
+        #                     epoch, ema_val_err["energy"].avg, ema_val_err["force"].avg
+        #                 ),
+        #             ),
+        #         )
+        #         remove_extra_checkpoints(
+        #             args.output_dir,
+        #             args.max_checkpoints,
+        #             startswith="best_ema_val_epochs@",
+        #         )
+        #         saved_best_ema_checkpoint = True
 
-            if update_test_result and args.save_best_test_checkpoint:
-                filelog.info(f"Saving best EMA test checkpoint")
-                os.makedirs(args.output_dir, exist_ok=True)
-                torch.save(
-                    {
-                        "state_dict": get_state_dict(model_ema),
-                        "grads": grads,
-                        "optimizer": optimizer.state_dict(),
-                        "lr_scheduler": lr_scheduler.state_dict()
-                        if lr_scheduler is not None
-                        else None,
-                        "epoch": epoch,
-                        "global_step": global_step,
-                        "best_metrics": best_metrics,
-                        "best_ema_metrics": best_ema_metrics,
-                    },
-                    os.path.join(
-                        args.output_dir,
-                        "best_ema_test_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-                            epoch, ema_test_err["energy"].avg, ema_test_err["force"].avg
-                        ),
-                    ),
-                )
-                remove_extra_checkpoints(
-                    args.output_dir,
-                    args.max_checkpoints,
-                    startswith="best_ema_test_epochs@",
-                )
-                saved_best_ema_checkpoint = True
+        #     if update_test_result and args.save_best_test_checkpoint:
+        #         filelog.info(f"Saving best EMA test checkpoint")
+        #         os.makedirs(args.output_dir, exist_ok=True)
+        #         torch.save(
+        #             {
+        #                 "state_dict": get_state_dict(model_ema),
+        #                 "grads": grads,
+        #                 "optimizer": optimizer.state_dict(),
+        #                 "lr_scheduler": lr_scheduler.state_dict()
+        #                 if lr_scheduler is not None
+        #                 else None,
+        #                 "epoch": epoch,
+        #                 "global_step": global_step,
+        #                 "best_metrics": best_metrics,
+        #                 "best_ema_metrics": best_ema_metrics,
+        #             },
+        #             os.path.join(
+        #                 args.output_dir,
+        #                 "best_ema_test_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
+        #                     epoch, ema_test_err["energy"].avg, ema_test_err["force"].avg
+        #                 ),
+        #             ),
+        #         )
+        #         remove_extra_checkpoints(
+        #             args.output_dir,
+        #             args.max_checkpoints,
+        #             startswith="best_ema_test_epochs@",
+        #         )
+        #         saved_best_ema_checkpoint = True
 
-            if (
-                (epoch + 1) % args.test_interval == 0
-                # and (not update_val_result)
-                # and (not update_test_result)
-                and not saved_best_ema_checkpoint
-                and args.save_checkpoint_after_test
-            ):
-                filelog.info(f"Saving EMA checkpoint")
-                os.makedirs(args.output_dir, exist_ok=True)
-                torch.save(
-                    {
-                        "state_dict": get_state_dict(model_ema),
-                        "grads": grads,
-                        "optimizer": optimizer.state_dict(),
-                        "lr_scheduler": lr_scheduler.state_dict()
-                        if lr_scheduler is not None
-                        else None,
-                        "epoch": epoch,
-                        "global_step": global_step,
-                        "best_metrics": best_metrics,
-                        "best_ema_metrics": best_ema_metrics,
-                    },
-                    os.path.join(
-                        args.output_dir,
-                        "ema_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-                            epoch, test_err["energy"].avg, test_err["force"].avg
-                        ),
-                    ),
-                )
-                remove_extra_checkpoints(
-                    args.output_dir, args.max_checkpoints, startswith="ema_epochs@"
-                )
+        #     if (
+        #         (epoch + 1) % args.test_interval == 0
+        #         # and (not update_val_result)
+        #         # and (not update_test_result)
+        #         and not saved_best_ema_checkpoint
+        #         and args.save_checkpoint_after_test
+        #     ):
+        #         filelog.info(f"Saving EMA checkpoint")
+        #         os.makedirs(args.output_dir, exist_ok=True)
+        #         torch.save(
+        #             {
+        #                 "state_dict": get_state_dict(model_ema),
+        #                 "grads": grads,
+        #                 "optimizer": optimizer.state_dict(),
+        #                 "lr_scheduler": lr_scheduler.state_dict()
+        #                 if lr_scheduler is not None
+        #                 else None,
+        #                 "epoch": epoch,
+        #                 "global_step": global_step,
+        #                 "best_metrics": best_metrics,
+        #                 "best_ema_metrics": best_ema_metrics,
+        #             },
+        #             os.path.join(
+        #                 args.output_dir,
+        #                 "ema_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
+        #                     epoch, test_err["energy"].avg, test_err["force"].avg
+        #                 ),
+        #             ),
+        #         )
+        #         remove_extra_checkpoints(
+        #             args.output_dir, args.max_checkpoints, startswith="ema_epochs@"
+        #         )
 
-            info_str = "EMA "
-            info_str += "val_e_MAE: {:.5f}, val_f_MAE: {:.5f}, ".format(
-                ema_val_err["energy"].avg, ema_val_err["force"].avg
-            )
-            wandb.log(
-                {
-                    "EMA_val_e_mae": ema_val_err["energy"].avg,
-                    "EMA_val_f_mae": ema_val_err["force"].avg,
-                },
-                # step=epoch,
-                step=global_step,
-            )
+        #     info_str = "EMA "
+        #     info_str += "val_e_MAE: {:.5f}, val_f_MAE: {:.5f}, ".format(
+        #         ema_val_err["energy"].avg, ema_val_err["force"].avg
+        #     )
+        #     wandb.log(
+        #         {
+        #             "EMA_val_e_mae": ema_val_err["energy"].avg,
+        #             "EMA_val_f_mae": ema_val_err["force"].avg,
+        #         },
+        #         # step=epoch,
+        #         step=global_step,
+        #     )
 
-            if (epoch + 1) % args.test_interval == 0:
-                info_str += "test_e_MAE: {:.5f}, test_f_MAE: {:.5f}, ".format(
-                    ema_test_err["energy"].avg, ema_test_err["force"].avg
-                )
-                wandb.log(
-                    {
-                        "EMA_test_e_mae": ema_test_err["energy"].avg,
-                        "EMA_test_f_mae": ema_test_err["force"].avg,
-                    },
-                    # step=epoch,
-                    step=global_step,
-                )
+        #     if (epoch + 1) % args.test_interval == 0:
+        #         info_str += "test_e_MAE: {:.5f}, test_f_MAE: {:.5f}, ".format(
+        #             ema_test_err["energy"].avg, ema_test_err["force"].avg
+        #         )
+        #         wandb.log(
+        #             {
+        #                 "EMA_test_e_mae": ema_test_err["energy"].avg,
+        #                 "EMA_test_f_mae": ema_test_err["force"].avg,
+        #             },
+        #             # step=epoch,
+        #             step=global_step,
+        #         )
 
-            info_str += "Time: {:.2f}s".format(time.perf_counter() - epoch_start_time)
-            filelog.info(info_str)
+        #     info_str += "Time: {:.2f}s".format(time.perf_counter() - epoch_start_time)
+        #     filelog.info(info_str)
 
-            info_str = "Best EMA -- val_epoch={}, test_epoch={}, ".format(
-                best_ema_metrics["val_epoch"], best_ema_metrics["test_epoch"]
-            )
-            info_str += "val_e_MAE: {:.5f}, val_f_MAE: {:.5f}, ".format(
-                best_ema_metrics["val_energy_err"], best_ema_metrics["val_force_err"]
-            )
-            info_str += "test_e_MAE: {:.5f}, test_f_MAE: {:.5f}\n".format(
-                best_ema_metrics["test_energy_err"], best_ema_metrics["test_force_err"]
-            )
-            filelog.info(info_str)
+        #     info_str = "Best EMA -- val_epoch={}, test_epoch={}, ".format(
+        #         best_ema_metrics["val_epoch"], best_ema_metrics["test_epoch"]
+        #     )
+        #     info_str += "val_e_MAE: {:.5f}, val_f_MAE: {:.5f}, ".format(
+        #         best_ema_metrics["val_energy_err"], best_ema_metrics["val_force_err"]
+        #     )
+        #     info_str += "test_e_MAE: {:.5f}, test_f_MAE: {:.5f}\n".format(
+        #         best_ema_metrics["test_energy_err"], best_ema_metrics["test_force_err"]
+        #     )
+        #     filelog.info(info_str)
 
-            # log to wandb
-            wandb.log(
-                {
-                    "EMA_best_val_e_mae": best_ema_metrics["val_energy_err"],
-                    "EMA_best_val_f_mae": best_ema_metrics["val_force_err"],
-                    "EMA_best_test_e_mae": best_ema_metrics["test_energy_err"],
-                    "EMA_best_test_f_mae": best_ema_metrics["test_force_err"],
-                },
-                # step=epoch,
-                step=global_step,
-            )
+        #     # log to wandb
+        #     wandb.log(
+        #         {
+        #             "EMA_best_val_e_mae": best_ema_metrics["val_energy_err"],
+        #             "EMA_best_val_f_mae": best_ema_metrics["val_force_err"],
+        #             "EMA_best_test_e_mae": best_ema_metrics["test_energy_err"],
+        #             "EMA_best_test_f_mae": best_ema_metrics["test_force_err"],
+        #         },
+        #         # step=epoch,
+        #         step=global_step,
+        #     )
+        # else:
+        #     # no EMA
+        #     pass
 
         final_epoch = epoch
         # epoch done
@@ -1627,11 +1630,11 @@ def train_one_epoch(
     # filelog.info(f"Init train epoch {epoch}")
     # filelog.logger.handlers[0].flush() # flush logger
 
-    filelog.info(f"Resetting optimizer")
-    filelog.logger.handlers[0].flush() # flush logger
-    optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-    filelog.info(f"Optimizer reset")
-    filelog.logger.handlers[0].flush() # flush logger
+    # filelog.info(f"Resetting optimizer")
+    # filelog.logger.handlers[0].flush() # flush logger
+    # optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+    # filelog.info(f"Optimizer reset")
+    # filelog.logger.handlers[0].flush() # flush logger
     model.train()
     filelog.info(f"Set model to train")
     filelog.logger.handlers[0].flush() # flush logger
@@ -1700,11 +1703,11 @@ def train_one_epoch(
     filelog.info(f"test forward pass")
     filelog.logger.handlers[0].flush() # flush logger
     # warmup the cuda kernels for accurate timing
-    data = next(iter(data_loader))
-    data = data.to(device)
-    data = data.to(device, dtype)
-    outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
-    optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+    # data = next(iter(data_loader))
+    # data = data.to(device)
+    # data = data.to(device, dtype)
+    # outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
+    # optimizer.zero_grad(set_to_none=args.set_grad_to_none)
     filelog.info(f"test forward pass done")
     filelog.logger.handlers[0].flush() # flush logger
 
@@ -2560,6 +2563,7 @@ def evaluate(
 
         # fp_reuse True/False finished
 
+    optimizer.zero_grad(set_to_none=args.set_grad_to_none)
     return mae_metrics, loss_metrics
 
 

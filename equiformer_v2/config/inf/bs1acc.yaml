@@ -7,7 +7,7 @@
 # e.g. for test_patch_size=200: idx=[42,...242,50042,...50242,100042,...100242,150042,...150242]
 # make sure that for post-processing you exclude the jumps in idxs every test_patch_size
 
-eval_speed: True
+evaluate: True
 eval_batch_size: 1
 assert_checkpoint: 0.8
 

@@ -1667,6 +1667,8 @@ def train_one_epoch(
     # statistics over epoch
     abs_fixed_point_error = []
     rel_fixed_point_error = []
+    abs_fixed_point_error_max = []
+    rel_fixed_point_error_max = []
     f_steps_to_fixed_point = []
     grad_norm_epoch_avg = []
 
@@ -1790,7 +1792,7 @@ def train_one_epoch(
             # batch=data.batch,
             step=global_step,
             datasplit="train",
-            fpr_loss=args.fpr_loss,
+            # fpr_loss=args.fpr_loss,
         )
         # filelog.info(f"step{batchstep} pred done")
         # filelog.logger.handlers[0].flush() # flush logger
@@ -1813,11 +1815,11 @@ def train_one_epoch(
 
         loss_e = criterion_energy(pred_y, target_y)
         loss = args.energy_weight * loss_e
-        if args.meas_force == True:
-            loss_f = criterion_force(pred_dy, target_dy)
-            loss += args.force_weight * loss_f
-        else:
-            pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
+        # if args.meas_force == True:
+        # else:
+        #     pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
+        loss_f = criterion_force(pred_dy, target_dy)
+        loss += args.force_weight * loss_f
 
         # filelog.info(f"step{batchstep} loss done")
         # filelog.logger.handlers[0].flush() # flush logger
@@ -1953,13 +1955,13 @@ def train_one_epoch(
         optimizer.zero_grad(set_to_none=args.set_grad_to_none)
         # filelog.info(f"step{batchstep} zero_grad done")
         # filelog.logger.handlers[0].flush() # flush logger
-        wandb.log(
-            {"memalloc-pre_backward": torch.cuda.memory_allocated()}, step=global_step
-        )
-        loss.backward(retain_graph=False)
-        wandb.log(
-            {"memalloc-post_backward": torch.cuda.memory_allocated()}, step=global_step
-        )
+        # wandb.log(
+        #     {"memalloc-pre_backward": torch.cuda.memory_allocated()}, step=global_step
+        # )
+        loss.backward()
+        # wandb.log(
+        #     {"memalloc-post_backward": torch.cuda.memory_allocated()}, step=global_step
+        # )
         # filelog.info(f"step{batchstep} backward done")
         # filelog.logger.handlers[0].flush() # flush logger
 
@@ -2019,8 +2021,10 @@ def train_one_epoch(
                 datasplit="train",
                 log_trace_freq=args.log_trace_freq,
             )
-            abs_fixed_point_error.append(info["abs_trace"].mean(dim=0)[-1].item())
-            rel_fixed_point_error.append(info["rel_trace"].mean(dim=0)[-1].item())
+            abs_fixed_point_error.append(info["abs_trace"][:, -1].mean().item())
+            rel_fixed_point_error.append(info["rel_trace"][:, -1].mean().item())
+            abs_fixed_point_error_max.append(info["abs_trace"][:, -1].max().item())
+            rel_fixed_point_error_max.append(info["rel_trace"][:, -1].max().item())
 
         if "nstep" in info.keys():
             f_steps_to_fixed_point.append(info["nstep"].mean().item())
@@ -2121,13 +2125,17 @@ def train_one_epoch(
             {
                 "abs_fixed_point_error_train": np.mean(abs_fixed_point_error),
                 "rel_fixed_point_error_train": np.mean(rel_fixed_point_error),
+                "abs_fixed_point_error_max_train": np.mean(abs_fixed_point_error_max),
+                "rel_fixed_point_error_max_train": np.mean(rel_fixed_point_error_max),
                 "f_steps_to_fixed_point_train": np.mean(f_steps_to_fixed_point),
             },
             step=global_step,
         )
-        abs_fixed_point_error = []
-        rel_fixed_point_error = []
-        f_steps_to_fixed_point = []
+        # abs_fixed_point_error = []
+        # rel_fixed_point_error = []
+        # abs_fixed_point_error_max = []
+        # rel_fixed_point_error_max = []
+        # f_steps_to_fixed_point = []
 
     # epoch statistics
     wandb.log({"grad_norm_epoch_avg": np.mean(grad_norm_epoch_avg)}, step=global_step)
@@ -2266,8 +2274,10 @@ def evaluate(
             loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
             mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
             mae_metrics_fpr = {"energy": AverageMeter(), "force": AverageMeter()}
-            abs_fixed_point_error = []
+            abs_fixed_point_error = [] # mean over batch dim
             rel_fixed_point_error = []
+            abs_fixed_point_error_max = [] # like torchdeq
+            rel_fixed_point_error_max = []
             f_steps_to_fixed_point = []
             model_forward_times = []
             n_fsolver_steps = []
@@ -2425,10 +2435,16 @@ def evaluate(
                         # log fixed-point error always
                         # shape: [num_atoms * batch_size, solver_traj_len]
                         abs_fixed_point_error.append(
-                            info["abs_trace"].mean(dim=0)[-1].item()
+                            info["abs_trace"][:, -1].mean().item()
                         )
                         rel_fixed_point_error.append(
-                            info["rel_trace"].mean(dim=0)[-1].item()
+                            info["rel_trace"][:, -1].mean().item()
+                        )
+                        abs_fixed_point_error_max.append(
+                            info["abs_trace"][:, -1].max().item()
+                        )
+                        rel_fixed_point_error_max.append(
+                            info["rel_trace"][:, -1].max().item()
                         )
 
                 if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
@@ -2511,12 +2527,21 @@ def evaluate(
             # log fixed-point statistics
             if len(abs_fixed_point_error) > 0:
                 wandb_logs.update({
+                    # mean
                     f"abs_fixed_point_error_{_datasplit}": np.mean(
                         abs_fixed_point_error
                     ),
                     f"rel_fixed_point_error_{_datasplit}": np.mean(
                         rel_fixed_point_error
                     ),
+                    # max (like torchdeq)
+                    f"abs_fixed_point_error_max_{_datasplit}": np.mean(
+                        abs_fixed_point_error_max
+                    ),
+                    f"rel_fixed_point_error_max_{_datasplit}": np.mean(
+                        rel_fixed_point_error_max
+                    ),
+                    # steps to fixed point
                     f"f_steps_to_fixed_point_{_datasplit}": np.mean(
                         f_steps_to_fixed_point
                     ),
@@ -2624,8 +2649,8 @@ def eval_speed(
             loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
             mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
             mae_metrics_fpr = {"energy": AverageMeter(), "force": AverageMeter()}
-            abs_fixed_point_error = []
-            rel_fixed_point_error = []
+            # abs_fixed_point_error = []
+            # rel_fixed_point_error = []
             f_steps_to_fixed_point = []
             model_forward_times = []
             n_fsolver_steps = []

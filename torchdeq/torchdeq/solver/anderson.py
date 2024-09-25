@@ -119,7 +119,9 @@ def anderson_solver(
 
         # Calculate the absolute and relative differences
         gx = F[:, k % m] - X[:, k % m]
-        abs_diff = gx.norm(dim=1)
+        # [B, dim] -> [B]
+
+        abs_diff = gx.norm(dim=1) 
         rel_diff = abs_diff / (F[:, k % m].norm(dim=1) + 1e-9)
 
         # Update the state based on the new estimate

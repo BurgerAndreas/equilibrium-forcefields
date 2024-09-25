@@ -2423,6 +2423,7 @@ def evaluate(
                                 datasplit=_datasplit,
                             )
                         # log fixed-point error always
+                        # shape: [num_atoms * batch_size, solver_traj_len]
                         abs_fixed_point_error.append(
                             info["abs_trace"].mean(dim=0)[-1].item()
                         )
@@ -2455,12 +2456,13 @@ def evaluate(
                         nstep_min = info["nstep"].min().item()
                     else:
                         nstep = 0
+                        nstep_std = 0
                         nstep_max = 0
                         nstep_min = 0
-                        nstep_std = 0
                     if "abs_trace" in info:
-                        fpabs = info["abs_trace"][-1].mean().item()
-                        fprel = info["rel_trace"][-1].mean().item()
+                        # shape: [num_atoms * batch_size, solver_traj_len]
+                        fpabs = info["abs_trace"].mean(dim=0)[-1].item()
+                        fprel = info["rel_trace"].mean(dim=0)[-1].item()
                     else:
                         fpabs = 0
                         fprel = 0

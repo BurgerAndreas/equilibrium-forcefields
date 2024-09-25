@@ -219,7 +219,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # if self.eval() and reuse:
         if reuse:
             self.deq_current = self.deq_eval_fpr
-        elif self.eval():
+        elif not self.training:
             self.deq_current = self.deq_eval
         else:
             self.deq_current = self.deq

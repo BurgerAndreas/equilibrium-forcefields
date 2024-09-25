@@ -22,15 +22,18 @@ def _init_deq(
     self.deq_mode = True
     # print(f"Passed deq_kwargs: {deq_kwargs}")
     # self.deq = get_deq(f_solver='broyden', f_max_iter=20, f_tol=1e-6)
+    self.deq_kwargs = deq_kwargs.copy()
     self.deq = get_deq(**deq_kwargs)
 
     deq_kwargs1 = copy.deepcopy(deq_kwargs)
     deq_kwargs1.update(deq_kwargs_eval)
+    self.deq_kwargs_eval = deq_kwargs1.copy()
     self.deq_eval = get_deq(**deq_kwargs1)
 
     deq_kwargs2 = copy.deepcopy(deq_kwargs)
     # deq_kwargs2.update(deq_kwargs_eval)
     deq_kwargs2.update(deq_kwargs_fpr)
+    self.deq_kwargs_fpr = deq_kwargs2.copy()
     self.deq_eval_fpr = get_deq(**deq_kwargs2)
 
     self.deq_current = self.deq

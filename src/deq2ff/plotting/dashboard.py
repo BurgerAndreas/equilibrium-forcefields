@@ -186,7 +186,7 @@ def filter_best_runs(
 
 def preprocess_df(df, project, error_metric):
     """Add and rename columns.
-    1. remove all rows where nothing got logged
+    1. remove all rows where error_metric was not logged
     2. set Class / Model column
     3. add nstep / NFE columns
     4. for OC20, set target / dname column
@@ -391,6 +391,80 @@ def mark_sota(
 
     return _df
 
+def merge_dfs(dfog, dfextra, oncol, cols, coltypes={}):
+    """Merge two dataframes. 
+    Match on column oncol and add columns cols from dfextra to dfog.
+    Assumes datatypes are float, unless specified in coltypes.
+    """
+
+    dfog = dfog.reset_index(drop=True)
+    dfextra = dfextra.reset_index(drop=True)
+
+    print(f"Before mergin: {dfog.shape}")
+    print(f" mergin: {dfextra.shape}")
+    
+    # TODO: better way to merge?
+    for _c in cols:
+        # set dtype to float
+        # not setting the same dtype can lead to unexpected nans
+        if _c in coltypes:
+            _type = coltypes[_c]
+        else:
+            _type = float
+        dfog[_c] = np.nan
+        dfextra[_c] = dfextra[_c].astype(_type)
+        dfog[_c] = dfog[_c].astype(_type)
+
+        # merge by hand
+        # df_best_runs[_t] = np.nan
+        # df_best_runs["sotatime"] = np.nan
+        # for i, row in df_best_runs.iterrows():
+        #     # dfspeed[dfspeed["mtarget"] == "DEQ1 ethanol"]["summary.time_forward_per_batch_test_fpreuse"]
+
+        #     df_best_runs[_t] = dfspeed[_t].where(dfspeed[ind] == row[ind], df_best_runs[_t])
+        #     df_best_runs["sotatime"] = dfspeed["sotatime"].where(dfspeed[ind] == row[ind], df_best_runs["sotatime"])
+        #     # print("row", row[ind],_t, dfspeed[_t].where(dfspeed[ind] == row[ind], df_best_runs[_t]))
+        #     # print("sotatime", dfspeed["sotatime"].where(dfspeed[ind] == row[ind], df_best_runs["sotatime"]))
+
+        # for i, row in df_best_runs.iterrows():
+        #     # print df_best_runs ind
+        #     print("row", row[ind], df_best_runs[df_best_runs[ind] == row[ind]][_t].item(), df_best_runs[df_best_runs[ind] == row[ind]][_t].index, "<-", dfspeed[dfspeed[ind] == row[ind]][_t].item())
+
+        #     df_best_runs[df_best_runs[ind] == row[ind]][_t] = dfspeed[dfspeed[ind] == row[ind]][_t]
+        #     df_best_runs[df_best_runs[ind] == row[ind]]["sotatime"] = dfspeed[dfspeed[ind] == row[ind]]["sotatime"]
+
+        # print(df_best_runs[ind].unique(), len(df_best_runs[ind].unique()))
+        # print(dfspeed[ind].unique(), len(dfspeed[ind].unique()))
+
+        # merge: add time to best_runs
+        # df_best_runs = df_best_runs.merge(
+        #     dfspeed[[ind, _t, "sotatime"]],
+        #     on=ind,
+        #     how="left",
+        # )
+        # df_best_runs = df_best_runs.reset_index(drop=True)
+
+        # df_best_runs[_t] = df_best_runs[_t].map(dfspeed.set_index(ind)[_t])
+
+        # Loop over each row in df2
+        for index2, row2 in dfog.iterrows():
+            found = False
+            # Loop over each row in df1
+            for index1, row1 in dfextra.iterrows():
+                # If column B matches, copy value from column A in df1 to df2
+                if row2[oncol] == row1[oncol]:
+                    dfog.at[index2, "sotatime"] = row1["sotatime"]
+                    dfog.at[index2, _c] = row1[_c]
+                    for _c in cols:
+                        dfog.at[index2, _c] = row1[_c]
+                    found = True
+                    break
+            if not found:
+                dfog.at[index2, _c] = np.nan
+                print(f"Could not find {row2[oncol]} in dfspeed")
+
+    print(f"After merging: {dfog.shape}")
+    return dfog
 
 def print_table_acc( 
     df,

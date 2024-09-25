@@ -2400,15 +2400,9 @@ def evaluate(
                 force_err = (
                     normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy
                 )
-                force_err = torch.mean(
-                    torch.abs(force_err)
-                ).item()  # based on OC20 and TorchMD-Net, they average over x, y, z
+                # based on OC20 and TorchMD-Net, they average over x, y, z
+                force_err = torch.mean(torch.abs(force_err)).item()  
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
-
-                if log_fp:
-                    # during fpreuse_test only measure for samples where we reused the fixed-point
-                    mae_metrics_fpr["force"].update(force_err, n=pred_dy.shape[0])
-                    mae_metrics_fpr["energy"].update(energy_err, n=pred_y.shape[0])
 
                 # --- logging ---
                 if "abs_trace" in info.keys():
@@ -2427,9 +2421,11 @@ def evaluate(
                         info["rel_trace"].mean(dim=0)[-1].item()
                     )
 
-                if "nstep" in info.keys():
-                    if log_fp:
-                        # during fpreuse_test only measure for samples where we reused the fixed-point
+                if log_fp:
+                    # during fpreuse_test only measure for samples where we reused the fixed-point
+                    mae_metrics_fpr["force"].update(force_err, n=pred_dy.shape[0])
+                    mae_metrics_fpr["energy"].update(energy_err, n=pred_y.shape[0])
+                    if "nstep" in info.keys():
                         # duplicates kept for legacy reasons
                         f_steps_to_fixed_point.append(info["nstep"].mean().item())
                         n_fsolver_steps.append(info["nstep"].mean().item())

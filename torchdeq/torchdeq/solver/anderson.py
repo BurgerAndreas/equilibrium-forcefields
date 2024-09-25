@@ -15,14 +15,14 @@ __all__ = ["anderson_solver"]
 def anderson_solver(
     func,
     x0,
-    max_iter=50,
-    tol=1e-3,
-    stop_mode="abs",
-    indexing=None,
-    m=6,
-    lam=1e-4,
-    tau=1.0,
-    return_final=False,
+    max_iter, # 50
+    tol, # 1e-3
+    stop_mode, # 'abs'
+    indexing, # None
+    m=6, # 6
+    lam=1e-4, # 1e-4
+    tau=1.0, # 1.0
+    return_final=False, # False
     **kwargs
 ):
     """

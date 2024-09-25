@@ -169,10 +169,10 @@ def check_values(a, name):
 def broyden_solver(
     func,
     x0,
-    max_iter=50,
-    tol=1e-3,
-    stop_mode="abs",
-    indexing=None,
+    max_iter, # 50
+    tol, # 1e-3
+    stop_mode, # 'abs'
+    indexing, # None
     LBFGS_thres=None,
     ls=False,
     return_final=False,

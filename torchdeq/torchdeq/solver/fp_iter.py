@@ -13,10 +13,10 @@ __all__ = ["fixed_point_iter", "simple_fixed_point_iter"]
 def fixed_point_iter(
     func,
     x0,
-    max_iter=50,
-    tol=1e-3,
-    stop_mode="abs",
-    indexing=None,
+    max_iter, # 
+    tol, # 1e-3
+    stop_mode, # 'abs'
+    indexing, # None
     tau=1.0,
     return_final=False,
     **kwargs

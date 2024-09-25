@@ -399,7 +399,6 @@ class DEQIndexing(DEQBase):
 
         f_tol = solver_kwargs.pop("f_tol", self.f_tol)
         f_stop_mode = solver_kwargs.pop("f_stop_mode", self.f_stop_mode)
-        print(f"DEQIndexing: f_tol={f_tol}")
 
         with torch.no_grad():
             # changed to use f_tol from passed kwargs
@@ -729,7 +728,6 @@ class DEQSliced(DEQBase):
 
         f_tol = solver_kwargs.pop("f_tol", self.f_tol)
         f_stop_mode = solver_kwargs.pop("f_stop_mode", self.f_stop_mode)
-        print(f"DEQSliced: f_tol={f_tol}")
 
         # Too@grad: gradient tracking
         with torch.no_grad():
@@ -740,6 +738,7 @@ class DEQSliced(DEQBase):
                 max_iter=f_max_iter,
                 tol=f_tol,
                 stop_mode=f_stop_mode,
+                indexing=None,
                 **solver_kwargs,
             )
 

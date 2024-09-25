@@ -2164,6 +2164,8 @@ def evaluate(
 ):
     """Val or test split."""
 
+    filelog.info("Evaluating...", datasplit if datasplit is not None else "")
+
     # Techniques for faster inference
     # e.g. fixed-point reuse, relaxed FP-error threshold, etc.
     # for simplicity we only apply it to test (val is too small)
@@ -2241,12 +2243,11 @@ def evaluate(
         # print(f'tracking gradients: {B.requires_grad}')
 
         # warmup the cuda kernels for accurate timing
-        data = next(iter(data_loader))
-        data = data.to(device)
-        data = data.to(device, dtype)
-        outputs = model(
-            data=data
-        )  # , node_atom=data.z, pos=data.pos, batch=data.batch)
+        # data = next(iter(data_loader))
+        # data = data.to(device)
+        # data = data.to(device, dtype)
+        # outputs = model(data=data)  
+        # , node_atom=data.z, pos=data.pos, batch=data.batch)
 
         # print("\nEval:")
         # print("Model is in training mode", model.training)
@@ -2283,6 +2284,7 @@ def evaluate(
                         "nstep_min",
                         "fpabs",
                         "fprel",
+                        "fpr", # bool
                     ]
                 )
 
@@ -2362,9 +2364,6 @@ def evaluate(
                     )
                 torch.cuda.synchronize()
                 forward_end_time = time.perf_counter()
-                if log_fp:
-                    # during fpreuse_test only measure for samples where we reused the fixed-point
-                    model_forward_times += [forward_end_time - forward_start_time]
 
                 target_y = normalizers["energy"](data.y, data.z)
                 target_dy = normalizers["force"](data.dy, data.z)
@@ -2405,30 +2404,31 @@ def evaluate(
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
                 # --- logging ---
-                if "abs_trace" in info.keys():
-                    if pass_step is not None:
-                        # log fixed-point trajectory once per evaluation
-                        logging_utils_deq.log_fixed_point_error(
-                            info,
-                            step=global_step,
-                            datasplit=_datasplit,
-                        )
-                    # log fixed-point error always
-                    abs_fixed_point_error.append(
-                        info["abs_trace"].mean(dim=0)[-1].item()
-                    )
-                    rel_fixed_point_error.append(
-                        info["rel_trace"].mean(dim=0)[-1].item()
-                    )
-
                 if log_fp:
                     # during fpreuse_test only measure for samples where we reused the fixed-point
+                    model_forward_times += [forward_end_time - forward_start_time]
                     mae_metrics_fpr["force"].update(force_err, n=pred_dy.shape[0])
                     mae_metrics_fpr["energy"].update(energy_err, n=pred_y.shape[0])
                     if "nstep" in info.keys():
                         # duplicates kept for legacy reasons
                         f_steps_to_fixed_point.append(info["nstep"].mean().item())
                         n_fsolver_steps.append(info["nstep"].mean().item())
+
+                    if "abs_trace" in info.keys():
+                        if pass_step is not None:
+                            # log fixed-point trajectory once per evaluation
+                            logging_utils_deq.log_fixed_point_error(
+                                info,
+                                step=global_step,
+                                datasplit=_datasplit,
+                            )
+                        # log fixed-point error always
+                        abs_fixed_point_error.append(
+                            info["abs_trace"].mean(dim=0)[-1].item()
+                        )
+                        rel_fixed_point_error.append(
+                            info["rel_trace"].mean(dim=0)[-1].item()
+                        )
 
                 if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
                     torch.cuda.synchronize()
@@ -2447,7 +2447,7 @@ def evaluate(
                     filelog.info(info_str)
 
                 if loss_per_idx:  # and log_fp:
-                    # "idx", "e_mae", "f_mae", "nstep", "nstep_std", "nstep_max", "nstep_min"
+                    # "idx", "e_mae", "f_mae", "nstep", "nstep_std", "nstep_max", "nstep_min", fpr
                     if "nstep" in info:
                         nstep = info["nstep"].mean().item()
                         nstep_std = info["nstep"].std().item()
@@ -2474,87 +2474,60 @@ def evaluate(
                         nstep_min,
                         fpabs,
                         fprel,
+                        log_fp,
                     )
 
                 optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+
                 if (step + 1) >= max_steps:
                     break
 
             # test set finished
             torch.cuda.synchronize()
             eval_time = time.perf_counter() - start_time  # time for whole test set
-            _logs = {
+
+            wandb_logs = {
+                # log the time
+                f"time_{_datasplit}": eval_time,
+                f"time_forward_per_batch_{_datasplit}": np.mean(
+                    model_forward_times
+                ),
+                # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_times),
+                f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
+                # log test error
                 f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
                 f"{_datasplit}_f_mae": mae_metrics["force"].avg,
+                # during fpreuse_test only measured for samples where we reused the fixed-point
                 f"{_datasplit}_fpr_e_mae": mae_metrics_fpr["energy"].avg,
                 f"{_datasplit}_fpr_f_mae": mae_metrics_fpr["force"].avg,
-                f"time_{_datasplit}": eval_time,
-                f"time_forward_per_batch_{_datasplit}": np.mean(model_forward_times),
-                # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_times)
-                f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
             }
-            wandb.log(
-                {
-                    # log the time
-                    f"time_{_datasplit}": eval_time,
-                    f"time_forward_per_batch_{_datasplit}": np.mean(
-                        model_forward_times
-                    ),
-                    # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_times),
-                    f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
-                    # log test error
-                    f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
-                    f"{_datasplit}_f_mae": mae_metrics["force"].avg,
-                    # during fpreuse_test only measured for samples where we reused the fixed-point
-                    f"{_datasplit}_fpr_e_mae": mae_metrics_fpr["energy"].avg,
-                    f"{_datasplit}_fpr_f_mae": mae_metrics_fpr["force"].avg,
-                },
-                step=global_step,
-            )
 
             # log the table
             if loss_per_idx:
-                wandb.log({f"idx_table_{_datasplit}": idx_table}, step=global_step)
+                wandb_logs.update({f"idx_table_{_datasplit}": idx_table})
 
             # log fixed-point statistics
             if len(abs_fixed_point_error) > 0:
-                wandb.log(
-                    {
-                        f"abs_fixed_point_error_{_datasplit}": np.mean(
-                            abs_fixed_point_error
-                        ),
-                        f"rel_fixed_point_error_{_datasplit}": np.mean(
-                            rel_fixed_point_error
-                        ),
-                        f"f_steps_to_fixed_point_{_datasplit}": np.mean(
-                            f_steps_to_fixed_point
-                        ),
-                    },
-                    step=global_step,
-                )
-                _logs.update(
-                    {
-                        f"abs_fixed_point_error_{_datasplit}": np.mean(
-                            abs_fixed_point_error
-                        ),
-                        f"rel_fixed_point_error_{_datasplit}": np.mean(
-                            rel_fixed_point_error
-                        ),
-                        f"f_steps_to_fixed_point_{_datasplit}": np.mean(
-                            f_steps_to_fixed_point
-                        ),
-                    }
-                )
+                wandb_logs.update({
+                    f"abs_fixed_point_error_{_datasplit}": np.mean(
+                        abs_fixed_point_error
+                    ),
+                    f"rel_fixed_point_error_{_datasplit}": np.mean(
+                        rel_fixed_point_error
+                    ),
+                    f"f_steps_to_fixed_point_{_datasplit}": np.mean(
+                        f_steps_to_fixed_point
+                    ),
+                })
 
             if len(n_fsolver_steps) > 0:
-                wandb.log(
-                    {f"avg_n_fsolver_steps_{_datasplit}": np.mean(n_fsolver_steps)},
-                    step=global_step,
-                )
-                # log the full list
-                wandb.log(
-                    {f"n_fsolver_steps_{_datasplit}": n_fsolver_steps}, step=global_step
-                )
+                wandb_logs.update({
+                    f"avg_n_fsolver_steps_{_datasplit}": np.mean(n_fsolver_steps),
+                    # log the full list
+                    f"n_fsolver_steps_{_datasplit}": n_fsolver_steps
+                })
+                
+            wandb.log(wandb_logs, step=global_step)
 
             print(
                 f"Finished evaluation: {_datasplit} ({global_step} training steps, epoch {epoch}).",

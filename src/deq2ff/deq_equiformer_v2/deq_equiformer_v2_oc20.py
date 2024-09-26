@@ -254,8 +254,10 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # data.pos: [batch_size*num_atoms, 3])
         # data.atomic_numbers = data.z: [batch_size*num_atoms]
         # data.cell: [batch_size, 3, 3]
+        # TODO:verbose
         print('In forward', flush=True)
         x, pos, atomic_numbers, edge_distance, edge_index = self.encode(data)
+        # TODO:verbose
         print('Encode done', flush=True)
 
         ###############################################################
@@ -275,12 +277,14 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         else:
             z = fixedpoint.to(emb.device)
             reuse = True
+        # TODO:verbose
         print('z done', flush=True)
 
         # from torchdeq
         reset_norm(self.blocks)
 
         self.reset_dropout(z, data.batch)
+        # TODO:verbose
         print('reset_dropout done', flush=True)
 
         # Transformer blocks
@@ -329,6 +333,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         #     func=f, z_init=z, solver_kwargs=solver_kwargs
         # )
 
+        # TODO:verbose
         print('DEQ done', flush=True)
 
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify

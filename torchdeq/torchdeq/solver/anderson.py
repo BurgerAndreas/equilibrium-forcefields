@@ -126,12 +126,12 @@ def anderson_solver(
 
         # Update the state based on the new estimate
         lowest_xest = update_state(
-            lowest_xest=lowest_xest.detach(),
-            x_est=F[:, k % m].view_as(x0).detach(),
+            lowest_xest=lowest_xest,
+            x_est=F[:, k % m].view_as(x0),
             nstep=k + 1,
             stop_mode=stop_mode,
-            abs_diff=abs_diff.detach(),
-            rel_diff=rel_diff.detach(),
+            abs_diff=abs_diff,
+            rel_diff=rel_diff,
             trace_dict=trace_dict,
             lowest_dict=lowest_dict,
             lowest_step_dict=lowest_step_dict,
@@ -146,11 +146,12 @@ def anderson_solver(
 
         # If the difference is smaller than the given tolerance, terminate the loop early
         if not return_final and trace_dict[stop_mode][-1].max() < tol:
-            print(' Anderson solver:', trace_dict[stop_mode][-1].max(), '<', tol)
+            # TODO:verbose
+            print(' Anderson solver:', trace_dict[stop_mode][-1].max(), '<', tol, 'at', k)
             for _ in range(max_iter - 1 - k):
-                trace_dict[stop_mode].append(lowest_dict[stop_mode].detach())
+                trace_dict[stop_mode].append(lowest_dict[stop_mode])
                 trace_dict[alternative_mode].append(
-                    lowest_dict[alternative_mode].detach()
+                    lowest_dict[alternative_mode]
                 )
             break
 

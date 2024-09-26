@@ -306,7 +306,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
         # During inference, returns a list containing the fixed point solution only.
         # # V0
-        _pred, info = self.deq(func=f, z_init=z, solver_kwargs=solver_kwargs)
+        z_pred, info = self.deq(func=f, z_init=z, solver_kwargs=solver_kwargs)
         # V1
         # if reuse:
         #     print('  deq_eval_fpr', flush=True)

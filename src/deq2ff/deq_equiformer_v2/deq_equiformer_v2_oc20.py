@@ -307,19 +307,22 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # During inference, returns a list containing the fixed point solution only.
         # V1
         if reuse:
+            print('  deq_eval_fpr', flush=True)
             z_pred, info = self.deq_eval_fpr(
                 func=f, z_init=z, 
-                solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
+                # solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
             )
         elif not self.training:
+            print('  deq_eval', flush=True)
             z_pred, info = self.deq_eval(
                 func=f, z_init=z, 
-                solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
+                # solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
             )
         else:
+            print('  deq', flush=True)
             z_pred, info = self.deq(
                 func=f, z_init=z, 
-                solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
+                # solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
             )
         # # V2
         # self.set_current_deq(reuse=reuse)

@@ -254,7 +254,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # data.pos: [batch_size*num_atoms, 3])
         # data.atomic_numbers = data.z: [batch_size*num_atoms]
         # data.cell: [batch_size, 3, 3]
+        print('In forward', flush=True)
         x, pos, atomic_numbers, edge_distance, edge_index = self.encode(data)
+        print('Encode done', flush=True)
 
         ###############################################################
         # Update spherical node embeddings
@@ -273,11 +275,13 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         else:
             z = fixedpoint.to(emb.device)
             reuse = True
+        print('z done', flush=True)
 
         # from torchdeq
         reset_norm(self.blocks)
 
         self.reset_dropout(z, data.batch)
+        print('reset_dropout done', flush=True)
 
         # Transformer blocks
         # f = lambda z: self.mfn_forward(z, u)
@@ -321,6 +325,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             func=f, z_init=z, 
             solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
         )
+        print('DEQ done', flush=True)
         # z_pred = [emb]
         # info = {} # TODO@temp
 
@@ -392,6 +397,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # Final layer norm
         x.embedding = self.norm(x.embedding)
 
+        print('before decode', flush=True)
         return self.decode(
             data=data,
             x=x,
@@ -497,6 +503,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         """ Layers / Transformer blocks """
         # prev_layers = self.num_layers_per_stack * stack
         # for i in range(prev_layers, prev_layers + self.num_layers_per_stack):
+        print('before blocks', flush=True)
         for i in range(self.num_layers):
             z = self.blocks[i](
                 z,  # SO3_Embedding

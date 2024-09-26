@@ -2013,6 +2013,7 @@ def train_one_epoch(
                 datasplit="train",
                 log_trace_freq=args.log_trace_freq,
             )
+            # [B, traj_len] -> [B] -> []
             abs_fixed_point_error.append(info["abs_trace"][:, -1].mean().item())
             rel_fixed_point_error.append(info["rel_trace"][:, -1].mean().item())
             abs_fixed_point_error_max.append(info["abs_trace"][:, -1].max().item())

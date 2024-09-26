@@ -25,7 +25,7 @@ from deq2ff.plotting.style import (
 Careful: results are stochastic since wandb returns randomly sampled datapoints from history
 """
 
-def plot_fp_error_traj(
+def plot_sampled_fptraj(
     run_id: str,
     datasplit: str = "train",
     error_type="abs",
@@ -150,6 +150,6 @@ if __name__ == "__main__":
     # run_id = "iew27536"
     # main(run_id, error_type="abs", datasplit="train", logscale=True)
     run_id = "iew27536"
-    plot_fp_error_traj(
+    plot_sampled_fptraj(
         run_id, error_type="abs", datasplit="train", logscale=True, save_plot=True
     )

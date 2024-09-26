@@ -109,12 +109,14 @@ def log_fixed_point_error(
     info, step, datasplit=None, log_trace_freq=None, save_to_file=False
 ):
     """Log fixed point error to wandb."""
+    # [B, traj_len] -> [traj_len]
+    # TorchDEQ stopping criterion is .max() < tol, not .mean()
     # absolute fixed point errors along the solver trajectory
     f_abs_trace = info["abs_trace"]
-    f_abs_trace = f_abs_trace.mean(dim=0)[1:]
+    f_abs_trace = f_abs_trace.max(dim=0)
     # relative fixed point errors along the solver trajectory
     f_rel_trace = info["rel_trace"]
-    f_rel_trace = f_rel_trace.mean(dim=0)[1:]
+    f_rel_trace = f_rel_trace.max(dim=0)
     # just log the last value
     if datasplit is None:
         n = ""
@@ -134,7 +136,7 @@ def log_fixed_point_error(
         #         step=step,
         #     )
 
-        # log, but not as table
+        # log, but as a list instead of table
         if log_trace_freq is None:
             log_trace_freq = log_every_step_major
         if (step % log_trace_freq == 0) or datasplit in ["test", "val"]:

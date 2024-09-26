@@ -453,7 +453,7 @@ def merge_dfs(dfog, dfextra, oncol, cols, coltypes={}):
             for index1, row1 in dfextra.iterrows():
                 # If column B matches, copy value from column A in df1 to df2
                 if row2[oncol] == row1[oncol]:
-                    dfog.at[index2, "sotatime"] = row1["sotatime"]
+                    # dfog.at[index2, "sotatime"] = row1["sotatime"]
                     dfog.at[index2, _c] = row1[_c]
                     for _c in cols:
                         dfog.at[index2, _c] = row1[_c]

@@ -24,7 +24,7 @@ from deq2ff.plotting.style import (
 # columns = ['abs', 'rel', 'solver_step', 'train_step']
 
 
-def plot_fptraj_list(
+def plot_full_fptraj_list(
     run_id: str,
     datasplit: str = "train",
     error_type="abs",
@@ -199,21 +199,21 @@ if __name__ == "__main__":
     # ----------------- E2 paper -----------------
     # DEQE2 fpcof droppathrate-005 numlayers-2 target-aspirin 44347 y74fi59q
     run_id = "y74fi59q"
-    plot_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=True)
+    plot_full_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=True)
 
     # DEQE2 fpcof droppathrate-005 numlayers-2 seed-3 44235 l4967hbt
     run_id = "l4967hbt"
-    plot_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=False)
+    plot_full_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=False)
 
     # DEQE2 fpcof numlayers-2 44195 6ovbmv0v
     run_id = "6ovbmv0v"
-    plot_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=False)
-    plot_fptraj_list(run_id, error_type="rel", datasplit="train", logscale=False)
+    plot_full_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=False)
+    plot_full_fptraj_list(run_id, error_type="rel", datasplit="train", logscale=False)
 
     # DEQE2 fpcof numlayers-2 seed-2 44196 ef3trp9e
     run_id = "ef3trp9e"
-    plot_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=False)
-    plot_fptraj_list(run_id, error_type="rel", datasplit="train", logscale=False)
+    plot_full_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=False)
+    plot_full_fptraj_list(run_id, error_type="rel", datasplit="train", logscale=False)
 
     # launchrun +use=deq +cfg=[fpc_of,fptrace] model.num_layers=2
 

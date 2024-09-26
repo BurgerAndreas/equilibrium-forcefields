@@ -215,7 +215,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
     def set_current_deq(self, reuse=False):
         """We use different DEQ solvers for training, evaluation, and fixed-point reuse."""
         # if self.eval() and reuse:
-        if reuse:
+        if reuse == True:
             self.deq_current = self.deq_eval_fpr
         elif not self.training:
             self.deq_current = self.deq_eval
@@ -305,33 +305,32 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # find fixed-point
         # During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
         # During inference, returns a list containing the fixed point solution only.
-        # # V1
-        # if reuse:
-        #     z_pred, info = self.deq_eval_fpr(
-        #         func=f, z_init=z, 
-        #         solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
-        #     )
-        # elif not self.training:
-        #     z_pred, info = self.deq_eval(
-        #         func=f, z_init=z, 
-        #         solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
-        #     )
-        # else:
-        #     z_pred, info = self.deq(
-        #         func=f, z_init=z, 
-        #         solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
-        #     )
-        # V2
-        self.set_current_deq(reuse=reuse)
-        z_pred, info = self.deq_current(
-            func=f, z_init=z, 
-            solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
-        )
+        # V1
+        if reuse:
+            z_pred, info = self.deq_eval_fpr(
+                func=f, z_init=z, 
+                solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
+            )
+        elif not self.training:
+            z_pred, info = self.deq_eval(
+                func=f, z_init=z, 
+                solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
+            )
+        else:
+            z_pred, info = self.deq(
+                func=f, z_init=z, 
+                solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
+            )
+        # # V2
+        # self.set_current_deq(reuse=reuse)
+        # z_pred, info = self.deq_current(
+        #     func=f, z_init=z, 
+        #     solver_kwargs=_process_solver_kwargs(solver_kwargs, reuse=reuse)
+        # )
         # # V0
         # _pred, info = self.deq(func=f, z_init=z)
+
         print('DEQ done', flush=True)
-        # z_pred = [emb]
-        # info = {} # TODO@temp
 
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:

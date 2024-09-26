@@ -309,24 +309,27 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # find fixed-point
         # During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
         # During inference, returns a list containing the fixed point solution only.
+        
         # # V0
-        z_pred, info = self.deq(func=f, z_init=z, solver_kwargs=solver_kwargs)
+        # z_pred, info = self.deq(func=f, z_init=z, solver_kwargs=solver_kwargs)
+       
         # V1
-        # if reuse:
-        #     print('  deq_eval_fpr', flush=True)
-        #     z_pred, info = self.deq_eval_fpr(
-        #         func=f, z_init=z, solver_kwargs=solver_kwargs,
-        #     )
-        # elif not self.training:
-        #     print('  deq_eval', flush=True)
-        #     z_pred, info = self.deq_eval(
-        #         func=f, z_init=z, solver_kwargs=solver_kwargs,
-        #     )
-        # else:
-        #     print('  deq', flush=True)
-        #     z_pred, info = self.deq(
-        #         func=f, z_init=z, solver_kwargs=solver_kwargs,
-        #     )
+        if reuse:
+            print('  deq_eval_fpr', flush=True)
+            z_pred, info = self.deq_eval_fpr(
+                func=f, z_init=z, solver_kwargs=solver_kwargs,
+            )
+        elif not self.training:
+            print('  deq_eval', flush=True)
+            z_pred, info = self.deq_eval(
+                func=f, z_init=z, solver_kwargs=solver_kwargs,
+            )
+        else:
+            print('  deq', flush=True)
+            z_pred, info = self.deq(
+                func=f, z_init=z, solver_kwargs=solver_kwargs,
+            )
+            
         # # V2
         # self.set_current_deq(reuse=reuse)
         # z_pred, info = self.deq_current(

@@ -36,6 +36,8 @@ _solvers = {
     "b": broyden_solver,
     "fixed_point_iter": fixed_point_iter,
     "fpiter": fixed_point_iter,
+    "fp_iter": fixed_point_iter,
+    "fpi": fixed_point_iter,
     "simple_fixed_point_iter": simple_fixed_point_iter,
 }
 

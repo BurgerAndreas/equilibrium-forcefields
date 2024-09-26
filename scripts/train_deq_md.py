@@ -2170,10 +2170,12 @@ def evaluate(
     # Techniques for faster inference
     # e.g. fixed-point reuse, relaxed FP-error threshold, etc.
     # for simplicity we only apply it to test (val is too small)
-    if datasplit == "test" and "deq_kwargs_test" in args:
-        solver_kwargs = args.deq_kwargs_test
+    if datasplit == "test" and "deq_kwargs_eval" in args:
+        solver_kwargs_eval = args.deq_kwargs_eval
+        solver_kwargs_fpr = args.deq_kwargs_fpr
     else:
-        solver_kwargs = {}
+        solver_kwargs_fpr = {}
+        solver_kwargs_eval = {}
 
     # if we use fpreuse_test, also try without to get a comparison
     if datasplit == "test" and args.fpreuse_test == True:
@@ -2343,7 +2345,7 @@ def evaluate(
                         datasplit=_datasplit,
                         return_fixedpoint=True,
                         fixedpoint=fixedpoint,
-                        # solver_kwargs=solver_kwargs,
+                        solver_kwargs=solver_kwargs_eval if fixedpoint is None else solver_kwargs_fpr,
                     )
                     # REMOVE
                     # print(f'step: {step}. idx: {data.idx}.')
@@ -2359,7 +2361,7 @@ def evaluate(
                         step=pass_step,
                         datasplit=datasplit,
                         fixedpoint=None,
-                        # solver_kwargs=solver_kwargs,
+                        solver_kwargs=solver_kwargs_eval,
                     )
                 torch.cuda.synchronize()
                 forward_end_time = time.perf_counter()
@@ -2579,10 +2581,12 @@ def eval_speed(
     # Techniques for faster inference
     # e.g. fixed-point reuse, relaxed FP-error threshold, etc.
     # for simplicity we only apply it to test (val is too small)
-    if datasplit == "test" and "deq_kwargs_test" in args:
-        solver_kwargs = args.deq_kwargs_test
+    if datasplit == "test" and "deq_kwargs_eval" in args:
+        solver_kwargs_eval = args.deq_kwargs_eval
+        solver_kwargs_fpr = args.deq_kwargs_fpr
     else:
-        solver_kwargs = {}
+        solver_kwargs_fpr = {}
+        solver_kwargs_eval = {}
 
     fpreuse_list = [True]
 
@@ -2675,7 +2679,7 @@ def eval_speed(
                     datasplit=_datasplit,
                     return_fixedpoint=True,
                     fixedpoint=fixedpoint,
-                    solver_kwargs=solver_kwargs,
+                    solver_kwargs=solver_kwargs_eval if fixedpoint is None else solver_kwargs_fpr,
                 )
                 model_forward_end = time.perf_counter()
 

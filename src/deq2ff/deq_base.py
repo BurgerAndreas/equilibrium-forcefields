@@ -54,6 +54,7 @@ def _init_deq(
     return kwargs
 
 
+# deprecated
 def _process_solver_kwargs(solver_kwargs, reuse=False):
     _solver_kwargs = {}
     # kwargs during inference

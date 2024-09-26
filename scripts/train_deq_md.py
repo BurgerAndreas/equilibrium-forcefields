@@ -2772,7 +2772,7 @@ def eval_speed(
             # log
             wandb.log(
                 {
-                    f"f_steps_to_fixed_point{_datasplit}": np.mean(
+                    f"f_steps_to_fixed_point_{_datasplit}": np.mean(
                         f_steps_to_fixed_point
                     ),
                     f"avg_n_fsolver_steps_{_datasplit}": np.mean(
@@ -2780,7 +2780,7 @@ def eval_speed(
                     ),
                     # f"f_steps_to_fixed_point": np.mean(f_steps_to_fixed_point),
                     f"time_{_datasplit}": eval_time,
-                    f"time_forward_per_batch{_datasplit}": np.mean(model_forward_times),
+                    f"time_forward_per_batch_{_datasplit}": np.mean(model_forward_times),
                     f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
                     # log test error
                     f"{_datasplit}_e_mae": mae_metrics["energy"].avg,

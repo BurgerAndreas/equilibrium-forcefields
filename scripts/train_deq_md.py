@@ -2184,6 +2184,7 @@ def evaluate(
             fpreuse_list = [True, False]
     else:
         fpreuse_list = [False]
+    filelog.info(f"fpreuse_list: {fpreuse_list}")
 
     if args.test_w_eval_mode is True:
         model.eval()
@@ -2342,7 +2343,7 @@ def evaluate(
                         datasplit=_datasplit,
                         return_fixedpoint=True,
                         fixedpoint=fixedpoint,
-                        solver_kwargs=solver_kwargs,
+                        # solver_kwargs=solver_kwargs,
                     )
                     # REMOVE
                     # print(f'step: {step}. idx: {data.idx}.')
@@ -2358,7 +2359,7 @@ def evaluate(
                         step=pass_step,
                         datasplit=datasplit,
                         fixedpoint=None,
-                        solver_kwargs=solver_kwargs,
+                        # solver_kwargs=solver_kwargs,
                     )
                 torch.cuda.synchronize()
                 forward_end_time = time.perf_counter()

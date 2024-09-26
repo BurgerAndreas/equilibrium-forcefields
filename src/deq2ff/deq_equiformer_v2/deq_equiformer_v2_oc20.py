@@ -395,6 +395,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             dtype=self.dtype,
             embedding=z_pred[-1],
         )
+        assert torch.allclose(x.embedding, z_pred[-1])
 
         # Final layer norm
         x.embedding = self.norm(x.embedding)

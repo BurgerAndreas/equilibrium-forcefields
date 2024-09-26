@@ -146,6 +146,7 @@ def anderson_solver(
 
         # If the difference is smaller than the given tolerance, terminate the loop early
         if not return_final and trace_dict[stop_mode][-1].max() < tol:
+            print(' Anderson solver:', trace_dict[stop_mode][-1].max(), '<', tol)
             for _ in range(max_iter - 1 - k):
                 trace_dict[stop_mode].append(lowest_dict[stop_mode].detach())
                 trace_dict[alternative_mode].append(

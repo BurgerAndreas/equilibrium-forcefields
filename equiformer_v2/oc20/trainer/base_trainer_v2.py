@@ -24,6 +24,7 @@ from torch.utils.data import DataLoader
 import torch_geometric
 from torch_cluster import radius_graph
 from tqdm import tqdm
+import copy
 
 import ocpmodels
 from ocpmodels.common import distutils
@@ -606,6 +607,29 @@ class BaseTrainerV2(BaseTrainer):
 
         print(f'Initializing scheduler with params: {self.config["optim"]}')
         self.scheduler = LRScheduler(self.optimizer, self.config["optim"])
+        
+        print(
+            f"Number of epochs: {max_epochs}"
+            f"\nNumber of steps per epoch: {n_iter_per_epoch}"
+            f"\nNumber of steps: {max_epochs * n_iter_per_epoch}"
+        )
+
+        # Print the learning rate schedule
+        sched = copy.deepcopy(self.scheduler)
+        # get all the lrs
+        lrs = []
+        for i in range((len(self.train_loader) + 1) * max_epochs):
+            lrs.append(sched.get_lr())
+            sched.step()
+        # print the first lr
+        print(
+            f"First LR: {lrs[0]}"
+            f"\nLast LR: {lrs[-1]}"
+            f"\nMax LR: {max(lrs):.2e} (index: {lrs.index(max(lrs))}"
+            f" = {lrs.index(max(lrs)) / n_iter_per_epoch} epochs)"
+            f"\nMin LR: {min(lrs)} (index: {lrs.index(min(lrs))}"
+            f" = {lrs.index(min(lrs)) / n_iter_per_epoch} epochs)"
+        )
 
         self.clip_grad_norm = self.config["optim"].get("clip_grad_norm")
         self.ema_decay = self.config["optim"].get("ema_decay")

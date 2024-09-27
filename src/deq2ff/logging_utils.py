@@ -143,6 +143,7 @@ def final_logging(args):
 IGNORE_OVERRIDES = [
     "resume_from_checkpoint",
     "save_checkpoint_after_test",
+    "load_checkpoint",
     "max_checkpoints",
     "save_final_checkpoint",
     "save_best_test_checkpoint",

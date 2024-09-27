@@ -45,6 +45,16 @@ class CosineLRLambda:
         self.max_epochs = scheduler_params["epochs"]
         self.lr_min_factor = scheduler_params["lr_min_factor"]
 
+        # log the parameters with explanation
+        print(
+            f"Initializing CosineLRLambda with params:"
+            f"\nwarmup_epochs: {self.warmup_epochs}"
+            f"\nwarmup_factor: {self.lr_warmup_factor}"
+            f"\nmax_epochs: {self.max_epochs}"
+            f"\nlr_min_factor: {self.lr_min_factor}"
+        )
+        
+
     def __call__(self, current_step):
         # `warmup_epochs` is already multiplied with the num of iterations
         if current_step <= self.warmup_epochs:

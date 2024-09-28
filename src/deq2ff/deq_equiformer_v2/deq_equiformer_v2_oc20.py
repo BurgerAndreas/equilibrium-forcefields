@@ -457,6 +457,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # we can't use previous of x because we initialize z as 0
         # norm_before = z.norm()
         # norm_before = torch.linalg.norm(z, ord=2, dim=-1)
+        # will be flattened to 1D and the 2-norm of the resulting vector will be computed
         norm_before = torch.linalg.norm(emb)
         # input injection
         channels = self.sphere_channels

@@ -446,8 +446,8 @@ class SO3_Rotation(torch.nn.Module):
         self.wigner = self.RotationToWignerDMatrix(rot_mat3x3, 0, self.lmax)
         self.wigner_inv = torch.transpose(self.wigner, 1, 2).contiguous()
         # Todo@gradforces
-        # self.wigner = self.wigner.detach()
-        # self.wigner_inv = self.wigner_inv.detach()
+        self.wigner = self.wigner.detach()
+        self.wigner_inv = self.wigner_inv.detach()
 
     # Rotate the embedding
     def rotate(self, embedding, out_lmax, out_mmax):
@@ -482,9 +482,8 @@ class SO3_Rotation(torch.nn.Module):
             wigner[:, start:end, start:end] = block
             start = end
 
-        # Todo@gradforces
-        # return wigner.detach()
-        return wigner
+        return wigner.detach() # Todo@gradforces
+        # return wigner
 
 
 class SO3_Grid(torch.nn.Module):

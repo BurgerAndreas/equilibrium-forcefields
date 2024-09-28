@@ -30,7 +30,7 @@ model:
   enc_ln: False # [True, False] Whether to use layer normalization after the encoder
   # pre: residual, ln, attn, merge, residual, ln, ff, merge. 
   # post: residual, attn, merge, residual, ln, ff, merge
-  ln: pre # [pre,post] 
+  ln: pre # [pre,post,pp] 
   final_ln: False # [True, False] Whether to use layer normalization at the end of transformer blocks (same position as second norm in post ln)
 
   alpha_drop: 0.0 # [0.0, 0.1] Dropout rate for attention weights

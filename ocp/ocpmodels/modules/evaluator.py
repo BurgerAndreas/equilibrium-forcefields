@@ -99,7 +99,7 @@ class Evaluator:
             metrics[key]["numel"] += 1
             metrics[key]["metric"] = metrics[key]["total"] / metrics[key]["numel"]
         elif torch.is_tensor(stat):
-            raise NotImplementedError
+            raise NotImplementedError(f"Tensor type not supported for {key}")
 
         return metrics
 

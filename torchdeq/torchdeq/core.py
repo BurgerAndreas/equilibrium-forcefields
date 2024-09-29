@@ -399,7 +399,6 @@ class DEQIndexing(DEQBase):
 
         f_tol = solver_kwargs.pop("f_tol", self.f_tol)
         f_stop_mode = solver_kwargs.pop("f_stop_mode", self.f_stop_mode)
-        print('   deq.f_tol:', f_tol)
 
         with torch.no_grad():
             # changed to use f_tol from passed kwargs
@@ -702,7 +701,6 @@ class DEQSliced(DEQBase):
                 indexing is not None
             ), f"Indexing must be specified. indexing: {indexing} self.arg_indexing: {self.arg_indexing}"
             assert f_max_iter is not None, "f_max_iter must be specified."
-            # print('Using indexing: ', indexing) # REMOVE
             return np.diff([0, *indexing, f_max_iter]).tolist()
 
     def _solve_fixed_point(
@@ -729,7 +727,6 @@ class DEQSliced(DEQBase):
 
         f_tol = solver_kwargs.pop("f_tol", self.f_tol)
         f_stop_mode = solver_kwargs.pop("f_stop_mode", self.f_stop_mode)
-        print('   deq.f_tol:', f_tol)
 
         # Too@grad: gradient tracking
         with torch.no_grad():

@@ -254,11 +254,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # data.pos: [batch_size*num_atoms, 3])
         # data.atomic_numbers = data.z: [batch_size*num_atoms]
         # data.cell: [batch_size, 3, 3]
-        # TODO:verbose
-        print('In forward', flush=True)
         x, pos, atomic_numbers, edge_distance, edge_index = self.encode(data)
-        # TODO:verbose
-        print('Encode done', flush=True)
 
         ###############################################################
         # Update spherical node embeddings
@@ -284,8 +280,6 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         reset_norm(self.blocks)
 
         self.reset_dropout(z, data.batch)
-        # TODO:verbose
-        print('reset_dropout done', flush=True)
 
         # Transformer blocks
         # f = lambda z: self.mfn_forward(z, u)
@@ -315,17 +309,14 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
        
         # V1
         if reuse:
-            print('  deq_eval_fpr', flush=True)
             z_pred, info = self.deq_eval_fpr(
                 func=f, z_init=z, solver_kwargs=solver_kwargs,
             )
         elif not self.training:
-            print('  deq_eval', flush=True)
             z_pred, info = self.deq_eval(
                 func=f, z_init=z, solver_kwargs=solver_kwargs,
             )
         else:
-            print('  deq', flush=True)
             z_pred, info = self.deq(
                 func=f, z_init=z, solver_kwargs=solver_kwargs,
             )
@@ -335,9 +326,6 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # z_pred, info = self.deq_current(
         #     func=f, z_init=z, solver_kwargs=solver_kwargs
         # )
-
-        # TODO:verbose
-        print('DEQ done', flush=True)
 
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
@@ -515,7 +503,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         """ Layers / Transformer blocks """
         # prev_layers = self.num_layers_per_stack * stack
         # for i in range(prev_layers, prev_layers + self.num_layers_per_stack):
-        print('before blocks', flush=True)
+        # print('before blocks', flush=True)
         for i in range(self.num_layers):
             z = self.blocks[i](
                 z,  # SO3_Embedding

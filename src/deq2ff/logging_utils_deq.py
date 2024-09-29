@@ -106,9 +106,13 @@ log_every_step_minor = 100
 
 
 def log_fixed_point_error(
-    info, step, datasplit=None, log_trace_freq=None, save_to_file=False
+    info, step, datasplit=None, split=None, log_trace_freq=None, save_to_file=False
 ):
-    """Log fixed point error to wandb."""
+    """Log fixed point error to wandb.
+    
+    datasplit: 'train', 'val', 'test' will be manually appended to the wandb log key "key_datasplit" ("nstep_train)
+    split: 'train', 'val', 'test' will be manually appended to the wandb log key "split/key"
+    """
     # [B, traj_len] -> [traj_len]
     # TorchDEQ stopping criterion is .max() < tol, not .mean()
     # absolute fixed point errors along the solver trajectory
@@ -122,6 +126,10 @@ def log_fixed_point_error(
         n = ""
     else:
         n = f"_{datasplit}"
+    if split is None:
+        npre = ""
+    else:
+        npre = f"{split}/"
 
     if len(f_abs_trace) > 0:
         # during test and val the step is not updated, i.e. we will never log
@@ -139,7 +147,7 @@ def log_fixed_point_error(
         # log, but as a list instead of table
         if log_trace_freq is None:
             log_trace_freq = log_every_step_major
-        if (step % log_trace_freq == 0) or datasplit in ["test", "val"]:
+        if (step % log_trace_freq == 0) or datasplit in ["test", "val"] or split in ["test", "val"]:
             # print('Logging fixed point error', f"abs_fixed_point_error_traj{n}")
             # log the fixed point error along the solver trajectory
             # https://github.com/wandb/wandb/issues/3966
@@ -157,10 +165,11 @@ def log_fixed_point_error(
                 )
                 wandb.log(
                     {
-                        f"abs_fixed_point_error_traj{n}": _abs,
-                        f"rel_fixed_point_error_traj{n}": _rel,
+                        f"{npre}abs_fixed_point_error_traj{n}": _abs,
+                        f"{npre}rel_fixed_point_error_traj{n}": _rel,
                     },
                     step=step,
+                    # split=split,
                 )
                 # print(
                 #     f"Logged fixed point error trajectory. (split: {datasplit} at step {step}). "
@@ -180,10 +189,11 @@ def log_fixed_point_error(
                 ):
                     wandb.log(
                         {
-                            f"abs64_fixed_point_error_traj{n}": _abs64,
-                            f"rel64_fixed_point_error_traj{n}": _rel64,
+                            f"{npre}abs64_fixed_point_error_traj{n}": _abs64,
+                            f"{npre}rel64_fixed_point_error_traj{n}": _rel64,
                         },
                         step=step,
+                        # split=split,
                     )
                     # print(
                     #     f"Logged fixed point error trajectory in float64. (split: {datasplit} at step {step}). "

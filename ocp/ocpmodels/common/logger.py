@@ -15,8 +15,8 @@ from ocpmodels.common.registry import registry
 
 
 class Logger(ABC):
-    """Generic class to interface with various logging modules, e.g. wandb,
-    tensorboard, etc.
+    """Generic class to interface with various logging modules. 
+    e.g. wandb, tensorboard, etc.
     """
 
     def __init__(self, config):
@@ -70,6 +70,7 @@ class WandBLogger(Logger):
         )
 
     def watch(self, model):
+        """Log gradients"""
         wandb.watch(model)
 
     def log(self, update_dict, step=None, split=""):

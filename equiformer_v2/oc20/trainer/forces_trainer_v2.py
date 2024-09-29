@@ -17,6 +17,7 @@ from collections import defaultdict
 from pathlib import Path
 import yaml
 import time
+import pprint
 
 import numpy as np
 import torch
@@ -34,6 +35,8 @@ from ocpmodels.modules.normalizer import Normalizer
 # from ocpmodels.trainers.base_trainer import BaseTrainer
 from .base_trainer_v2 import BaseTrainerV2
 from .engine import AverageMeter
+
+import deq2ff.logging_utils_deq as logging_utils_deq
 
 
 @registry.register_trainer("forces_v2")
@@ -298,7 +301,6 @@ class ForcesTrainerV2(BaseTrainerV2):
 
     def train(self, disable_eval_tqdm=False):
         # pretty print the config.
-        import pprint
 
         pp = pprint.PrettyPrinter(depth=4)
         logging.info(f"ForcesTrainerV2: self.config:")
@@ -308,6 +310,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         logging.info(f"Size training set: {len(self.train_loader)}")
         self.logger.log({"num_training_steps": len(self.train_loader)}, step=self.step)
 
+        # eval at least once per epoch
         eval_every = self.config["optim"].get("eval_every", len(self.train_loader))
         checkpoint_every = self.config["optim"].get("checkpoint_every", eval_every)
         primary_metric = self.config["task"].get(
@@ -404,8 +407,20 @@ class ForcesTrainerV2(BaseTrainerV2):
                         "step": self.step,
                     }
                 )
-                if "nsteps" in out:
-                    log_dict["nsteps"] = out["nsteps"]
+
+                # DEQ logging
+                info = out["info"]
+                if "nsteps" in info:
+                    log_dict["nsteps"] = out["nsteps"].mean().item()
+                if "abs_trace" in info.keys():
+                    # log fixed-point trajectory once per evaluation
+                    logging_utils_deq.log_fixed_point_error(
+                        info,
+                        step=self.step,
+                        datasplit="train",
+                    )
+
+                # logging of losses
                 if (
                     (
                         self.step % self.config["cmd"]["print_every"] == 0
@@ -539,8 +554,9 @@ class ForcesTrainerV2(BaseTrainerV2):
         ].get("use_auxiliary_task", False):
             out["forces"] = out_forces
 
-        if "nstep" in info:
-            out["nstep"] = info["nstep"].mean().item()
+        out["info"] = info
+        # if "nstep" in info:
+        #     out["nstep"] = info["nstep"].mean().item()
 
         return out
 
@@ -987,8 +1003,22 @@ class ForcesTrainerV2(BaseTrainerV2):
             loss = self._compute_loss(out, batch)
             metrics = self._compute_metrics(out, batch, evaluator, metrics)
             metrics = evaluator.update("loss", loss.item(), metrics)
-            if "nstep" in out:
-                metrics = evaluator.update("nstep", out["nstep"], metrics)
+            # DEQ logging
+            if "nstep" in out["info"]:
+                metrics = evaluator.update(
+                    key="nstep", 
+                    stat=out["info"]["nstep"].mean().item(), 
+                    metrics=metrics
+                )
+            # log fixed-point trajectory once per evaluation
+            if i == 0:
+                if "abs_trace" in out["info"].keys():
+                    logging_utils_deq.log_fixed_point_error(
+                        out["info"],
+                        step=self.step,
+                        split="val",
+                    )
+                
 
         # if distutils.is_master():
         time_total = time.perf_counter() - start_time

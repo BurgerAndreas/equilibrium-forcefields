@@ -31,8 +31,8 @@ def plot_full_fptraj_list(
     ymax=None,
     logscale=False,
     xmax=None,
-    save_plot=False,
-    download=True,
+    save_plot=True,
+    download=False,
 ):
     # https://github.com/wandb/wandb/issues/3966
 
@@ -116,11 +116,11 @@ def plot_full_fptraj_list(
         df = pd.DataFrame(history)
         # rename artifact_name to error_type
         df = df.rename(columns={artifact_name: error_type})
-        print(f'len(df): {len(df)}')
+        print(f'len(df) of downloaded history: {len(df)}')
 
         # drop rows that are None
         df = df.dropna(subset=[error_type])
-        print(f'len(df): {len(df)}')
+        print(f'len(df) after dropping na: {len(df)}')
 
         # turn _step into a list of same length as trace
         length = len(df[error_type].iloc[0])
@@ -131,13 +131,13 @@ def plot_full_fptraj_list(
         # solver_step is a list [0, 1, 2, ...]
         # df["solver_step"] = df.index
         df["solver_step"] = df[error_type].apply(lambda x: list(range(len(x))))
-        print('df: \n', df.head())
+        # print('df: \n', df.head())
 
         # flatten
         df = df.explode(["train_step", "solver_step", error_type])
         print(f'len(df) after flatten: {len(df)}')
         
-        print('df: \n', df.head())
+        # print('df: \n', df.head())
 
         # save dataframe using runname
         df.to_csv(csvname)
@@ -167,6 +167,7 @@ def plot_full_fptraj_list(
         # cant plot 0 on logscale
         # plt.ylim(1e-12, ymax)
         plt.ylim(top=ymax)
+    plt.xlim(left=0)
     if xmax is not None:
         plt.xlim(right=xmax)
     # legend title

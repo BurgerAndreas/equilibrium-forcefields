@@ -8,6 +8,7 @@ import os, sys, pathlib
 import yaml
 import json
 import requests
+import datetime
 
 from deq2ff.plotting.style import (
     set_seaborn_style,
@@ -105,6 +106,7 @@ def get_runs_from_wandb(
             # info["host"] = host
 
             infos_acc.append(info)
+        # print(infos_acc)
 
         df = pd.DataFrame(infos_acc)
 

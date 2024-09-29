@@ -15,14 +15,17 @@ from deq2ff.plotting.style import (
     entity,
     projectmd,
     plotfolder,
-    acclabels,
-    timelabels,
+    human_labels,
+    reset_plot_styles,
     set_style_after,
     myrc,
 )
 
 
-def main(run_id: str, ymax=None, xmax=None, logscale=False):
+def plot_nsteps_list(
+        run_id: str, ymax=None, xmax=None, logscale=False,
+        as_perecent=False,
+        ):
     # https://github.com/wandb/wandb/issues/3966
 
     api = wandb.Api()
@@ -30,85 +33,96 @@ def main(run_id: str, ymax=None, xmax=None, logscale=False):
     n_fsolver_steps_test = run.summary["n_fsolver_steps_test"]
     n_fsolver_steps_test_fpreuse = run.summary["n_fsolver_steps_test_fpreuse"]
 
-    print("Plotting run:", run.name)
+    print("\nPlotting run:", run.name)
 
-    for fpreuse in [True, False]:
-        if fpreuse:
-            df = pd.DataFrame(n_fsolver_steps_test_fpreuse)
-        else:
-            df = pd.DataFrame(n_fsolver_steps_test)
+    # """ Plot number of occurenes of each nstep """
+    # for fpreuse in [True, False]:
+    #     if fpreuse:
+    #         df = pd.DataFrame(n_fsolver_steps_test_fpreuse)
+    #         # print(f"fpreuse={fpreuse}: {len(df)} steps logged")
+    #     else:
+    #         df = pd.DataFrame(n_fsolver_steps_test)
+    #         # print(f"fpreuse={fpreuse}: {len(df)} steps logged")
 
-        # name columns
-        df.columns = ["nstep"]
+    #     # name columns
+    #     df.columns = ["nstep"]
 
-        """ Plot 1 """
-        # df["nstep"] = df["nstep"].round(0).astype(int)
-        # nstep_counts = df.value_counts(["nstep"])
-        # nstep_counts = nstep_counts.reset_index()
-        # nstep_counts.columns = ["nstep", "count"]
-        # nstep_counts.sort_values(by="nstep", inplace=True)
-        # nstep_counts.reset_index(drop=True, inplace=True)
-        # print('\nnstep_counts:\n', nstep_counts)
+    #     """ Plot 1 """
+    #     # df["nstep"] = df["nstep"].round(0).astype(int)
+    #     # nstep_counts = df.value_counts(["nstep"])
+    #     # nstep_counts = nstep_counts.reset_index()
+    #     # nstep_counts.columns = ["nstep", "count"]
+    #     # nstep_counts.sort_values(by="nstep", inplace=True)
+    #     # nstep_counts.reset_index(drop=True, inplace=True)
+    #     # print('\nnstep_counts:\n', nstep_counts)
 
-        # sns.scatterplot(data=nstep_counts, x="nstep", y="count")
-        # sns.displot(data=nstep_counts, x="nstep", y="count", binwidth=1)
-        # sns.displot(data=nstep_counts, x="nstep", y="count", kind="kde", fill=True)
-        # sns.histplot(data=nstep_counts, x="nstep", y="count")
-        # sns.barplot(data=nstep_counts, x="nstep", y="count")
+    #     # sns.scatterplot(data=nstep_counts, x="nstep", y="count")
+    #     # sns.displot(data=nstep_counts, x="nstep", y="count", binwidth=1)
+    #     # sns.displot(data=nstep_counts, x="nstep", y="count", kind="kde", fill=True)
+    #     # sns.histplot(data=nstep_counts, x="nstep", y="count")
+    #     # sns.barplot(data=nstep_counts, x="nstep", y="count")
 
-        """ Plot number of occurenes of each nstep """
-        set_seaborn_style()
-        df["nstep"] = df["nstep"].round(0).astype(int)
+    #     set_seaborn_style()
+    #     df["nstep"] = df["nstep"].round(0).astype(int)
 
-        # plot: x=solver_step, y=error_type, hue=train_step
-        # A special case for the bar plot is when you want to show the number of observations in each category
-        # rather than computing a statistic for a second variable.
-        # This is similar to a histogram over a categorical, rather than quantitative, variable.
-        # In seaborn, it’s easy to do so with the countplot()
-        sns.countplot(
-            data=df,
-            x="nstep",
-            dodge=False,
-            # hue="nstep", palette="viridis",
-        )
+    #     # plot: x=solver_step, y=error_type, hue=train_step
+    #     # A special case for the bar plot is when you want to show the number of observations in each category
+    #     # rather than computing a statistic for a second variable.
+    #     # This is similar to a histogram over a categorical, rather than quantitative, variable.
+    #     # In seaborn, it’s easy to do so with the countplot()
+    #     sns.countplot(
+    #         data=df,
+    #         x="nstep",
+    #         dodge=False,
+    #         # hue="nstep", palette="viridis",
+    #     )
 
-        plt.gcf().set_size_inches(8, 6)
+    #     plt.gcf().set_size_inches(8, 6)
 
-        plt.xlabel("Fixed-point solver steps")
-        plt.ylabel(f"Number of occurences")
-        if logscale:
-            plt.yscale("log")
-        if ymax is not None:
-            # cant plot 0 on logscale
-            # plt.ylim(1e-12, ymax)
-            plt.ylim(top=ymax)
-        # legend title
-        plt.title(f"Solver Steps {'with' if fpreuse else 'without'} FPreuse")
+    #     plt.xlabel("Fixed-point solver steps")
+    #     plt.ylabel(f"Number of occurences")
+    #     if logscale:
+    #         plt.yscale("log")
+    #     if ymax is not None:
+    #         # cant plot 0 on logscale
+    #         # plt.ylim(1e-12, ymax)
+    #         plt.ylim(top=ymax)
+    #     # legend title
+    #     plt.title(f"Solver Steps {'with' if fpreuse else 'without'} FPreuse")
 
-        plt.tight_layout()
+    #     plt.tight_layout()
 
-        mname = run.name  # wandb.run.name # args.checkpoint_wandb_name
-        # remove special characters
-        mname = "".join(e for e in mname if e.isalnum())
-        fname = (
-            f"{plotfolder}/nsteps_traj"
-            + f"{'_fpreuse' if fpreuse else ''}"
-            + f"_{mname}.png"
-        )
-        plt.savefig(fname)
-        print(f"Saved plot to \n {fname}")
+    #     mname = run.name  # wandb.run.name # args.checkpoint_wandb_name
+    #     # remove special characters
+    #     mname = "".join(e for e in mname if e.isalnum())
+    #     fname = (
+    #         f"{plotfolder}/nsteps_traj"
+    #         + f"{'_fpreuse' if fpreuse else ''}"
+    #         + f"_{mname}.png"
+    #     )
+    #     plt.savefig(fname)
+    #     print(f"Saved plot to \n {fname}")
 
-        # close the plot
-        plt.close()
-        plt.gca().clear()
-        plt.gcf().clear()
-        plt.clf()
+    #     # close the plot
+    #     plt.close()
+    #     plt.gca().clear()
+    #     plt.gcf().clear()
+    #     plt.clf()
 
     """ Plot number of occurenes of each nstep with and without fpreuse in the same plot """
     df = pd.DataFrame(n_fsolver_steps_test)
     df.columns = ["nstep"]
     df_fp = pd.DataFrame(n_fsolver_steps_test_fpreuse)
     df_fp.columns = ["nstep"]
+    print(f"fpreuse=False: {len(df)} steps logged")
+    print(f"fpreuse=True: {len(df_fp)} steps logged")
+
+    if len(df) > 1.5 * len(df_fp):
+        # remove every second entry, starting with the 0th entry
+        df = df.iloc[::2]
+        print(f"removed every second entry, len(df)={len(df)}")
+
+    num_samples = len(df)
 
     df["class"] = "No fixed-point reuse"
     df_fp["class"] = "Fixed-point reuse"
@@ -124,9 +138,10 @@ def main(run_id: str, ymax=None, xmax=None, logscale=False):
         data=_df,
         x="nstep",
         hue="class",
+        # “strip”, “swarm”, “box”, “violin”, “boxen”, “point”, “bar”, or “count”
         kind="count",
         # palette="pastel",
-        palette="muted",
+        palette=PALETTE,
         # figsize = (8, 6), # Width, height
         # height=6, aspect=1.,
         # edgecolor=".6",
@@ -147,7 +162,10 @@ def main(run_id: str, ymax=None, xmax=None, logscale=False):
     # add small xticks
     maxx = plt.gca().get_xlim()[1]
     # plt.xticks(np.arange(0, maxx, 2 if logscale else 1))
-    plt.xticks(np.arange(0, maxx, 2))
+    if logscale or xmax is None or xmax > 10:
+        plt.xticks(np.arange(0, maxx, 2))
+    else:
+        plt.xticks(np.arange(0, maxx, 1))
 
     # turn of grid
     plt.grid(False)
@@ -178,14 +196,34 @@ def main(run_id: str, ymax=None, xmax=None, logscale=False):
     if xmax is not None:
         plt.xlim(right=xmax)
     # legend title
-    plt.title(f"Solver Steps w/o Fixed-point Reuse", fontsize=myrc["font.size"])
+    plt.title(f"Solver Steps w/wo Fixed-point Reuse", fontsize=myrc["font.size"])
+
+    if as_perecent:
+        print("as percentage")
+        # turn count into percentage
+        if logscale:
+            g.set(ylabel="Percentage (% log scale)")
+        else:
+            g.set(ylabel="Percentage (%)")
+        g.ax.set_ylim(0, num_samples)
+        # replace yticks by dividing by len(df)
+        yticks = g.ax.get_yticks()
+        print(" yticks before", yticks)
+        yticks = np.round(yticks / num_samples * 100, 1)
+        yticks = [_y if (_y > 0 and _y < 1) else int(_y) for _y in yticks]
+        print(" yticks after", yticks)
+        g.ax.set_yticklabels(yticks)
+        # g.ax.set_yticks(yticks / num_samples)
+        # set ymax to 100
+
+    # ax = set_style_after(g)
 
     # no legend title
     # plt.legend(title=None)
     legend = g._legend
     legend.set_title(None)
     # set to top right
-    legend.set_bbox_to_anchor([0.95, 0.82])
+    legend.set_bbox_to_anchor([1.0, 0.87])
 
     plt.tight_layout(pad=0.1)
 
@@ -202,9 +240,7 @@ def main(run_id: str, ymax=None, xmax=None, logscale=False):
     plt.clf()
     plt.close()
 
-
-if __name__ == "__main__":
-
+def search_for_runs():
     # get all runs with tag 'inference_speed'
     api = wandb.Api()
     runs = api.runs(
@@ -276,8 +312,24 @@ if __name__ == "__main__":
             continue
         infos.append(info)
 
+    return infos
+
+if __name__ == "__main__":
+
+
     #
     # run_id = "xpz4crad"
-    run_id = "o732ps0t"
-    main(run_id, logscale=False, xmax=15)
-    main(run_id, logscale=True)
+    # run_id = "o732ps0t"
+    # plot_nsteps_list(run_id, logscale=False, xmax=15)
+    # plot_nsteps_list(run_id, logscale=True)
+
+    # pDEQs apt inf-bs1acc 
+    run_id = "b321vc1w"
+    plot_nsteps_list(run_id, logscale=False, xmax=9, as_perecent=True)
+    # plot_nsteps_list(run_id, logscale=True)
+    plot_nsteps_list(run_id, logscale=True, as_perecent=True)
+
+    # fpiter
+    run_id = "o16dbur0"
+    plot_nsteps_list(run_id, logscale=False, xmax=9, as_perecent=True)
+    plot_nsteps_list(run_id, logscale=True, as_perecent=True)

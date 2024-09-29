@@ -2302,7 +2302,8 @@ def evaluate(
                 data = data.to(device, dtype)
 
                 log_fp = True
-                if fpreuse_test and (step % patch_size == 0):
+                # if fpreuse_test and (step % patch_size == 0):
+                if step % patch_size == 0:
                     # reset fixed-point
                     fixedpoint = None
                     prev_idx = None
@@ -2537,7 +2538,7 @@ def evaluate(
             if len(n_fsolver_steps) > 0:
                 wandb_logs.update({
                     f"avg_n_fsolver_steps_{_datasplit}": np.mean(n_fsolver_steps),
-                    # log the full list
+                    # log the full list to plot histogram later
                     f"n_fsolver_steps_{_datasplit}": n_fsolver_steps
                 })
                 

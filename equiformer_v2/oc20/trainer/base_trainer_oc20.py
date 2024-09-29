@@ -71,6 +71,7 @@ class BaseTrainer(ABC):
         timestamp_id=None,
         run_dir=None,
         checkpoint_name=None,
+        checkpoint_wandb_name=None,
         is_debug=False,
         is_hpo=False,
         print_every=100,
@@ -84,6 +85,9 @@ class BaseTrainer(ABC):
         noddp=False,
         maxdata=-1,
     ):
+        """This init is never called by ForcesTrainerV2 training loop. 
+        Overwritten by base_trainer_v2.py
+        """
         self.name = name
         self.cpu = cpu
         self.epoch = 0
@@ -98,7 +102,6 @@ class BaseTrainer(ABC):
             # but there are no gpu devices available
         if run_dir is None:
             run_dir = os.getcwd()
-        self.checkpoint_name = checkpoint_name
 
         if timestamp_id is None:
             timestamp = torch.tensor(datetime.datetime.now().timestamp()).to(
@@ -156,8 +159,8 @@ class BaseTrainer(ABC):
                     "OC20",
                     "equiformer_v2",
                     self.timestamp_id
-                    if self.checkpoint_wandb_name is None
-                    else self.checkpoint_wandb_name,
+                    if checkpoint_wandb_name is None
+                    else checkpoint_wandb_name,
                 ),
                 "checkpoint_name": checkpoint_name,
                 "results_dir": os.path.join(run_dir, "results", self.timestamp_id),
@@ -458,7 +461,15 @@ class BaseTrainer(ABC):
             self.model.load_state_dict(checkpoint["state_dict"], strict=False)
 
         if "optimizer" in checkpoint:
-            self.optimizer.load_state_dict(checkpoint["optimizer"])
+            # self.optimizer.load_state_dict(checkpoint["optimizer"])
+            try:
+                self.optimizer.load_state_dict(checkpoint["optimizer"])
+            except:
+                logging.info(
+                    f"Warning: Failed to load optimizer state_dict."
+                    f"\nKeys: \n{checkpoint['optimizer'].keys()}"
+                    f"\nOptimizer keys: \n{self.optimizer.state_dict().keys()}"
+                )
             logging.info("Loaded optimizer state dict.")
         if "scheduler" in checkpoint and checkpoint["scheduler"] is not None:
             self.scheduler.scheduler.load_state_dict(checkpoint["scheduler"])

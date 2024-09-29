@@ -273,8 +273,6 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         else:
             z = fixedpoint.to(emb.device)
             reuse = True
-        # TODO:verbose
-        print('z done', flush=True)
 
         # from torchdeq
         reset_norm(self.blocks)
@@ -396,7 +394,6 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # Final layer norm
         x.embedding = self.norm(x.embedding)
 
-        print('before decode', flush=True)
         return self.decode(
             data=data,
             x=x,

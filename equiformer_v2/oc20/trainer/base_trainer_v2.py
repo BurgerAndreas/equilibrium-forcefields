@@ -200,11 +200,6 @@ class BaseTrainerV2(BaseTrainer):
         self.run_dir = run_dir
         this_file_dir = os.path.abspath(os.path.dirname(__file__))
         self.proj_root_dir = os.path.abspath(os.path.join(this_file_dir, "../../../"))
-        self.checkpoint_name = checkpoint_name
-        self.checkpoint_wandb_name = checkpoint_wandb_name
-        self.checkpoint_path = checkpoint_path
-        self.load_checkpoint = load_checkpoint
-        self.assert_checkpoint = assert_checkpoint
 
         if timestamp_id is None:
             timestamp = torch.tensor(datetime.datetime.now().timestamp()).to(
@@ -243,14 +238,14 @@ class BaseTrainerV2(BaseTrainer):
         logger_name = logger if isinstance(logger, str) else logger["name"]
         # model: omegaconf.dictconfig.DictConfig -> dict
         # model = model.to_dict()
-        if self.checkpoint_wandb_name is None:
+        if checkpoint_wandb_name is None:
             checkpoint_folder = self.timestamp_id
             checkpoint_folder_extended = self.timestamp_id
         else:
             # remove spaces and special characters
-            # checkpoint_folder = re.sub(r"[^A-Za-z0-9]+", "", self.checkpoint_wandb_name)
+            # checkpoint_folder = re.sub(r"[^A-Za-z0-9]+", "", checkpoint_wandb_name)
             checkpoint_folder = "".join(
-                e for e in self.checkpoint_wandb_name if e.isalnum()
+                e for e in checkpoint_wandb_name if e.isalnum()
             )
             checkpoint_folder_extended = f"{self.timestamp_id}-{checkpoint_folder}"
 
@@ -275,8 +270,11 @@ class BaseTrainerV2(BaseTrainer):
                         self.proj_root_dir, run_dir, "checkpoints", checkpoint_folder
                     )
                 ),
-                "checkpoint_path": self.checkpoint_path,
-                "assert_checkpoint": self.assert_checkpoint,
+                "checkpoint_path": checkpoint_path,
+                "assert_checkpoint": assert_checkpoint,
+                "load_checkpoint": load_checkpoint,
+                "checkpoint_wandb_name": checkpoint_wandb_name,
+                "checkpoint_name": checkpoint_name,
                 "results_dir": os.path.abspath(
                     os.path.join(
                         self.proj_root_dir,
@@ -400,7 +398,7 @@ class BaseTrainerV2(BaseTrainer):
         logging.info("\nLooking for checkpoint...")
         checkpoint_loaded = False
         checkpoint_path = self.config["cmd"].get("checkpoint_path", None)
-        if (checkpoint_path is not None) and self.load_checkpoint:
+        if (checkpoint_path is not None) and self.config["cmd"].get("load_checkpoint", True):
             if checkpoint_path == "auto":
                 # set the checkpoint path based on the name
                 # checkpoint_dir
@@ -439,6 +437,7 @@ class BaseTrainerV2(BaseTrainer):
         self.load_optimizer()
         self.load_extras()
         self.look_for_checkpoint()
+        self.logger.log({"start_epoch": self.epoch}, step=self.step)
         logging.info("Trainer loaded.")
 
     def load_seed_from_config(self):

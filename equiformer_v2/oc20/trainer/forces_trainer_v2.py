@@ -357,7 +357,10 @@ class ForcesTrainerV2(BaseTrainerV2):
         logging.info(f"Starting training at step {self.step}.")
         logging.info(f"Steps per epoch: {max_steps}")
         self.logger.log(
-            {"max_steps": int(max_steps * self.config["optim"]["max_epochs"])},
+            {
+                "max_steps": int(max_steps * self.config["optim"]["max_epochs"]),
+                "steps_per_epoch": max_steps,
+            },
             split="train",
             step=self.step,
         )
@@ -515,6 +518,8 @@ class ForcesTrainerV2(BaseTrainerV2):
 
                 # end of step
                 pbar.update(1)
+            
+            self.logger.log({"epoch": self.epoch}, step=self.step)
 
             # end of epoch
             torch.cuda.empty_cache()

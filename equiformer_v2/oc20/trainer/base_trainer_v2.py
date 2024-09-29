@@ -163,6 +163,7 @@ class BaseTrainerV2(BaseTrainer):
         checkpoint_name=None,
         checkpoint_wandb_name=None,
         checkpoint_path=None,
+        load_checkpoint=True,
         assert_checkpoint=False,
         is_debug=False,
         is_hpo=False,
@@ -202,6 +203,7 @@ class BaseTrainerV2(BaseTrainer):
         self.checkpoint_name = checkpoint_name
         self.checkpoint_wandb_name = checkpoint_wandb_name
         self.checkpoint_path = checkpoint_path
+        self.load_checkpoint = load_checkpoint
         self.assert_checkpoint = assert_checkpoint
 
         if timestamp_id is None:
@@ -396,10 +398,10 @@ class BaseTrainerV2(BaseTrainer):
 
     def look_for_checkpoint(self):
         logging.info("\nLooking for checkpoint...")
-        # TODO: load model from checkpoint
         checkpoint_loaded = False
-        if self.config["cmd"].get("checkpoint_path", None) is not None:
-            if self.config["cmd"]["checkpoint_path"] == "auto":
+        checkpoint_path = self.config["cmd"].get("checkpoint_path", None)
+        if (checkpoint_path is not None) and self.load_checkpoint:
+            if checkpoint_path == "auto":
                 # set the checkpoint path based on the name
                 # checkpoint_dir
                 # TODO: checkpoint_name not used or properly set
@@ -408,7 +410,8 @@ class BaseTrainerV2(BaseTrainer):
                 )
                 logging.info(f"Loading checkpoint from {checkpoint_path}")
             else:
-                checkpoint_path = self.config["cmd"]["checkpoint_path"]
+                # checkpoint_path = checkpoint_path
+                pass
 
             # load the checkpoint
             if os.path.isfile(checkpoint_path):

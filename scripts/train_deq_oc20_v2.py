@@ -65,9 +65,9 @@ class Runner(submitit.helpers.Checkpointable):
                 timestamp_id=config.get("timestamp_id", None),
                 # checkpointing
                 run_dir=config.get("run_dir", "./"),
-                checkpoint_path=config.get(
-                    "checkpoint_path", None
-                ),  # checkpoint to load
+                # checkpoint to load
+                checkpoint_path=config.get("checkpoint_path", None),  
+                load_checkpoint=config.get("load_checkpoint", True),
                 checkpoint_wandb_name=config.get("checkpoint_wandb_name", None),
                 checkpoint_name=config.get("checkpoint.pt", None),  # Provide
                 assert_checkpoint=config.get("assert_checkpoint", False),

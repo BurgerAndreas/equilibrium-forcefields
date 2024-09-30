@@ -24,7 +24,7 @@ from deq2ff.plotting.style import (
 
 def plot_nsteps_list(
     run_id: str, ymax=None, xmax=None, logscale=False,
-    as_perecent=False, show=False, palette=None
+    as_perecent=False, show=False, palette=None,
     ):
     # https://github.com/wandb/wandb/issues/3966
 

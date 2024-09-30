@@ -33,6 +33,7 @@ def plot_full_fptraj_list(
     xmax=None,
     save_plot=True,
     download=False,
+    palette=None,
 ):
     # https://github.com/wandb/wandb/issues/3966
 
@@ -123,7 +124,7 @@ def plot_full_fptraj_list(
         y=error_type,
         hue="train_step",
         ax=ax,
-        # palette="viridis",
+        palette=palette,
         # paleette="tab10",
     )
     plt.xlabel("Fixed-point solver step")
@@ -141,13 +142,16 @@ def plot_full_fptraj_list(
     # plt.title(f"{run_name}")
     plt.title(f"Fixed-Point Trace over Training")
 
-    set_style_after(ax, fs=10)
+    # set_style_after(ax, fs=10)
+    set_style_after(ax)
+
+    # title legend
+    # plt.legend(title="Training step", fontsize=10)
+    plt.legend(title="Training step")
 
     # legend outside the plot on the right
     # plt.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
     # ax.get_legend().get_frame().set_linewidth(0.0)
-
-    plt.tight_layout()
 
     if save_plot:
         fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{error_type}_{run_id.split('/')[-1]}_{mname}.png"

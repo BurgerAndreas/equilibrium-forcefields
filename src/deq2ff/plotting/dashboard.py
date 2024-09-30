@@ -1336,14 +1336,21 @@ def print_table_time_forces_avg_seeds(
         print("".join(line))
 
 def get_keys_history(run_id, project=projectmd,
-        keys=["train_f_mae", "test_f_mae", "val_f_mae"], download=False, sname=None,
+        keys=None, download=False, sname=None,
+        allcols=True,
         # save_plot=False, logscale=False, ymax=None, xmax=None,
     ):
+    if keys is None:
+        if project == projectmd:
+            keys = ["train_f_mae", "test_f_mae", "val_f_mae"]
+        elif project == projectmd:
+            keys = ["train/forces_mae", "val/forces_mae"]
+
     api = wandb.Api()
     run = api.run(project + "/" + run_id)
     run_name = run.name
     print("\nrun_id:", run_id)
-    print("name:", run.name)
+    print("name:  ", run.name)
     mname = "".join(e for e in run_name if e.isalnum())
     # save as parquet
     sname = (
@@ -1360,7 +1367,10 @@ def get_keys_history(run_id, project=projectmd,
             print(f"File not found: {sname}")
     if download:
         print("Downloading run history...")
-        history = run.scan_history()
+        if allcols:
+            history = run.scan_history()
+        else:
+            history = run.history(keys=keys + ["_step", "_runtime", "epoch"])
 
         # https://github.com/wandb/wandb/blob/v0.18.0/wandb/apis/public/history.py#L80
         print(f'History: {type(history)}')
@@ -1373,21 +1383,22 @@ def get_keys_history(run_id, project=projectmd,
         # print('columns:', df.columns)
 
         # drop rows that are None
-        df = df.dropna(subset=keys, how='all')
-        print(f'len(df) after dropping na: {len(df)}')
+        if keys is not None:
+            df = df.dropna(subset=keys, how='all')
+            print(f'len(df) after dropping na: {len(df)}')
 
         # # if artifact is a list
         # # turn _step into a list of same length as trace
         # length = len(df[col].iloc[0])
         # df["train_step"] = df["_step"].apply(lambda x: [x] * length)
 
-        # # solver_step is a list [0, 1, 2, ...]
-        # # df["solver_step"] = df.index
-        # df["solver_step"] = df[col].apply(lambda x: list(range(len(x))))
+        # # list_step is a list [0, 1, 2, ...]
+        # # df["list_step"] = df.index
+        # df["list_step"] = df[col].apply(lambda x: list(range(len(x))))
         # # print('df: \n', df.head())
 
         # # flatten
-        # df = df.explode(["train_step", "solver_step", col])
+        # df = df.explode(["train_step", "list_step", col])
         # print(f'len(df) after flatten: {len(df)}')
         
         # print('df: \n', df.head())
@@ -1464,8 +1475,6 @@ def plot_loss_curve(
     # legend outside the plot on the right
     # plt.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
     # ax.get_legend().get_frame().set_linewidth(0.0)
-
-    plt.tight_layout()
 
     if fname is not None:
         fname = f"{plotfolder}/{fname}.png"

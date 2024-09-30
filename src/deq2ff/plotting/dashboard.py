@@ -23,6 +23,7 @@ from deq2ff.plotting.style import (
     human_labels,
     marks,
     reset_plot_styles,
+    cdict,
 )
 
 e1 = "E1"
@@ -87,8 +88,6 @@ def get_runs_from_wandb(
             info = {
                 "run_id": run.id,
                 "run_name": run.name,
-                # "config": run.config,
-                # "summary": run.summary,
             }
             # flatten the config and summary dictionaries
             for key, value in run.config.items():
@@ -271,11 +270,11 @@ def preprocess_df(df, project, error_metric):
             # fill in config.target where config.datasplit is not nan else leave it
             df["config.target"] = df["config.datasplit"].fillna(df["config.target"])
 
-        if "config.dataset_size" in df.columns:
-            # is independent of maxdata
-            df["config.target"] = df["config.dataset_size"].apply(
-                lambda x: f"{int(x / 1000)}k" if pd.notna(x) else df["config.target"]
-            )
+        # if "config.dataset_size" in df.columns:
+        #     # is independent of maxdata
+        #     df["config.target"] = df["config.dataset_size"].apply(
+        #         lambda x: f"{int(x / 1000)}k" if pd.notna(x) else df["config.target"]
+        #     )
 
         # where target=0, fill in "200k" as default
         print(
@@ -285,16 +284,16 @@ def preprocess_df(df, project, error_metric):
         # df["config.target"] = df["config.target"].apply(lambda x: f"200k" if x == '0' else x)
 
         # config.optim.maxdata
-        print(f"Adding maxdata to target")
-        if "config.optim.maxdata" in df.columns:
-            # where maxdata is > 0, append it to the target
-            tempdf = df[df["config.optim.maxdata"] > 0]
-            tempdf["config.target"] = tempdf["config.optim.maxdata"].apply(
-                lambda x: f"{int(x / 1000)}k/"  # if x > 0 else ""
-            )
-            df.loc[tempdf.index, "config.target"] = (
-                tempdf["config.target"] + df["config.target"]
-            )
+        # print(f"Adding maxdata to target")
+        # if "config.optim.maxdata" in df.columns:
+        #     # where maxdata is > 0, append it to the target
+        #     tempdf = df[df["config.optim.maxdata"] > 0]
+        #     tempdf["config.target"] = tempdf["config.optim.maxdata"].apply(
+        #         lambda x: f"{int(x / 1000)}k/"  # if x > 0 else ""
+        #     )
+        #     df.loc[tempdf.index, "config.target"] = (
+        #         tempdf["config.target"] + df["config.target"]
+        #     )
 
         print(f"Adding optim.max_epochs to target")
         df["config.target"] = (
@@ -718,9 +717,16 @@ def plot_acc_vs_speed(
         target=None,
         xlabel=None,
         ylabel=None,
+        xmin=None,
+        xmax=None,
+        ymin=None,
+        ymax=None,
         title="Error vs Time",
         shapestyle=None, # None, config.num_layers
         fname=False,
+        palette=cdict,
+        hue="Class",
+        ls="",
     ):
     data = _df.copy()
 
@@ -734,24 +740,35 @@ def plot_acc_vs_speed(
         }
         data[shapekwargs].rename(columns={shapestyle: human_labels(shapestyle)}, inplace=True)
     else:
-        shapekwargs = {}
+        shapekwargs = {"marker": 'o'}
 
     # plot
     reset_plot_styles()
-    set_seaborn_style(palette=PALETTE)
+    set_seaborn_style()
     fig, ax = plt.subplots()
-    sns.scatterplot(
+    # sns.scatterplot(
+    sns.lineplot(
         x=x,
         y=y,
-        hue="Class",
+        hue=hue,
         data=data,
         ax=ax,
-        # palette=cdict
+        palette=palette,
+        ls=ls,
         **shapekwargs,
     )
     plt.legend()
     plt.xlabel(xlabel if xlabel is not None else human_labels(x))
     plt.ylabel(ylabel if ylabel is not None else human_labels(y))
+
+    if xmin is not None:
+        plt.xlim(left=xmin)
+    if xmax is not None:
+        plt.xlim(right=xmax)
+    if ymin is not None:
+        plt.ylim(bottom=ymin)
+    if ymax is not None:
+        plt.ylim(top=ymax)
 
     if title is not None:
         plt.title(title)
@@ -779,10 +796,12 @@ def plot_acc_vs_speed_errorbar(
         ylabel=None,
         title="Error vs Time",
         errbar="sd", # std, sem, ci
+        hue="Class",
         ymin=0,
         ymax=None,
         markershape=None, # None, config.num_layers
         fname=False,
+        palette=cdict,
     ):
     """_summary_
 
@@ -857,10 +876,10 @@ def plot_acc_vs_speed_errorbar(
     sns.scatterplot(
         x=x,
         y=y,
-        hue="Class",
+        hue=hue,
         data=_mean,
         ax=ax,
-        # palette=cdict
+        palette=palette,
         **shapekwargs,
     )
 
@@ -868,9 +887,17 @@ def plot_acc_vs_speed_errorbar(
         # colors from current sns palette
         colors = sns.color_palette()
 
-        for _class, _color in zip(["E", 'DEQ'], colors):
-            _data = _mean[_mean["Class"] == _class]
-            _err_data = _err[_err["Class"] == _class]
+        categories = _mean[hue].unique()
+        # sort to have E1, E4, E8, DEQ1, DEQ2
+        categories = sorted(categories, reverse=True)
+        # categories = sorted(categories, key=lambda x: int(x[-1]))
+
+        # plot errorbars one hue at a time
+        for _class, _color in zip(categories, colors):
+            _data = _mean[_mean[hue] == _class]
+            _err_data = _err[_err[hue] == _class]
+            if palette is not None:
+                _color = palette[_class]
             ax.errorbar(
                 x=_data[x],
                 y=_data[y],
@@ -1307,3 +1334,142 @@ def print_table_time_forces_avg_seeds(
         if _l == first_deq:
             print("\midrule[0.6pt]")
         print("".join(line))
+
+def get_keys_history(run_id, project=projectmd,
+        keys=["train_f_mae", "test_f_mae", "val_f_mae"], download=False, sname=None,
+        # save_plot=False, logscale=False, ymax=None, xmax=None,
+    ):
+    api = wandb.Api()
+    run = api.run(project + "/" + run_id)
+    run_name = run.name
+    print("\nrun_id:", run_id)
+    print("name:", run.name)
+    mname = "".join(e for e in run_name if e.isalnum())
+    # save as parquet
+    sname = (
+        f"{plotfolder}/traintestfmae_{run_id}_{mname}.parquet"
+    )
+    # try to load from csv
+    if download == False:
+        try:
+            df = pd.read_csv(sname)
+            print(f"Loaded from csv: {sname}")
+
+        except FileNotFoundError:
+            download = True
+            print(f"File not found: {sname}")
+    if download:
+        print("Downloading run history...")
+        history = run.scan_history()
+
+        # https://github.com/wandb/wandb/blob/v0.18.0/wandb/apis/public/history.py#L80
+        print(f'History: {type(history)}')
+
+        # turn history into dataframe
+        df = pd.DataFrame(history)
+        # rename artifact_name to error_type
+        # df = df.rename(columns={artifact_name: col})
+        print(f'len(df) of downloaded history: {len(df)}')
+        # print('columns:', df.columns)
+
+        # drop rows that are None
+        df = df.dropna(subset=keys, how='all')
+        print(f'len(df) after dropping na: {len(df)}')
+
+        # # if artifact is a list
+        # # turn _step into a list of same length as trace
+        # length = len(df[col].iloc[0])
+        # df["train_step"] = df["_step"].apply(lambda x: [x] * length)
+
+        # # solver_step is a list [0, 1, 2, ...]
+        # # df["solver_step"] = df.index
+        # df["solver_step"] = df[col].apply(lambda x: list(range(len(x))))
+        # # print('df: \n', df.head())
+
+        # # flatten
+        # df = df.explode(["train_step", "solver_step", col])
+        # print(f'len(df) after flatten: {len(df)}')
+        
+        # print('df: \n', df.head())
+
+        # test_fpr_f_mae
+        cols_to_keep = keys + [
+            "epoch", "_step", "_runtime", 
+            "avg_n_fsolver_steps_val", "avg_n_fsolver_steps_test", "avg_n_fsolver_steps_train",
+        ]
+
+        df["run_id"] = run_id
+        df["run_name"] = run.name
+        df["Model"] = ("E" if not run.config["model_is_deq"] else "DEQ") + str(run.config["model"]["num_layers"])
+        df["Class"] = "E" if not run.config["model_is_deq"] else "DEQ"
+        df["model.num_layers"] = run.config["model"]["num_layers"]
+
+        # save dataframe using runname
+        df.to_csv(sname)
+    
+    return df
+
+def plot_loss_curve(
+        df, x="_step", y="test_f_mae", 
+        xlabel=None, ylabel=None, logscale=False, 
+        ymax=None, xmax=None, 
+        ymin=None, xmin=None,
+        fname=None, title=None, hue="Class",
+        palette=cdict,
+):
+    _df = df.copy()
+    _df.dropna(subset=[y], inplace=True)
+    if xmin is not None:
+        _df = _df[_df[x] >= xmin]
+    else:
+        xmin = _df[x].min()
+    set_seaborn_style()
+
+    fig, ax = plt.subplots()
+    ax.ticklabel_format(style='sci', axis='x', scilimits=(0,0), useMathText=True)
+    # plt.gca().ticklabel_format(useMathText=True)
+
+    # plot: x=solver_step, y=error_type, hue=train_step
+    sns.lineplot(
+        data=_df,
+        x=x,
+        y=y,
+        hue=hue,
+        ax=ax,
+        palette=palette,
+    )
+    plt.xlabel(human_labels(x) if xlabel is None else xlabel)
+    plt.ylabel(human_labels(y) if ylabel is None else ylabel)
+    if logscale:
+        plt.yscale("log")
+    if ymax is not None:
+        # cant plot 0 on logscale
+        # plt.ylim(1e-12, ymax)
+        plt.ylim(top=ymax)
+    if ymin is not None:
+        plt.ylim(bottom=ymin)
+    if xmin is not None:
+        plt.xlim(left=xmin)
+    else:
+        plt.xlim(left=0)
+    if xmax is not None:
+        plt.xlim(right=xmax)
+    # legend title
+    # plt.title(f"{run_name}")
+    if title is not None:
+        plt.title(title)
+
+    set_style_after(ax) # , fs=10
+
+    # legend outside the plot on the right
+    # plt.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
+    # ax.get_legend().get_frame().set_linewidth(0.0)
+
+    plt.tight_layout()
+
+    if fname is not None:
+        fname = f"{plotfolder}/{fname}.png"
+        plt.savefig(fname)
+        print(f"Saved plot to \n {fname}")
+
+    return fig, ax

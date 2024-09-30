@@ -79,39 +79,6 @@ def plot_full_fptraj_list(
         # https://github.com/wandb/wandb/blob/v0.18.0/wandb/apis/public/history.py#L80
         print(f'History: {type(history)}, len={len(history.rows)}')
 
-        # print("Processing run history...")
-        # losses = [
-        #     [row[artifact_name], row["_step"]]
-        #     for row in history
-        #     if artifact_name in row.keys()
-        # ]
-        # print(f" Losses found: {len(losses[0][0]) if len(losses) > 0 else None}")
-
-        # print(f"Filtering out None values...")
-        # losses_nonone = [[r, s] for r, s in losses if r is not None]
-        # print(
-        #     f" Rows that were None: {len(losses) - len(losses_nonone)} / {len(losses)}"
-        # )
-        # losses = losses_nonone
-
-        # print(f"Combining data into dataframe...")
-        # # losses = [[r, s, [*range(len(r))]] for r, s in losses]
-        # losses = [
-        #     {
-        #         error_type: pd.Series(r),
-        #         "train_step": pd.Series([s] * len(r)),
-        #         "solver_step": pd.Series(range(len(r))),
-        #     }
-        #     for r, s in losses
-        # ]
-        # losses_concat = {
-        #     k: pd.concat([d[k] for d in losses], axis=0) for k in losses[0].keys()
-        # }
-        # # print(f"losses_concat: {losses_concat}")
-        # df = pd.DataFrame(losses_concat)
-
-        # losses = [row["Loss"] for row in history]
-
         # turn history into dataframe
         df = pd.DataFrame(history)
         # rename artifact_name to error_type

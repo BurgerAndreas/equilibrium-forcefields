@@ -75,11 +75,16 @@ cdict = {
     # https://www.colorhexa.com/ffb347
     "DEQ1": "#F8A874",  # F8A874 #FBCEB1
     "DEQ2": "#F58238",
+    "DEQ": "#F58238",  # F8A874 #FBCEB1
+    "DEQ 1,2": "#F58238",  # F8A874 #FBCEB1
     # https://www.picmonkey.com/colors/blue/pastel-blue
     # https://www.picmonkey.com/colors/gray/slate
     "E1": "#AEC6CF",
     "E4": "#5E8D9F",
     "E8": "#476A77",  # 2ca25f 2b8cbe
+    "E 1-8": "#476A77",  # 2ca25f 2b8cbe
+    "E 1,4,8": "#476A77",  # 2ca25f 2b8cbe
+    "E": "#476A77",  # 2ca25f 2b8cbe
 }
 
 

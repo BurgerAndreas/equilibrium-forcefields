@@ -23,9 +23,9 @@ from deq2ff.plotting.style import (
 
 
 def plot_nsteps_list(
-        run_id: str, ymax=None, xmax=None, logscale=False,
-        as_perecent=False,
-        ):
+    run_id: str, ymax=None, xmax=None, logscale=False,
+    as_perecent=False, show=False, palette=None
+    ):
     # https://github.com/wandb/wandb/issues/3966
 
     api = wandb.Api()
@@ -114,13 +114,13 @@ def plot_nsteps_list(
     df.columns = ["nstep"]
     df_fp = pd.DataFrame(n_fsolver_steps_test_fpreuse)
     df_fp.columns = ["nstep"]
-    print(f"fpreuse=False: {len(df)} steps logged")
-    print(f"fpreuse=True: {len(df_fp)} steps logged")
+    # print(f"fpreuse=False: {len(df)} steps logged")
+    # print(f"fpreuse=True: {len(df_fp)} steps logged")
 
     if len(df) > 1.5 * len(df_fp):
         # remove every second entry, starting with the 0th entry
         df = df.iloc[::2]
-        print(f"removed every second entry, len(df)={len(df)}")
+        # print(f"removed every second entry, len(df)={len(df)}")
 
     num_samples = len(df)
 
@@ -141,7 +141,7 @@ def plot_nsteps_list(
         # “strip”, “swarm”, “box”, “violin”, “boxen”, “point”, “bar”, or “count”
         kind="count",
         # palette="pastel",
-        palette=PALETTE,
+        palette=PALETTE if palette is None else palette,
         # figsize = (8, 6), # Width, height
         # height=6, aspect=1.,
         # edgecolor=".6",
@@ -199,7 +199,6 @@ def plot_nsteps_list(
     plt.title(f"Solver Steps w/wo Fixed-point Reuse", fontsize=myrc["font.size"])
 
     if as_perecent:
-        print("as percentage")
         # turn count into percentage
         if logscale:
             g.set(ylabel="Percentage (% log scale)")
@@ -208,10 +207,8 @@ def plot_nsteps_list(
         g.ax.set_ylim(0, num_samples)
         # replace yticks by dividing by len(df)
         yticks = g.ax.get_yticks()
-        print(" yticks before", yticks)
         yticks = np.round(yticks / num_samples * 100, 1)
         yticks = [_y if (_y > 0 and _y < 1) else int(_y) for _y in yticks]
-        print(" yticks after", yticks)
         g.ax.set_yticklabels(yticks)
         # g.ax.set_yticks(yticks / num_samples)
         # set ymax to 100
@@ -236,6 +233,8 @@ def plot_nsteps_list(
     plt.savefig(fname)
     print(f"Saved plot to \n {fname}")
 
+    if show:
+        plt.show()
     plt.cla()
     plt.clf()
     plt.close()
@@ -330,5 +329,12 @@ if __name__ == "__main__":
 
     # fpiter
     run_id = "o16dbur0"
+    plot_nsteps_list(run_id, logscale=False, xmax=9, as_perecent=True)
+    plot_nsteps_list(run_id, logscale=True, as_perecent=True)
+    
+    # pDEQs ap ln-pre malonaldehyde
+    # 7x83gn1c
+    # # fpiter
+    run_id = "7x83gn1c"
     plot_nsteps_list(run_id, logscale=False, xmax=9, as_perecent=True)
     plot_nsteps_list(run_id, logscale=True, as_perecent=True)

@@ -391,11 +391,12 @@ class ForcesTrainerV2(BaseTrainerV2):
                 scale = self.scaler.get_scale() if self.scaler else 1.0
 
                 # Compute metrics.
-                self.metrics = self._compute_metrics(
+                self.metrics, results = self._compute_metrics(
                     out,
                     batch,
                     self.evaluator,
                     self.metrics,
+                    return_results=True,
                 )
                 self.metrics = self.evaluator.update(
                     "loss",
@@ -403,13 +404,15 @@ class ForcesTrainerV2(BaseTrainerV2):
                     self.metrics,
                 )
 
-                # Log metrics.
+                # Log the AVERAGED metrics, not the per-batch metrics.
                 log_dict = {k: self.metrics[k]["metric"] for k in self.metrics}
+                log_dict.update({f"{k}_batch": results[k]["metric"] for k in results})
                 log_dict.update(
                     {
                         "lr": self.scheduler.get_lr(),
                         "epoch": self.epoch,
                         "step": self.step,
+                        "loss_batch": loss.item() / scale * self.grad_accumulation_steps,
                     }
                 )
 
@@ -519,10 +522,10 @@ class ForcesTrainerV2(BaseTrainerV2):
                 # end of step
                 pbar.update(1)
             
+            # end of epoch
             self.logger.log({"epoch": self.epoch}, step=self.step)
 
-            # end of epoch
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
 
             if checkpoint_every == -1:
                 self.save(checkpoint_file="checkpoint.pt", training_state=True)
@@ -701,7 +704,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         loss = sum(loss)
         return loss
 
-    def _compute_metrics(self, out, batch_list, evaluator, metrics={}):
+    def _compute_metrics(self, out, batch_list, evaluator, metrics={}, return_results=False):
         natoms = torch.cat(
             [batch.natoms.to(self.device) for batch in batch_list], dim=0
         )
@@ -718,7 +721,6 @@ class ForcesTrainerV2(BaseTrainerV2):
 
         out["natoms"] = natoms
 
-        # logging.info(f'eval_on_free_atoms: {self.config["task"].get("eval_on_free_atoms", True)}')
         if self.config["task"].get("eval_on_free_atoms", True):
             fixed = torch.cat([batch.fixed.to(self.device) for batch in batch_list])
             mask = fixed == 0
@@ -737,8 +739,14 @@ class ForcesTrainerV2(BaseTrainerV2):
             out["energy"] = self.normalizers["target"].denorm(out["energy"])
             out["forces"] = self.normalizers["grad_target"].denorm(out["forces"])
 
-        metrics = evaluator.eval(out, target, prev_metrics=metrics)
-        return metrics
+        if return_results:
+            metrics, results = evaluator.eval(
+                out, target, prev_metrics=metrics, return_results=return_results
+            )
+            return metrics, results
+        else:
+            metrics = evaluator.eval(out, target, prev_metrics=metrics)
+            return metrics
 
     def run_relaxations(self, split="val"):
         self.file_logger.info("Running ML-relaxations")

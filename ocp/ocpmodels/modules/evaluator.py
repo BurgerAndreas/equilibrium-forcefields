@@ -66,7 +66,20 @@ class Evaluator:
         self.task = task
         self.metric_fn = self.task_metrics[task]
 
-    def eval(self, prediction, target, prev_metrics={}):
+    def eval(self, prediction, target, prev_metrics={}, return_results=False):
+        """Calculate the error and update the metrics.
+        Returns updated metrics.
+
+        metrics:
+            metric = sum_batches( mean of batch )
+            total = sum_batches( sum of batch )
+            numel = sum_batches( batchsize )
+
+        results:
+            metric = mean of batch
+            total = sum of batch
+            numel = batchsize
+        """
         for attr in self.task_attributes[self.task]:
             assert attr in prediction
             assert attr in target
@@ -74,13 +87,24 @@ class Evaluator:
 
         metrics = prev_metrics
 
+        results = {}
         for fn in self.task_metrics[self.task]:
             res = eval(fn)(prediction, target)
+            results[fn] = res
             metrics = self.update(fn, res, metrics)
+            pass
 
+        if return_results:
+            return metrics, results
         return metrics
 
+
     def update(self, key, stat, metrics):
+        """
+        metric = sum_batches( mean of batch )
+        total = sum_batches( sum of batch )
+        numel = sum_batches( batchsize )
+        """
         if key not in metrics:
             metrics[key] = {
                 "metric": None,

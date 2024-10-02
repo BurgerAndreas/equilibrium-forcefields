@@ -867,6 +867,7 @@ class EquiformerV2_OC20(BaseModel):
             offset_res = offset_res + int((self.lmax_list[i] + 1) ** 2)
 
         # Edge encoding (distance and atom edge)
+        # radial basis function
         # E1: edge_length_embedding = self.rbf(edge_length)
         edge_distance = self.distance_expansion(edge_distance)
         if self.share_atom_edge_embedding and self.use_atom_edge_embedding:

@@ -366,16 +366,18 @@ class ForcesTrainerV2(BaseTrainerV2):
         )
         for epoch_int in range(start_epoch, self.config["optim"]["max_epochs"]):
             self.train_sampler.set_epoch(epoch_int)
+            self.logger.log({"epoch": self.epoch}, step=self.step)
             skip_steps = self.step % len(self.train_loader)
             train_loader_iter = iter(self.train_loader)
 
+            # reinitialize metrics
             self.metrics = {}
 
+            self.model.train()
             # loop over batches
             for i in range(skip_steps, max_steps):
                 self.epoch = epoch_int + (i + 1) / len(self.train_loader)
                 self.step = epoch_int * len(self.train_loader) + i + 1
-                self.model.train()
 
                 # Get a batch.
                 batch = next(train_loader_iter)
@@ -506,6 +508,8 @@ class ForcesTrainerV2(BaseTrainerV2):
                             )
                         else:
                             self.run_relaxations()
+                            
+                    self.model.train()
 
                 if self.scheduler.scheduler_type == "ReduceLROnPlateau":
                     if self.step % eval_every == 0:
@@ -523,7 +527,6 @@ class ForcesTrainerV2(BaseTrainerV2):
                 pbar.update(1)
             
             # end of epoch
-            self.logger.log({"epoch": self.epoch}, step=self.step)
 
             # torch.cuda.empty_cache()
 

@@ -1721,17 +1721,17 @@ def train_one_epoch(
         wandb.log(
             {"memalloc-pre_batch": torch.cuda.memory_allocated()}, step=global_step
         )
-        filelog.info(f"logged memory")
-        filelog.logger.handlers[0].flush() # flush logger
+        # filelog.info(f"logged memory")
+        # filelog.logger.handlers[0].flush() # flush logger
         # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_summary())
         # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
         data = data.to(device)
-        filelog.info(f"step{batchstep} data.to(device) done")
-        filelog.logger.handlers[0].flush() # flush logger
+        # filelog.info(f"step{batchstep} data.to(device) done")
+        # filelog.logger.handlers[0].flush() # flush logger
         
         data = data.to(device, dtype)
-        filelog.info(f"step{batchstep} data.to(device, dtype) done")
-        filelog.logger.handlers[0].flush() # flush logger
+        # filelog.info(f"step{batchstep} data.to(device, dtype) done")
+        # filelog.logger.handlers[0].flush() # flush logger
 
         # reinit DEQ to make sure nothing is stored in the buffers
         # if hasattr(model, "deq"):
@@ -2231,7 +2231,11 @@ def evaluate(
         patch_size = len(data_loader) // args.test_patches
     else:
         patch_size = max_steps + 10  # +10 to avoid accidents
-
+    assert patch_size > 0, f"patch_size must be > 0, got {patch_size}." \
+        f"args.test_patches={args.test_patches}" \
+        f"len(data_loader)={len(data_loader)}" \
+        f"max_steps={max_steps}"
+    
     dtype = model.parameters().__next__().dtype
 
     # remove because of torchdeq and force prediction via dE/dx

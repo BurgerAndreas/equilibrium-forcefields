@@ -1,5 +1,6 @@
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib
 import pandas as pd
 import numpy as np
 import wandb
@@ -134,6 +135,25 @@ def plot_nsteps_list(
 
     set_seaborn_style()
 
+    # myrc = {
+    #     "figure.figsize": (8, 6),  # Adjust the figure size as needed
+    #     "font.size": 20,  # Increase font size
+    #     "lines.linewidth": 3.5,  # Thicker lines
+    #     "lines.markersize": 8,  # Thicker lines
+    #     "legend.fontsize": 15,  # Legend font size
+    #     "legend.frameon": False,  # Display legend frame
+    #     "legend.loc": "upper right",  # Adjust legend position
+    #     "axes.spines.right": False,
+    #     "axes.spines.top": False,  # top and right border
+    #     "text.usetex": True,
+    # }
+    # sns.set(font_scale=5)
+    # font = {'family' : 'normal',
+    #         'weight' : 'bold',
+    #         'size'   : 22}
+    # matplotlib.rc('font', **font)
+
+
     g = sns.catplot(
         data=_df,
         x="nstep",
@@ -155,9 +175,9 @@ def plot_nsteps_list(
     )
 
     # set size to (8,6)
-    plt.gcf().set_size_inches(8, 6)
+    plt.gcf().set_size_inches(myrc["figure.figsize"][0], myrc["figure.figsize"][1])
     fig = g.figure
-    fig.set_size_inches(8, 6)
+    fig.set_size_inches(myrc["figure.figsize"][0], myrc["figure.figsize"][1])
 
     # add small xticks
     maxx = plt.gca().get_xlim()[1]
@@ -177,7 +197,8 @@ def plot_nsteps_list(
 
     # set font size of labels
     g.set_axis_labels(
-        "Fixed-point solver steps", "Number of occurences", fontsize=myrc["font.size"]
+        "Fixed-point solver steps", "Number of occurences", 
+        fontsize=myrc["font.size"]
     )
     # g.set_titles("Solver steps with and without fixed-point reuse", fontsize=myrc["font.size"])
     g.set_xticklabels(fontsize=myrc["font.size"])
@@ -202,8 +223,10 @@ def plot_nsteps_list(
         # turn count into percentage
         if logscale:
             g.set(ylabel="Percentage (% log scale)")
+            plt.ylabel("Percentage (% log scale)", fontsize=myrc["font.size"])
         else:
             g.set(ylabel="Percentage (%)")
+            plt.ylabel("Percentage (%)", fontsize=myrc["font.size"])
         g.ax.set_ylim(0, num_samples)
         # replace yticks by dividing by len(df)
         yticks = g.ax.get_yticks()
@@ -222,7 +245,10 @@ def plot_nsteps_list(
     # set to top right
     legend.set_bbox_to_anchor([1.0, 0.87])
 
-    plt.tight_layout(pad=0.1)
+    # legend.fontsize
+    # legend.set_title("Fixed-point reuse", fontsize=myrc["legend.fontsize"])
+
+    plt.tight_layout(pad=0.0)
 
     mname = run.name  # wandb.run.name # args.checkpoint_wandb_name
     # remove special characters

@@ -2227,14 +2227,18 @@ def evaluate(
     # if we stitch together a series of samples that are consecutive within but not across patches
     # e.g. [42,...,5042, 10042, ..., 15042, ..., 20042] -> patch_size=5000
     # patch_size is used to reinit the fixed point
-    if args.test_patches > 0:
+    if datasplit not in ["test"]:
+        patch_size = 1
+    elif args.test_patches > 0:
         patch_size = len(data_loader) // args.test_patches
     else:
         patch_size = max_steps + 10  # +10 to avoid accidents
+    patch_size = max(1, patch_size)
     assert patch_size > 0, f"patch_size must be > 0, got {patch_size}." \
-        f"args.test_patches={args.test_patches}" \
-        f"len(data_loader)={len(data_loader)}" \
-        f"max_steps={max_steps}"
+        f"\n args.test_patches={args.test_patches}" \
+        f"\n {len(data_loader)} // {args.test_patches} = {len(data_loader) // args.test_patches}" \
+        f"\n len(data_loader)={len(data_loader)}" \
+        f"\n max_steps={max_steps}"
     
     dtype = model.parameters().__next__().dtype
 

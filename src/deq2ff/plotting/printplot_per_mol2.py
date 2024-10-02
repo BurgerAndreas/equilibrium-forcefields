@@ -395,7 +395,6 @@ def print_table_time_forces(_df, runs_with_dropout):
         print("".join(line))
 
 
-# andreas-burger/Equi2
 if __name__ == "__main__":
     """Options"""
     filter_eval_batch_size = 1  # 1 or 4

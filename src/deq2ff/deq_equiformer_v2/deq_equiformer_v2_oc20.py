@@ -306,21 +306,27 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # z_pred, info = self.deq(func=f, z_init=z, solver_kwargs=solver_kwargs)
        
         # V1
-        if reuse:
-            z_pred, info = self.deq_eval_fpr(
-                func=f, z_init=z, solver_kwargs=solver_kwargs,
-            )
-        elif not self.training:
-            z_pred, info = self.deq_eval(
-                func=f, z_init=z, solver_kwargs=solver_kwargs,
-            )
-        else:
-            z_pred, info = self.deq(
-                func=f, z_init=z, solver_kwargs=solver_kwargs,
-            )
+        # if reuse:
+        #     z_pred, info = self.deq_eval_fpr(
+        #         func=f, z_init=z, solver_kwargs=solver_kwargs,
+        #     )
+        # elif not self.training:
+        #     z_pred, info = self.deq_eval(
+        #         func=f, z_init=z, solver_kwargs=solver_kwargs,
+        #     )
+        # else:
+        #     z_pred, info = self.deq(
+        #         func=f, z_init=z, solver_kwargs=solver_kwargs,
+        #     )
             
         # # V2
         # self.set_current_deq(reuse=reuse)
+        # z_pred, info = self.deq_current(
+        #     func=f, z_init=z, solver_kwargs=solver_kwargs
+        # )
+
+        # V3
+        # TODO:set_current_deq move logic out of DEQ forward pass
         # z_pred, info = self.deq_current(
         #     func=f, z_init=z, solver_kwargs=solver_kwargs
         # )

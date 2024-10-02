@@ -88,7 +88,7 @@ def fix_args(args: OmegaConf):
     return args
 
 
-def init_wandb(args: OmegaConf, project="Equi2"):
+def init_wandb(args: OmegaConf, project="md-iclr"):
     """init shared across all methods"""
 
     args = fix_args(args)

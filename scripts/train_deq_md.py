@@ -2143,6 +2143,10 @@ def train_one_epoch(
     return mae_metrics, loss_metrics, global_step, fixed_points, grads
 
 
+# TODO
+# split this up into two functions
+# first: evaluate during training without fpreuse
+# second: evaluate inference with fpreuse
 def evaluate(
     args,
     model: torch.nn.Module,
@@ -2163,7 +2167,13 @@ def evaluate(
     final_test=None,
     # dtype=torch.float32,
 ):
-    """Val or test split."""
+    """Val or test split during training.
+    No fixed-point reuse.
+    Logs:
+    - energy / force error
+    - fixed-point trajectory
+    - loss_per_idx: detailed error and DEQ solver metrics for each sample  
+    """
 
     filelog.info(f"Evaluating... ({datasplit})")
 
@@ -2319,6 +2329,7 @@ def evaluate(
                     log_fp = False
                 # filelog.info(f"Setting DEQ")
                 # filelog.logger.handlers[0].flush() # flush logger
+                # TODO:set_current_deq move logic out of DEQ forward pass
                 # model.set_current_deq(reuse=True if fixedpoint is not None else False)
                 # filelog.info(f"Set DEQ")
                 # filelog.logger.handlers[0].flush() # flush logger

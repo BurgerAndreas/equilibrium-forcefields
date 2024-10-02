@@ -4,8 +4,8 @@ import os, sys, pathlib
 
 # andreas-burger/EquilibriumEquiFormer
 entity = "andreas-burger"
-projectmd = "Equi2"  # previously: "EquilibriumEquiFormer"
-projectoc = "oc20-ev2"
+projectmd = "md-iclr"  # previously: "EquilibriumEquiFormer"
+projectoc = "oc20-iclr"
 
 # parent folder of the plot
 plotfolder = pathlib.Path(__file__).parent.absolute()

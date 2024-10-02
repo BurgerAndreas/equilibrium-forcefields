@@ -28,6 +28,7 @@ errslurm-*
 
 src/deq2ff/plotting/plots/*
 src/deq2ff/plotting/plot_loss_per_idx/*
+**/*.csv
 
 # torchdeq
 TorchDEQ_tutorial.ipynb

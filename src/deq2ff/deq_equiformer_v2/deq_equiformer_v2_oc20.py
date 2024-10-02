@@ -327,9 +327,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
         # V3
         # TODO:set_current_deq move logic out of DEQ forward pass
-        # z_pred, info = self.deq_current(
-        #     func=f, z_init=z, solver_kwargs=solver_kwargs
-        # )
+        z_pred, info = self.deq_current(
+            func=f, z_init=z, solver_kwargs=solver_kwargs
+        )
 
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:

@@ -1625,36 +1625,19 @@ def train_one_epoch(
     """
     collate = Collater(None, None)
 
-    # filelog.info(f"Init train epoch {epoch}")
-    # filelog.logger.handlers[0].flush() # flush logger
-
     model.train()
     filelog.info(f"Set model to train")
     filelog.logger.handlers[0].flush() # flush logger
 
-    # filelog.info(f"Setting DEQ")
-    # filelog.logger.handlers[0].flush() # flush logger
-    # model.set_current_deq()
-    # filelog.info(f"Set DEQ")
-    # filelog.logger.handlers[0].flush() # flush logger
+    model.set_current_deq()
 
     criterion_energy.train()
     criterion_force.train()
-    # crit_fpc = lambda x, y: (x - y).abs().mean()
-    # criterion_fpc = nn.MSELoss()
-    # criterion_contrastive = nn.MSELoss()
-    # criterion_fpr = nn.MSELoss()
 
     loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
     mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
 
     start_time = time.perf_counter()
-
-    # task_mean = model.task_mean
-    # task_std = model.task_std
-
-    # # triplet loss
-    # triplet_lossfn = TripletLoss(margin=args.tripletloss_margin)
 
 
     # statistics over epoch
@@ -1673,10 +1656,6 @@ def train_one_epoch(
     filelog.info(f"Got dtype")
     filelog.logger.handlers[0].flush() # flush logger
 
-    # for debugging
-    # if we don't set model.eval()
-    # params like the batchnorm layers in the model will be updated.
-    # Even without optimizing parameters, validation outputs will change after a forward pass.
 
     if args.torch_profile:
         # In this example with wait=1, warmup=1, active=2, repeat=1,
@@ -1695,17 +1674,8 @@ def train_one_epoch(
         )
         prof.start()
 
-    filelog.info(f"test forward pass")
-    filelog.logger.handlers[0].flush() # flush logger
-    # warmup the cuda kernels for accurate timing
-    # data = next(iter(data_loader))
-    # data = data.to(device)
-    # data = data.to(device, dtype)
-    # outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
-    filelog.info(f"test forward pass done")
-    filelog.logger.handlers[0].flush() # flush logger
-
-    # print("\nTrain:")
+  
+    print("\nTrain:")
     # print("Model is in training mode", model.training)
     # if hasattr(model, "deq"):
     #     print("DEQ is in training mode", model.deq.training)
@@ -1715,67 +1685,13 @@ def train_one_epoch(
     # print("Model direct_forces", model.direct_forces)
 
     max_steps = len(data_loader)
-    # filelog.info(f"max_steps done")
-    # filelog.logger.handlers[0].flush() # flush logger
     for batchstep, data in enumerate(data_loader):
         wandb.log(
             {"memalloc-pre_batch": torch.cuda.memory_allocated()}, step=global_step
         )
-        # filelog.info(f"logged memory")
-        # filelog.logger.handlers[0].flush() # flush logger
-        # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_summary())
-        # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
         data = data.to(device)
-        # filelog.info(f"step{batchstep} data.to(device) done")
-        # filelog.logger.handlers[0].flush() # flush logger
-        
         data = data.to(device, dtype)
-        # filelog.info(f"step{batchstep} data.to(device, dtype) done")
-        # filelog.logger.handlers[0].flush() # flush logger
 
-        # reinit DEQ to make sure nothing is stored in the buffers
-        # if hasattr(model, "deq"):
-        #     deq_kwargs = args.deq_kwargs
-        #     deq_kwargs.update(args.deq_kwargs_test)
-        #     model.deq = get_deq(**deq_kwargs)
-
-        # if args.fpreuse_across_epochs and epoch >= args.fpreuse_start_epoch:
-        #     indices = [idx_to_indices[_idx.item()] for _idx in data.idx]
-        #     # print(f'idx: {[_idx.item() for _idx in data.idx]}, indices: {indices}')
-        #     # get previous fixed points via index
-        #     # _fp_prev = fixed_points[step].to(device)
-        #     # _fp_prev = fixed_points[indices].to(device)
-        #     _fp_prev = torch.cat([fixed_points[_idx] for _idx in indices], dim=0)
-        #     # _fp_prev = collate([fixed_points[_idx] for _idx in indices])
-        #     # energy, force
-        #     pred_y, pred_dy, fp, info = model(
-        #         data=data,  # for EquiformerV2
-        #         node_atom=data.z,
-        #         pos=data.pos,
-        #         batch=data.batch,
-        #         step=global_step,
-        #         datasplit="train",
-        #         solver_kwargs=solver_kwargs,
-        #         fpr_loss=args.fpr_loss,
-        #         # fixed-point reuse
-        #         return_fixedpoint=True,
-        #         fixedpoint=_fp_prev,
-        #     )
-        #     assert (
-        #         _fp_prev.shape == fp.shape
-        #     ), f"Fixed-point shape mismatch: {_fp_prev.shape} != {fp.shape}"
-        #     # split up fixed points [B*N, D, C] -> [B, N, D, C]
-        #     # [84, 16, 64] -> [4, 21, 16, 64]
-        #     fp = fp.view(args.batch_size, -1, *fp.shape[1:])
-        #     # store fixed points
-        #     # fixed_points[indices] = fp.detach()
-        #     for _idx, _fp in zip(indices, fp):
-        #         # TODO is clone necessary?
-        #         # fixed_points[_idx] = _fp.detach().clone().to(fpdevice)
-        #         fixed_points[_idx] = _fp.detach().to(fpdevice)
-        #     # print(' nsteps:', info["nstep"][0].item())
-        # else:
-        # energy, force
         pred_y, pred_dy, info = model(
             data=data,  # for EquiformerV2
             # for EquiformerV1:
@@ -1784,13 +1700,8 @@ def train_one_epoch(
             # batch=data.batch,
             step=global_step,
             datasplit="train",
-            # fpr_loss=args.fpr_loss,
         )
-        # filelog.info(f"step{batchstep} pred done")
-        # filelog.logger.handlers[0].flush() # flush logger
 
-        # target_y = copy.deepcopy(data.y)
-        # target_dy = copy.deepcopy(data.dy)
         target_y = normalizers["energy"](data.y, data.z)  # [NB], [NB]
         target_dy = normalizers["force"](data.dy, data.z)
 
@@ -1802,171 +1713,17 @@ def train_one_epoch(
         if args.squeeze_e_dim and target_y.dim() == 2:
             target_y = target_y.squeeze(1)
 
-        # filelog.info(f"step{batchstep} norm & squeeze done")
-        # filelog.logger.handlers[0].flush() # flush logger
 
         loss_e = criterion_energy(pred_y, target_y)
         loss = args.energy_weight * loss_e
-        # if args.meas_force == True:
-        # else:
-        #     pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
         loss_f = criterion_force(pred_dy, target_dy)
         loss += args.force_weight * loss_f
-
-        # filelog.info(f"step{batchstep} loss done")
-        # filelog.logger.handlers[0].flush() # flush logger
-
-        # natoms = data.natoms[0].item()
-        # if args.norm_by_natoms:
-        #     loss = loss * args.norm_by_natoms_mul / natoms
-
-        # Fixed-point correction loss
-        # for superior performance and training stability
-        # https://arxiv.org/abs/2204.08442
-        # if args.fpc_freq > 0:
-        #     # I think this is never invoked if DEQSliced is used
-
-        #     # If you use trajectory sampling, fp_correction automatically
-        #     # aligns the tensors and applies your loss function.
-        #     # loss_fn = lambda y_gt, y: ((y_gt - y) ** 2).mean()
-        #     # train_loss = fp_correction(loss_fn, (y_train, y_pred))
-
-        #     # do it manually instead
-        #     if len(info["z_pred"]) > 1:
-        #         z_preds = info["z_pred"]
-        #         # last z is fixed point that is in the main loss
-        #         loss_fpc = 0
-        #         for z_pred in z_preds[:-1]:
-        #             _y, _dy, _ = model.decode(
-        #                 data=data,
-        #                 z=z_pred,
-        #                 info={},
-        #             )
-
-        #             _loss_fpc, _, _ = compute_loss(
-        #                 args=args,
-        #                 y=_y,
-        #                 dy=_dy,
-        #                 target_y=target_y,
-        #                 target_dy=target_dy,
-        #                 criterion_energy=criterion_energy,
-        #                 criterion_force=criterion_force,
-        #             )
-        #             loss_fpc += _loss_fpc
-
-        #         # reweight the loss
-        #         loss_fpc *= args.fpc_weight
-        #         loss += loss_fpc
-        #         if wandb.run is not None:
-        #             wandb.log(
-        #                 {"fpc_loss_scaled": loss_fpc.item()},
-        #                 step=global_step,
-        #             )
-
-        # Contrastive loss
-        # if args.contrastive_loss not in [False, None]:
-        #     # DEPRECATED: consecutive dataset won't converge, irrespective of loss
-        #     if args.contrastive_loss.endswith("ordered"):
-        #         assert (
-        #             data.idx[0] - data.idx[1]
-        #         ).abs() == 1, (
-        #             f"Contrastive loss requires consecutive indices {data.idx}"
-        #         )
-        #         if args.contrastive_loss.startswith("triplet"):
-        #             closs = calc_triplet_loss(info["z_pred"][-1], data, triplet_lossfn)
-        #         elif args.contrastive_loss.startswith("next"):
-        #             assert (
-        #                 data.idx[0] - data.idx[1]
-        #             ).abs() == 1, (
-        #                 f"Contrastive loss requires consecutive indices {data.idx}"
-        #             )
-        #             closs = contrastive_loss(
-        #                 info["z_pred"][-1],
-        #                 data,
-        #                 closs_type=args.contrastive_loss,
-        #                 squared=True,
-        #             )
-
-        #     elif args.contrastive_loss == "next":
-        #         next_data = get_next_batch(
-        #             dataset=all_dataset, batch=data, collate=collate
-        #         )
-        #         next_data = next_data.to(device)
-
-        #         # get correct fixed-point of next timestep
-        #         with torch.set_grad_enabled(args.contrastive_w_grad):
-        #             next_pred_y, next_pred_dy, next_info = model(
-        #                 data=next_data,  # for EquiformerV2
-        #                 node_atom=next_data.z,
-        #                 pos=next_data.pos,
-        #                 batch=next_data.batch,
-        #                 step=None,
-        #                 datasplit=None,
-        #             )
-        #         # loss
-        #         z_next_true = next_info["z_pred"][-1]
-        #         closs = criterion_contrastive(z_next_true, info["z_pred"][-1])
-
-        #     else:
-        #         raise NotImplementedError(
-        #             f"Contrastive loss {args.contrastive_loss} not implemented."
-        #         )
-
-        #     closs = args.contrastive_weight * closs
-        #     loss += closs
-        #     if wandb.run is not None:
-        #         wandb.log({"contrastive_loss_scaled": closs.item()}, step=global_step)
-
-        # Fixed-point reuse loss
-        # if args.fpr_loss == True:
-        #     next_data = get_next_batch(dataset=all_dataset, batch=data, collate=collate)
-        #     next_data = next_data.to(device)
-        #     # get correct fixed-point of next timestep
-        #     with torch.set_grad_enabled(args.fpr_w_grad):
-        #         next_pred_y, next_pred_dy, next_info = model(
-        #             data=next_data,  # for EquiformerV2
-        #             node_atom=next_data.z,
-        #             pos=next_data.pos,
-        #             batch=next_data.batch,
-        #             step=None,
-        #             datasplit=None,
-        #         )
-        #     # loss
-        #     z_next_true = next_info["z_pred"][-1]
-        #     fpr_loss = criterion_fpr(z_next_true, info["z_next"])
-        #     loss += args.fpr_weight * fpr_loss
-        #     wandb.log(
-        #         {"scaled_fpr_loss": (args.fpr_weight * fpr_loss).item()},
-        #         step=global_step,
-        #     )
 
         if torch.isnan(pred_y).any():
             isnan_cnt += 1
 
-        # .requires_grad=True: loss, loss_e, loss_f, pred_y, pred_dy
         optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-        # filelog.info(f"step{batchstep} zero_grad done")
-        # filelog.logger.handlers[0].flush() # flush logger
-        # wandb.log(
-        #     {"memalloc-pre_backward": torch.cuda.memory_allocated()}, step=global_step
-        # )
         loss.backward()
-        # wandb.log(
-        #     {"memalloc-post_backward": torch.cuda.memory_allocated()}, step=global_step
-        # )
-        # filelog.info(f"step{batchstep} backward done")
-        # filelog.logger.handlers[0].flush() # flush logger
-
-        # if args.grokfast in [None, False, "None"]:
-        #     pass
-        # elif args.grokfast == "ema":
-        #     ### Option 1: Grokfast (has argument alpha, lamb)
-        #     grads = gradfilter_ema(model, grads=grads)
-        # elif args.grokfast == "ma":
-        #     ### Option 2: Grokfast-MA (has argument window_size, lamb)
-        #     grads = gradfilter_ma(model, grads=grads)
-        # else:
-        #     raise NotImplementedError(f"Grokfast {args.grokfast} not implemented.")
 
         # optionally clip and log grad norm
         if args.clip_grad_norm:
@@ -1975,11 +1732,6 @@ def train_one_epoch(
                 max_norm=args.clip_grad_norm,
             )
         else:
-            # grad_norm = 0
-            # for p in model.parameters():
-            #     param_norm = p.grad.detach().data.norm(2)
-            #     grad_norm += param_norm.item() ** 2
-            # grad_norm = grad_norm ** 0.5
             grad_norm = torch.cat(
                 [
                     param.grad.detach().flatten()
@@ -1989,18 +1741,11 @@ def train_one_epoch(
             ).norm()
         grad_norm_epoch_avg.append(grad_norm.detach().item())
 
-        # if args.opt in ["sps"]:
-        #     optimizer.step(loss=loss)
-        # else:
         optimizer.step()
         # optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-        # filelog.info(f"step{batchstep} optimizer.step() done")
-        # filelog.logger.handlers[0].flush() # flush logger
 
-        # del loss.grad, loss_e.grad, loss_f.grad
-
-        # # if model_ema is not None:
-        # #     model_ema.update(model)
+        if model_ema is not None:
+            model_ema.update(model)
 
         #######################################
         # Logging
@@ -2059,25 +1804,7 @@ def train_one_epoch(
         logs = {
             "train_loss": loss.detach().item(),
             "grad_norm": grad_norm.detach().item(),
-            # energy
-            # "energy_pred_mean": pred_y.mean().item(),
-            # "energy_pred_std": pred_y.std().item(),
-            # "energy_pred_min": pred_y.min().item(),
-            # "energy_pred_max": pred_y.max().item(),
-            # "energy_target_mean": target_y.mean().item(),
-            # "energy_target_std": target_y.std().item(),
-            # "energy_target_min": target_y.min().item(),
-            # "energy_target_max": target_y.max().item(),
             "scaled_energy_loss": (args.energy_weight * loss_e.detach()).item(),
-            # force
-            # "force_pred_mean": pred_dy.mean().item(),
-            # "force_pred_std": pred_dy.std().item(),
-            # "force_pred_min": pred_dy.min().item(),
-            # "force_pred_max": pred_dy.max().item(),
-            # "force_target_mean": target_dy.mean().item(),
-            # "force_target_std": target_dy.std().item(),
-            # "force_target_min": target_dy.min().item(),
-            # "force_target_max": target_dy.max().item(),
             "scaled_force_loss": (args.force_weight * loss_f.detach()).item(),
         }
 
@@ -2085,16 +1812,6 @@ def train_one_epoch(
         #######################################
 
         global_step += 1
-
-        # Todo@temp
-        # del data, pred_y, pred_dy, loss, loss_e, loss_f
-
-        # filelog.info(f"step{batchstep} done")
-        # filelog.logger.handlers[0].flush() # flush logger
-
-        # bandaids, its not going to fix the underlying issue
-        # gc.collect() # garbage collector finds unused objects and deletes them
-        # torch.cuda.empty_cache() # deletes unused tensor from the cache
 
         if args.torch_profile:
             prof.step()
@@ -2124,11 +1841,6 @@ def train_one_epoch(
             },
             step=global_step,
         )
-        # abs_fixed_point_error = []
-        # rel_fixed_point_error = []
-        # abs_fixed_point_error_max = []
-        # rel_fixed_point_error_max = []
-        # f_steps_to_fixed_point = []
 
     # epoch statistics
     wandb.log({"grad_norm_epoch_avg": np.mean(grad_norm_epoch_avg)}, step=global_step)
@@ -2172,6 +1884,426 @@ def evaluate(
     Logs:
     - energy / force error
     - fixed-point trajectory
+    """
+
+    filelog.info(f"Evaluating... ({datasplit})")
+
+    # Techniques for faster inference
+    # e.g. fixed-point reuse, relaxed FP-error threshold, etc.
+    # for simplicity we only apply it to test (val is too small)
+    if datasplit == "test" and "deq_kwargs_eval" in args:
+        solver_kwargs_eval = args.deq_kwargs_eval
+        solver_kwargs_fpr = args.deq_kwargs_fpr
+    else:
+        solver_kwargs_fpr = {}
+        solver_kwargs_eval = {}
+
+    # if we use fpreuse_test, also try without to get a comparison
+    if datasplit == "test" and args.fpreuse_test == True:
+        if args.fpreuse_test_only == True:
+            fpreuse_list = [True]
+        else:
+            # important that fpreuse comes first
+            fpreuse_list = [True, False]
+    else:
+        fpreuse_list = [False]
+    filelog.info(f"fpreuse_list: {fpreuse_list}")
+
+    if args.test_w_eval_mode is True:
+        model.eval()
+        # criterion.eval()
+        criterion_energy.eval()
+        criterion_force.eval()
+        
+    # logging loss for each data index only makes sense with batch_size=1
+    loss_per_idx = False
+    if args.eval_batch_size == 1:
+        loss_per_idx = True
+
+    # only if it is the last epoch or if we are evaluating
+    # if (epoch + 1) % args.test_interval == 0
+    max_epochs = min(args.epochs, args.max_epochs)
+    last_test_epoch = max_epochs - (max_epochs % args.test_interval)
+    if (epoch + 1 == last_test_epoch) or (args.evaluate == True):
+        # it's the last test
+        pass
+    else:
+        # it is not the last test
+        # don't do fpreuse and loss_per_idx (takes too long)
+        if args.fpreuse_last_test_only:
+            fpreuse_list = [False]
+        loss_per_idx = False
+
+    max_steps = len(data_loader)
+    if (max_iter != -1) and (max_iter < max_steps):
+        max_steps = max_iter
+    max_samples = max_iter * args.eval_batch_size
+
+    # if we stitch together a series of samples that are consecutive within but not across patches
+    # e.g. [42,...,5042, 10042, ..., 15042, ..., 20042] -> patch_size=5000
+    # patch_size is used to reinit the fixed point
+    if datasplit not in ["test"]:
+        patch_size = 1
+    elif args.test_patches > 0:
+        patch_size = len(data_loader) // args.test_patches
+    else:
+        patch_size = max_steps + 10  # +10 to avoid accidents
+    patch_size = max(1, patch_size)
+    assert patch_size > 0, f"patch_size must be > 0, got {patch_size}." \
+        f"\n args.test_patches={args.test_patches}" \
+        f"\n {len(data_loader)} // {args.test_patches} = {len(data_loader) // args.test_patches}" \
+        f"\n len(data_loader)={len(data_loader)}" \
+        f"\n max_steps={max_steps}"
+    
+    dtype = model.parameters().__next__().dtype
+
+    # remove because of torchdeq and force prediction via dE/dx
+    # with torch.no_grad():
+    # grad_test = torch.tensor(1., requires_grad=True)
+    with torch.set_grad_enabled(args.test_w_grad):
+        # B = grad_test + 1
+        # print(f'tracking gradients: {B.requires_grad}')
+
+        # warmup the cuda kernels for accurate timing
+        # data = next(iter(data_loader))
+        # data = data.to(device)
+        # data = data.to(device, dtype)
+        # outputs = model(data=data)  
+        # , node_atom=data.z, pos=data.pos, batch=data.batch)
+
+        # print("\nEval:")
+        # print("Model is in training mode", model.training)
+        # if hasattr(model, "deq"):
+        #     print("DEQ is in training mode", model.deq.training)
+        #     print("DEQ is in force_train_mode", model.deq.force_train_mode)
+        # print("Grad is tracking", outputs[0].requires_grad)
+        # print("Model regress_forces", model.regress_forces)
+        # print("Model direct_forces", model.direct_forces)
+
+        for fpreuse_test in fpreuse_list:
+            # name for logging
+            _datasplit = f"{datasplit}_fpreuse" if fpreuse_test else datasplit
+
+            # initialize metrics
+            loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
+            mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
+            mae_metrics_fpr = {"energy": AverageMeter(), "force": AverageMeter()}
+            abs_fixed_point_error = [] # mean over batch dim
+            rel_fixed_point_error = []
+            abs_fixed_point_error_max = [] # like torchdeq
+            rel_fixed_point_error_max = []
+            f_steps_to_fixed_point = []
+            model_forward_times = []
+            n_fsolver_steps = []
+            if loss_per_idx:
+                # wandb table with columns: idx, e_mae, f_mae, nstep, nstep_max, nstep_min
+                idx_table = wandb.Table(
+                    columns=[
+                        "idx",
+                        "e_mae",
+                        "f_mae",
+                        "nstep",
+                        "nstep_std",
+                        "nstep_max",
+                        "nstep_min",
+                        "fpabs",
+                        "fprel",
+                        "fpr", # bool
+                    ]
+                )
+
+            fixedpoint = None
+            prev_idx = None
+
+            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, but not the actual GPU execution time of the kernel.
+            # torch.cuda.synchronize() waits for all tasks in the GPU to complete, thereby providing an accurate measure of time taken to execute
+            torch.cuda.synchronize()
+            start_time = time.perf_counter()
+
+            for step, data in enumerate(data_loader):
+                data = data.to(device)
+                data = data.to(device, dtype)
+
+                log_fp = True
+                # if fpreuse_test and (step % patch_size == 0):
+                if step % patch_size == 0:
+                    # reset fixed-point
+                    fixedpoint = None
+                    prev_idx = None
+                    # for time and nsteps only keep samples where we used the fixed-point
+                    log_fp = False
+                # filelog.info(f"Setting DEQ")
+                # filelog.logger.handlers[0].flush() # flush logger
+                # TODO:set_current_deq move logic out of DEQ forward pass
+                model.set_current_deq(reuse=False if fixedpoint is None else True)
+                # filelog.info(f"Set DEQ")
+                # filelog.logger.handlers[0].flush() # flush logger
+
+                # if we pass step, things will be logged to wandb
+                # note that global_step is only updated in train_one_epoch
+                # which is why we only want to log once per evaluation
+                if step == max_steps - 1:
+                    pass_step = global_step
+                    # if we are logging stuff we don't want to time it
+                    log_fp = False
+                else:
+                    pass_step = None
+
+                torch.cuda.synchronize()
+                forward_start_time = time.perf_counter()
+                # fixed-point reuse
+                if fpreuse_test == True:
+                    # assert that idx is consecutive
+                    if prev_idx is not None:
+                        assert (
+                            torch.allclose(data.idx, prev_idx + 1) or args.shuffle_test
+                        ), f"Indices are not consecutive at step={step}: \n{data.idx}, \n prev_idx: \n{prev_idx}"
+                    prev_idx = data.idx
+                    # call model and pass fixedpoint
+                    pred_y, pred_dy, fixedpoint, info = model(
+                        data=data,  # for EquiformerV2
+                        # for EquiformerV1:
+                        # node_atom=data.z,
+                        # pos=data.pos,
+                        # batch=data.batch,
+                        step=pass_step,
+                        datasplit=_datasplit,
+                        return_fixedpoint=True,
+                        fixedpoint=fixedpoint,
+                        solver_kwargs=solver_kwargs_eval if fixedpoint is None else solver_kwargs_fpr,
+                    )
+                    # REMOVE
+                    # print(f'step: {step}. idx: {data.idx}.')
+                    # print(f' pred_y: {pred_y.shape}, pred_dy: {pred_dy.shape}, fixedpoint: {fixedpoint.shape}')
+                else:
+                    # energy, force
+                    pred_y, pred_dy, info = model(
+                        data=data,  # for EquiformerV2
+                        # for EquiformerV1:
+                        # node_atom=data.z,
+                        # pos=data.pos,
+                        # batch=data.batch,
+                        step=pass_step,
+                        datasplit=datasplit,
+                        fixedpoint=None,
+                        solver_kwargs=solver_kwargs_eval,
+                    )
+                torch.cuda.synchronize()
+                forward_end_time = time.perf_counter()
+
+                target_y = normalizers["energy"](data.y, data.z)
+                target_dy = normalizers["force"](data.dy, data.z)
+
+                # reshape model output [B] (OC20) -> [B,1] (MD17)
+                if args.unsqueeze_e_dim and pred_y.dim() == 1:
+                    pred_y = pred_y.unsqueeze(-1)
+
+                # reshape data [B,1] (MD17) -> [B] (OC20)
+                if args.squeeze_e_dim and target_y.dim() == 2:
+                    target_y = pred_y.squeeze(1)
+
+                loss_e = criterion_energy(pred_y, target_y)
+                if args.meas_force == True:
+                    loss_f = criterion_force(pred_dy, target_dy)
+                else:
+                    pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
+
+                # --- metrics ---
+                loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
+                loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
+
+                # energy_err = pred_y.detach() * task_std + task_mean - data.y
+                energy_err = (
+                    normalizers["energy"].denorm(pred_y.detach(), data.z) - data.y
+                )
+                energy_err = torch.mean(torch.abs(energy_err)).item()
+                mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
+
+                # force_err = pred_dy.detach() * task_std - data.dy
+                force_err = (
+                    normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy
+                )
+                # based on OC20 and TorchMD-Net, they average over x, y, z
+                force_err = torch.mean(torch.abs(force_err)).item()  
+                mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
+
+                # --- logging ---
+                if log_fp:
+                    # during fpreuse_test only measure for samples where we reused the fixed-point
+                    model_forward_times += [forward_end_time - forward_start_time]
+                    mae_metrics_fpr["force"].update(force_err, n=pred_dy.shape[0])
+                    mae_metrics_fpr["energy"].update(energy_err, n=pred_y.shape[0])
+                    if "nstep" in info.keys():
+                        # duplicates kept for legacy reasons
+                        f_steps_to_fixed_point.append(info["nstep"].mean().item())
+                        n_fsolver_steps.append(info["nstep"].mean().item())
+
+                    if "abs_trace" in info.keys():
+                        if pass_step is not None:
+                            # log fixed-point trajectory once per evaluation
+                            logging_utils_deq.log_fixed_point_error(
+                                info,
+                                step=global_step,
+                                datasplit=_datasplit,
+                            )
+                        # log fixed-point error always
+                        # shape: [num_atoms * batch_size, solver_traj_len]
+                        abs_fixed_point_error.append(
+                            info["abs_trace"][:, -1].mean().item()
+                        )
+                        rel_fixed_point_error.append(
+                            info["rel_trace"][:, -1].mean().item()
+                        )
+                        abs_fixed_point_error_max.append(
+                            info["abs_trace"][:, -1].max().item()
+                        )
+                        rel_fixed_point_error_max.append(
+                            info["rel_trace"][:, -1].max().item()
+                        )
+
+                if (step % print_freq == 0 or step == max_steps - 1) and print_progress:
+                    torch.cuda.synchronize()
+                    w = time.perf_counter() - start_time
+                    e = (step + 1) / max_steps
+                    info_str = (
+                        f"[{step}/{max_steps}]{'(fpreuse)' if fpreuse_test else ''} \t"
+                    )
+                    info_str += "e_MAE: {e_mae:.5f}, f_MAE: {f_mae:.5f}, ".format(
+                        e_mae=mae_metrics["energy"].avg,
+                        f_mae=mae_metrics["force"].avg,
+                    )
+                    info_str += "time/step={time_per_step:.0f}ms".format(
+                        time_per_step=(1e3 * w / e / max_steps)
+                    )
+                    filelog.info(info_str)
+
+                if loss_per_idx:  # and log_fp:
+                    # "idx", "e_mae", "f_mae", "nstep", "nstep_std", "nstep_max", "nstep_min", fpr
+                    if "nstep" in info:
+                        nstep = info["nstep"].mean().item()
+                        nstep_std = info["nstep"].std().item()
+                        nstep_max = info["nstep"].max().item()
+                        nstep_min = info["nstep"].min().item()
+                    else:
+                        nstep = 0
+                        nstep_std = 0
+                        nstep_max = 0
+                        nstep_min = 0
+                    if "abs_trace" in info:
+                        # shape: [num_atoms * batch_size, solver_traj_len]
+                        fpabs = info["abs_trace"].mean(dim=0)[-1].item()
+                        fprel = info["rel_trace"].mean(dim=0)[-1].item()
+                    else:
+                        fpabs = 0
+                        fprel = 0
+                    idx_table.add_data(
+                        data.idx.item(),
+                        energy_err,
+                        force_err,
+                        nstep,
+                        nstep_std,
+                        nstep_max,
+                        nstep_min,
+                        fpabs,
+                        fprel,
+                        log_fp,
+                    )
+
+                if (step + 1) >= max_steps:
+                    break
+
+            # test set finished
+            torch.cuda.synchronize()
+            eval_time = time.perf_counter() - start_time  # time for whole test set
+
+            wandb_logs = {
+                # log the time
+                f"time_{_datasplit}": eval_time,
+                f"time_forward_per_batch_{_datasplit}": np.mean(
+                    model_forward_times
+                ),
+                # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_times),
+                f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
+                # log test error
+                f"{_datasplit}_e_mae": mae_metrics["energy"].avg,
+                f"{_datasplit}_f_mae": mae_metrics["force"].avg,
+                # during fpreuse_test only measured for samples where we reused the fixed-point
+                f"{_datasplit}_fpr_e_mae": mae_metrics_fpr["energy"].avg,
+                f"{_datasplit}_fpr_f_mae": mae_metrics_fpr["force"].avg,
+            }
+
+            # log the table
+            if loss_per_idx:
+                wandb_logs.update({f"idx_table_{_datasplit}": idx_table})
+
+            # log fixed-point statistics
+            if len(abs_fixed_point_error) > 0:
+                wandb_logs.update({
+                    # mean
+                    f"abs_fixed_point_error_{_datasplit}": np.mean(
+                        abs_fixed_point_error
+                    ),
+                    f"rel_fixed_point_error_{_datasplit}": np.mean(
+                        rel_fixed_point_error
+                    ),
+                    # max (like torchdeq)
+                    f"abs_fixed_point_error_max_{_datasplit}": np.mean(
+                        abs_fixed_point_error_max
+                    ),
+                    f"rel_fixed_point_error_max_{_datasplit}": np.mean(
+                        rel_fixed_point_error_max
+                    ),
+                    # steps to fixed point
+                    f"f_steps_to_fixed_point_{_datasplit}": np.mean(
+                        f_steps_to_fixed_point
+                    ),
+                })
+
+            if len(n_fsolver_steps) > 0:
+                wandb_logs.update({
+                    f"avg_n_fsolver_steps_{_datasplit}": np.mean(n_fsolver_steps),
+                    # log the full list to plot histogram later
+                    f"n_fsolver_steps_{_datasplit}": n_fsolver_steps
+                })
+                
+            wandb.log(wandb_logs, step=global_step)
+
+            print(
+                f"Finished evaluation: {_datasplit} ({global_step} training steps, epoch {epoch}).",
+                flush=True,
+            )
+            # print
+            # for k, v in _logs.items():
+            #     filelog.info(f" {k}: {v}")
+
+        # fp_reuse True/False finished
+
+    return mae_metrics, loss_metrics
+
+def evaluate_fpreuse(
+    args,
+    model: torch.nn.Module,
+    # criterion: torch.nn.Module,
+    criterion_energy: torch.nn.Module,
+    criterion_force: torch.nn.Module,
+    data_loader: Iterable,
+    optimizer: torch.optim.Optimizer,
+    device: torch.device,
+    print_freq: int = 100,
+    filelog=None,
+    print_progress=False,
+    max_iter=-1,
+    global_step=None,
+    epoch=None,
+    datasplit=None,
+    normalizers={"energy": None, "force": None},
+    final_test=None,
+    # dtype=torch.float32,
+):
+    """Val or test split during training.
+    Logs:
+    - energy / force error
+    - fixed-point trajectory
     - loss_per_idx: detailed error and DEQ solver metrics for each sample  
     """
 
@@ -2203,12 +2335,6 @@ def evaluate(
         # criterion.eval()
         criterion_energy.eval()
         criterion_force.eval()
-
-    # filelog.info(f"Model set to eval mode")
-    # filelog.logger.handlers[0].flush() # flush logger
-    # model.set_current_deq()
-    # filelog.info(f"Model set to current deq")
-    # filelog.logger.handlers[0].flush() # flush logger
 
     # logging loss for each data index only makes sense with batch_size=1
     loss_per_idx = False
@@ -2330,7 +2456,7 @@ def evaluate(
                 # filelog.info(f"Setting DEQ")
                 # filelog.logger.handlers[0].flush() # flush logger
                 # TODO:set_current_deq move logic out of DEQ forward pass
-                # model.set_current_deq(reuse=True if fixedpoint is not None else False)
+                model.set_current_deq(reuse=False if fixedpoint is None else True)
                 # filelog.info(f"Set DEQ")
                 # filelog.logger.handlers[0].flush() # flush logger
 
@@ -2681,7 +2807,7 @@ def eval_speed(
                     reuse = False
                 # filelog.info(f"Setting DEQ")
                 # filelog.logger.handlers[0].flush() # flush logger
-                # model.set_current_deq(reuse=True if fixedpoint is not None else False)
+                model.set_current_deq(reuse=False if fixedpoint is None else True)
                 # filelog.info(f"Set DEQ")
                 # filelog.logger.handlers[0].flush() # flush logger
 

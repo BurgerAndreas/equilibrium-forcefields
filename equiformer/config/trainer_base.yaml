@@ -190,10 +190,6 @@ test_w_grad: False
 
 # default: energies are standardized by e = e - mean_e / std_e
 # default: forces are standardized by f = f / std_e
-std_forces: null # std, normstd, False
-# normalize by (E - E_min) / (E_max - E_min) ?
-# Normalize forces by each atom type. False, normmean, normstd, mean, std
-norm_forces_by_atom: False
 
 # logging
 # (int)

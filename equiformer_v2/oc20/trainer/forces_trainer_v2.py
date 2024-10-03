@@ -205,6 +205,7 @@ class ForcesTrainerV2(BaseTrainerV2):
             data_loader = [[data_loader]]
 
         self.model.eval()
+        # Copy EMA parameters to model.
         if self.ema:
             self.ema.store()
             self.ema.copy_to()
@@ -527,8 +528,6 @@ class ForcesTrainerV2(BaseTrainerV2):
                 pbar.update(1)
             
             # end of epoch
-
-            # torch.cuda.empty_cache()
 
             if checkpoint_every == -1:
                 self.save(checkpoint_file="checkpoint.pt", training_state=True)

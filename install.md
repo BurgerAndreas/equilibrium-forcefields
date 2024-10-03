@@ -43,10 +43,10 @@ cat ~/.ssh/id_ed25519.pub
 ```bash
 git clone git@github.com:BurgerAndreas/equilibrium-forcefields.git
 cd equilibrium-forcefields
-mamba create -n deq python=3.10
+mamba create -n deq python=3.9
 mamba activate deq
 
-pip uninstall setuptools demjson lmdb "ray[tune]" submitit e3nn timm matplotlib seaborn scikit-image hydra-core wandb omegaconf black numba sphinx nbsphinx sphinx-rtd-theme pandoc ase pre-commit tensorboard -y
+pip uninstall setuptools demjson lmdb "ray[tune]" submitit e3nn timm matplotlib seaborn scikit-image numpy hydra-core wandb omegaconf black numba sphinx nbsphinx sphinx-rtd-theme pandoc ase pre-commit tensorboard -y
 
 # get the Open Catalyst Project (required for Equiformerv2)
 # outdated: git clone git@github.com:Open-Catalyst-Project/ocp.git
@@ -61,7 +61,8 @@ pre-commit install
 pip install setuptools==57.4.0
 pip install demjson 
 # pip install demjson3
-pip install lmdb==1.1.1
+# pip install lmdb==1.1.1
+mamba install lmdb==1.1.1 --force-reinstall -Y
 pip install "ray[tune]"
 pip install submitit
 cd ..
@@ -73,6 +74,7 @@ cd ..
 
 pip install e3nn==0.4.4 timm==0.4.12
 
+mamba install numpy --force-reinstall -Y
 pip install matplotlib seaborn scikit-image
 pip install hydra-core wandb omegaconf black
 
@@ -109,11 +111,29 @@ pip install -e .
 cd ..
 
 # link OCP dataset for equiformer (optional)
-cd equiformer/datasets
-mkdir oc20
-cd oc20
-ln -s ../../../ocp/data/is2re is2re
-cd ../../..
+projdir="/project/def-aspurudef-aspuru/aburger"
+ls ${projdir}
+mkdir ${projdir}/deq2ff
+# datasets MD17
+mkdir datasets
+mv -v -r datasets ${projdir}/deq2ff/
+ln -s ${projdir}/deq2ff/datasets datasets
+# datasets OC20
+mkdir ocp/data
+mv -v -r ocp/data ${projdir}/deq2ff/
+ln -s ${projdir}/deq2ff/data ocp/data
+# checkpoints MD17
+mkdir models
+mv -v -r models ${projdir}/deq2ff/
+mkdir ${projdir}/models
+ln -s ${projdir}/models models
+# checkpoints OC20
+mkdir checkpoints
+mv -v -r checkpoints ${projdir}/deq2ff/
+mkdir ${projdir}/checkpoints
+ln -s ${projdir}/checkpoints checkpoints
+
+
 
 # 1) Nvidia CUDA
 # check your cuda version 
@@ -231,6 +251,22 @@ export CUDNN_PATH=/h/burgeran/miniforge3/envs/deq/lib/python3.9/site-packages/nv
 export LD_LIBRARY_PATH=${CUDNN_PATH}/lib:$LD_LIBRARY_PATH
 ```
 
+### Compute Canada
+
+--no-index option tells pip to not install from PyPI, but instead to install only from locally available packages, i.e. our wheels
+--no-binary option, which tells pip to ignore prebuilt packages entirely. Note that this will also ignore wheels that are distributed through PyPI, and will always compile the package from source
+
+strings /lib64/libm.so.6 | grep GLIBC
+GLIBC_2.2.5
+GLIBC_2.4
+GLIBC_2.15
+GLIBC_2.18
+GLIBC_2.23
+GLIBC_2.24
+GLIBC_2.25
+GLIBC_2.26
+GLIBC_2.27
+GLIBC_2.28
 
 
 ## Training

@@ -72,13 +72,6 @@ from ocpmodels.modules.normalizer import (
     NormalizerByAtomtype3D,
 )
 
-import ray.train as raytrain
-
-# from ray.train import Checkpoint, get_checkpoint
-# from ray.tune.schedulers import ASHAScheduler
-# import ray.cloudpickle as pickle
-# from ray.tune.search import ConcurrencyLimiter
-# from ray.tune.search.bayesopt import BayesOptSearch
 
 """
 Adapted from equiformer/main_md17.py
@@ -99,11 +92,6 @@ import deq2ff.register_all_models
 from deq2ff.grokfast import gradfilter_ma, gradfilter_ema
 from deq2ff.logging_utils import init_wandb
 
-
-# DEQ EquiformerV2
-# from deq2ff.deq_equiformer_v2.deq_equiformer_v2_oc20 import (
-#     deq_equiformer_v2_oc20,
-# )
 
 ModelEma = ModelEmaV2
 
@@ -625,7 +613,7 @@ def train_md(args):
 
     # TODO
     model_ema = None
-    if args.model_ema:
+    if "model_ema" in args and args.model_ema:
         # Important to create EMA model after cuda(), DP wrapper, and AMP but before SyncBN and DDP wrapper
         model_ema = ModelEma(
             model,
@@ -960,13 +948,10 @@ def train_md(args):
             datasplit="val",
             normalizers=normalizers,
         )
-        # raytrain.report({"train_fmae": train_err["force"].avg, "train_emae": train_err["energy"].avg})
-        # raytrain.report({"val_fmae": val_err["force"].avg, "val_emae": val_err["energy"].avg})
 
         if (epoch + 1) % args.test_interval == 0:
             # test set
             # filelog.info(f"Testing model after epoch {epoch+1}.")
-            # filelog.logger.handlers[0].flush() # flush logger
             test_err, test_loss = evaluate(
                 args=args,
                 model=model,
@@ -985,7 +970,7 @@ def train_md(args):
                 datasplit="test",
                 normalizers=normalizers,
             )
-            # raytrain.report({"test_fmae": test_err["force"].avg, "test_emae": test_err["energy"].avg})
+
             # equivariance test
             equivariance_test(
                 args,
@@ -1306,18 +1291,10 @@ def train_one_epoch(
     """
     collate = Collater(None, None)
 
-    # filelog.info(f"Init train epoch {epoch}")
-    # filelog.logger.handlers[0].flush() # flush logger
 
     model.train()
-    # filelog.info(f"Set model to train")
-    # filelog.logger.handlers[0].flush() # flush logger
 
-    # filelog.info(f"Setting DEQ")
-    # filelog.logger.handlers[0].flush() # flush logger
     model.set_current_deq()
-    # filelog.info(f"Set DEQ")
-    # filelog.logger.handlers[0].flush() # flush logger
 
     criterion_energy.train()
     criterion_force.train()
@@ -1351,8 +1328,6 @@ def train_one_epoch(
     isnan_cnt = 0
 
     dtype = model.parameters().__next__().dtype
-    # filelog.info(f"Got dtype")
-    # filelog.logger.handlers[0].flush() # flush logger
 
     # for debugging
     # if we don't set model.eval()
@@ -1376,25 +1351,6 @@ def train_one_epoch(
         )
         prof.start()
 
-    # filelog.info(f"test forward pass")
-    # filelog.logger.handlers[0].flush() # flush logger
-    # warmup the cuda kernels for accurate timing
-    # data = next(iter(data_loader))
-    # data = data.to(device)
-    # data = data.to(device, dtype)
-    # outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
-    # filelog.info(f"test forward pass done")
-    # filelog.logger.handlers[0].flush() # flush logger
-
-    # print("\nTrain:")
-    # print("Model is in training mode", model.training)
-    # if hasattr(model, "deq"):
-    #     print("DEQ is in training mode", model.deq.training)
-    #     print("DEQ is in force_train_mode", model.deq.force_train_mode)
-    # print("Grad is tracking", outputs[0].requires_grad)
-    # print("Model regress_forces", model.regress_forces)
-    # print("Model direct_forces", model.direct_forces)
-
     max_steps = len(data_loader)
     # filelog.info(f"max_steps done")
     # filelog.logger.handlers[0].flush() # flush logger
@@ -1402,13 +1358,8 @@ def train_one_epoch(
         wandb.log(
             {"memalloc-pre_batch": torch.cuda.memory_allocated()}, step=global_step
         )
-        # filelog.info(f"logged memory")
-        # filelog.logger.handlers[0].flush() # flush logger
-        # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_summary())
-        # print(f"batchstep: {batchstep}/{max_steps}:", torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
+  
         data = data.to(device)
-        # filelog.info(f"step{batchstep} data.to(device) done")
-        # filelog.logger.handlers[0].flush() # flush logger
         
         data = data.to(device, dtype)
         pred_y, pred_dy, info = model(
@@ -1421,11 +1372,7 @@ def train_one_epoch(
             datasplit="train",
             # fpr_loss=args.fpr_loss,
         )
-        # filelog.info(f"step{batchstep} pred done")
-        # filelog.logger.handlers[0].flush() # flush logger
 
-        # target_y = copy.deepcopy(data.y)
-        # target_dy = copy.deepcopy(data.dy)
         target_y = normalizers["energy"](data.y, data.z)  # [NB], [NB]
         target_dy = normalizers["force"](data.dy, data.z)
 
@@ -1437,14 +1384,9 @@ def train_one_epoch(
         if args.squeeze_e_dim and target_y.dim() == 2:
             target_y = target_y.squeeze(1)
 
-        # filelog.info(f"step{batchstep} norm & squeeze done")
-        # filelog.logger.handlers[0].flush() # flush logger
-
         loss_e = criterion_energy(pred_y, target_y)
         loss = args.energy_weight * loss_e
-        # if args.meas_force == True:
-        # else:
-        #     pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
+
         loss_f = criterion_force(pred_dy, target_dy)
         loss += args.force_weight * loss_f
 
@@ -1453,15 +1395,7 @@ def train_one_epoch(
 
         # .requires_grad=True: loss, loss_e, loss_f, pred_y, pred_dy
         optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-        # filelog.info(f"step{batchstep} zero_grad done")
-        # filelog.logger.handlers[0].flush() # flush logger
-        # wandb.log(
-        #     {"memalloc-pre_backward": torch.cuda.memory_allocated()}, step=global_step
-        # )
         loss.backward()
-        # wandb.log(
-        #     {"memalloc-post_backward": torch.cuda.memory_allocated()}, step=global_step
-        # )
 
         # optionally clip and log grad norm
         if args.clip_grad_norm:
@@ -1470,11 +1404,6 @@ def train_one_epoch(
                 max_norm=args.clip_grad_norm,
             )
         else:
-            # grad_norm = 0
-            # for p in model.parameters():
-            #     param_norm = p.grad.detach().data.norm(2)
-            #     grad_norm += param_norm.item() ** 2
-            # grad_norm = grad_norm ** 0.5
             grad_norm = torch.cat(
                 [
                     param.grad.detach().flatten()
@@ -1484,14 +1413,8 @@ def train_one_epoch(
             ).norm()
         grad_norm_epoch_avg.append(grad_norm.detach().item())
 
-        # if args.opt in ["sps"]:
-        #     optimizer.step(loss=loss)
-        # else:
         optimizer.step()
         # optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-
-        # if model_ema is not None:
-        #     model_ema.update(model)
 
         #######################################
         # Logging
@@ -1652,11 +1575,7 @@ def evaluate(
         criterion_energy.eval()
         criterion_force.eval()
 
-    # filelog.info(f"Model set to eval mode")
-    # filelog.logger.handlers[0].flush() # flush logger
     model.set_current_deq()
-    # filelog.info(f"Model set to current deq")
-    # filelog.logger.handlers[0].flush() # flush logger
 
     # logging loss for each data index only makes sense with batch_size=1
     loss_per_idx = False

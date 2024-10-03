@@ -70,58 +70,96 @@ def anderson_solver(
 
     alternative_mode = "rel" if stop_mode == "abs" else "abs"
 
-    # Initialize tensors to store past values and their images under the fixed-point function
+    # Initialize tensors to store past values (X) and their corresponding function images (F)
+    # X stores past iterates (the solution guesses)
+    # F stores their corresponding values under the fixed-point function
     X = torch.zeros(bsz, m, dim, dtype=x0.dtype, device=x0.device, requires_grad=False)
     F = torch.zeros(bsz, m, dim, dtype=x0.dtype, device=x0.device, requires_grad=False)
 
     # Initialize the first two values for X and F
+    # X[:, 0] holds the initial guess x0_flat
     X[:, 0] = x0_flat
+    # F[:, 0] stores the result of applying the fixed-point function to x0_flat
     # F[:, 0] = funcsh(x0_flat)
     F[:, 0] = func(x0_flat.view_as(x0)).reshape_as(x0_flat)
+    # X[:, 1] is updated to be the result of applying the function at x0 (essentially F[:, 0])
     X[:, 1] = F[:, 0]
+    # F[:, 1] stores the result of applying the function to F[:, 0]
     # F[:, 1] = funcsh(F[:, 0])
     F[:, 1] = func(F[:, 0].view_as(x0)).reshape_as(F[:, 0])
 
     # Initialize tensors for the Anderson mixing process
+    # Initialize tensor H, used to solve the least-squares problem in Anderson mixing
+    # H is a matrix used to store inner products of differences between past iterates 
     H = torch.zeros(
         bsz, m + 1, m + 1, dtype=x0.dtype, device=x0.device, requires_grad=False
     )
+    # Initialize the first row and column of H to 1
+    # These represent boundary conditions for the Anderson mixing algorithm
     H[:, 0, 1:] = H[:, 1:, 0] = 1
+    # Initialize the vector y for the least-squares system (contains boundary condition elements)
     y = torch.zeros(
         bsz, m + 1, 1, dtype=x0.dtype, device=x0.device, requires_grad=False
     )
+    # First element of y is 1, corresponding to the first row of H being all 1s
     y[:, 0] = 1
 
+    # Initialize dictionaries to track solver information, the lowest error value, 
+    # and the best solution so far
     trace_dict, lowest_dict, lowest_step_dict = init_solver_info(bsz, x0.device)
-    lowest_xest = x0
+    lowest_xest = x0 # Keep track of the best estimate for the solution
 
+    # List to store indices of previous iterates (not yet used in the loop)
     indexing_list = []
 
+    # Begin the Anderson mixing iterations, starting from the third iteration
     for k in range(2, max_iter):
         # Apply the Anderson mixing process to compute a new estimate
+        # Determine how many past iterates to consider (limited by memory m)
         n = min(k, m)
+
+        # Compute G, the differences between F (function values) and X (iterates) for the last n steps
+        # G stores the residual differences, G = F - X
         G = F[:, :n] - X[:, :n]
+
+        # Update the H matrix with the inner product of G with itself, 
+        # incorporating a regularization term 'lam'
         H[:, 1 : n + 1, 1 : n + 1] = (
+            # Compute Gram matrix of G
             torch.bmm(G, G.transpose(1, 2))
+            # Add regularization (lambda) to avoid singular matrices
             + lam
             * torch.eye(n, dtype=x0.dtype, device=x0.device, requires_grad=False)[None]
         )
+
+        # Solve the least-squares system to find the optimal mixing coefficients alpha
+        # H alpha = y, where alpha is the coefficient vector to minimize residuals
         alpha = torch.linalg.solve(H[:, : n + 1, : n + 1], y[:, : n + 1])[
             :, 1 : n + 1, 0
         ]
 
+        # Update the next iterate X using the weighted combination of 
+        # past F and X with coefficients alpha
+        # tau is a mixing parameter controlling the weight 
+        # between the past function values and iterates
         X[:, k % m] = (
+            # Weighted sum of past function values F
             tau * (alpha[:, None] @ F[:, :n])[:, 0]
+            # Weighted sum of past iterates X
             + (1 - tau) * (alpha[:, None] @ X[:, :n])[:, 0]
         )
+
+        # Recompute the function at the new iterate X[:, k % m] and store it in F
         # F[:, k % m] = funcsh(X[:, k % m])
         F[:, k % m] = func(X[:, k % m].view_as(x0)).reshape_as(X[:, k % m])
 
-        # Calculate the absolute and relative differences
+        # Compute the difference between F and X, i.e., the residual gx
         gx = F[:, k % m] - X[:, k % m]
         # [B, dim] -> [B]
 
+        # Compute the absolute difference (L2 norm of gx) for convergence monitoring
         abs_diff = gx.norm(dim=1) 
+        # # Avoid division by zero
         rel_diff = abs_diff / (F[:, k % m].norm(dim=1) + 1e-9)
 
         # Update the state based on the new estimate

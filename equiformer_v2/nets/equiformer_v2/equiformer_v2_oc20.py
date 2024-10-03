@@ -174,9 +174,6 @@ class EquiformerV2_OC20(BaseModel):
         force_scale_head=None,
         fsbv=1,  # TODO: temporary
         skip_blocks=False,
-        learn_scale_after_encoder=False,
-        learn_scale_before_decoder=False,
-        learn_scale_after_decoder=False,
         batchify_for_torchdeq=False,
         edge_emb_st_max_norm=None,
         ln="pre",
@@ -203,59 +200,6 @@ class EquiformerV2_OC20(BaseModel):
 
         self.batchify_for_torchdeq = batchify_for_torchdeq
 
-        # print(
-        #     "Number of trainable params:",
-        #     sum(p.numel() for p in self.parameters() if p.requires_grad),
-        # )
-        # shape: B x irrep_dim x channels -> 1 x 1 x sphere_channels
-        # TODO: remove
-        _shape = (1, 1, sphere_channels)
-        if learn_scale_after_encoder:
-            # nn.Parameter(torch.tensor(1.0, requires_grad=True).clone(), requires_grad=True)
-            self.learn_scale_after_encoder = torch.nn.Parameter(
-                torch.ones(_shape, requires_grad=True), requires_grad=True
-            )
-            # self.learn_scale_after_encoder = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True), requires_grad=True)
-            # torch.nn.init.constant_(self.learn_scale_after_encoder, 1)
-            self.register_parameter(
-                "learn_scale_after_encoder", self.learn_scale_after_encoder
-            )
-        else:
-            self.learn_scale_after_encoder = 1.0
-
-        if learn_scale_before_decoder:
-            self.learn_scale_before_decoder = torch.nn.Parameter(
-                torch.ones(_shape, requires_grad=True), requires_grad=True
-            )
-            # self.learn_scale_before_decoder = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True), requires_grad=True)
-            # torch.nn.init.constant_(self.learn_scale_before_decoder, 1)
-            self.register_parameter(
-                "learn_scale_before_decoder", self.learn_scale_before_decoder
-            )
-        else:
-            self.learn_scale_before_decoder = 1.0
-
-        _shape = (1, 1, 1)
-        if learn_scale_after_decoder:
-            self.learn_scale_after_energy_block = torch.nn.Parameter(
-                torch.ones(_shape, requires_grad=True), requires_grad=True
-            )
-            self.learn_scale_after_force_block = torch.nn.Parameter(
-                torch.ones(_shape, requires_grad=True), requires_grad=True
-            )
-            # self.learn_scale_after_energy_block = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True), requires_grad=True)
-            # self.learn_scale_after_force_block = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True), requires_grad=True)
-            # torch.nn.init.constant_(self.learn_scale_after_energy_block, 1)
-            # torch.nn.init.constant_(self.learn_scale_after_force_block, 1)
-            self.register_parameter(
-                "learn_scale_after_energy_block", self.learn_scale_after_energy_block
-            )
-            self.register_parameter(
-                "learn_scale_after_force_block", self.learn_scale_after_force_block
-            )
-        else:
-            self.learn_scale_after_energy_block = 1.0
-            self.learn_scale_after_force_block = 1.0
         # print(
         #     "Number of trainable params:",
         #     sum(p.numel() for p in self.parameters() if p.requires_grad),
@@ -699,9 +643,6 @@ class EquiformerV2_OC20(BaseModel):
         # addition, not concatenation
         x.embedding = x.embedding + edge_degree.embedding
 
-        # if self.learn_scale_after_encoder:
-        x.embedding = x.embedding * self.learn_scale_after_encoder
-
         edge_src = edge_index[0]
         logs = {
             "NumNodes": x.embedding.shape[0],  # num_atoms * batch_size
@@ -886,8 +827,6 @@ class EquiformerV2_OC20(BaseModel):
         )
         x.embedding = x.embedding + edge_degree.embedding
 
-        # if self.learn_scale_after_encoder:
-        # x.embedding = x.embedding * self.learn_scale_after_encoder
         if self.norm_enc is not None:
             x.embedding = self.norm_enc(x.embedding)
 
@@ -995,8 +934,6 @@ class EquiformerV2_OC20(BaseModel):
         ###############################################################
         # (B, num_coefficients, 1)
         node_energy = self.energy_block(x)
-        # if self.learn_scale_after_energy_block:
-        # node_energy.embedding *= self.learn_scale_after_energy_block
         # (B, 1, 1)
         node_energy = node_energy.embedding.narrow(dim=1, start=0, length=1)
         energy = torch.zeros(
@@ -1033,8 +970,6 @@ class EquiformerV2_OC20(BaseModel):
                 # x: [num_atoms*batch_size, num_coefficients, sphere_channels]
                 # forces: [num_atoms*batch_size, num_coefficients, 1]
                 forces = self.force_block(x, atomic_numbers, edge_distance, edge_index)
-                # if self.learn_scale_after_force_block:
-                # forces.embedding *= self.learn_scale_after_force_block
                 # [num_atoms*batch_size, 3, 1]
                 forces = forces.embedding.narrow(dim=1, start=1, length=3)
                 # [num_atoms*batch_size, 3]

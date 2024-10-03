@@ -234,24 +234,7 @@ def compute_loss(args, y, dy, target_y, target_dy, criterion_energy, criterion_f
 
 def get_normalizers(args, train_dataset, device, task_mean, task_std):
 
-    # More statistics for normalizing forces
-    if args.std_forces == "std":
-        # std_f = dy.std(dim=1, keepdim=True) # [num_atoms*samples, 1]
-        # std_f = dy.std(dim=0, keepdim=True) # [1, 3]
-        # std_f = dy.std(dim=0) # [3]
-        # [num_atoms*samples, 3]
-        dy = torch.cat([batch.dy for batch in train_dataset], dim=0)
-        std_f = dy.std()  # [1]
-    elif args.std_forces == "normstd":
-        dy = torch.cat([batch.dy for batch in train_dataset], dim=0)
-        std_f = torch.linalg.norm(dy, dim=1).std()  # [1]
-    elif args.std_forces is None:
-        # default
-        std_f = task_std
-    elif args.std_forces == False:
-        std_f = 1.0
-    else:
-        raise NotImplementedError(f"Unknown std_forces: {args.std_forces}")
+    std_f = task_std
 
     # Normalizers
     # normalizer_e = lambda x, z: (x - task_mean) / task_std
@@ -263,82 +246,12 @@ def get_normalizers(args, train_dataset, device, task_mean, task_std):
         device=device,
     )
 
-    # normalize forces by each atom type separately
-    if args.norm_forces_by_atom in [False, None, "None"]:
-        # Default normalization that Equiformer used
-        normalizer_f = Normalizer(
-            mean=0,
-            std=std_f,
-            device=device,
-        )
-
-    else:
-        norm_mean_atom = torch.ones(args["model"]["max_num_elements"])  # [A]
-        norm_std_atom = torch.ones(args["model"]["max_num_elements"])
-        mean_atom = torch.ones(args["model"]["max_num_elements"])
-        std_atom = torch.ones(args["model"]["max_num_elements"])
-        # componentwise
-        mean3d_atom = torch.ones(args["model"]["max_num_elements"], 3)
-        std3d_atom = torch.ones(args["model"]["max_num_elements"], 3)
-        # concatenate all the forces
-        dy = torch.cat([batch.dy for batch in train_dataset], dim=0)  # [N, 3]
-        dy_norm = torch.linalg.norm(dy, dim=1)  # [N]
-        atoms = torch.cat([batch.z for batch in train_dataset], dim=0)  # [N]
-        # Compute statistics
-        for i in range(args["model"]["max_num_elements"]):
-            mask = atoms == i
-            norm_mean_atom[i] = dy_norm[mask].mean()
-            norm_std_atom[i] = dy_norm[mask].std()
-            mean_atom[i] = dy[mask].mean()
-            std_atom[i] = dy[mask].std()
-            mean3d_atom[i] = dy[mask].mean(dim=0)
-            std3d_atom[i] = dy[mask].std(dim=0)
-        # Normalizer for forces
-        norm_mean_atom = norm_mean_atom.to(device)
-        norm_std_atom = norm_std_atom.to(device)
-        mean_atom = mean_atom.to(device)
-        std_atom = std_atom.to(device)
-        args.norm_forces_by_atom = args.norm_forces_by_atom.replace("_", "").lower()
-        if args.norm_forces_by_atom == "normmean":
-            # normalizer_f = lambda x, z: x / norm_mean_atom[z].unsqueeze(1)
-            mean = torch.zeros(args["model"]["max_num_elements"])
-            std = norm_mean_atom
-        elif args.norm_forces_by_atom == "normstd":
-            mean = torch.zeros(args["model"]["max_num_elements"])
-            std = norm_std_atom
-        # not really sure how to interpret this
-        elif args.norm_forces_by_atom == "mean":
-            mean = torch.zeros(args["model"]["max_num_elements"])
-            std = mean_atom
-        elif args.norm_forces_by_atom == "std":
-            mean = torch.zeros(args["model"]["max_num_elements"])
-            std = std_atom
-        # componentwise
-        elif args.norm_forces_by_atom == "mean3d":
-            mean = torch.zeros(args["model"]["max_num_elements"], 3)
-            std = mean3d_atom
-        elif args.norm_forces_by_atom == "std3d":
-            mean = torch.zeros(args["model"]["max_num_elements"], 3)
-            std = std3d_atom
-        # non-zero mean
-        elif args.norm_forces_by_atom == "normmeanstd":
-            mean = norm_mean_atom
-            std = norm_std_atom
-        elif args.norm_forces_by_atom == "meanstd":
-            mean = mean_atom
-            std = std_atom
-        elif args.norm_forces_by_atom == "meanstd3d":
-            mean = mean3d_atom
-            std = std3d_atom
-        else:
-            raise NotImplementedError(
-                f"Unknown norm_forces_by_atom: {args.norm_forces_by_atom}"
-            )
-        if "3d" in args.norm_forces_by_atom.lower():
-            normalizer_f = NormalizerByAtomtype3D(mean=mean, std=std, device=device)
-        else:
-            normalizer_f = NormalizerByAtomtype(mean=mean, std=std, device=device)
-
+    # Default normalization that Equiformer used
+    normalizer_f = Normalizer(
+        mean=0,
+        std=std_f,
+        device=device,
+    )
     return {"energy": normalizer_e, "force": normalizer_f}
 
 
@@ -809,39 +722,6 @@ def train_md(args):
         {"memalloc-pre_forward_test": torch.cuda.memory_allocated()}, step=global_step
     )
 
-    """ Dryrun of forward pass for testing """
-    # first_batch = next(iter(train_loader))
-
-    # data = first_batch.to(device)
-    # data = data.to(device, dtype)
-
-    # # energy, force
-    # model.train()
-    # # criterion.train()
-    # criterion_energy.train()
-    # criterion_force.train()
-    # pred_y, pred_dy, info = model(
-    #     data=data,  # for EquiformerV2
-    #     node_atom=data.z,
-    #     pos=data.pos,
-    #     batch=data.batch,
-    #     # step=global_step,
-    #     # datasplit="train",
-    # )
-
-    # print(f'pred_y: {pred_y.shape}')
-    # print(f'pred_dy: {pred_dy.shape}')
-    # print(f'data.y: {data.y.shape}')
-    # print(f'data.dy: {data.dy.shape}')
-
-    # log memory before forward pass
-    wandb.log(
-        {"memalloc-post_forward_test": torch.cuda.memory_allocated()}, step=global_step
-    )
-
-    if args.test_forward:
-        return True
-
     """ Dryrun for logging shapes """
     try:
 
@@ -999,9 +879,6 @@ def train_md(args):
         if lr_scheduler is not None:
             lr_scheduler.step(epoch)
             # filelog.info(f"lr: {optimizer.param_groups[0]['lr']}")
-            # filelog.logger.handlers[0].flush() # flush logger
-
-        # print('lr:', optimizer.param_groups[0]["lr"])
 
         try:
             train_err, train_loss, global_step, fixed_points, grads = train_one_epoch(
@@ -1277,202 +1154,6 @@ def train_md(args):
             # step=epoch,
             step=global_step,
         )
-
-        # evaluation with EMA
-        # if model_ema is not None:
-        #     ema_val_err, _ = evaluate(
-        #         args=args,
-        #         model=model_ema.module,
-        #         # criterion=criterion,
-        #         criterion_energy=criterion_energy,
-        #         criterion_force=criterion_force,
-        #         data_loader=val_loader,
-        #         optimizer=optimizer,
-        #         device=device,
-        #         print_freq=args.print_freq,
-        #         filelog=filelog,
-        #         print_progress=False,
-        #         global_step=global_step,
-        #         epoch=epoch,
-        #         datasplit="ema_val",
-        #         normalizers=normalizers,
-        #     )
-
-        #     if (epoch + 1) % args.test_interval == 0:
-        #         filelog.info(f"Testing EMA model at epoch {epoch}")
-        #         ema_test_err, _ = evaluate(
-        #             args=args,
-        #             model=model_ema.module,
-        #             # criterion=criterion,
-        #             criterion_energy=criterion_energy,
-        #             criterion_force=criterion_force,
-        #             data_loader=test_loader,
-        #             optimizer=optimizer,
-        #             device=device,
-        #             print_freq=args.print_freq,
-        #             filelog=filelog,
-        #             print_progress=True,
-        #             max_iter=args.test_max_iter,
-        #             global_step=global_step,
-        #             epoch=epoch,
-        #             datasplit="ema_test",
-        #             normalizers=normalizers,
-        #         )
-        #     else:
-        #         ema_test_err, ema_test_loss = None, None
-
-        #     update_val_result, update_test_result = update_best_results(
-        #         args, best_ema_metrics, ema_val_err, ema_test_err, epoch
-        #     )
-
-        #     saved_best_ema_checkpoint = False
-        #     if update_val_result and args.save_best_val_checkpoint:
-        #         filelog.info(f"Saving best EMA val checkpoint")
-        #         os.makedirs(args.output_dir, exist_ok=True)
-        #         torch.save(
-        #             {
-        #                 "state_dict": get_state_dict(model_ema),
-        #                 "grads": grads,
-        #                 "optimizer": optimizer.state_dict(),
-        #                 "lr_scheduler": lr_scheduler.state_dict()
-        #                 if lr_scheduler is not None
-        #                 else None,
-        #                 "epoch": epoch,
-        #                 "global_step": global_step,
-        #                 "best_metrics": best_metrics,
-        #                 "best_ema_metrics": best_ema_metrics,
-        #             },
-        #             os.path.join(
-        #                 args.output_dir,
-        #                 "best_ema_val_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-        #                     epoch, ema_val_err["energy"].avg, ema_val_err["force"].avg
-        #                 ),
-        #             ),
-        #         )
-        #         remove_extra_checkpoints(
-        #             args.output_dir,
-        #             args.max_checkpoints,
-        #             startswith="best_ema_val_epochs@",
-        #         )
-        #         saved_best_ema_checkpoint = True
-
-        #     if update_test_result and args.save_best_test_checkpoint:
-        #         filelog.info(f"Saving best EMA test checkpoint")
-        #         os.makedirs(args.output_dir, exist_ok=True)
-        #         torch.save(
-        #             {
-        #                 "state_dict": get_state_dict(model_ema),
-        #                 "grads": grads,
-        #                 "optimizer": optimizer.state_dict(),
-        #                 "lr_scheduler": lr_scheduler.state_dict()
-        #                 if lr_scheduler is not None
-        #                 else None,
-        #                 "epoch": epoch,
-        #                 "global_step": global_step,
-        #                 "best_metrics": best_metrics,
-        #                 "best_ema_metrics": best_ema_metrics,
-        #             },
-        #             os.path.join(
-        #                 args.output_dir,
-        #                 "best_ema_test_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-        #                     epoch, ema_test_err["energy"].avg, ema_test_err["force"].avg
-        #                 ),
-        #             ),
-        #         )
-        #         remove_extra_checkpoints(
-        #             args.output_dir,
-        #             args.max_checkpoints,
-        #             startswith="best_ema_test_epochs@",
-        #         )
-        #         saved_best_ema_checkpoint = True
-
-        #     if (
-        #         (epoch + 1) % args.test_interval == 0
-        #         # and (not update_val_result)
-        #         # and (not update_test_result)
-        #         and not saved_best_ema_checkpoint
-        #         and args.save_checkpoint_after_test
-        #     ):
-        #         filelog.info(f"Saving EMA checkpoint")
-        #         os.makedirs(args.output_dir, exist_ok=True)
-        #         torch.save(
-        #             {
-        #                 "state_dict": get_state_dict(model_ema),
-        #                 "grads": grads,
-        #                 "optimizer": optimizer.state_dict(),
-        #                 "lr_scheduler": lr_scheduler.state_dict()
-        #                 if lr_scheduler is not None
-        #                 else None,
-        #                 "epoch": epoch,
-        #                 "global_step": global_step,
-        #                 "best_metrics": best_metrics,
-        #                 "best_ema_metrics": best_ema_metrics,
-        #             },
-        #             os.path.join(
-        #                 args.output_dir,
-        #                 "ema_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-        #                     epoch, test_err["energy"].avg, test_err["force"].avg
-        #                 ),
-        #             ),
-        #         )
-        #         remove_extra_checkpoints(
-        #             args.output_dir, args.max_checkpoints, startswith="ema_epochs@"
-        #         )
-
-        #     info_str = "EMA "
-        #     info_str += "val_e_MAE: {:.5f}, val_f_MAE: {:.5f}, ".format(
-        #         ema_val_err["energy"].avg, ema_val_err["force"].avg
-        #     )
-        #     wandb.log(
-        #         {
-        #             "EMA_val_e_mae": ema_val_err["energy"].avg,
-        #             "EMA_val_f_mae": ema_val_err["force"].avg,
-        #         },
-        #         # step=epoch,
-        #         step=global_step,
-        #     )
-
-        #     if (epoch + 1) % args.test_interval == 0:
-        #         info_str += "test_e_MAE: {:.5f}, test_f_MAE: {:.5f}, ".format(
-        #             ema_test_err["energy"].avg, ema_test_err["force"].avg
-        #         )
-        #         wandb.log(
-        #             {
-        #                 "EMA_test_e_mae": ema_test_err["energy"].avg,
-        #                 "EMA_test_f_mae": ema_test_err["force"].avg,
-        #             },
-        #             # step=epoch,
-        #             step=global_step,
-        #         )
-
-        #     info_str += "Time: {:.2f}s".format(time.perf_counter() - epoch_start_time)
-        #     filelog.info(info_str)
-
-        #     info_str = "Best EMA -- val_epoch={}, test_epoch={}, ".format(
-        #         best_ema_metrics["val_epoch"], best_ema_metrics["test_epoch"]
-        #     )
-        #     info_str += "val_e_MAE: {:.5f}, val_f_MAE: {:.5f}, ".format(
-        #         best_ema_metrics["val_energy_err"], best_ema_metrics["val_force_err"]
-        #     )
-        #     info_str += "test_e_MAE: {:.5f}, test_f_MAE: {:.5f}\n".format(
-        #         best_ema_metrics["test_energy_err"], best_ema_metrics["test_force_err"]
-        #     )
-        #     filelog.info(info_str)
-
-        #     # log to wandb
-        #     wandb.log(
-        #         {
-        #             "EMA_best_val_e_mae": best_ema_metrics["val_energy_err"],
-        #             "EMA_best_val_f_mae": best_ema_metrics["val_force_err"],
-        #             "EMA_best_test_e_mae": best_ema_metrics["test_energy_err"],
-        #             "EMA_best_test_f_mae": best_ema_metrics["test_force_err"],
-        #         },
-        #         # step=epoch,
-        #         step=global_step,
-        #     )
-        # else:
-        #     # no EMA
-        #     pass
 
         final_epoch = epoch
         # epoch done
@@ -2020,27 +1701,7 @@ def evaluate(
     dtype = model.parameters().__next__().dtype
 
     # remove because of torchdeq and force prediction via dE/dx
-    # with torch.no_grad():
-    # grad_test = torch.tensor(1., requires_grad=True)
     with torch.set_grad_enabled(args.test_w_grad):
-        # B = grad_test + 1
-        # print(f'tracking gradients: {B.requires_grad}')
-
-        # warmup the cuda kernels for accurate timing
-        # data = next(iter(data_loader))
-        # data = data.to(device)
-        # data = data.to(device, dtype)
-        # outputs = model(data=data)  
-        # , node_atom=data.z, pos=data.pos, batch=data.batch)
-
-        # print("\nEval:")
-        # print("Model is in training mode", model.training)
-        # if hasattr(model, "deq"):
-        #     print("DEQ is in training mode", model.deq.training)
-        #     print("DEQ is in force_train_mode", model.deq.force_train_mode)
-        # print("Grad is tracking", outputs[0].requires_grad)
-        # print("Model regress_forces", model.regress_forces)
-        # print("Model direct_forces", model.direct_forces)
 
         for fpreuse_test in fpreuse_list:
             # name for logging
@@ -2077,8 +1738,10 @@ def evaluate(
             fixedpoint = None
             prev_idx = None
 
-            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, but not the actual GPU execution time of the kernel.
-            # torch.cuda.synchronize() waits for all tasks in the GPU to complete, thereby providing an accurate measure of time taken to execute
+            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, 
+            # but not the actual GPU execution time of the kernel.
+            # torch.cuda.synchronize() waits for all tasks in the GPU to complete, 
+            # thereby providing an accurate measure of time taken to execute
             torch.cuda.synchronize()
             start_time = time.perf_counter()
 
@@ -2432,9 +2095,11 @@ def eval_speed(
             reuse = False
             prev_idx = None
 
-            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, but not the actual GPU execution time of the kernel.
-            # torch.cuda.synchronize() waits for all tasks in the GPU to complete, thereby providing an accurate measure of time taken to execute
-            # torch.cuda.synchronize()
+            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, 
+            # but not the actual GPU execution time of the kernel.
+            # torch.cuda.synchronize() waits for all tasks in the GPU to complete, 
+            # thereby providing an accurate measure of time taken to execute
+            torch.cuda.synchronize()
             start_time = time.perf_counter()
 
             for step, data in enumerate(data_loader):
@@ -2658,9 +2323,6 @@ def equivariance_test(
                 # forces should be equivariant
                 # model(rot(f)) == rot(model(f))
                 "\nForces:",
-                # f"\ne-7:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-7),
-                # f"\ne-5:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-5),
-                # f"\ne-3:", torch.allclose(torch.matmul(forces1, R), forces_rot, atol=1.0e-3),
                 f"\n max off: {max_off_f:.2E}",
                 f"\n avg off: {avg_off_f:.2E}",
                 # (torch.matmul(forces1, R) - forces_rot).abs(),

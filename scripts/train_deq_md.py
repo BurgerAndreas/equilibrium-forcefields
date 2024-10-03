@@ -1629,8 +1629,8 @@ def train_one_epoch(
     # filelog.logger.handlers[0].flush() # flush logger
 
     model.train()
-    filelog.info(f"Set model to train")
-    filelog.logger.handlers[0].flush() # flush logger
+    # filelog.info(f"Set model to train")
+    # filelog.logger.handlers[0].flush() # flush logger
 
     # filelog.info(f"Setting DEQ")
     # filelog.logger.handlers[0].flush() # flush logger
@@ -1670,8 +1670,8 @@ def train_one_epoch(
     isnan_cnt = 0
 
     dtype = model.parameters().__next__().dtype
-    filelog.info(f"Got dtype")
-    filelog.logger.handlers[0].flush() # flush logger
+    # filelog.info(f"Got dtype")
+    # filelog.logger.handlers[0].flush() # flush logger
 
     # for debugging
     # if we don't set model.eval()
@@ -1695,15 +1695,15 @@ def train_one_epoch(
         )
         prof.start()
 
-    filelog.info(f"test forward pass")
-    filelog.logger.handlers[0].flush() # flush logger
+    # filelog.info(f"test forward pass")
+    # filelog.logger.handlers[0].flush() # flush logger
     # warmup the cuda kernels for accurate timing
     # data = next(iter(data_loader))
     # data = data.to(device)
     # data = data.to(device, dtype)
     # outputs = model(data=data, node_atom=data.z, pos=data.pos, batch=data.batch)
-    filelog.info(f"test forward pass done")
-    filelog.logger.handlers[0].flush() # flush logger
+    # filelog.info(f"test forward pass done")
+    # filelog.logger.handlers[0].flush() # flush logger
 
     # print("\nTrain:")
     # print("Model is in training mode", model.training)

@@ -43,7 +43,7 @@ cat ~/.ssh/id_ed25519.pub
 ```bash
 git clone git@github.com:BurgerAndreas/equilibrium-forcefields.git
 cd equilibrium-forcefields
-mamba create -n deq python=3.10
+mamba create -n deq10 python=3.10
 mamba activate deq
 
 # get the Open Catalyst Project (required for Equiformerv2)
@@ -101,11 +101,13 @@ cd ../../..
 # check your cuda version 
 nvidia-smi
 # https://github.com/pyg-team/pytorch_geometric/issues/999#issuecomment-606565132
+# ls /pkgs/cuda- 
+# cuda-12.1/
 pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse torch-spline-conv -y
-pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
-pip install --no-index pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu121.html
+pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu118
+pip install --no-index pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
 # OCP requires torch-geometric<=2.0.4
-pip install torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-2.2.0+cu121.html
+pip install torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
 # pip install torch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1 --index-url https://data.pyg.org/whl/torch-1.11.0+cu115.html
 # pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu118
 # pip install torch_geometric pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
@@ -194,13 +196,13 @@ sbatch scripts/amd_launcher.slrm train_deq_md_v2.py +use=deq +cfg=fpc_of +trial=
 
 ```bash
 mamba env config vars list
-mamba env config vars set CFLAGS="-I/usr/local/include -I/pkgs/cuda-11.1/targets/x86_64-linux/include $CFLAGS"
-mamba env config vars set LDFLAGS="-L/usr/local/lib -L/usr/lib/x86_64-linux-gnu -L/pkgs/cuda-11.1/targets/x86_64-linux/lib $LDFLAGS"
-mamba env config vars set CUDA_HOME=/pkgs/cuda-11.1
-mamba env config vars set CUDA_ROOT=/pkgs/cuda-11.1
-mamba env config vars set LD_LIBRARY_PATH=/pkgs/cuda-11.1/lib64:/pkgs/cudnn-11.1-v8.2.4.15/lib64:$LD_LIBRARY_PATH
-mamba env config vars set PATH=/usr/local/cuda-11.1/bin:$PATH
-mamba env config vars set CPATH=$CPATH:/pkgs/cuda-11.1/include
+mamba env config vars set CFLAGS="-I/usr/local/include -I/pkgs/cuda-12.1/targets/x86_64-linux/include $CFLAGS"
+mamba env config vars set LDFLAGS="-L/usr/local/lib -L/usr/lib/x86_64-linux-gnu -L/pkgs/cuda-12.1/targets/x86_64-linux/lib $LDFLAGS"
+mamba env config vars set CUDA_HOME=/pkgs/cuda-12.1
+mamba env config vars set CUDA_ROOT=/pkgs/cuda-12.1
+mamba env config vars set LD_LIBRARY_PATH=/pkgs/cuda-12.1/lib64:/pkgs/cudnn-12.1-v8.2.4.15/lib64:$LD_LIBRARY_PATH
+mamba env config vars set PATH=/usr/local/cuda-12.1/bin:$PATH
+mamba env config vars set CPATH=$CPATH:/pkgs/cuda-12.1/include
 mamba env config vars set CUDNN_PATH=/h/burgeran/miniforge3/envs/deq/lib/python3.9/site-packages/nvidia/cudnn
 mamba env config vars set LD_LIBRARY_PATH=${CUDNN_PATH}/lib:$LD_LIBRARY_PATH
 mamba activate deq
@@ -213,15 +215,15 @@ mkdir ./etc/conda/deactivate.d
 ```
 ```bash
 # first check cuda version with $ nvcc --version or $ nvidia-smi
-export CFLAGS="-I/usr/local/include -I/pkgs/cuda-11.1/targets/x86_64-linux/include $CFLAGS"
-export LDFLAGS="-L/usr/local/lib -L/usr/lib/x86_64-linux-gnu -L/pkgs/cuda-11.1/targets/x86_64-linux/lib $LDFLAGS"
+export CFLAGS="-I/usr/local/include -I/pkgs/cuda-12.1/targets/x86_64-linux/include $CFLAGS"
+export LDFLAGS="-L/usr/local/lib -L/usr/lib/x86_64-linux-gnu -L/pkgs/cuda-12.1/targets/x86_64-linux/lib $LDFLAGS"
 
 # cuda: find / -iname “cuda.h”
-export CUDA_HOME=/pkgs/cuda-11.1
-export CUDA_ROOT=/pkgs/cuda-11.1
-export LD_LIBRARY_PATH=/pkgs/cuda-11.1/lib64:/pkgs/cudnn-11.1-v8.2.4.15/lib64:$LD_LIBRARY_PATH
-export PATH=/usr/local/cuda-11.1/bin:$PATH
-export CPATH=$CPATH:/pkgs/cuda-11.1/include
+export CUDA_HOME=/pkgs/cuda-12.1
+export CUDA_ROOT=/pkgs/cuda-12.1
+export LD_LIBRARY_PATH=/pkgs/cuda-12.1/lib64:/pkgs/cudnn-12.1-v8.2.4.15/lib64:$LD_LIBRARY_PATH
+export PATH=/usr/local/cuda-12.1/bin:$PATH
+export CPATH=$CPATH:/pkgs/cuda-12.1/include
 # add cudann to path
 # export CUDNN_PATH=$(dirname $(python -c "import nvidia.cudnn;print(nvidia.cudnn.__file__)"))
 # export CUDNN_PATH=/h/burgeran/skills/skillsenv10/lib/python3.10/site-packages/nvidia/cudnn
@@ -229,7 +231,110 @@ export CUDNN_PATH=/h/burgeran/miniforge3/envs/deq/lib/python3.9/site-packages/nv
 export LD_LIBRARY_PATH=${CUDNN_PATH}/lib:$LD_LIBRARY_PATH
 ```
 
+#### glibc
 
+Error
+```bash
+File "/h/burgeran/miniforge3/envs/deq/lib/python3.9/site-packages/torch_sparse/typing.py", line 2, in <module>
+    import pyg_lib  # noqa
+File "/h/burgeran/miniforge3/envs/deq/lib/python3.9/site-packages/pyg_lib/__init__.py", line 39, in <module>
+load_library('libpyg')
+File "/h/burgeran/miniforge3/envs/deq/lib/python3.9/site-packages/pyg_lib/__init__.py", line 36, in load_library
+torch.ops.load_library(spec.origin)
+File "/h/burgeran/miniforge3/envs/deq/lib/python3.9/site-packages/torch/_ops.py", line 933, in load_library
+ctypes.CDLL(path)
+File "/h/burgeran/miniforge3/envs/deq/lib/python3.9/ctypes/__init__.py", line 374, in __init__
+    self._handle = _dlopen(self._name, mode)
+OSError: /lib/x86_64-linux-gnu/libm.so.6: version GLIBC_2.29' not found (required by /fs01/home/burgeran/miniforge3/envs/deq/lib/python3.9/site-packages/libpyg.so)
+```
+
+```bash
+# mamba install -c conda-forge glibc=2.29
+mamba install rmg::glibc
+```
+
+
+```bash
+wget http://ftp.gnu.org/gnu/libc/glibc-2.29.tar.gz
+tar -xvzf glibc-2.29.tar.gz
+cd glibc-2.29
+mkdir build
+cd build
+unset LD_LIBRARY_PATH
+# ../configure --prefix=$HOME/.local
+CFLAGS="-O2" ../configure --prefix=$HOME/.local
+make # -j4
+make install
+$HOME/glibc-2.29/lib/ld-2.29.so --version
+```
+
+```bash
+/h/burgeran/glibc-2.29/build/elf/ldconfig: Warning: ignoring configuration file that cannot be opened: /h/burgeran/.local/etc/ld.so.conf: No such file or directory
+make[1]: Leaving directory '/fs01/home/burgeran/glibc-2.29'
+```
+
+
+```bash
+export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH
+# add to bashrc
+echo 'export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH' >> ~/.bashrc
+```
+
+#### export env
+```bash
+mamba activate deq
+mamba env export | grep -v '^prefix:' | grep -v 'torch' | grep -v 'ocp-models' | grep -v 'equiformer' > environment.yml
+```
+
+## Compute canada
+
+```bash
+module load StdEnv/2023 
+module load intel/2023.2.1
+module load cuda/11.8
+module load python/3.10
+virtualenv --no-download deqenv
+source deqenv/bin/activate
+pip install --no-index --upgrade pip
+
+# https://docs.alliancecan.ca/wiki/Python#Loading_a_Python_module
+# avail_wheels "*cdf*"
+# vail_wheels numpy==1.23
+# avail_wheels 'numpy<1.23'
+# avail_wheels 'numpy<1.23' --python 3.9
+# avail_wheels -r requirements.txt 
+# avail_wheels -r requirements.txt --not-available
+
+pip install torch==2.2.0 torchvision==0.17.0 --no-index
+pip install --no-index torch_scatter torch_sparse torch_cluster torch_spline_conv
+pip install --no-index pyg_lib -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
+pip install --no-index torch-geometric==2.0.4 
+# pip install torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
+
+pip install e3nn==0.4.4 timm==0.4.12
+
+pip install matplotlib seaborn scikit-image
+pip install hydra-core wandb omegaconf black
+
+pip install numba sphinx nbsphinx sphinx-rtd-theme pandoc ase==3.21.* pre-commit==2.10.* tensorboard
+pip install setuptools==57.4.0
+pip install demjson 
+# pip install demjson3
+pip install lmdb==1.1.1
+pip install "ray[tune]"
+pip install submitit
+
+
+# Installing collected packages: opt-einsum, torch, opt-einsum-fx, timm, e3nn
+#   Attempting uninstall: torch
+#     Found existing installation: torch 2.3.1+computecanada
+#     Uninstalling torch-2.3.1+computecanada:
+#       Successfully uninstalled torch-2.3.1+computecanada
+# ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+# torch-cluster 1.6.3+torch23.computecanada requires torch~=2.3.0, but you have torch 2.2.0+computecanada which is incompatible.
+# torch-scatter 2.1.2+torch23.computecanada requires torch~=2.3.0, but you have torch 2.2.0+computecanada which is incompatible.
+
+```
 
 ## Training
 

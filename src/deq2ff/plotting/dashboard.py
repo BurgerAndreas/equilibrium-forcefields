@@ -1482,3 +1482,155 @@ def plot_loss_curve(
         print(f"Saved plot to \n {fname}")
 
     return fig, ax
+
+def get_runs_status_from_wandb(
+    project=projectmd,
+    filters={
+        # "tags": "inference2",
+        # "$and": [{"tags": "md17"}, {"tags": "eval"}],
+        # "state": "finished",
+        # "$or": [{"tags": "md17"}, {"tags": "main2"}, {"tags": "inference"}],
+        # "state": "crashed",
+        "$or": [{"state": "failed"}, {"state": "crashed"}],
+    },
+    fname="",
+    hours_since=48,
+):
+    """Download runs from wandb."""
+    # hosts, hostname = ["tacozoid11", "tacozoid10"], "taco"
+    fname = f"runs_p_{project.replace('project', '')}" + fname
+    fullfname = f"{plotfolder}/{fname}.csv"
+
+    api = wandb.Api()
+    runs = api.runs(
+        project,
+        filters,
+    )
+    run_ids = [run.id for run in runs]
+    # print(f"Found {len(run_ids)} runs:")
+
+    infos_acc = []
+    for run in runs:
+        # filters
+        # host = requests.get(run.file("wandb-metadata.json").url).json()["host"]
+        # if host not in hosts:
+        #     print(f"Skipping run {run.id} {run.name} because of host={host}")
+        #     continue
+
+        # print([
+        #     k for k in run.summary.keys() 
+        #     if 
+        #     k.startswith("_")
+        #     # (not "gradient" in k) 
+        #     # and (not "config" in k)
+        #     # and (not "summary" in k)
+        # ])
+
+        # print(run.summary["_timestamp"])
+        # print(run.summary["_runtime"])
+        # print(run.summary["_step"])
+
+        # timestep is of format 1722367178.5828128
+        # convert to datetime
+        if "_timestamp" not in run.summary:
+            # print(f"Skipping run {run.id} {run.name} because of missing _timestamp")
+            # runs never started, failed before logging the first step
+            continue
+        timestemp = run.summary["_timestamp"]
+        date = datetime.datetime.fromtimestamp(timestemp)
+        # remove microseconds
+        # date = date.strftime("%Y-%m-%d %H:%M:%S")
+
+        # filter if run is older than .. hours
+        if datetime.datetime.now() - date > datetime.timedelta(hours=hours_since):
+            # print(f"Skipping run {run.id} {run.name} because of time")
+            continue
+        
+        # runtime is of format 215989.28339982033
+        # convert to hours
+        hours = run.summary["_runtime"] / 3600
+
+        info = {
+            "run_id": run.id,
+            "run_name": run.name,
+            "date": date,
+            "hours": hours,
+            # "config": run.config,
+            # "summary": run.summary,
+        }
+        # flatten the config and summary dictionaries
+        for key, value in run.config.items():
+            # check if config_key is a dictionary
+            if isinstance(run.config[key], dict):
+                for k2, v2 in run.config[key].items():
+                    info[f"config.{key}.{k2}"] = run.config[key][k2]
+            else:
+                info[f"config.{key}"] = run.config[key]
+        for summary_key in run.summary.keys():
+            info[f"summary.{summary_key}"] = run.summary[summary_key]
+        
+        # get log
+        # file = run.file('output.log')
+        # file.download() # root="."
+        # file.display(height=420, hidden=(False))
+
+        # print the name
+        print(run.name)
+        print("", info['config.slurm_job_id'])
+        if project == projectmd:
+            print(f" epoch={info['summary.epoch']} / {info['config.epochs']}")
+        elif project == projectoc:
+            print(f" epoch={info['summary.epoch']} / {info['config.optim.max_epochs']}")
+        # print(f" date={date}")
+        # date as day hour:min
+        print(f" date={date.strftime('%d %H:%M')}")
+        print(f" hours={hours:.2f}")
+
+        # metadata
+        # host = requests.get(run.file("wandb-metadata.json").url).json()["host"]
+        # info["host"] = host
+
+        infos_acc.append(info)
+
+    df = pd.DataFrame(infos_acc)
+
+
+    return df
+
+def print_restart_commands(
+        _df, project=projectmd,
+        ignore_overrides=["wandb_tags"],
+    ):
+    if project == projectmd:
+        prefix = "launchrun"
+        tag = "['speedmd_v1']"
+    elif project == projectoc:
+        prefix = "launchoc"
+        tag = "['speedoc_v1']"
+
+    # df[["config.override_dirname"]]
+    # print(" ")
+    _num_runs = 0
+    for i, row in _df.iterrows():
+        overrides = row["config.override_dirname"].split(",")
+        _overrides = []
+        for o in overrides:
+            _add = True
+            for so in ignore_overrides:
+                if so in o:
+                    _add = False
+                    break
+                
+            if _add:
+                _overrides.append(o)
+        overrides = " ".join([f"{o}" for o in _overrides])
+        
+        # if "config.target" in row:
+        if project == projectmd:
+            target = " target=" + row["config.target"]
+        else:
+            target = ""
+        print(
+            f"{prefix} {overrides}{target}",
+            # f"+inf=bs1 +deq_kwargs_fpr.f_tol=1e-1 wandb_tags={tag}",
+        )

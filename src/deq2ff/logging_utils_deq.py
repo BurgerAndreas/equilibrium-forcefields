@@ -35,17 +35,6 @@ def log_fixed_point_error(
         npre = f"{split}/"
 
     if len(f_abs_trace) > 0:
-        # during test and val the step is not updated, i.e. we will never log
-        # test and val unless step happens to be a multiple of log_every_step
-        # if (step % log_every_step_minor == 0) or (datasplit in ["test", "val"]):
-        #     # log the final fixed point error
-        #     wandb.log({f"abs_fixed_point_error{n}": f_abs_trace[-1].item()}, step=step)
-        #     wandb.log({f"rel_fixed_point_error{n}": f_rel_trace[-1].item()}, step=step)
-        #     # log how many steps it took to reach the fixed point
-        #     wandb.log(
-        #         {f"f_steps_to_fixed_point{n}": info["nstep"][0].mean().item()},
-        #         step=step,
-        #     )
 
         # log, but as a list instead of table
         if log_trace_freq is None:
@@ -71,10 +60,7 @@ def log_fixed_point_error(
                     step=step,
                     # split=split,
                 )
-                # print(
-                #     f"Logged fixed point error trajectory. (split: {datasplit} at step {step}). "
-                #     f'Dimension: {len(_abs)}, {info["abs_trace"].mean(dim=0)[1:].shape}'
-                # )
+                
             # log again in float64 format
             if "abs_trace64" in info:
                 _abs64 = (
@@ -95,10 +81,6 @@ def log_fixed_point_error(
                         step=step,
                         # split=split,
                     )
-                    # print(
-                    #     f"Logged fixed point error trajectory in float64. (split: {datasplit} at step {step}). "
-                    #     f'Dimension: {len(_abs64)}, {info["abs_trace64"].mean(dim=0)[1:].shape}'
-                    # )
 
     return None
 

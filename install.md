@@ -46,6 +46,8 @@ cd equilibrium-forcefields
 mamba create -n deq python=3.10
 mamba activate deq
 
+pip uninstall setuptools demjson lmdb "ray[tune]" submitit e3nn timm matplotlib seaborn scikit-image hydra-core wandb omegaconf black numba sphinx nbsphinx sphinx-rtd-theme pandoc ase pre-commit tensorboard -y
+
 # get the Open Catalyst Project (required for Equiformerv2)
 # outdated: git clone git@github.com:Open-Catalyst-Project/ocp.git
 # https://github.com/FAIR-Chem/fairchem/blob/v0.1.0

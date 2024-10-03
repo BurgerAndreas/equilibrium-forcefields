@@ -1634,7 +1634,7 @@ def train_one_epoch(
 
     # filelog.info(f"Setting DEQ")
     # filelog.logger.handlers[0].flush() # flush logger
-    # model.set_current_deq()
+    model.set_current_deq()
     # filelog.info(f"Set DEQ")
     # filelog.logger.handlers[0].flush() # flush logger
 
@@ -1808,13 +1808,9 @@ def train_one_epoch(
         # else:
         optimizer.step()
         # optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-        # filelog.info(f"step{batchstep} optimizer.step() done")
-        # filelog.logger.handlers[0].flush() # flush logger
 
-        # del loss.grad, loss_e.grad, loss_f.grad
-
-        # # if model_ema is not None:
-        # #     model_ema.update(model)
+        # if model_ema is not None:
+        #     model_ema.update(model)
 
         #######################################
         # Logging
@@ -1873,25 +1869,7 @@ def train_one_epoch(
         logs = {
             "train_loss": loss.detach().item(),
             "grad_norm": grad_norm.detach().item(),
-            # energy
-            # "energy_pred_mean": pred_y.mean().item(),
-            # "energy_pred_std": pred_y.std().item(),
-            # "energy_pred_min": pred_y.min().item(),
-            # "energy_pred_max": pred_y.max().item(),
-            # "energy_target_mean": target_y.mean().item(),
-            # "energy_target_std": target_y.std().item(),
-            # "energy_target_min": target_y.min().item(),
-            # "energy_target_max": target_y.max().item(),
             "scaled_energy_loss": (args.energy_weight * loss_e.detach()).item(),
-            # force
-            # "force_pred_mean": pred_dy.mean().item(),
-            # "force_pred_std": pred_dy.std().item(),
-            # "force_pred_min": pred_dy.min().item(),
-            # "force_pred_max": pred_dy.max().item(),
-            # "force_target_mean": target_dy.mean().item(),
-            # "force_target_std": target_dy.std().item(),
-            # "force_target_min": target_dy.min().item(),
-            # "force_target_max": target_dy.max().item(),
             "scaled_force_loss": (args.force_weight * loss_f.detach()).item(),
         }
 
@@ -1899,16 +1877,6 @@ def train_one_epoch(
         #######################################
 
         global_step += 1
-
-        # Todo@temp
-        # del data, pred_y, pred_dy, loss, loss_e, loss_f
-
-        # filelog.info(f"step{batchstep} done")
-        # filelog.logger.handlers[0].flush() # flush logger
-
-        # bandaids, its not going to fix the underlying issue
-        # gc.collect() # garbage collector finds unused objects and deletes them
-        # torch.cuda.empty_cache() # deletes unused tensor from the cache
 
         if args.torch_profile:
             prof.step()
@@ -1938,11 +1906,6 @@ def train_one_epoch(
             },
             step=global_step,
         )
-        # abs_fixed_point_error = []
-        # rel_fixed_point_error = []
-        # abs_fixed_point_error_max = []
-        # rel_fixed_point_error_max = []
-        # f_steps_to_fixed_point = []
 
     # epoch statistics
     wandb.log({"grad_norm_epoch_avg": np.mean(grad_norm_epoch_avg)}, step=global_step)
@@ -2010,7 +1973,7 @@ def evaluate(
 
     # filelog.info(f"Model set to eval mode")
     # filelog.logger.handlers[0].flush() # flush logger
-    # model.set_current_deq()
+    model.set_current_deq()
     # filelog.info(f"Model set to current deq")
     # filelog.logger.handlers[0].flush() # flush logger
 
@@ -2133,7 +2096,7 @@ def evaluate(
                     log_fp = False
                 # filelog.info(f"Setting DEQ")
                 # filelog.logger.handlers[0].flush() # flush logger
-                # model.set_current_deq(reuse=True if fixedpoint is not None else False)
+                model.set_current_deq(reuse=False if fixedpoint is None else True)
                 # filelog.info(f"Set DEQ")
                 # filelog.logger.handlers[0].flush() # flush logger
 
@@ -2420,7 +2383,7 @@ def eval_speed(
         criterion_force.eval()
     # filelog.info(f"Setting DEQ")
     # filelog.logger.handlers[0].flush() # flush logger
-    # model.set_current_deq()
+    model.set_current_deq()
     # filelog.info(f"Set DEQ")
     # filelog.logger.handlers[0].flush() # flush logger
 
@@ -2484,7 +2447,7 @@ def eval_speed(
                     reuse = False
                 # filelog.info(f"Setting DEQ")
                 # filelog.logger.handlers[0].flush() # flush logger
-                # model.set_current_deq(reuse=True if fixedpoint is not None else False)
+                model.set_current_deq(reuse=False if fixedpoint is None else True)
                 # filelog.info(f"Set DEQ")
                 # filelog.logger.handlers[0].flush() # flush logger
 

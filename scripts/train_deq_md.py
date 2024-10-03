@@ -1730,52 +1730,6 @@ def train_one_epoch(
         # filelog.logger.handlers[0].flush() # flush logger
         
         data = data.to(device, dtype)
-        # filelog.info(f"step{batchstep} data.to(device, dtype) done")
-        # filelog.logger.handlers[0].flush() # flush logger
-
-        # reinit DEQ to make sure nothing is stored in the buffers
-        # if hasattr(model, "deq"):
-        #     deq_kwargs = args.deq_kwargs
-        #     deq_kwargs.update(args.deq_kwargs_test)
-        #     model.deq = get_deq(**deq_kwargs)
-
-        # if args.fpreuse_across_epochs and epoch >= args.fpreuse_start_epoch:
-        #     indices = [idx_to_indices[_idx.item()] for _idx in data.idx]
-        #     # print(f'idx: {[_idx.item() for _idx in data.idx]}, indices: {indices}')
-        #     # get previous fixed points via index
-        #     # _fp_prev = fixed_points[step].to(device)
-        #     # _fp_prev = fixed_points[indices].to(device)
-        #     _fp_prev = torch.cat([fixed_points[_idx] for _idx in indices], dim=0)
-        #     # _fp_prev = collate([fixed_points[_idx] for _idx in indices])
-        #     # energy, force
-        #     pred_y, pred_dy, fp, info = model(
-        #         data=data,  # for EquiformerV2
-        #         node_atom=data.z,
-        #         pos=data.pos,
-        #         batch=data.batch,
-        #         step=global_step,
-        #         datasplit="train",
-        #         solver_kwargs=solver_kwargs,
-        #         fpr_loss=args.fpr_loss,
-        #         # fixed-point reuse
-        #         return_fixedpoint=True,
-        #         fixedpoint=_fp_prev,
-        #     )
-        #     assert (
-        #         _fp_prev.shape == fp.shape
-        #     ), f"Fixed-point shape mismatch: {_fp_prev.shape} != {fp.shape}"
-        #     # split up fixed points [B*N, D, C] -> [B, N, D, C]
-        #     # [84, 16, 64] -> [4, 21, 16, 64]
-        #     fp = fp.view(args.batch_size, -1, *fp.shape[1:])
-        #     # store fixed points
-        #     # fixed_points[indices] = fp.detach()
-        #     for _idx, _fp in zip(indices, fp):
-        #         # TODO is clone necessary?
-        #         # fixed_points[_idx] = _fp.detach().clone().to(fpdevice)
-        #         fixed_points[_idx] = _fp.detach().to(fpdevice)
-        #     # print(' nsteps:', info["nstep"][0].item())
-        # else:
-        # energy, force
         pred_y, pred_dy, info = model(
             data=data,  # for EquiformerV2
             # for EquiformerV1:
@@ -1813,133 +1767,6 @@ def train_one_epoch(
         loss_f = criterion_force(pred_dy, target_dy)
         loss += args.force_weight * loss_f
 
-        # filelog.info(f"step{batchstep} loss done")
-        # filelog.logger.handlers[0].flush() # flush logger
-
-        # natoms = data.natoms[0].item()
-        # if args.norm_by_natoms:
-        #     loss = loss * args.norm_by_natoms_mul / natoms
-
-        # Fixed-point correction loss
-        # for superior performance and training stability
-        # https://arxiv.org/abs/2204.08442
-        # if args.fpc_freq > 0:
-        #     # I think this is never invoked if DEQSliced is used
-
-        #     # If you use trajectory sampling, fp_correction automatically
-        #     # aligns the tensors and applies your loss function.
-        #     # loss_fn = lambda y_gt, y: ((y_gt - y) ** 2).mean()
-        #     # train_loss = fp_correction(loss_fn, (y_train, y_pred))
-
-        #     # do it manually instead
-        #     if len(info["z_pred"]) > 1:
-        #         z_preds = info["z_pred"]
-        #         # last z is fixed point that is in the main loss
-        #         loss_fpc = 0
-        #         for z_pred in z_preds[:-1]:
-        #             _y, _dy, _ = model.decode(
-        #                 data=data,
-        #                 z=z_pred,
-        #                 info={},
-        #             )
-
-        #             _loss_fpc, _, _ = compute_loss(
-        #                 args=args,
-        #                 y=_y,
-        #                 dy=_dy,
-        #                 target_y=target_y,
-        #                 target_dy=target_dy,
-        #                 criterion_energy=criterion_energy,
-        #                 criterion_force=criterion_force,
-        #             )
-        #             loss_fpc += _loss_fpc
-
-        #         # reweight the loss
-        #         loss_fpc *= args.fpc_weight
-        #         loss += loss_fpc
-        #         if wandb.run is not None:
-        #             wandb.log(
-        #                 {"fpc_loss_scaled": loss_fpc.item()},
-        #                 step=global_step,
-        #             )
-
-        # Contrastive loss
-        # if args.contrastive_loss not in [False, None]:
-        #     # DEPRECATED: consecutive dataset won't converge, irrespective of loss
-        #     if args.contrastive_loss.endswith("ordered"):
-        #         assert (
-        #             data.idx[0] - data.idx[1]
-        #         ).abs() == 1, (
-        #             f"Contrastive loss requires consecutive indices {data.idx}"
-        #         )
-        #         if args.contrastive_loss.startswith("triplet"):
-        #             closs = calc_triplet_loss(info["z_pred"][-1], data, triplet_lossfn)
-        #         elif args.contrastive_loss.startswith("next"):
-        #             assert (
-        #                 data.idx[0] - data.idx[1]
-        #             ).abs() == 1, (
-        #                 f"Contrastive loss requires consecutive indices {data.idx}"
-        #             )
-        #             closs = contrastive_loss(
-        #                 info["z_pred"][-1],
-        #                 data,
-        #                 closs_type=args.contrastive_loss,
-        #                 squared=True,
-        #             )
-
-        #     elif args.contrastive_loss == "next":
-        #         next_data = get_next_batch(
-        #             dataset=all_dataset, batch=data, collate=collate
-        #         )
-        #         next_data = next_data.to(device)
-
-        #         # get correct fixed-point of next timestep
-        #         with torch.set_grad_enabled(args.contrastive_w_grad):
-        #             next_pred_y, next_pred_dy, next_info = model(
-        #                 data=next_data,  # for EquiformerV2
-        #                 node_atom=next_data.z,
-        #                 pos=next_data.pos,
-        #                 batch=next_data.batch,
-        #                 step=None,
-        #                 datasplit=None,
-        #             )
-        #         # loss
-        #         z_next_true = next_info["z_pred"][-1]
-        #         closs = criterion_contrastive(z_next_true, info["z_pred"][-1])
-
-        #     else:
-        #         raise NotImplementedError(
-        #             f"Contrastive loss {args.contrastive_loss} not implemented."
-        #         )
-
-        #     closs = args.contrastive_weight * closs
-        #     loss += closs
-        #     if wandb.run is not None:
-        #         wandb.log({"contrastive_loss_scaled": closs.item()}, step=global_step)
-
-        # Fixed-point reuse loss
-        # if args.fpr_loss == True:
-        #     next_data = get_next_batch(dataset=all_dataset, batch=data, collate=collate)
-        #     next_data = next_data.to(device)
-        #     # get correct fixed-point of next timestep
-        #     with torch.set_grad_enabled(args.fpr_w_grad):
-        #         next_pred_y, next_pred_dy, next_info = model(
-        #             data=next_data,  # for EquiformerV2
-        #             node_atom=next_data.z,
-        #             pos=next_data.pos,
-        #             batch=next_data.batch,
-        #             step=None,
-        #             datasplit=None,
-        #         )
-        #     # loss
-        #     z_next_true = next_info["z_pred"][-1]
-        #     fpr_loss = criterion_fpr(z_next_true, info["z_next"])
-        #     loss += args.fpr_weight * fpr_loss
-        #     wandb.log(
-        #         {"scaled_fpr_loss": (args.fpr_weight * fpr_loss).item()},
-        #         step=global_step,
-        #     )
-
         if torch.isnan(pred_y).any():
             isnan_cnt += 1
 
@@ -1954,19 +1781,6 @@ def train_one_epoch(
         # wandb.log(
         #     {"memalloc-post_backward": torch.cuda.memory_allocated()}, step=global_step
         # )
-        # filelog.info(f"step{batchstep} backward done")
-        # filelog.logger.handlers[0].flush() # flush logger
-
-        # if args.grokfast in [None, False, "None"]:
-        #     pass
-        # elif args.grokfast == "ema":
-        #     ### Option 1: Grokfast (has argument alpha, lamb)
-        #     grads = gradfilter_ema(model, grads=grads)
-        # elif args.grokfast == "ma":
-        #     ### Option 2: Grokfast-MA (has argument window_size, lamb)
-        #     grads = gradfilter_ma(model, grads=grads)
-        # else:
-        #     raise NotImplementedError(f"Grokfast {args.grokfast} not implemented.")
 
         # optionally clip and log grad norm
         if args.clip_grad_norm:

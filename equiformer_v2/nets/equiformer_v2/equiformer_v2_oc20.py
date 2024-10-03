@@ -208,6 +208,7 @@ class EquiformerV2_OC20(BaseModel):
         #     sum(p.numel() for p in self.parameters() if p.requires_grad),
         # )
         # shape: B x irrep_dim x channels -> 1 x 1 x sphere_channels
+        # TODO: remove
         _shape = (1, 1, sphere_channels)
         if learn_scale_after_encoder:
             # nn.Parameter(torch.tensor(1.0, requires_grad=True).clone(), requires_grad=True)

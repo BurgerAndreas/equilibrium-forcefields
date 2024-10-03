@@ -64,6 +64,22 @@ pip install "ray[tune]"
 pip install submitit
 cd ..
 
+# pip install torchdeq
+cd torchdeq
+pip install -e .
+cd ..
+
+pip install e3nn==0.4.4 timm==0.4.12
+
+pip install matplotlib seaborn scikit-image
+pip install hydra-core wandb omegaconf black
+
+pip install numba sphinx nbsphinx sphinx-rtd-theme pandoc ase==3.21.* pre-commit==2.10.* tensorboard
+
+pip install -e .
+
+wandb login
+
 # Get the OCP data (optional)
 cd ocp
 # Structure to Energy and Forces (S2EF) task
@@ -102,10 +118,10 @@ cd ../../..
 nvidia-smi
 # https://github.com/pyg-team/pytorch_geometric/issues/999#issuecomment-606565132
 pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse torch-spline-conv -y
-pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
-pip install --no-index pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu121.html
+pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu118
+pip install --no-index pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
 # OCP requires torch-geometric<=2.0.4
-pip install torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-2.2.0+cu121.html
+pip install torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
 # pip install torch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1 --index-url https://data.pyg.org/whl/torch-1.11.0+cu115.html
 # pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu118
 # pip install torch_geometric pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
@@ -140,22 +156,6 @@ rm -r -f datasets/*
 python -c "import torch; import torch; print('torch.__version__', torch.__version__); import torch_geometric; print('torch_geometric.__version__', torch_geometric.__version__)" 
 python -c "print('torch.version.cuda', torch.version.cuda);"
 
-
-# pip install torchdeq
-cd torchdeq
-pip install -e .
-cd ..
-
-pip install e3nn==0.4.4 timm==0.4.12
-
-pip install matplotlib seaborn scikit-image
-pip install hydra-core wandb omegaconf black
-
-pip install numba sphinx nbsphinx sphinx-rtd-theme pandoc ase==3.21.* pre-commit==2.10.* tensorboard
-
-pip install -e .
-
-wandb login
 
 # add an alias for easy run launching
 echo 'alias launchrun="/u/andreasb/miniforge3/envs/deq/bin/python u/andreasb/equilibrium-forcefields/scripts/train_deq_md_v2.py"' >> ~/.bashrc

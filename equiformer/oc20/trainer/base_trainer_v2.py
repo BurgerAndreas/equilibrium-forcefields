@@ -352,7 +352,7 @@ class BaseTrainerV2(BaseTrainer):
         # Build model
         # if distutils.is_master():
         #    logging.info(f"Loading model: {self.config['model']}")
-        self.file_logger.info(f"Loading model: {self.config['model']}")
+        # self.file_logger.info(f"Loading model: {self.config['model']}")
 
         # TODO: depreicated, remove.
         bond_feat_dim = None
@@ -380,7 +380,7 @@ class BaseTrainerV2(BaseTrainer):
         #        f"Loaded {self.model.__class__.__name__} with "
         #        f"{self.model.num_params} parameters."
         #    )
-        self.file_logger.info(self.model)
+        # self.file_logger.info(self.model)
         self.file_logger.info(
             f"Loaded {self.model.__class__.__name__} with "
             f"{self.model.num_params} parameters."

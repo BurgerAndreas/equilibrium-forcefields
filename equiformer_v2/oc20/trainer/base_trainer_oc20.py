@@ -475,8 +475,9 @@ class BaseTrainer(ABC):
             self.scheduler.scheduler.load_state_dict(checkpoint["scheduler"])
             logging.info("Loaded scheduler state dict.")
         if "ema" in checkpoint and checkpoint["ema"] is not None:
-            self.ema.load_state_dict(checkpoint["ema"])
-            logging.info("Loaded EMA state dict.")
+            if self.ema is not None:
+                self.ema.load_state_dict(checkpoint["ema"])
+                logging.info("Loaded EMA state dict.")
         else:
             self.ema = None
 

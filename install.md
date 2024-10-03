@@ -30,7 +30,7 @@ ssh-keygen -t ed25519 -C "your_email@example.com"
 eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/id_ed25519
 # add ssh key permanently
-micro ~/.ssh/config
+nano ~/.ssh/config
 # paste this
 Host github.com
     IdentityFile ~/.ssh/id_ed25519
@@ -324,6 +324,8 @@ pip install lmdb==1.1.1
 pip install "ray[tune]"
 pip install submitit
 
+pip list
+# pip freeze --local
 
 # Installing collected packages: opt-einsum, torch, opt-einsum-fx, timm, e3nn
 #   Attempting uninstall: torch

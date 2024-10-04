@@ -190,6 +190,13 @@ class ForcesTrainerV2(BaseTrainerV2):
         results_file=None,
         disable_tqdm=False,
     ):
+        """
+        Predicts on a given dataset.
+        Not run during training, only for evaluation.
+        
+        Args:
+        per image (bool): ?
+        """
         if per_image:
             self.file_logger.info("Predicting on test.")
         assert isinstance(

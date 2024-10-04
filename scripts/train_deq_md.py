@@ -64,7 +64,6 @@ from omegaconf import DictConfig, OmegaConf
 import wandb
 
 from typing import List
-import tracemalloc
 
 from ocpmodels.modules.normalizer import (
     Normalizer,
@@ -144,21 +143,32 @@ def get_next_batch(dataset, batch, collate):
 def save_checkpoint(
     args,
     model,
-    grads,
     optimizer,
     lr_scheduler,
     epoch,
     global_step,
-    test_err,
-    best_metrics,
-    best_ema_metrics,
+    best_metrics=None,
+    best_ema_metrics=None,
+    test_err=None,
     name="",
+    model_ema=None,
+    model_ema2=None,
 ):
+    # naming
+    eerr = "NaN"
+    ferr = "NaN"
+    if test_err is not None:
+        eerr = f'{test_err["energy"].avg:.4f}'
+    if test_err is not None:
+        ferr = f'{test_err["force"].avg:.4f}'
+    fname = f'{name}epochs@{epoch}_e@{eerr}_f@{ferr}.pth.tar'
+    # create output directory and save checkpoint
     os.makedirs(args.output_dir, exist_ok=True)
     torch.save(
         {
             "state_dict": model.state_dict(),
-            "grads": grads,
+            "ema": model_ema.state_dict() if model_ema is not None else None,
+            "ema2": model_ema2.state_dict() if model_ema2 is not None else None,
             "optimizer": optimizer.state_dict(),
             "lr_scheduler": lr_scheduler.state_dict()
             if lr_scheduler is not None
@@ -170,9 +180,13 @@ def save_checkpoint(
         },
         os.path.join(
             args.output_dir,
-            f'{name}epochs@{epoch}_e@{test_err["energy"].avg:.4f}_f@{test_err["force"].avg:.4f}.pth.tar',
+            fname,
         ),
     )
+    print(
+        f"Saved checkpoint: {args.output_dir}/{fname}"
+    )
+    return
 
 
 def remove_extra_checkpoints(output_dir, max_checkpoints, startswith="epochs@"):
@@ -446,7 +460,7 @@ def train_md(args):
             deq_kwargs_eval=args.deq_kwargs_eval,
             deq_kwargs_fpr=args.deq_kwargs_fpr,
         )
-        filelog.info("deq_kwargs", yaml.dump(dict(args.deq_kwargs)))
+        # filelog.info("deq_kwargs", yaml.dump(dict(args.deq_kwargs)))
     else:
         model = create_model(task_mean=task_mean, task_std=task_std, **args.model)
     filelog.info(
@@ -481,7 +495,6 @@ def train_md(args):
             schedargs.epochs = schedargs.lr_cycle_epochs
             # lr_cycle_epochs=10 cycle_limit=100 lr_cycle_mul=2
         lr_scheduler, _ = create_scheduler(schedargs, optimizer)
-    grads = None  # grokfast
     # record the best validation and testing errors and corresponding epochs
     best_metrics = {
         "val_epoch": 0,
@@ -549,8 +562,10 @@ def train_md(args):
                     for k, v in old_to_new_keys.items():
                         new_key = new_key.replace(k, v)
                     state_dict[new_key] = saved_state["state_dict"].pop(key)
-                # write state_dict
+                # load model weights
                 model.load_state_dict(state_dict, strict=False)
+                if saved_state["ema2"] is not None:
+                    model_ema2.load_state_dict(saved_state["ema2"])
                 try:
                     optimizer.load_state_dict(saved_state["optimizer"])
                 except:
@@ -562,10 +577,10 @@ def train_md(args):
                     lr_scheduler.load_state_dict(saved_state["lr_scheduler"])
                 start_epoch = saved_state["epoch"]
                 global_step = saved_state["global_step"]
-                best_metrics = saved_state["best_metrics"]
-                best_ema_metrics = saved_state["best_ema_metrics"]
-                if "grads" in saved_state:
-                    grads = saved_state["grads"]
+                if saved_state["best_metrics"] is not None:
+                    best_metrics = saved_state["best_metrics"]
+                if saved_state["best_ema_metrics"] is not None:
+                    best_ema_metrics = saved_state["best_ema_metrics"]
                 # log
                 filelog.info(f"Loaded model from {args.checkpoint_path}")
                 loaded_checkpoint = True
@@ -611,7 +626,7 @@ def train_md(args):
             "indices_to_idx": indices_to_idx,
         }
 
-    # TODO
+    # TODO: EMA from MD17 training loop doesn't work with EquiformerV2
     model_ema = None
     if "model_ema" in args and args.model_ema:
         # Important to create EMA model after cuda(), DP wrapper, and AMP but before SyncBN and DDP wrapper
@@ -620,6 +635,16 @@ def train_md(args):
             decay=args.model_ema_decay,
             device="cpu" if args.model_ema_force_cpu else None,
         )
+
+    # Never really used ema, might be better to use ema from OC20
+    from ocpmodels.modules.exponential_moving_average import ExponentialMovingAverage
+    if args.ema2 and args.ema_decay:
+        model_ema2 = ExponentialMovingAverage(
+            model.parameters(),
+            args.ema_decay,
+        )
+    else:
+        model_ema2 = None
 
     """ Log number of parameters """
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -764,6 +789,9 @@ def train_md(args):
         test_err, test_loss = eval_speed(
             args=args,
             model=model,
+            model_ema=model_ema,
+            model_ema2=model_ema2,
+            use_ema=args.eval_with_ema,
             criterion_energy=criterion_energy,
             criterion_force=criterion_force,
             data_loader=test_loader,
@@ -782,6 +810,9 @@ def train_md(args):
         test_err, test_loss = evaluate(
             args=args,
             model=model,
+            model_ema=model_ema,
+            model_ema2=model_ema2,
+            use_ema=args.eval_with_ema,
             criterion_energy=criterion_energy,
             criterion_force=criterion_force,
             data_loader=test_loader,
@@ -869,7 +900,7 @@ def train_md(args):
             # filelog.info(f"lr: {optimizer.param_groups[0]['lr']}")
 
         try:
-            train_err, train_loss, global_step, fixed_points, grads = train_one_epoch(
+            train_err, train_loss, global_step, fixed_points = train_one_epoch(
                 args=args,
                 model=model,
                 # criterion=criterion,
@@ -890,7 +921,6 @@ def train_md(args):
                 indices_to_idx=indices_to_idx,
                 idx_to_indices=idx_to_indices,
                 fpdevice=fpdevice,
-                grads=grads,
             )
             epoch_train_time = time.perf_counter() - epoch_start_time
         except Exception as e:
@@ -898,26 +928,20 @@ def train_md(args):
             wandb.log({"error": str(e)}, step=global_step)
             # print full stack trace
             filelog.info(traceback.format_exc())
-            # save checkpoint as example for further analysis
-            _cname = f"pathological_ep@{epoch}_e@NaN_f@NaN.pth.tar"
-            os.makedirs(args.output_dir, exist_ok=True)
-            torch.save(
-                {
-                    "state_dict": model.state_dict(),
-                    "grads": grads,
-                    "optimizer": optimizer.state_dict(),
-                    "lr_scheduler": lr_scheduler.state_dict()
-                    if lr_scheduler is not None
-                    else None,
-                    "epoch": epoch,
-                    "global_step": global_step,
-                    "best_metrics": best_metrics,
-                    "best_ema_metrics": best_ema_metrics,
-                },
-                os.path.join(args.output_dir, _cname),
-            )
-            print(
-                f"Saved pathological example at epoch {epoch} to {args.output_dir}/{_cname}"
+            # save checkpoint as example for further debugging
+            save_checkpoint(
+                args=args,
+                model=model,
+                model_ema=model_ema,
+                model_ema2=model_ema2,
+                optimizer=optimizer,
+                lr_scheduler=lr_scheduler,
+                epoch=epoch,
+                global_step=global_step,
+                # test_err=None,
+                best_metrics=best_metrics,
+                best_ema_metrics=best_ema_metrics,
+                name="pathological_",
             )
             raise e
 
@@ -933,6 +957,9 @@ def train_md(args):
         val_err, val_loss = evaluate(
             args=args,
             model=model,
+            model_ema=model_ema,
+            model_ema2=model_ema2,
+            use_ema=args.eval_with_ema,
             # criterion=criterion,
             criterion_energy=criterion_energy,
             criterion_force=criterion_force,
@@ -955,6 +982,9 @@ def train_md(args):
             test_err, test_loss = evaluate(
                 args=args,
                 model=model,
+                model_ema=model_ema,
+                model_ema2=model_ema2,
+                use_ema=args.eval_with_ema,
                 # criterion=criterion,
                 criterion_energy=criterion_energy,
                 criterion_force=criterion_force,
@@ -990,26 +1020,19 @@ def train_md(args):
         saved_best_checkpoint = False
         if update_val_result and args.save_best_val_checkpoint:
             filelog.info(f"Saving best val checkpoint.")
-            os.makedirs(args.output_dir, exist_ok=True)
-            torch.save(
-                {
-                    "state_dict": model.state_dict(),
-                    "grads": grads,
-                    "optimizer": optimizer.state_dict(),
-                    "lr_scheduler": lr_scheduler.state_dict()
-                    if lr_scheduler is not None
-                    else None,
-                    "epoch": epoch,
-                    "global_step": global_step,
-                    "best_metrics": best_metrics,
-                    "best_ema_metrics": best_ema_metrics,
-                },
-                os.path.join(
-                    args.output_dir,
-                    "best_val_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-                        epoch, val_err["energy"].avg, val_err["force"].avg
-                    ),
-                ),
+            save_checkpoint(
+                args=args,
+                model=model,
+                model_ema=model_ema,
+                model_ema2=model_ema2,
+                optimizer=optimizer,
+                lr_scheduler=lr_scheduler,
+                epoch=epoch,
+                global_step=global_step,
+                test_err=val_err,
+                best_metrics=best_metrics,
+                best_ema_metrics=best_ema_metrics,
+                name="best_val_",
             )
             remove_extra_checkpoints(
                 args.output_dir, args.max_checkpoints, startswith="best_val_epochs@"
@@ -1018,26 +1041,19 @@ def train_md(args):
 
         if update_test_result and args.save_best_test_checkpoint:
             filelog.info(f"Saving best test checkpoint.")
-            os.makedirs(args.output_dir, exist_ok=True)
-            torch.save(
-                {
-                    "state_dict": model.state_dict(),
-                    "grads": grads,
-                    "optimizer": optimizer.state_dict(),
-                    "lr_scheduler": lr_scheduler.state_dict()
-                    if lr_scheduler is not None
-                    else None,
-                    "epoch": epoch,
-                    "global_step": global_step,
-                    "best_metrics": best_metrics,
-                    "best_ema_metrics": best_ema_metrics,
-                },
-                os.path.join(
-                    args.output_dir,
-                    "best_test_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-                        epoch, test_err["energy"].avg, test_err["force"].avg
-                    ),
-                ),
+            save_checkpoint(
+                args=args,
+                model=model,
+                model_ema=model_ema,
+                model_ema2=model_ema2,
+                optimizer=optimizer,
+                lr_scheduler=lr_scheduler,
+                epoch=epoch,
+                global_step=global_step,
+                test_err=test_err,
+                best_metrics=best_metrics,
+                best_ema_metrics=best_ema_metrics,
+                name="best_test_",
             )
             remove_extra_checkpoints(
                 args.output_dir, args.max_checkpoints, startswith="best_test_epochs@"
@@ -1053,25 +1069,18 @@ def train_md(args):
         ):
             filelog.info(f"Saving checkpoint.")
             os.makedirs(args.output_dir, exist_ok=True)
-            torch.save(
-                {
-                    "state_dict": model.state_dict(),
-                    "grads": grads,
-                    "optimizer": optimizer.state_dict(),
-                    "lr_scheduler": lr_scheduler.state_dict()
-                    if lr_scheduler is not None
-                    else None,
-                    "epoch": epoch,
-                    "global_step": global_step,
-                    "best_metrics": best_metrics,
-                    "best_ema_metrics": best_ema_metrics,
-                },
-                os.path.join(
-                    args.output_dir,
-                    "epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-                        epoch, test_err["energy"].avg, test_err["force"].avg
-                    ),
-                ),
+            save_checkpoint(
+                args=args,
+                model=model,
+                model_ema=model_ema,
+                model_ema2=model_ema2,
+                optimizer=optimizer,
+                lr_scheduler=lr_scheduler,
+                epoch=epoch,
+                global_step=global_step,
+                test_err=test_err,
+                best_metrics=best_metrics,
+                best_ema_metrics=best_ema_metrics,
             )
             remove_extra_checkpoints(
                 args.output_dir, args.max_checkpoints, startswith="epochs@"
@@ -1165,6 +1174,9 @@ def train_md(args):
         test_err, test_loss = evaluate(
             args=args,
             model=model,
+            model_ema=model_ema,
+            model_ema2=model_ema2,
+            use_ema=args.eval_with_ema,
             # criterion=criterion,
             criterion_energy=criterion_energy,
             criterion_force=criterion_force,
@@ -1185,29 +1197,20 @@ def train_md(args):
     # save the final model
     if args.save_final_checkpoint:
         filelog.info(f"Saving final checkpoint")
-        os.makedirs(args.output_dir, exist_ok=True)
-        torch.save(
-            {
-                "state_dict": model.state_dict(),
-                "grads": grads,
-                "optimizer": optimizer.state_dict(),
-                "lr_scheduler": lr_scheduler.state_dict()
-                if lr_scheduler is not None
-                else None,
-                "epoch": final_epoch,
-                "global_step": global_step,
-                "best_metrics": best_metrics,
-                "best_ema_metrics": best_ema_metrics,
-            },
-            os.path.join(
-                args.output_dir,
-                "final_epochs@{}_e@{:.4f}_f@{:.4f}.pth.tar".format(
-                    # if test_err is None, it will raise a TypeError
-                    # TypeError: 'NoneType' object is not subscriptable
-                    final_epoch, test_err["energy"].avg, test_err["force"].avg
-                ),
-            ),
-        )
+        save_checkpoint(
+                args=args,
+                model=model,
+                model_ema=model_ema,
+                model_ema2=model_ema2,
+                optimizer=optimizer,
+                lr_scheduler=lr_scheduler,
+                epoch=epoch,
+                global_step=global_step,
+                test_err=test_err,
+                best_metrics=best_metrics,
+                best_ema_metrics=best_ema_metrics,
+                name="final_",
+            )
 
     filelog.info(
         f"Final test error: MAE_e={test_err['energy'].avg}, MAE_f={test_err['force'].avg}"
@@ -1284,7 +1287,6 @@ def train_one_epoch(
     indices_to_idx=None,
     idx_to_indices=None,
     fpdevice=None,
-    grads=None,
 ):
     """Train for one epoch.
     Keys in dataloader: ['z', 'pos', 'batch', 'y', 'dy']
@@ -1521,7 +1523,7 @@ def train_one_epoch(
             f"Most energy predictions are nan ({isnan_cnt}/{max_steps}). Try deq_kwargs.f_solver=fixed_point_iter"
         )
 
-    return mae_metrics, loss_metrics, global_step, fixed_points, grads
+    return mae_metrics, loss_metrics, global_step, fixed_points
 
 
 def evaluate(
@@ -1542,6 +1544,9 @@ def evaluate(
     datasplit=None,
     normalizers={"energy": None, "force": None},
     final_test=None,
+    model_ema=None,
+    model_ema2=None,
+    use_ema=False,
     # dtype=torch.float32,
 ):
     """Val or test split."""
@@ -1574,6 +1579,11 @@ def evaluate(
         # criterion.eval()
         criterion_energy.eval()
         criterion_force.eval()
+    
+    # eval with ema
+    if model_ema2 and use_ema:
+        model_ema2.store() # save for later
+        model_ema2.copy_to() # copy to model
 
     model.set_current_deq()
 
@@ -1921,6 +1931,9 @@ def evaluate(
 
         # fp_reuse True/False finished
 
+    if model_ema2 and use_ema:
+        model_ema2.restore()
+
     return mae_metrics, loss_metrics
 
 
@@ -1943,6 +1956,9 @@ def eval_speed(
     normalizers={"energy": None, "force": None},
     final_test=None,
     # dtype=torch.float32,
+    model_ema=None,
+    model_ema2=None,
+    use_ema=False,
 ):
     """Version of evaluate() simplified for speed testing."""
 
@@ -1963,11 +1979,13 @@ def eval_speed(
         # criterion.eval()
         criterion_energy.eval()
         criterion_force.eval()
-    # filelog.info(f"Setting DEQ")
-    # filelog.logger.handlers[0].flush() # flush logger
+
+    # eval with ema
+    if model_ema2 and use_ema:
+        model_ema2.store()
+        model_ema2.copy_to()
+
     model.set_current_deq()
-    # filelog.info(f"Set DEQ")
-    # filelog.logger.handlers[0].flush() # flush logger
 
     max_steps = len(data_loader)
     if (max_iter != -1) and (max_iter < max_steps):
@@ -2167,6 +2185,9 @@ def eval_speed(
             )
 
         # fp_reuse True/False finished
+
+    if model_ema2 and use_ema:
+        model_ema2.restore()
 
     return mae_metrics, loss_metrics
 

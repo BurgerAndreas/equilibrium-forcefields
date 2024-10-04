@@ -93,6 +93,7 @@ class ExponentialMovingAverage:
     ) -> None:
         """
         Copy current parameters into given collection of parameters.
+        Per default copies into the model that EMA was initialized with.
 
         Args:
           parameters: Iterable of `torch.nn.Parameter`; the parameters to be

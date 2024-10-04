@@ -92,6 +92,11 @@ model_ema_decay: 0.9999
 # (float)
 model_ema_force_cpu: False
 
+# exponential moving average implementation from OC20 / EquiformerV2
+ema2: False
+ema_decay: 0.999
+eval_with_ema: False
+
 # float16, bfloat16, float32 or float64
 dtype: float32
 

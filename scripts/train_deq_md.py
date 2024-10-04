@@ -979,27 +979,34 @@ def train_md(args):
         if (epoch + 1) % args.test_interval == 0:
             # test set
             # filelog.info(f"Testing model after epoch {epoch+1}.")
-            test_err, test_loss = evaluate(
-                args=args,
-                model=model,
-                model_ema=model_ema,
-                model_ema2=model_ema2,
-                use_ema=args.eval_with_ema,
-                # criterion=criterion,
-                criterion_energy=criterion_energy,
-                criterion_force=criterion_force,
-                data_loader=test_loader,
-                optimizer=optimizer,
-                device=device,
-                print_freq=args.print_freq,
-                filelog=filelog,
-                print_progress=True,
-                max_iter=args.test_max_iter,
-                global_step=global_step,
-                epoch=epoch,
-                datasplit="test",
-                normalizers=normalizers,
-            )
+            if args.eval_with_ema:
+                use_emas = [True, False]
+                splits = ["testema", "test"]
+            else:
+                use_emas = [False]
+                splits = ["test"]
+            for use_ema, datasplit in zip(use_emas, splits):
+                test_err, test_loss = evaluate(
+                    args=args,
+                    model=model,
+                    model_ema=model_ema,
+                    model_ema2=model_ema2,
+                    use_ema=use_ema,
+                    # criterion=criterion,
+                    criterion_energy=criterion_energy,
+                    criterion_force=criterion_force,
+                    data_loader=test_loader,
+                    optimizer=optimizer,
+                    device=device,
+                    print_freq=args.print_freq,
+                    filelog=filelog,
+                    print_progress=True,
+                    max_iter=args.test_max_iter,
+                    global_step=global_step,
+                    epoch=epoch,
+                    datasplit=datasplit,
+                    normalizers=normalizers,
+                )
 
             # equivariance test
             equivariance_test(

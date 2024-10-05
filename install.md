@@ -267,6 +267,7 @@ mamba create -n deq python=3.9 -y
 mamba activate deq
 conda update conda
 conda update mamba
+
 module load StdEnv/2020 cudacore/.11.7.0 cuda/11.7 cudnn/8.9.5.29
 
 cd ${eqdir}

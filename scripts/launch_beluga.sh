@@ -1,8 +1,6 @@
 #!/bin/bash
 # '-t 3-0' for three days
 #SBATCH --time=3-00:00:00
-#SBATCH --partition=gpunodes
-# gres=gpu:<>:1 rtx_4090 rtx_a4000 rtx_a4500 rtx_a2000 rtx_a6000 gtx_1070 gtx_1080_ti rtx_2060 rtx_2070 rtx_2080
 #SBATCH --gres=gpu:1 # any
 # constraint="RTX_A4500|GTX_1080_Ti" 
 #SBATCH --nodes=1
@@ -43,7 +41,21 @@ elif [[ $1 == *"deq"* ]]; then
     export SCRIPTDIR=${HOME_DIR}/equilibrium-forcefields/scripts
 fi
 
+echo " "
+
+# source /home/${USER}/.bashrc
+# eval "$(conda shell.bash hook)"
+# mamba activate deq
+source /home/aburger/miniforge3/envs/deq/bin/activate
+
+module load StdEnv/2020 cudacore/.11.7.0 cuda/11.7 cudnn/8.9.5.29
+
+which python
+
+wandb offline
+
 # hand over all arguments to the script
+echo " "
 echo "Submitting ${SCRIPTDIR}/$@"
 
 ${HOME_DIR}/miniforge3/envs/deq/bin/python ${SCRIPTDIR}/"$@"

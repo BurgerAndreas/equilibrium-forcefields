@@ -256,17 +256,89 @@ export LD_LIBRARY_PATH=${CUDNN_PATH}/lib:$LD_LIBRARY_PATH
 --no-index option tells pip to not install from PyPI, but instead to install only from locally available packages, i.e. our wheels
 --no-binary option, which tells pip to ignore prebuilt packages entirely. Note that this will also ignore wheels that are distributed through PyPI, and will always compile the package from source
 
-strings /lib64/libm.so.6 | grep GLIBC
-GLIBC_2.2.5
-GLIBC_2.4
-GLIBC_2.15
-GLIBC_2.18
-GLIBC_2.23
-GLIBC_2.24
-GLIBC_2.25
-GLIBC_2.26
-GLIBC_2.27
-GLIBC_2.28
+
+```bash
+export eqdir="~/equilibrium-forcefields"
+
+mamba remove -n deq --all
+mamba remove -n deq9 --all
+mamba create -n deq python=3.9 -y
+
+mamba activate deq
+conda update conda
+conda update mamba
+module load StdEnv/2020 cudacore/.11.7.0 cuda/11.7 cudnn/8.9.5.29
+
+cd ${eqdir}
+
+# pip uninstall pillow scipy scikit-learn demjson lmdb "ray[tune]" submitit e3nn timm matplotlib seaborn scikit-image numpy hydra-core wandb omegaconf black numba sphinx nbsphinx sphinx-rtd-theme pandoc ase pre-commit tensorboard -y
+rm -f /home/aburger/miniforge3/envs/deq/lib/python3.9/site-packages/distutils-precedence.pth:
+pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse torch-spline-conv -y
+pip uninstall ase pre-commit tensorboard pandas numpy -y
+
+pip install e3nn==0.4.4 wandb 
+# pip install "ray[tune]"
+
+rm -rf /home/aburger/miniforge3/lib/python3.12/site-packages/distutils-precedence.pth
+# pip uninstall setuptools -y
+mamba install setuptools==57.4.0 --force-reinstall -y
+mamba install pillow scipy numpy==1.26.4 matplotlib seaborn scikit-image pandoc tensorboard tqdm pandas -y
+mamba install hydra-core omegaconf black numba sphinx nbsphinx sphinx-rtd-theme -y
+mamba install timm==0.4.12 anaconda::python-lmdb==1.1.1 ase==3.21.1 pre-commit==2.10.* submitit demjson -y
+
+
+
+# mamba install nvidia/label/cuda-11.7.0::cuda-nvrtc -y
+pip uninstall torch torch-geometric pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -y
+
+# pip install --no-index torch==2.0.1 --index-url https://download.pytorch.org/whl/cu117
+# or
+pip install torch==2.0.1+cu117 -f https://download.pytorch.org/whl/cu117/torch
+
+# we don't need torchvision
+# pip install --no-index torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cu117
+# pip install torchvision==0.15.2+cu117 -f https://download.pytorch.org/whl/cu117/torchvision
+
+# torchtext
+# https://download.pytorch.org/whl/cu117/torchtext/
+
+pip install torch_scatter==2.1.2+pt20cu117 torch_sparse==0.6.18+pt20cu117 torch_cluster==1.6.3+pt20cu117 torch_spline_conv==1.2.2+pt20cu117 -f https://data.pyg.org/whl/torch-2.0.1+cu117.html
+pip install pyg_lib==0.3.1+pt20cu117 -f https://data.pyg.org/whl/torch-2.0.1+cu117.html
+pip install torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-2.0.1+cu117.html
+
+cd ${eqdir}
+pip install -e .
+
+cd torchdeq
+pip install -e .
+cd ..
+
+cd ocp
+# nano setup.py
+pip install -e .
+# pre-commit install
+cd ..
+
+cd equiformer_v2
+pip install -e .
+cd ..
+
+cd equiformer
+pip install -e .
+cd ..
+
+cd ocp
+# python scripts/download_data.py --task s2ef --split "200k" --num-workers 8 --ref-energy 
+# python scripts/download_data.py --task s2ef --split "val_id" --num-workers 8 --ref-energy 
+~/miniforge3/envs/deq/bin/python scripts/download_data.py --task s2ef --split "200k" --num-workers 8 --ref-energy 
+~/miniforge3/envs/deq/bin/python scripts/download_data.py scripts/download_data.py --task s2ef --split "val_id" --num-workers 8 --ref-energy
+cd ..
+
+# wandb login
+conda list -n deq9
+
+# launchoc preset=reg +use=deq optim.max_epochs=1 +u=2
+```
 
 
 ## Training

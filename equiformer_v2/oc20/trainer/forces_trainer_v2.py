@@ -397,6 +397,7 @@ class ForcesTrainerV2(BaseTrainerV2):
                 loss = self.scaler.scale(loss) if self.scaler else loss
                 if self.grad_accumulation_steps != 1:
                     loss = loss / self.grad_accumulation_steps
+                # calls optimizer.step and ema.update
                 self._backward(loss)
                 scale = self.scaler.get_scale() if self.scaler else 1.0
 

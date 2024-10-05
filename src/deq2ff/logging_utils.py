@@ -141,6 +141,7 @@ def final_logging(args):
 
 # allows to load checkpoint with the same name
 IGNORE_OVERRIDES = [
+    "eval_with_ema",
     "resume_from_checkpoint",
     "save_checkpoint_after_test",
     "load_checkpoint",

@@ -302,6 +302,8 @@ class BaseTrainerV2(BaseTrainer):
             "test_w_eval_mode": test_w_eval_mode,
         }
         # AMP Scaler
+        # ensuring that no value is too small (underflow) or too large (overflow) 
+        # when using automatic mixed precision
         self.scaler = torch.cuda.amp.GradScaler() if amp else None
 
         # if we are using DEQ, ensure that the kwargs are present
@@ -714,6 +716,10 @@ class BaseTrainerV2(BaseTrainer):
         return metrics
 
     def _backward(self, loss):
+        """Gradient computation and weight update.
+        Gradient accumulation, grad scaling, grad norm clipping, 
+        amp gradient scaling, model and ema update.
+        """
         if self.grad_accumulation_steps == 1:
             self.optimizer.zero_grad(
                 set_to_none=self.config["optim"]["set_grad_to_none"]
@@ -748,11 +754,16 @@ class BaseTrainerV2(BaseTrainer):
             )
             if self.logger is not None:
                 self.logger.log({"grad_norm": grad_norm}, step=self.step, split="train")
+
+        # automatic mixed precision scaling
+        # making sure that the gradients are not too small or too large
+        # for underflow or overflow
         if self.scaler:
             self.scaler.step(self.optimizer)
             self.scaler.update()
         else:
             self.optimizer.step()
+
         if self.ema:
             self.ema.update()
 
@@ -761,6 +772,8 @@ class BaseTrainerV2(BaseTrainer):
                 self.optimizer.zero_grad(
                     set_to_none=self.config["optim"]["set_grad_to_none"]
                 )
+
+        return
 
     def compute_stats(self):
         """

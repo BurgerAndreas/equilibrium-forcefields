@@ -20,4 +20,4 @@ model:
   path_drop: 0.05
   use_variational_path_drop: True
   ln: pp # post or pp
-  ln_type: rms_norm_sh
+  ln_type: rms_norm_sh # layer_norm_sh

@@ -111,7 +111,7 @@ pip install -e .
 cd ..
 
 # link OCP dataset for equiformer (optional)
-projdir="/project/def-aspurudef-aspuru/aburger"
+projdir="/project/def-aspuru/aburger"
 ls ${projdir}
 mkdir ${projdir}/deq2ff
 # datasets MD17

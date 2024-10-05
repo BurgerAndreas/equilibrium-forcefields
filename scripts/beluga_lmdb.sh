@@ -1,7 +1,6 @@
 #!/bin/bash
 # '-t 3-0' for three days
 #SBATCH --time=3-00:00:00
-#SBATCH --partition=gpunodes
 # --gpus-per-node=v100:1 or  --gres=gpu[[:type]:number]
 #SBATCH --gres=gpu:1 # any
 # constraint="RTX_A4500|GTX_1080_Ti" 

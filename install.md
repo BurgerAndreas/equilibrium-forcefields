@@ -287,7 +287,7 @@ mamba install pillow scipy numpy==1.26.4 matplotlib seaborn scikit-image pandoc 
 mamba install hydra-core omegaconf black numba sphinx nbsphinx sphinx-rtd-theme -y
 mamba install timm==0.4.12 anaconda::python-lmdb==1.1.1 ase==3.21.1 pre-commit==2.10.* submitit demjson -y
 
-
+# pip install --no-binary numpy==1.25.2 
 
 # mamba install nvidia/label/cuda-11.7.0::cuda-nvrtc -y
 pip uninstall torch torch-geometric pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -y

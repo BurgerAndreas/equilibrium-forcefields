@@ -91,8 +91,12 @@ import deq2ff.register_all_models
 from deq2ff.grokfast import gradfilter_ma, gradfilter_ema
 from deq2ff.logging_utils import init_wandb
 
-
+# from MD17 / EquiformerV1
 ModelEma = ModelEmaV2
+
+# from OC20 / EquiformerV2
+from ocpmodels.modules.exponential_moving_average import ExponentialMovingAverage
+
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.dirname(file_dir)
@@ -143,6 +147,8 @@ def get_next_batch(dataset, batch, collate):
 def save_checkpoint(
     args,
     model,
+    model_ema,
+    model_ema2,
     optimizer,
     lr_scheduler,
     epoch,
@@ -151,8 +157,6 @@ def save_checkpoint(
     best_ema_metrics=None,
     test_err=None,
     name="",
-    model_ema=None,
-    model_ema2=None,
 ):
     # naming
     eerr = "NaN"
@@ -637,7 +641,6 @@ def train_md(args):
         )
 
     # Never really used ema, might be better to use ema from OC20
-    from ocpmodels.modules.exponential_moving_average import ExponentialMovingAverage
     if args.ema2 and args.ema_decay:
         model_ema2 = ExponentialMovingAverage(
             model.parameters(),
@@ -1276,8 +1279,8 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
 def train_one_epoch(
     args,
     model: torch.nn.Module,
-    model_ema: Optional[ModelEma],
-    model_ema2: Optional[ModelEma],
+    model_ema: ModelEma,
+    model_ema2: ExponentialMovingAverage,
     # criterion: torch.nn.Module,
     criterion_energy: torch.nn.Module,
     criterion_force: torch.nn.Module,
@@ -1430,7 +1433,8 @@ def train_one_epoch(
         # optimizer.zero_grad(set_to_none=args.set_grad_to_none)
 
         if model_ema2:
-            model_ema2.update()
+            # model_ema2.update()
+            model_ema2.update(parameters=model.parameters())
 
         #######################################
         # Logging
@@ -1954,6 +1958,8 @@ def evaluate(
 def eval_speed(
     args,
     model: torch.nn.Module,
+    model_ema,
+    model_ema2,
     # criterion: torch.nn.Module,
     criterion_energy: torch.nn.Module,
     criterion_force: torch.nn.Module,
@@ -1970,8 +1976,6 @@ def eval_speed(
     normalizers={"energy": None, "force": None},
     final_test=None,
     # dtype=torch.float32,
-    model_ema=None,
-    model_ema2=None,
     use_ema=False,
 ):
     """Version of evaluate() simplified for speed testing."""

@@ -567,16 +567,13 @@ class ForcesTrainerV2(BaseTrainerV2):
 
         out = {
             "energy": out_energy,
+            "info": info,
         }
 
         if self.config["model_attributes"].get("regress_forces", True) or self.config[
             "model_attributes"
         ].get("use_auxiliary_task", False):
             out["forces"] = out_forces
-
-        out["info"] = info
-        # if "nstep" in info:
-        #     out["nstep"] = info["nstep"].mean().item()
 
         return out
 

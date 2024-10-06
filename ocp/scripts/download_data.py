@@ -60,10 +60,11 @@ def get_data(datadir, task, split, del_intmd_files, download_only=False):
         download_link = DOWNLOAD_LINKS[task]
 
     # download data
-    logging.info(f"Downloading {task}...")
+    logging.info(f"Downloading {task} {split} ...")
     os.system(f"wget {download_link} -P {datadir}")
 
     if download_only:
+        logging.info("Data download complete.")
         return
 
     # extract data and preprocess
@@ -91,6 +92,8 @@ def get_data(datadir, task, split, del_intmd_files, download_only=False):
 
     if del_intmd_files:
         cleanup(filename, dirname)
+    
+    logging.info("Data preprocessing complete.")
 
 
 def uncompress_data(compressed_dir):

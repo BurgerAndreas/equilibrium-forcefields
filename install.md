@@ -331,9 +331,9 @@ cd ..
 cd ocp
 # python scripts/download_data.py --task s2ef --split "200k" --num-workers 8 --ref-energy 
 # python scripts/download_data.py --task s2ef --split "val_id" --num-workers 8 --ref-energy 
-~/miniforge3/envs/deq/bin/python scripts/download_data.py --task s2ef --split "200k" --num-workers 8 --ref-energy --data-path /project/def-aspuru/aburger/deq2ff/data
-~/miniforge3/envs/deq/bin/python scripts/download_data.py --task s2ef --split "2M" --num-workers 8 --ref-energy --data-path /project/def-aspuru/aburger/deq2ff/data
-~/miniforge3/envs/deq/bin/python scripts/download_data.py scripts/download_data.py --task s2ef --split "val_id" --num-workers 8 --ref-energy --data-path /project/def-aspuru/aburger/deq2ff/data
+~/miniforge3/envs/deq/bin/python ~/equilibrium-forcefields/ocp/scripts/download_data.py --task s2ef --split "200k" --num-workers 8 --ref-energy --data-path /project/def-aspuru/aburger/deq2ff/data
+~/miniforge3/envs/deq/bin/python ~/equilibrium-forcefields/ocp/scripts/download_data.py --task s2ef --split "2M" --num-workers 8 --ref-energy --data-path /project/def-aspuru/aburger/deq2ff/data
+~/miniforge3/envs/deq/bin/python ~/equilibrium-forcefields/ocp/scripts/download_data.py scripts/download_data.py --task s2ef --split "val_id" --num-workers 8 --ref-energy --data-path /project/def-aspuru/aburger/deq2ff/data
 cd ..
 
 # wandb login

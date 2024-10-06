@@ -62,7 +62,7 @@ pip install setuptools==57.4.0
 pip install demjson 
 # pip install demjson3
 # pip install lmdb==1.1.1
-mamba install lmdb==1.1.1 --force-reinstall -Y
+mamba install lmdb==1.1.1 --force-reinstall -y
 pip install "ray[tune]"
 pip install submitit
 cd ..
@@ -74,7 +74,7 @@ cd ..
 
 pip install e3nn==0.4.4 timm==0.4.12
 
-mamba install numpy --force-reinstall -Y
+mamba install numpy==1.25.2 -y
 pip install matplotlib seaborn scikit-image
 pip install hydra-core wandb omegaconf black
 
@@ -283,7 +283,7 @@ pip install e3nn==0.4.4 wandb
 rm -rf /home/aburger/miniforge3/lib/python3.12/site-packages/distutils-precedence.pth
 # pip uninstall setuptools -y
 mamba install setuptools==57.4.0 --force-reinstall -y
-mamba install pillow scipy numpy==1.26.4 matplotlib seaborn scikit-image pandoc tensorboard tqdm pandas -y
+mamba install pillow scipy numpy==1.25.2 matplotlib seaborn scikit-image pandoc tensorboard tqdm pandas -y
 mamba install hydra-core omegaconf black numba sphinx nbsphinx sphinx-rtd-theme -y
 mamba install timm==0.4.12 anaconda::python-lmdb==1.1.1 ase==3.21.1 pre-commit==2.10.* submitit demjson -y
 
@@ -331,8 +331,9 @@ cd ..
 cd ocp
 # python scripts/download_data.py --task s2ef --split "200k" --num-workers 8 --ref-energy 
 # python scripts/download_data.py --task s2ef --split "val_id" --num-workers 8 --ref-energy 
-~/miniforge3/envs/deq/bin/python scripts/download_data.py --task s2ef --split "200k" --num-workers 8 --ref-energy 
-~/miniforge3/envs/deq/bin/python scripts/download_data.py scripts/download_data.py --task s2ef --split "val_id" --num-workers 8 --ref-energy
+~/miniforge3/envs/deq/bin/python scripts/download_data.py --task s2ef --split "200k" --num-workers 8 --ref-energy --data-path /project/def-aspuru/aburger/deq2ff/data
+~/miniforge3/envs/deq/bin/python scripts/download_data.py --task s2ef --split "2M" --num-workers 8 --ref-energy --data-path /project/def-aspuru/aburger/deq2ff/data
+~/miniforge3/envs/deq/bin/python scripts/download_data.py scripts/download_data.py --task s2ef --split "val_id" --num-workers 8 --ref-energy --data-path /project/def-aspuru/aburger/deq2ff/data
 cd ..
 
 # wandb login

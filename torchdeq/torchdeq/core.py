@@ -281,9 +281,9 @@ class DEQIndexing(DEQBase):
         print(
             f"\n{self.__class__.__name__} TorchDEQ args set:",
             f"\n{yaml.dump(self.grad_args)}",
-            "n_states=",
+            "n_states =",
             n_states,
-            "\nindexing=",
+            "\nindexing =",
             self.indexing,
         )
 
@@ -624,9 +624,9 @@ class DEQSliced(DEQBase):
         print(
             f"\n{self.__class__.__name__} TorchDEQ args set:",
             f"\n{yaml.dump(self.args)}",
-            "n_states=",
+            "n_states =",
             n_states,
-            "\nindexing=",
+            "\nindexing =",
             self.indexing,
         )
 

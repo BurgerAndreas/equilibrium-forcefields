@@ -34,6 +34,7 @@ export SCRIPTDIR=${HOME_DIR}/equilibrium-forcefields/ocp/scripts/download_data.p
 echo "Submitting ${SCRIPTDIR}"
 
 ${HOME_DIR}/miniforge3/envs/deq/bin/python ${SCRIPTDIR} --task s2ef --split "200k" --num-workers 8 --ref-energy --data-path /project/def-aspuru/aburger/deq2ff/data
+${HOME_DIR}/miniforge3/envs/deq/bin/python ${SCRIPTDIR} --task s2ef --split "val_id" --num-workers 8 --ref-energy --data-path /project/def-aspuru/aburger/deq2ff/data
 {HOME_DIR}/miniforge3/envs/deq/bin/python ${SCRIPTDIR} --task s2ef --split "2M" --num-workers 8 --ref-energy --data-path /project/def-aspuru/aburger/deq2ff/data
 
 # sbatch scripts/beluga_lmdb.sh

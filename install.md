@@ -116,20 +116,16 @@ ls ${projdir}
 mkdir ${projdir}/deq2ff
 # datasets MD17
 mkdir datasets
-mv -v -r datasets ${projdir}/deq2ff/
+mv -v datasets ${projdir}/deq2ff/
 ln -s ${projdir}/deq2ff/datasets datasets
 # datasets OC20
 mkdir ocp/data
-mv -v -r ocp/data ${projdir}/deq2ff/
+mv -v ocp/data ${projdir}/deq2ff/
 ln -s ${projdir}/deq2ff/data ocp/data
 # checkpoints MD17
-mkdir models
-mv -v -r models ${projdir}/deq2ff/
 mkdir ${projdir}/models
 ln -s ${projdir}/models models
 # checkpoints OC20
-mkdir checkpoints
-mv -v -r checkpoints ${projdir}/deq2ff/
 mkdir ${projdir}/checkpoints
 ln -s ${projdir}/checkpoints checkpoints
 

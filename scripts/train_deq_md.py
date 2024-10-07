@@ -679,9 +679,6 @@ def train_md(args):
         )
         filelog.info("Number of ForceBlock params: {}".format(n_parameters))
         wandb.run.summary["ForceBlock Parameters"] = n_parameters
-        # print(
-        #     f"AttributeError: '{model.__class__.__name__}' object has no attribute 'final_block'"
-        # )
 
     """ Load dataset stats """
     # Overwrite _AVG_NUM_NODES and _AVG_DEGREE with the dataset statistics

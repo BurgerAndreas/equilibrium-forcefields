@@ -763,7 +763,7 @@ class DEQSliced(DEQBase):
                 Refer to the documentation of the specific solver for the list of accepted arguments. Default None.
                 Added: f_max_iter, f_tol, n_states, indexing (experimental).
             sradius_mode (bool, optional):
-                If True, computes the spectral radius in validation and adds ``'sradius'`` to the ``info`` dictionary. Default False.
+                If True, computes the spectral radius in validation and adds ``'sradius'`` to the ``info``SourceDistribution dictionary. Default False.
             backward_writer (callable, optional):
                 Callable function to monitor the backward pass. It should accept the solver statistics dictionary as input. Default None.
 

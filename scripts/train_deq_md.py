@@ -568,7 +568,7 @@ def train_md(args):
                     state_dict[new_key] = saved_state["state_dict"].pop(key)
                 # load model weights
                 model.load_state_dict(state_dict, strict=False)
-                if saved_state["ema2"] is not None:
+                if "ema2" in saved_state and saved_state["ema2"] is not None:
                     model_ema2.load_state_dict(saved_state["ema2"])
                 try:
                     optimizer.load_state_dict(saved_state["optimizer"])
@@ -593,7 +593,7 @@ def train_md(args):
         except Exception as e:
             # probably checkpoint not found
             filelog.info(
-                f"Error loading checkpoint: {e}. \n List of files: {os.listdir(args.checkpoint_path)}"
+                f"Error loading checkpoint: \n {e}. \nList of files:\n {os.listdir(args.checkpoint_path)}"
             )
             filelog.info(f"Proceeding without checkpoint.")
     wandb.log({"start_epoch": start_epoch, "epoch": start_epoch}, step=global_step)

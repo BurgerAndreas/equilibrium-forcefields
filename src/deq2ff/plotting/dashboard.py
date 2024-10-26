@@ -1608,6 +1608,8 @@ def print_restart_commands(
         prefix = "launchoc"
         tag = "['speedoc_v1']"
 
+    # ignore_overrides += ["config.target"]
+    
     # df[["config.override_dirname"]]
     # print(" ")
     _num_runs = 0
@@ -1631,6 +1633,7 @@ def print_restart_commands(
         else:
             target = ""
         print(
-            f"{prefix} {overrides}{target}",
+            f"{prefix} {overrides}",
+            # f"{prefix} {overrides}{target}",
             # f"+inf=bs1 +deq_kwargs_fpr.f_tol=1e-1 wandb_tags={tag}",
         )

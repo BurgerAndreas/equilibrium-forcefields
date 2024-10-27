@@ -1272,6 +1272,64 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
 
     return update_val_result, update_test_result
 
+def train_step(data, model, model_ema, model_ema2, args, global_step, optimizer, criterion_energy, criterion_force, normalizers, grad_norm_epoch_avg):
+    pred_y, pred_dy, info = model(
+        data=data,  # for EquiformerV2
+        # for EquiformerV1:
+        # node_atom=data.z,
+        # pos=data.pos,
+        # batch=data.batch,
+        step=global_step,
+        datasplit="train",
+        # fpr_loss=args.fpr_loss,
+    )
+
+    target_y = normalizers["energy"](data.y, data.z)  # [NB], [NB]
+    target_dy = normalizers["force"](data.dy, data.z)
+
+    # reshape model output [B] (OC20) -> [B,1] (MD17)
+    if args.unsqueeze_e_dim and pred_y.dim() == 1:
+        pred_y = pred_y.unsqueeze(-1)
+
+    # reshape data [B,1] (MD17) -> [B] (OC20)
+    if args.squeeze_e_dim and target_y.dim() == 2:
+        target_y = target_y.squeeze(1)
+
+    loss_e = criterion_energy(pred_y, target_y)
+    loss = args.energy_weight * loss_e
+
+    loss_f = criterion_force(pred_dy, target_dy)
+    loss += args.force_weight * loss_f
+
+    # .requires_grad=True: loss, loss_e, loss_f, pred_y, pred_dy
+    optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+    loss.backward()
+
+    # optionally clip and log grad norm
+    if args.clip_grad_norm:
+        grad_norm = torch.nn.utils.clip_grad_norm_(
+            model.parameters(),
+            max_norm=args.clip_grad_norm,
+        )
+    else:
+        grad_norm = torch.cat(
+            [
+                param.grad.detach().flatten()
+                for param in model.parameters()
+                if param.grad is not None
+            ]
+        ).norm()
+    grad_norm_epoch_avg.append(grad_norm.item())
+
+    optimizer.step()
+    # optimizer.zero_grad(set_to_none=args.set_grad_to_none)
+
+    if model_ema2:
+        # model_ema2.update()
+        model_ema2.update(parameters=model.parameters())
+    
+    # no gradients are leaving this function
+    return loss.detach(), loss_e.detach(), loss_f.detach(), pred_y.detach(), pred_dy.detach(), grad_norm.item(), info
 
 def train_one_epoch(
     args,
@@ -1302,7 +1360,6 @@ def train_one_epoch(
     """
     collate = Collater(None, None)
 
-
     model.train()
 
     model.set_current_deq()
@@ -1324,7 +1381,6 @@ def train_one_epoch(
 
     # # triplet loss
     # triplet_lossfn = TripletLoss(margin=args.tripletloss_margin)
-
 
     # statistics over epoch
     abs_fixed_point_error = []
@@ -1371,70 +1427,15 @@ def train_one_epoch(
         )
   
         data = data.to(device)
-        
         data = data.to(device, dtype)
-        pred_y, pred_dy, info = model(
-            data=data,  # for EquiformerV2
-            # for EquiformerV1:
-            # node_atom=data.z,
-            # pos=data.pos,
-            # batch=data.batch,
-            step=global_step,
-            datasplit="train",
-            # fpr_loss=args.fpr_loss,
-        )
 
-        target_y = normalizers["energy"](data.y, data.z)  # [NB], [NB]
-        target_dy = normalizers["force"](data.dy, data.z)
-
-        # reshape model output [B] (OC20) -> [B,1] (MD17)
-        if args.unsqueeze_e_dim and pred_y.dim() == 1:
-            pred_y = pred_y.unsqueeze(-1)
-
-        # reshape data [B,1] (MD17) -> [B] (OC20)
-        if args.squeeze_e_dim and target_y.dim() == 2:
-            target_y = target_y.squeeze(1)
-
-        loss_e = criterion_energy(pred_y, target_y)
-        loss = args.energy_weight * loss_e
-
-        loss_f = criterion_force(pred_dy, target_dy)
-        loss += args.force_weight * loss_f
-
-        if torch.isnan(pred_y).any():
-            isnan_cnt += 1
-
-        # See equiformer_v2/oc20/trainer/forces_trainer_v2.py _backward()
-
-        # .requires_grad=True: loss, loss_e, loss_f, pred_y, pred_dy
-        optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-        loss.backward()
-
-        # optionally clip and log grad norm
-        if args.clip_grad_norm:
-            grad_norm = torch.nn.utils.clip_grad_norm_(
-                model.parameters(),
-                max_norm=args.clip_grad_norm,
-            )
-        else:
-            grad_norm = torch.cat(
-                [
-                    param.grad.detach().flatten()
-                    for param in model.parameters()
-                    if param.grad is not None
-                ]
-            ).norm()
-        grad_norm_epoch_avg.append(grad_norm.detach().item())
-
-        optimizer.step()
-        # optimizer.zero_grad(set_to_none=args.set_grad_to_none)
-
-        if model_ema2:
-            # model_ema2.update()
-            model_ema2.update(parameters=model.parameters())
+        loss, loss_e, loss_f, pred_y, pred_dy, grad_norm, info = train_step(model, data)        
 
         #######################################
         # Logging
+        if torch.isnan(pred_y).any():
+            isnan_cnt += 1
+            
         if "abs_trace" in info.keys():
             # log fixed-point trajectory
             # if args.log_fixed_point_trace_train:
@@ -1453,18 +1454,18 @@ def train_one_epoch(
         if "nstep" in info.keys():
             f_steps_to_fixed_point.append(info["nstep"].mean().item())
 
-        loss_metrics["energy"].update(loss_e.detach().item(), n=pred_y.shape[0])
-        loss_metrics["force"].update(loss_f.detach().item(), n=pred_dy.shape[0])
+        loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
+        loss_metrics["force"].update(loss_f.item(), n=pred_dy.shape[0])
 
-        # energy_err1 = pred_y.detach() * task_std + task_mean - data.y
-        energy_err = normalizers["energy"].denorm(pred_y.detach(), data.z) - data.y
-        energy_err = torch.mean(torch.abs(energy_err)).detach().item()
+        # energy_err1 = pred_y * task_std + task_mean - data.y
+        energy_err = normalizers["energy"].denorm(pred_y, data.z) - data.y
+        energy_err = torch.mean(torch.abs(energy_err)).item()
         mae_metrics["energy"].update(energy_err, n=pred_y.shape[0])
 
-        # force_err1 = pred_dy.detach() * task_std - data.dy
-        force_err = normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy
+        # force_err1 = pred_dy * task_std - data.dy
+        force_err = normalizers["force"].denorm(pred_dy, data.z) - data.dy
         # based on OC20 and TorchMD-Net, they average over x, y, z
-        force_err = torch.mean(torch.abs(force_err)).detach().item()
+        force_err = torch.mean(torch.abs(force_err)).item()
         mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
         if batchstep % print_freq == 0 or batchstep == max_steps - 1:
@@ -1488,10 +1489,10 @@ def train_one_epoch(
 
         # if step % args.log_every_step_minor == 0:
         logs = {
-            "train_loss": loss.detach().item(),
-            "grad_norm": grad_norm.detach().item(),
-            "scaled_energy_loss": (args.energy_weight * loss_e.detach()).item(),
-            "scaled_force_loss": (args.force_weight * loss_f.detach()).item(),
+            "train_loss": loss.item(),
+            "grad_norm": grad_norm,
+            "scaled_energy_loss": (args.energy_weight * loss_e).item(),
+            "scaled_force_loss": (args.force_weight * loss_f).item(),
         }
 
         wandb.log(logs, step=global_step)

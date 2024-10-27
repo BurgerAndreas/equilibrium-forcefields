@@ -1,6 +1,7 @@
 """
 Credit to https://github.com/locuslab/deq/blob/master/lib/jacobian.py
 """
+
 import torch
 import numpy as np
 

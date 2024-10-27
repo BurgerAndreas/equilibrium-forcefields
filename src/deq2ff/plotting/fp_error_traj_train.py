@@ -25,6 +25,7 @@ from deq2ff.plotting.style import (
 Careful: results are stochastic since wandb returns randomly sampled datapoints from history
 """
 
+
 def plot_sampled_fptraj(
     run_id: str,
     datasplit: str = "train",
@@ -95,7 +96,8 @@ def plot_sampled_fptraj(
                 "abs": row["abs"],
                 "solver_step": range(len(row["abs"])),
                 # "_step": i,
-                "_step": [row["step"].item()] * len(row["abs"]),  # Expand scalar to match length
+                "_step": [row["step"].item()]
+                * len(row["abs"]),  # Expand scalar to match length
             }
         )
         # append the new dataframe to the list

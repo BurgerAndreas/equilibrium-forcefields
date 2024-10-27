@@ -4,6 +4,7 @@ Copyright (c) Facebook, Inc. and its affiliates.
 This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 """
+
 import datetime
 import errno
 import json
@@ -346,11 +347,13 @@ class BaseTrainer(ABC):
 
         loader = self.train_loader or self.val_loader or self.test_loader
         self.model = registry.get_model_class(self.config["model"])(
-            loader.dataset[0].x.shape[-1]
-            if loader
-            and hasattr(loader.dataset[0], "x")
-            and loader.dataset[0].x is not None
-            else None,
+            (
+                loader.dataset[0].x.shape[-1]
+                if loader
+                and hasattr(loader.dataset[0], "x")
+                and loader.dataset[0].x is not None
+                else None
+            ),
             bond_feat_dim,
             self.num_targets,
             **self.config["model_attributes"],
@@ -498,9 +501,11 @@ class BaseTrainer(ABC):
                         "step": self.step,
                         "state_dict": self.model.state_dict(),
                         "optimizer": self.optimizer.state_dict(),
-                        "scheduler": self.scheduler.scheduler.state_dict()
-                        if self.scheduler.scheduler_type != "Null"
-                        else None,
+                        "scheduler": (
+                            self.scheduler.scheduler.state_dict()
+                            if self.scheduler.scheduler_type != "Null"
+                            else None
+                        ),
                         "normalizers": {
                             key: value.state_dict()
                             for key, value in self.normalizers.items()

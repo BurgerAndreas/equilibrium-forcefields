@@ -120,9 +120,11 @@ def batched_apply(
     for i in _iter:
         batch_out = f(
             *[
-                t[i * batch_size : (i + 1) * batch_size].to(device)
-                if device is not None
-                else t[i * batch_size : (i + 1) * batch_size]
+                (
+                    t[i * batch_size : (i + 1) * batch_size].to(device)
+                    if device is not None
+                    else t[i * batch_size : (i + 1) * batch_size]
+                )
                 for t in inputs
             ],
             **f_kwargs

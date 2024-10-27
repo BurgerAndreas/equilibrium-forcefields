@@ -3,6 +3,7 @@ This script provides the functionality to generate metadata.npz files necessary
 for load_balancing the DataLoader.
 
 """
+
 import argparse
 import multiprocessing as mp
 import os

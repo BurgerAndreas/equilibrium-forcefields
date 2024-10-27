@@ -18,6 +18,21 @@ from ocpmodels.common.utils import (
     radius_graph_pbc,
 )
 
+@torch.compiler.disable(recursive=True)
+def my_radius_graph(pos, r, batch, max_num_neighbors):
+    # Wrapper to disable torch compiler for radius_graph
+    # Error:
+    # The tensor has a non-zero number of elements, but its data is not allocated yet. 
+    # Caffe2 uses a lazy allocation, so you will need to call mutable_data() 
+    # or raw_mutable_data() to actually allocate memory.
+    # in resume_in_radius
+    # return torch.ops.torch_cluster.radius
+    return radius_graph(
+        pos,
+        r=r,
+        batch=batch,
+        max_num_neighbors=max_num_neighbors,
+    )
 
 class BaseModel(nn.Module):
     def __init__(self, num_atoms=None, bond_feat_dim=None, num_targets=None):
@@ -82,7 +97,8 @@ class BaseModel(nn.Module):
         else:
             if otf_graph:
                 # edge_src, edge_dst = radius_graph
-                edge_index = radius_graph(
+                
+                edge_index = my_radius_graph(
                     pos,
                     r=cutoff,
                     batch=data.batch,

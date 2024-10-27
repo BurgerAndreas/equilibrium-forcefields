@@ -7,7 +7,15 @@ import umap
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-from deq2ff.plotting.style import chemical_symbols, plotfolder, set_seaborn_style, reset_plot_styles, set_style_after, PALETTE, cdict
+from deq2ff.plotting.style import (
+    chemical_symbols,
+    plotfolder,
+    set_seaborn_style,
+    reset_plot_styles,
+    set_style_after,
+    PALETTE,
+    cdict,
+)
 
 from e3nn import o3
 from torch_geometric.data import Data
@@ -48,25 +56,24 @@ def hydra_wrapper(args: DictConfig) -> None:
     # config
     args.batch_size = 1
     args.fpreuse_test = True
-    
+
     total_samples = 200
     consecutive = True
-    
+
     if consecutive:
         # Consecutive samples
-        args.test_patch_size = total_samples  
-        args.test_patches = 1  
+        args.test_patch_size = total_samples
+        args.test_patches = 1
     else:
         # Non-consecutive samples
         # needs to be an even number, s.t. we can use fpreuse every second datadpoint
-        args.test_patch_size = 2  
+        args.test_patch_size = 2
         # the more the longer. 10 to 10000. Default: 1000
-        args.test_patches = total_samples // args.test_patch_size  
-
+        args.test_patches = total_samples // args.test_patch_size
 
     # TODO: compute fixed-point multiple times to check
     # if we converge to the same fixed-point / the fixed-point is unique
-    max_repeats = 1 # 1, 10
+    max_repeats = 1  # 1, 10
 
     repeat_tol = 1e-5
 
@@ -76,13 +83,16 @@ def hydra_wrapper(args: DictConfig) -> None:
     do_umap = True
 
     do_pca = False
-    
+
     samples_for_projection = 100
-    assert samples_for_projection * 2 >= args.test_patch_size * args.test_patches, \
-        f"Need more samples for projection"
+    assert (
+        samples_for_projection * 2 >= args.test_patch_size * args.test_patches
+    ), f"Need more samples for projection"
     do_proj = do_pca or do_umap
     if do_proj:
-        assert max_repeats == 1, "Cannot project multiple repetitions of same data point"
+        assert (
+            max_repeats == 1
+        ), "Cannot project multiple repetitions of same data point"
 
     #############################
     # pDEQsapt
@@ -212,7 +222,7 @@ def hydra_wrapper(args: DictConfig) -> None:
                             d_fp2_wo_reuse[-1].item() / d_fp2_fp1[-1].item(),
                             "<- should be small",
                         )
-                        _rel_err = (d_fp2_wo_reuse[-1] / torch.linalg.norm(fp2))
+                        _rel_err = d_fp2_wo_reuse[-1] / torch.linalg.norm(fp2)
                         print(
                             f"{cnt}: |fp2 - fp2_wreuse| / |fp2| =",
                             _rel_err.item(),
@@ -223,12 +233,17 @@ def hydra_wrapper(args: DictConfig) -> None:
 
                     # plot distances once per run
                     print(f"do_umap={do_umap}, rep={rep}, fpreuse={fpreuse}, cnt={cnt}")
-                    if do_umap and (rep == 0) and (fpreuse is True) and (cnt + 1 >= samples_for_projection * 2):
+                    if (
+                        do_umap
+                        and (rep == 0)
+                        and (fpreuse is True)
+                        and (cnt + 1 >= samples_for_projection * 2)
+                    ):
                         print("")
                         print("-" * 60)
                         print("Plotting UMAP")
                         # UMAP neeeds shape (NumSamples, Rest)
-                        # Tensors are shape (B, H, C) 
+                        # Tensors are shape (B, H, C)
                         flatpoints = []
                         for _fp1, _fp2, _fp2_wreuse in zip(fp1s, fp2s, fp2_wreuses):
                             if batch_as_one:
@@ -260,7 +275,7 @@ def hydra_wrapper(args: DictConfig) -> None:
                         # Apply UMAP for dimensionality reduction to 2D space
                         if batch_as_one and samples_for_projection == 1:
                             # RuntimeWarning: k >= N for N * N square matrix. Attempting to use scipy.linalg.eigh instead.
-                            # Cannot use scipy.linalg.eigh for sparse A with k >= N. 
+                            # Cannot use scipy.linalg.eigh for sparse A with k >= N.
                             # Use scipy.linalg.eigh(A.toarray()) or reduce k
                             plot_dim = 1
                         else:
@@ -285,10 +300,10 @@ def hydra_wrapper(args: DictConfig) -> None:
                         #     # this draws lines between points of the same sample
                         #     for i in range(samples_for_projection):
                         #         plt.plot(
-                        #             [uemb[i, 0], uemb[size1 + i, 0], uemb[size2 + i, 0]], 
+                        #             [uemb[i, 0], uemb[size1 + i, 0], uemb[size2 + i, 0]],
                         #             [uemb[i, 1], uemb[size1 + i, 1], uemb[size2 + i, 1]],
-                        #             marker="", 
-                        #             # markersize=5, 
+                        #             marker="",
+                        #             # markersize=5,
                         #             color="gray",
                         #             ls="-",
                         #             # very thin line
@@ -300,10 +315,16 @@ def hydra_wrapper(args: DictConfig) -> None:
                             uemb[:size1, 0], uemb[:size1, 1], label="FP 1", color=c0
                         )
                         plt.scatter(
-                            uemb[size1:size2, 0], uemb[size1:size2, 1], label="FP 2", color=c1
+                            uemb[size1:size2, 0],
+                            uemb[size1:size2, 1],
+                            label="FP 2",
+                            color=c1,
                         )
                         plt.scatter(
-                            uemb[size2:, 0], uemb[size2:, 1], label="FP 2 w reuse", color=c2
+                            uemb[size2:, 0],
+                            uemb[size2:, 1],
+                            label="FP 2 w reuse",
+                            color=c2,
                         )
 
                         if not batch_as_one:
@@ -311,9 +332,7 @@ def hydra_wrapper(args: DictConfig) -> None:
                             symbols = [chemical_symbols[z] for z in data.z]
                             for i, txt in enumerate(symbols):
                                 ax.annotate(txt, (uemb[i, 0], uemb[i, 1]))
-                        
 
-                        
                         # offset for the annotations
                         xoff = 0.03
                         yoff = 0.03
@@ -329,14 +348,20 @@ def hydra_wrapper(args: DictConfig) -> None:
                                 )
                                 ax.annotate(
                                     f"{i}",
-                                    (uemb[size1 + i, 0] + xoff, uemb[size1 + i, 1] + yoff),
+                                    (
+                                        uemb[size1 + i, 0] + xoff,
+                                        uemb[size1 + i, 1] + yoff,
+                                    ),
                                     color=c1,
                                     fontsize=8,
                                     fontweight="bold",
                                 )
                                 ax.annotate(
                                     f"{i}",
-                                    (uemb[size2 + i, 0] + xoff, uemb[size2 + i, 1] + yoff),
+                                    (
+                                        uemb[size2 + i, 0] + xoff,
+                                        uemb[size2 + i, 1] + yoff,
+                                    ),
                                     color=c2,
                                     fontsize=8,
                                     fontweight="bold",
@@ -357,10 +382,9 @@ def hydra_wrapper(args: DictConfig) -> None:
                         print(f"Saved UMAP plot to\n {plotfolder}/{fname}.png")
 
                         plt.show()
-                        
+
                         # break and finish
                         cnt = max_batches
-
 
                 # reps finished
 
@@ -398,7 +422,7 @@ def hydra_wrapper(args: DictConfig) -> None:
                                 )
                 else:
                     pass
-            
+
             if cnt >= max_batches - 1:
                 break
 

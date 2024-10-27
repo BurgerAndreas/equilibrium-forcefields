@@ -482,7 +482,7 @@ class SO3_Rotation(torch.nn.Module):
             wigner[:, start:end, start:end] = block
             start = end
 
-        return wigner.detach() # Todo@gradforces
+        return wigner.detach()  # Todo@gradforces
         # return wigner
 
 

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 # from ocpmodels.modules.loss import DDPLoss, L2MAELoss
 # from https://github.com/FAIR-Chem/fairchem/blob/v0.0.3/ocpmodels/modules/loss.py
 class L2MAELoss(torch.nn.Module):

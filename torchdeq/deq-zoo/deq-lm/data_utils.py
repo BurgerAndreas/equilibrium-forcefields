@@ -126,9 +126,9 @@ class LMShuffledIterator(object):
                         # number of new tokens to fill in
                         n_new = min(len(streams[i]) - 1, self.bptt - n_filled)
                         # first n_retain tokens are retained from last batch
-                        data[
-                            n_retain + n_filled : n_retain + n_filled + n_new, i
-                        ] = streams[i][:n_new]
+                        data[n_retain + n_filled : n_retain + n_filled + n_new, i] = (
+                            streams[i][:n_new]
+                        )
                         target[n_filled : n_filled + n_new, i] = streams[i][
                             1 : n_new + 1
                         ]

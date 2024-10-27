@@ -4,6 +4,7 @@ Copyright (c) Facebook, Inc. and its affiliates.
 This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 """
+
 import datetime
 import errno
 import json
@@ -244,9 +245,7 @@ class BaseTrainerV2(BaseTrainer):
         else:
             # remove spaces and special characters
             # checkpoint_folder = re.sub(r"[^A-Za-z0-9]+", "", checkpoint_wandb_name)
-            checkpoint_folder = "".join(
-                e for e in checkpoint_wandb_name if e.isalnum()
-            )
+            checkpoint_folder = "".join(e for e in checkpoint_wandb_name if e.isalnum())
             checkpoint_folder_extended = f"{self.timestamp_id}-{checkpoint_folder}"
 
         self.config = {
@@ -302,7 +301,7 @@ class BaseTrainerV2(BaseTrainer):
             "test_w_eval_mode": test_w_eval_mode,
         }
         # AMP Scaler
-        # ensuring that no value is too small (underflow) or too large (overflow) 
+        # ensuring that no value is too small (underflow) or too large (overflow)
         # when using automatic mixed precision
         self.scaler = torch.cuda.amp.GradScaler() if amp else None
 
@@ -313,7 +312,7 @@ class BaseTrainerV2(BaseTrainer):
             self.config["model_attributes"]["deq_kwargs_eval"] = deq_kwargs_eval
         if len(deq_kwargs_fpr) > 0:
             self.config["model_attributes"]["deq_kwargs_fpr"] = deq_kwargs_fpr
-        
+
         if model_is_deq:
             assert (not self.config["model_is_deq"]) or (
                 "deq_kwargs" in self.config["model_attributes"]
@@ -400,7 +399,9 @@ class BaseTrainerV2(BaseTrainer):
         logging.info("\nLooking for checkpoint...")
         checkpoint_loaded = False
         checkpoint_path = self.config["cmd"].get("checkpoint_path", None)
-        if (checkpoint_path is not None) and self.config["cmd"].get("load_checkpoint", True):
+        if (checkpoint_path is not None) and self.config["cmd"].get(
+            "load_checkpoint", True
+        ):
             if checkpoint_path == "auto":
                 # set the checkpoint path based on the name
                 # checkpoint_dir
@@ -611,7 +612,7 @@ class BaseTrainerV2(BaseTrainer):
 
         print(f'Initializing scheduler with params: {self.config["optim"]}')
         self.scheduler = LRScheduler(self.optimizer, self.config["optim"])
-        
+
         print(
             f"Number of epochs: {max_epochs}"
             f"\nNumber of steps per epoch: {n_iter_per_epoch}"
@@ -717,7 +718,7 @@ class BaseTrainerV2(BaseTrainer):
 
     def _backward(self, loss):
         """Gradient computation and weight update.
-        Gradient accumulation, grad scaling, grad norm clipping, 
+        Gradient accumulation, grad scaling, grad norm clipping,
         amp gradient scaling, model and ema update.
         """
         if self.grad_accumulation_steps == 1:

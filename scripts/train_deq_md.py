@@ -165,7 +165,7 @@ def save_checkpoint(
         eerr = f'{test_err["energy"].avg:.4f}'
     if test_err is not None:
         ferr = f'{test_err["force"].avg:.4f}'
-    fname = f'{name}epochs@{epoch}_e@{eerr}_f@{ferr}.pth.tar'
+    fname = f"{name}epochs@{epoch}_e@{eerr}_f@{ferr}.pth.tar"
     # create output directory and save checkpoint
     os.makedirs(args.output_dir, exist_ok=True)
     torch.save(
@@ -174,9 +174,9 @@ def save_checkpoint(
             "ema": model_ema.state_dict() if model_ema is not None else None,
             "ema2": model_ema2.state_dict() if model_ema2 is not None else None,
             "optimizer": optimizer.state_dict(),
-            "lr_scheduler": lr_scheduler.state_dict()
-            if lr_scheduler is not None
-            else None,
+            "lr_scheduler": (
+                lr_scheduler.state_dict() if lr_scheduler is not None else None
+            ),
             "epoch": epoch,
             "global_step": global_step,
             "best_metrics": best_metrics,
@@ -187,9 +187,7 @@ def save_checkpoint(
             fname,
         ),
     )
-    print(
-        f"Saved checkpoint: {args.output_dir}/{fname}"
-    )
+    print(f"Saved checkpoint: {args.output_dir}/{fname}")
     return
 
 
@@ -1206,19 +1204,19 @@ def train_md(args):
     if args.save_final_checkpoint:
         filelog.info(f"Saving final checkpoint")
         save_checkpoint(
-                args=args,
-                model=model,
-                model_ema=model_ema,
-                model_ema2=model_ema2,
-                optimizer=optimizer,
-                lr_scheduler=lr_scheduler,
-                epoch=epoch,
-                global_step=global_step,
-                test_err=test_err,
-                best_metrics=best_metrics,
-                best_ema_metrics=best_ema_metrics,
-                name="final_",
-            )
+            args=args,
+            model=model,
+            model_ema=model_ema,
+            model_ema2=model_ema2,
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            epoch=epoch,
+            global_step=global_step,
+            test_err=test_err,
+            best_metrics=best_metrics,
+            best_ema_metrics=best_ema_metrics,
+            name="final_",
+        )
 
     filelog.info(
         f"Final test error: MAE_e={test_err['energy'].avg}, MAE_f={test_err['force'].avg}"
@@ -1272,7 +1270,20 @@ def update_best_results(args, best_metrics, val_err, test_err, epoch):
 
     return update_val_result, update_test_result
 
-def train_step(data, model, model_ema, model_ema2, args, global_step, optimizer, criterion_energy, criterion_force, normalizers, grad_norm_epoch_avg):
+
+def train_step(
+    data,
+    model,
+    model_ema,
+    model_ema2,
+    args,
+    global_step,
+    optimizer,
+    criterion_energy,
+    criterion_force,
+    normalizers,
+    grad_norm_epoch_avg,
+):
     pred_y, pred_dy, info = model(
         data=data,  # for EquiformerV2
         # for EquiformerV1:
@@ -1327,9 +1338,18 @@ def train_step(data, model, model_ema, model_ema2, args, global_step, optimizer,
     if model_ema2:
         # model_ema2.update()
         model_ema2.update(parameters=model.parameters())
-    
+
     # no gradients are leaving this function
-    return loss.detach(), loss_e.detach(), loss_f.detach(), pred_y.detach(), pred_dy.detach(), grad_norm.item(), info
+    return (
+        loss.detach(),
+        loss_e.detach(),
+        loss_f.detach(),
+        pred_y.detach(),
+        pred_dy.detach(),
+        grad_norm.item(),
+        info,
+    )
+
 
 def train_one_epoch(
     args,
@@ -1396,10 +1416,11 @@ def train_one_epoch(
 
     dtype = model.parameters().__next__().dtype
 
-    # for debugging
-    # if we don't set model.eval()
-    # params like the batchnorm layers in the model will be updated.
-    # Even without optimizing parameters, validation outputs will change after a forward pass.
+    if args.compile_train_step:
+        # mode="reduce-overhead" 
+        train_step_opt = torch.compile(train_step)
+    else:
+        train_step_opt = train_step
 
     if args.torch_profile:
         # In this example with wait=1, warmup=1, active=2, repeat=1,
@@ -1425,18 +1446,29 @@ def train_one_epoch(
         wandb.log(
             {"memalloc-pre_batch": torch.cuda.memory_allocated()}, step=global_step
         )
-  
+
         data = data.to(device)
         data = data.to(device, dtype)
 
-        loss, loss_e, loss_f, pred_y, pred_dy, grad_norm, info = train_step(
-            data, model, model_ema, model_ema2, args, global_step, optimizer, criterion_energy, criterion_force, normalizers, grad_norm_epoch_avg)        
+        loss, loss_e, loss_f, pred_y, pred_dy, grad_norm, info = train_step_opt(
+            data,
+            model,
+            model_ema,
+            model_ema2,
+            args,
+            global_step,
+            optimizer,
+            criterion_energy,
+            criterion_force,
+            normalizers,
+            grad_norm_epoch_avg,
+        )
 
         #######################################
         # Logging
         if torch.isnan(pred_y).any():
             isnan_cnt += 1
-            
+
         if "abs_trace" in info.keys():
             # log fixed-point trajectory
             # if args.log_fixed_point_trace_train:
@@ -1596,11 +1628,11 @@ def evaluate(
         # criterion.eval()
         criterion_energy.eval()
         criterion_force.eval()
-    
+
     # eval with ema
     if model_ema2 and use_ema:
-        model_ema2.store() # save for later
-        model_ema2.copy_to() # copy to model
+        model_ema2.store()  # save for later
+        model_ema2.copy_to()  # copy to model
 
     model.set_current_deq()
 
@@ -1638,12 +1670,14 @@ def evaluate(
     else:
         patch_size = max_steps + 10  # +10 to avoid accidents
     patch_size = max(1, patch_size)
-    assert patch_size > 0, f"patch_size must be > 0, got {patch_size}." \
-        f"\n args.test_patches={args.test_patches}" \
-        f"\n {len(data_loader)} // {args.test_patches} = {len(data_loader) // args.test_patches}" \
-        f"\n len(data_loader)={len(data_loader)}" \
+    assert patch_size > 0, (
+        f"patch_size must be > 0, got {patch_size}."
+        f"\n args.test_patches={args.test_patches}"
+        f"\n {len(data_loader)} // {args.test_patches} = {len(data_loader) // args.test_patches}"
+        f"\n len(data_loader)={len(data_loader)}"
         f"\n max_steps={max_steps}"
-    
+    )
+
     dtype = model.parameters().__next__().dtype
 
     # remove because of torchdeq and force prediction via dE/dx
@@ -1657,9 +1691,9 @@ def evaluate(
             loss_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
             mae_metrics = {"energy": AverageMeter(), "force": AverageMeter()}
             mae_metrics_fpr = {"energy": AverageMeter(), "force": AverageMeter()}
-            abs_fixed_point_error = [] # mean over batch dim
+            abs_fixed_point_error = []  # mean over batch dim
             rel_fixed_point_error = []
-            abs_fixed_point_error_max = [] # like torchdeq
+            abs_fixed_point_error_max = []  # like torchdeq
             rel_fixed_point_error_max = []
             f_steps_to_fixed_point = []
             model_forward_times = []
@@ -1677,16 +1711,16 @@ def evaluate(
                         "nstep_min",
                         "fpabs",
                         "fprel",
-                        "fpr", # bool
+                        "fpr",  # bool
                     ]
                 )
 
             fixedpoint = None
             prev_idx = None
 
-            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, 
+            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels,
             # but not the actual GPU execution time of the kernel.
-            # torch.cuda.synchronize() waits for all tasks in the GPU to complete, 
+            # torch.cuda.synchronize() waits for all tasks in the GPU to complete,
             # thereby providing an accurate measure of time taken to execute
             torch.cuda.synchronize()
             start_time = time.perf_counter()
@@ -1740,7 +1774,11 @@ def evaluate(
                         datasplit=_datasplit,
                         return_fixedpoint=True,
                         fixedpoint=fixedpoint,
-                        solver_kwargs=solver_kwargs_eval if fixedpoint is None else solver_kwargs_fpr,
+                        solver_kwargs=(
+                            solver_kwargs_eval
+                            if fixedpoint is None
+                            else solver_kwargs_fpr
+                        ),
                     )
                     # REMOVE
                     # print(f'step: {step}. idx: {data.idx}.')
@@ -1794,7 +1832,7 @@ def evaluate(
                     normalizers["force"].denorm(pred_dy.detach(), data.z) - data.dy
                 )
                 # based on OC20 and TorchMD-Net, they average over x, y, z
-                force_err = torch.mean(torch.abs(force_err)).item()  
+                force_err = torch.mean(torch.abs(force_err)).item()
                 mae_metrics["force"].update(force_err, n=pred_dy.shape[0])
 
                 # --- logging ---
@@ -1889,9 +1927,7 @@ def evaluate(
             wandb_logs = {
                 # log the time
                 f"time_{_datasplit}": eval_time,
-                f"time_forward_per_batch_{_datasplit}": np.mean(
-                    model_forward_times
-                ),
+                f"time_forward_per_batch_{_datasplit}": np.mean(model_forward_times),
                 # f"time_forward_per_batch_std_{_datasplit}": np.std(model_forward_times),
                 f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
                 # log test error
@@ -1908,34 +1944,38 @@ def evaluate(
 
             # log fixed-point statistics
             if len(abs_fixed_point_error) > 0:
-                wandb_logs.update({
-                    # mean
-                    f"abs_fixed_point_error_{_datasplit}": np.mean(
-                        abs_fixed_point_error
-                    ),
-                    f"rel_fixed_point_error_{_datasplit}": np.mean(
-                        rel_fixed_point_error
-                    ),
-                    # max (like torchdeq)
-                    f"abs_fixed_point_error_max_{_datasplit}": np.mean(
-                        abs_fixed_point_error_max
-                    ),
-                    f"rel_fixed_point_error_max_{_datasplit}": np.mean(
-                        rel_fixed_point_error_max
-                    ),
-                    # steps to fixed point
-                    f"f_steps_to_fixed_point_{_datasplit}": np.mean(
-                        f_steps_to_fixed_point
-                    ),
-                })
+                wandb_logs.update(
+                    {
+                        # mean
+                        f"abs_fixed_point_error_{_datasplit}": np.mean(
+                            abs_fixed_point_error
+                        ),
+                        f"rel_fixed_point_error_{_datasplit}": np.mean(
+                            rel_fixed_point_error
+                        ),
+                        # max (like torchdeq)
+                        f"abs_fixed_point_error_max_{_datasplit}": np.mean(
+                            abs_fixed_point_error_max
+                        ),
+                        f"rel_fixed_point_error_max_{_datasplit}": np.mean(
+                            rel_fixed_point_error_max
+                        ),
+                        # steps to fixed point
+                        f"f_steps_to_fixed_point_{_datasplit}": np.mean(
+                            f_steps_to_fixed_point
+                        ),
+                    }
+                )
 
             if len(n_fsolver_steps) > 0:
-                wandb_logs.update({
-                    f"avg_n_fsolver_steps_{_datasplit}": np.mean(n_fsolver_steps),
-                    # log the full list to plot histogram later
-                    f"n_fsolver_steps_{_datasplit}": n_fsolver_steps
-                })
-                
+                wandb_logs.update(
+                    {
+                        f"avg_n_fsolver_steps_{_datasplit}": np.mean(n_fsolver_steps),
+                        # log the full list to plot histogram later
+                        f"n_fsolver_steps_{_datasplit}": n_fsolver_steps,
+                    }
+                )
+
             wandb.log(wandb_logs, step=global_step)
 
             print(
@@ -2049,9 +2089,9 @@ def eval_speed(
             reuse = False
             prev_idx = None
 
-            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels, 
+            # time.time() alone won’t be accurate; it will report the amount of time used to launch the kernels,
             # but not the actual GPU execution time of the kernel.
-            # torch.cuda.synchronize() waits for all tasks in the GPU to complete, 
+            # torch.cuda.synchronize() waits for all tasks in the GPU to complete,
             # thereby providing an accurate measure of time taken to execute
             torch.cuda.synchronize()
             start_time = time.perf_counter()
@@ -2084,7 +2124,9 @@ def eval_speed(
                     datasplit=_datasplit,
                     return_fixedpoint=True,
                     fixedpoint=fixedpoint,
-                    solver_kwargs=solver_kwargs_eval if fixedpoint is None else solver_kwargs_fpr,
+                    solver_kwargs=(
+                        solver_kwargs_eval if fixedpoint is None else solver_kwargs_fpr
+                    ),
                 )
                 model_forward_end = time.perf_counter()
 
@@ -2108,7 +2150,6 @@ def eval_speed(
                     loss_f = criterion_force(pred_dy, target_dy)
                 else:
                     pred_dy, loss_f = get_force_placeholder(data.dy, loss_e)
-
 
                 # --- metrics ---
                 loss_metrics["energy"].update(loss_e.item(), n=pred_y.shape[0])
@@ -2185,7 +2226,9 @@ def eval_speed(
                     ),
                     # f"f_steps_to_fixed_point": np.mean(f_steps_to_fixed_point),
                     f"time_{_datasplit}": eval_time,
-                    f"time_forward_per_batch_{_datasplit}": np.mean(model_forward_times),
+                    f"time_forward_per_batch_{_datasplit}": np.mean(
+                        model_forward_times
+                    ),
                     f"time_forward_total_{_datasplit}": np.sum(model_forward_times),
                     # log test error
                     f"{_datasplit}_e_mae": mae_metrics["energy"].avg,

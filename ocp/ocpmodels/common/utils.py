@@ -121,6 +121,7 @@ def print_cuda_usage():
 
 def conditional_grad(dec):
     "Decorator to enable/disable grad depending on whether force/energy predictions are being made"
+
     # Adapted from https://stackoverflow.com/questions/60907323/accessing-class-property-as-decorator-argument
     def decorator(func):
         @wraps(func)
@@ -842,11 +843,12 @@ def setup_logging():
         handler_err.setFormatter(log_formatter)
         root.addHandler(handler_err)
 
-
+@torch.compiler.disable(recursive=True)
 def compute_neighbors(data, edge_index):
     # Get number of neighbors
     # segment_coo assumes sorted index
     ones = edge_index[1].new_ones(1).expand_as(edge_index[1])
+    # torch_scatter::segment_sum_coo() Expected a value of type 'Optional[int]' for argument '_3' but instead found type 'FakeTensor'.
     num_neighbors = segment_coo(ones, edge_index[1], dim_size=data.natoms.sum())
 
     # Get number of neighbors per image

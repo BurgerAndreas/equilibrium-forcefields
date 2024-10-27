@@ -257,9 +257,11 @@ def preprocess_df(df, project, error_metric):
         tempdf = df[df["run_name"].str.contains("data-")]
         tempdf["config.target"] = tempdf["run_name"].apply(
             # get the first word after data- in the run name
-            lambda x: x[x.find("data-") + len("data-") :].split(" ")[0]
-            if "data-" in x
-            else tempdf["config.target"]
+            lambda x: (
+                x[x.find("data-") + len("data-") :].split(" ")[0]
+                if "data-" in x
+                else tempdf["config.target"]
+            )
         )
         # overwrite the target in the main df
         df.loc[tempdf.index, "config.target"] = tempdf["config.target"]
@@ -392,8 +394,9 @@ def mark_sota(
 
     return _df
 
+
 def merge_dfs(dfog, dfextra, oncol, cols, coltypes={}):
-    """Merge two dataframes. 
+    """Merge two dataframes.
     Match on column oncol and add columns cols from dfextra to dfog.
     Assumes datatypes are float, unless specified in coltypes.
     """
@@ -403,7 +406,7 @@ def merge_dfs(dfog, dfextra, oncol, cols, coltypes={}):
 
     print(f"Before mergin: {dfog.shape}")
     print(f" mergin: {dfextra.shape}")
-    
+
     # TODO: better way to merge?
     for _c in cols:
         # set dtype to float
@@ -467,7 +470,8 @@ def merge_dfs(dfog, dfextra, oncol, cols, coltypes={}):
     print(f"After merging: {dfog.shape}")
     return dfog
 
-def print_table_acc( 
+
+def print_table_acc(
     df,
     error_metric,
     corner=True,
@@ -511,7 +515,9 @@ def print_table_acc(
     if num_targets > 1:
         lines += [
             r" & "
-            + r" & ".join([r"\multicolumn{1}{c}{" + f"{mol_names[t]}"  + r"}" for t in targets])
+            + r" & ".join(
+                [r"\multicolumn{1}{c}{" + f"{mol_names[t]}" + r"}" for t in targets]
+            )
             + r" \\"
         ]
         lines += [r"\cmidrule[0.6pt]{2-" + f"{int(num_targets + 1)}" + r"}"]
@@ -553,6 +559,7 @@ def print_table_acc(
     # print(' ')
     return lines
 
+
 def print_table_acc_time(
     df,
     error_metric,
@@ -566,7 +573,7 @@ def print_table_acc_time(
 
     # select dname=md17
     _df = _df[_df["config.dname"].isin(dnames)]
-    
+
     if corner == True:
         corner = " ".join([_n.upper() for _n in dnames])
     elif not isinstance(corner, str):
@@ -597,11 +604,15 @@ def print_table_acc_time(
     if num_targets > 1:
         lines += [
             r" & "
-            + r" & ".join([r"\multicolumn{2}{c}{" + f"{mol_names[t]}"  + r"}" for t in targets])
+            + r" & ".join(
+                [r"\multicolumn{2}{c}{" + f"{mol_names[t]}" + r"}" for t in targets]
+            )
             + r" \\"
         ]
         lines += [r"\cmidrule[0.6pt]{2-" + f"{int(num_targets*2 + 1)}" + r"}"]
-    lines += [corner + r" & " + r" & ".join([r"Force & Time" for t in targets]) + r" \\"]
+    lines += [
+        corner + r" & " + r" & ".join([r"Force & Time" for t in targets]) + r" \\"
+    ]
     lines += [r"\midrule[1.2pt]"]
 
     # lines with results
@@ -645,6 +656,7 @@ def print_table_acc_time(
     print("\n".join(lines))
     # print(' ')
     return lines
+
 
 def norm_targets(data, norm_scheme="minmax", error_metric="summary.test_f_mae"):
     """Normalize all target molecules to be in the same range.
@@ -710,24 +722,25 @@ def norm_targets(data, norm_scheme="minmax", error_metric="summary.test_f_mae"):
 
     return data, ylabel
 
+
 def plot_acc_vs_speed(
-        _df, 
-        x,
-        y,
-        target=None,
-        xlabel=None,
-        ylabel=None,
-        xmin=None,
-        xmax=None,
-        ymin=None,
-        ymax=None,
-        title="Error vs Time",
-        shapestyle=None, # None, config.num_layers
-        fname=False,
-        palette=cdict,
-        hue="Class",
-        ls="",
-    ):
+    _df,
+    x,
+    y,
+    target=None,
+    xlabel=None,
+    ylabel=None,
+    xmin=None,
+    xmax=None,
+    ymin=None,
+    ymax=None,
+    title="Error vs Time",
+    shapestyle=None,  # None, config.num_layers
+    fname=False,
+    palette=cdict,
+    hue="Class",
+    ls="",
+):
     data = _df.copy()
 
     if target is not None:
@@ -736,11 +749,13 @@ def plot_acc_vs_speed(
     if shapestyle is not None:
         shapekwargs = {
             "shape": shapestyle,
-            "markers": marks[: len(list(data[shapestyle].unique()))]
+            "markers": marks[: len(list(data[shapestyle].unique()))],
         }
-        data[shapekwargs].rename(columns={shapestyle: human_labels(shapestyle)}, inplace=True)
+        data[shapekwargs].rename(
+            columns={shapestyle: human_labels(shapestyle)}, inplace=True
+        )
     else:
-        shapekwargs = {"marker": 'o'}
+        shapekwargs = {"marker": "o"}
 
     # plot
     reset_plot_styles()
@@ -787,22 +802,23 @@ def plot_acc_vs_speed(
 
     return fig, ax
 
+
 def plot_acc_vs_speed_errorbar(
-        _df, 
-        x,
-        y,
-        target=None,
-        xlabel=None,
-        ylabel=None,
-        title="Error vs Time",
-        errbar="sd", # std, sem, ci
-        hue="Class",
-        ymin=0,
-        ymax=None,
-        markershape=None, # None, config.num_layers
-        fname=False,
-        palette=cdict,
-    ):
+    _df,
+    x,
+    y,
+    target=None,
+    xlabel=None,
+    ylabel=None,
+    title="Error vs Time",
+    errbar="sd",  # std, sem, ci
+    hue="Class",
+    ymin=0,
+    ymax=None,
+    markershape=None,  # None, config.num_layers
+    fname=False,
+    palette=cdict,
+):
     """_summary_
 
     Args:
@@ -813,10 +829,9 @@ def plot_acc_vs_speed_errorbar(
     if target is not None:
         data = data[data["config.target"] == target]
 
-
     data = data[["Model", x, y]]
 
-    # new df with error_metric mean 
+    # new df with error_metric mean
     # observed only applies if any of the groupers are Categoricals. If True: only show observed values for categorical groupers. If False: show all values for categorical groupers
     _mean = data.groupby(["Model"], observed=False).mean().reset_index()
     # columns and naming
@@ -832,7 +847,11 @@ def plot_acc_vs_speed_errorbar(
             _err = data.groupby(["Model"]).sem().reset_index()
         elif errbar == "ci":
             # compute 90% confidence interval
-            _err = data.groupby(["Model"]).agg(lambda x: x.quantile(0.95) - x.mean()).reset_index()
+            _err = (
+                data.groupby(["Model"])
+                .agg(lambda x: x.quantile(0.95) - x.mean())
+                .reset_index()
+            )
         elif errbar == "sd":
             _err = data.groupby(["Model"]).std().reset_index()
         else:
@@ -844,13 +863,13 @@ def plot_acc_vs_speed_errorbar(
     if markershape is not None:
         # make pretty
         _mean.rename(columns={markershape: human_labels(markershape)}, inplace=True)
-        if errbar is not None: 
+        if errbar is not None:
             _err.rename(columns={markershape: human_labels(markershape)}, inplace=True)
         markershape = human_labels(markershape)
         # set markers
         shapekwargs = {
             "style": markershape,
-            "markers": marks[: len(list(_mean[markershape].unique()))]
+            "markers": marks[: len(list(_mean[markershape].unique()))],
         }
     else:
         shapekwargs = {}
@@ -903,7 +922,7 @@ def plot_acc_vs_speed_errorbar(
                 y=_data[y],
                 xerr=_err_data[x],
                 yerr=_err_data[y],
-                fmt="none", # none, o
+                fmt="none",  # none, o
                 color=_color,
                 elinewidth=1,
                 capsize=3,
@@ -935,6 +954,7 @@ def plot_acc_vs_speed_errorbar(
         print(f"Saved plot to \n {plotfolder}/{fname}.png")
 
     return fig, ax
+
 
 def prep_df_for_table(_df, error_metric="summary.test_f_mae"):
     if "config.model.num_layers" in _df.columns:
@@ -1335,11 +1355,16 @@ def print_table_time_forces_avg_seeds(
             print("\midrule[0.6pt]")
         print("".join(line))
 
-def get_keys_history(run_id, project=projectmd,
-        keys=None, download=False, sname=None,
-        allcols=True,
-        # save_plot=False, logscale=False, ymax=None, xmax=None,
-    ):
+
+def get_keys_history(
+    run_id,
+    project=projectmd,
+    keys=None,
+    download=False,
+    sname=None,
+    allcols=True,
+    # save_plot=False, logscale=False, ymax=None, xmax=None,
+):
     if keys is None:
         if project == projectmd:
             keys = ["train_f_mae", "test_f_mae", "val_f_mae"]
@@ -1353,9 +1378,7 @@ def get_keys_history(run_id, project=projectmd,
     print("name:  ", run.name)
     mname = "".join(e for e in run_name if e.isalnum())
     # save as parquet
-    sname = (
-        f"{plotfolder}/traintestfmae_{run_id}_{mname}.parquet"
-    )
+    sname = f"{plotfolder}/traintestfmae_{run_id}_{mname}.parquet"
     # try to load from csv
     if download == False:
         try:
@@ -1373,19 +1396,19 @@ def get_keys_history(run_id, project=projectmd,
             history = run.history(keys=keys + ["_step", "_runtime", "epoch"])
 
         # https://github.com/wandb/wandb/blob/v0.18.0/wandb/apis/public/history.py#L80
-        print(f'History: {type(history)}')
+        print(f"History: {type(history)}")
 
         # turn history into dataframe
         df = pd.DataFrame(history)
         # rename artifact_name to error_type
         # df = df.rename(columns={artifact_name: col})
-        print(f'len(df) of downloaded history: {len(df)}')
+        print(f"len(df) of downloaded history: {len(df)}")
         # print('columns:', df.columns)
 
         # drop rows that are None
         if keys is not None:
-            df = df.dropna(subset=keys, how='all')
-            print(f'len(df) after dropping na: {len(df)}')
+            df = df.dropna(subset=keys, how="all")
+            print(f"len(df) after dropping na: {len(df)}")
 
         # # if artifact is a list
         # # turn _step into a list of same length as trace
@@ -1400,33 +1423,48 @@ def get_keys_history(run_id, project=projectmd,
         # # flatten
         # df = df.explode(["train_step", "list_step", col])
         # print(f'len(df) after flatten: {len(df)}')
-        
+
         # print('df: \n', df.head())
 
         # test_fpr_f_mae
         cols_to_keep = keys + [
-            "epoch", "_step", "_runtime", 
-            "avg_n_fsolver_steps_val", "avg_n_fsolver_steps_test", "avg_n_fsolver_steps_train",
+            "epoch",
+            "_step",
+            "_runtime",
+            "avg_n_fsolver_steps_val",
+            "avg_n_fsolver_steps_test",
+            "avg_n_fsolver_steps_train",
         ]
 
         df["run_id"] = run_id
         df["run_name"] = run.name
-        df["Model"] = ("E" if not run.config["model_is_deq"] else "DEQ") + str(run.config["model"]["num_layers"])
+        df["Model"] = ("E" if not run.config["model_is_deq"] else "DEQ") + str(
+            run.config["model"]["num_layers"]
+        )
         df["Class"] = "E" if not run.config["model_is_deq"] else "DEQ"
         df["model.num_layers"] = run.config["model"]["num_layers"]
 
         # save dataframe using runname
         df.to_csv(sname)
-    
+
     return df
 
+
 def plot_loss_curve(
-        df, x="_step", y="test_f_mae", 
-        xlabel=None, ylabel=None, logscale=False, 
-        ymax=None, xmax=None, 
-        ymin=None, xmin=None,
-        fname=None, title=None, hue="Class",
-        palette=cdict,
+    df,
+    x="_step",
+    y="test_f_mae",
+    xlabel=None,
+    ylabel=None,
+    logscale=False,
+    ymax=None,
+    xmax=None,
+    ymin=None,
+    xmin=None,
+    fname=None,
+    title=None,
+    hue="Class",
+    palette=cdict,
 ):
     _df = df.copy()
     _df.dropna(subset=[y], inplace=True)
@@ -1437,7 +1475,7 @@ def plot_loss_curve(
     set_seaborn_style()
 
     fig, ax = plt.subplots()
-    ax.ticklabel_format(style='sci', axis='x', scilimits=(0,0), useMathText=True)
+    ax.ticklabel_format(style="sci", axis="x", scilimits=(0, 0), useMathText=True)
     # plt.gca().ticklabel_format(useMathText=True)
 
     # plot: x=solver_step, y=error_type, hue=train_step
@@ -1470,7 +1508,7 @@ def plot_loss_curve(
     if title is not None:
         plt.title(title)
 
-    set_style_after(ax) # , fs=10
+    set_style_after(ax)  # , fs=10
 
     # legend outside the plot on the right
     # plt.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
@@ -1482,6 +1520,7 @@ def plot_loss_curve(
         print(f"Saved plot to \n {fname}")
 
     return fig, ax
+
 
 def get_runs_status_from_wandb(
     project=projectmd,
@@ -1518,10 +1557,10 @@ def get_runs_status_from_wandb(
         #     continue
 
         # print([
-        #     k for k in run.summary.keys() 
-        #     if 
+        #     k for k in run.summary.keys()
+        #     if
         #     k.startswith("_")
-        #     # (not "gradient" in k) 
+        #     # (not "gradient" in k)
         #     # and (not "config" in k)
         #     # and (not "summary" in k)
         # ])
@@ -1545,7 +1584,7 @@ def get_runs_status_from_wandb(
         if datetime.datetime.now() - date > datetime.timedelta(hours=hours_since):
             # print(f"Skipping run {run.id} {run.name} because of time")
             continue
-        
+
         # runtime is of format 215989.28339982033
         # convert to hours
         hours = run.summary["_runtime"] / 3600
@@ -1568,7 +1607,7 @@ def get_runs_status_from_wandb(
                 info[f"config.{key}"] = run.config[key]
         for summary_key in run.summary.keys():
             info[f"summary.{summary_key}"] = run.summary[summary_key]
-        
+
         # get log
         # file = run.file('output.log')
         # file.download() # root="."
@@ -1576,7 +1615,7 @@ def get_runs_status_from_wandb(
 
         # print the name
         print(run.name)
-        print("", info['config.slurm_job_id'])
+        print("", info["config.slurm_job_id"])
         if project == projectmd:
             print(f" epoch={info['summary.epoch']} / {info['config.epochs']}")
         elif project == projectoc:
@@ -1594,13 +1633,14 @@ def get_runs_status_from_wandb(
 
     df = pd.DataFrame(infos_acc)
 
-
     return df
 
+
 def print_restart_commands(
-        _df, project=projectmd,
-        ignore_overrides=["wandb_tags"],
-    ):
+    _df,
+    project=projectmd,
+    ignore_overrides=["wandb_tags"],
+):
     if project == projectmd:
         prefix = "launchrun"
         tag = "['speedmd_v1']"
@@ -1609,7 +1649,7 @@ def print_restart_commands(
         tag = "['speedoc_v1']"
 
     # ignore_overrides += ["config.target"]
-    
+
     # df[["config.override_dirname"]]
     # print(" ")
     _num_runs = 0
@@ -1622,11 +1662,11 @@ def print_restart_commands(
                 if so in o:
                     _add = False
                     break
-                
+
             if _add:
                 _overrides.append(o)
         overrides = " ".join([f"{o}" for o in _overrides])
-        
+
         # if "config.target" in row:
         if project == projectmd:
             target = " target=" + row["config.target"]

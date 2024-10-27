@@ -3,6 +3,7 @@ References:
     https://github.com/locuslab/deq 
     https://github.com/pv/scipy-work/tree/master/scipy/optimize
 """
+
 import torch
 import numpy as np
 import os
@@ -169,10 +170,10 @@ def check_values(a, name):
 def broyden_solver(
     func,
     x0,
-    max_iter, # 50
-    tol, # 1e-3
-    stop_mode, # 'abs'
-    indexing=None, # None
+    max_iter,  # 50
+    tol,  # 1e-3
+    stop_mode,  # 'abs'
+    indexing=None,  # None
     LBFGS_thres=None,
     ls=False,
     return_final=False,

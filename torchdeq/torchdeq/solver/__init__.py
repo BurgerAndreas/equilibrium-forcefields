@@ -19,6 +19,7 @@ Example:
 
     >>> register_solver('newton', newton_solver)
 """
+
 from .anderson import anderson_solver
 from .broyden import broyden_solver
 from .fp_iter import fixed_point_iter, simple_fixed_point_iter

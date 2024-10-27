@@ -7,7 +7,6 @@
     Code: https://github.com/locuslab/deq/blob/1fb7059d6d89bb26d16da80ab9489dcc73fc5472/lib/optimizations.py
 """
 
-
 import torch
 import torch.nn as nn
 from e3nn import o3

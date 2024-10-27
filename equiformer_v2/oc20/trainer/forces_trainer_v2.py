@@ -193,7 +193,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         """
         Predicts on a given dataset.
         Not run during training, only for evaluation.
-        
+
         Args:
         per image (bool): ?
         """
@@ -423,7 +423,9 @@ class ForcesTrainerV2(BaseTrainerV2):
                         "lr": self.scheduler.get_lr(),
                         "epoch": self.epoch,
                         "step": self.step,
-                        "loss_batch": loss.item() / scale * self.grad_accumulation_steps,
+                        "loss_batch": loss.item()
+                        / scale
+                        * self.grad_accumulation_steps,
                     }
                 )
 
@@ -517,7 +519,7 @@ class ForcesTrainerV2(BaseTrainerV2):
                             )
                         else:
                             self.run_relaxations()
-                            
+
                     self.model.train()
 
                 if self.scheduler.scheduler_type == "ReduceLROnPlateau":
@@ -534,7 +536,7 @@ class ForcesTrainerV2(BaseTrainerV2):
 
                 # end of step
                 pbar.update(1)
-            
+
             # end of epoch
 
             if checkpoint_every == -1:
@@ -711,7 +713,9 @@ class ForcesTrainerV2(BaseTrainerV2):
         loss = sum(loss)
         return loss
 
-    def _compute_metrics(self, out, batch_list, evaluator, metrics={}, return_results=False):
+    def _compute_metrics(
+        self, out, batch_list, evaluator, metrics={}, return_results=False
+    ):
         natoms = torch.cat(
             [batch.natoms.to(self.device) for batch in batch_list], dim=0
         )
@@ -1028,9 +1032,9 @@ class ForcesTrainerV2(BaseTrainerV2):
             # DEQ logging
             if "nstep" in out["info"]:
                 metrics = evaluator.update(
-                    key="nstep", 
-                    stat=out["info"]["nstep"].mean().item(), 
-                    metrics=metrics
+                    key="nstep",
+                    stat=out["info"]["nstep"].mean().item(),
+                    metrics=metrics,
                 )
             # log fixed-point trajectory once per evaluation
             if i == 0:
@@ -1040,7 +1044,6 @@ class ForcesTrainerV2(BaseTrainerV2):
                         step=self.step,
                         split="val",
                     )
-                
 
         # if distutils.is_master():
         time_total = time.perf_counter() - start_time

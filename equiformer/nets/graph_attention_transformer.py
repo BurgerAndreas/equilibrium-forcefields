@@ -297,7 +297,7 @@ class SeparableFCTP(torch.nn.Module):
             self.dtp_rad = RadialProfile(
                 fc_neurons + [self.dtp.tp.weight_numel], use_offset=bias
             )
-            for (slice, slice_sqrt_k) in self.dtp.slices_sqrt_k.values():
+            for slice, slice_sqrt_k in self.dtp.slices_sqrt_k.values():
                 self.dtp_rad.net[-1].weight.data[slice, :] *= slice_sqrt_k
                 # self.dtp_rad.offset.data[slice] *= slice_sqrt_k
                 if bias:
@@ -981,7 +981,7 @@ class EdgeDegreeEmbeddingNetwork(torch.nn.Module):
             bias=False,
         )
         self.rad = RadialProfile(fc_neurons + [self.dw.tp.weight_numel])
-        for (slice, slice_sqrt_k) in self.dw.slices_sqrt_k.values():
+        for slice, slice_sqrt_k in self.dw.slices_sqrt_k.values():
             self.rad.net[-1].weight.data[slice, :] *= slice_sqrt_k
             self.rad.offset.data[slice] *= slice_sqrt_k
         self.proj = LinearRS(self.dw.irreps_out.simplify(), irreps_node_embedding)

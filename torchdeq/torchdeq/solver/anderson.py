@@ -3,6 +3,7 @@ References:
     https://github.com/locuslab/deq 
     https://github.com/pv/scipy-work/tree/master/scipy/optimize
 """
+
 import torch
 import gc
 
@@ -15,14 +16,14 @@ __all__ = ["anderson_solver"]
 def anderson_solver(
     func,
     x0,
-    max_iter, # 50
-    tol, # 1e-3
-    stop_mode, # 'abs'
-    indexing=None, # None
-    m=6, # 6
-    lam=1e-4, # 1e-4
-    tau=1.0, # 1.0
-    return_final=False, # False
+    max_iter,  # 50
+    tol,  # 1e-3
+    stop_mode,  # 'abs'
+    indexing=None,  # None
+    m=6,  # 6
+    lam=1e-4,  # 1e-4
+    tau=1.0,  # 1.0
+    return_final=False,  # False
     **kwargs
 ):
     """
@@ -121,7 +122,7 @@ def anderson_solver(
         gx = F[:, k % m] - X[:, k % m]
         # [B, dim] -> [B]
 
-        abs_diff = gx.norm(dim=1) 
+        abs_diff = gx.norm(dim=1)
         rel_diff = abs_diff / (F[:, k % m].norm(dim=1) + 1e-9)
 
         # Update the state based on the new estimate
@@ -149,9 +150,7 @@ def anderson_solver(
             # TODO:verbose
             for _ in range(max_iter - 1 - k):
                 trace_dict[stop_mode].append(lowest_dict[stop_mode])
-                trace_dict[alternative_mode].append(
-                    lowest_dict[alternative_mode]
-                )
+                trace_dict[alternative_mode].append(lowest_dict[alternative_mode])
             break
 
     # If no solution was stored during the iteration process, store the final estimate

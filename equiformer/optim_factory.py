@@ -5,6 +5,7 @@
     Use parameter name to remove weight decay since
     tensor product weight is always one-dimensional.
 """
+
 from typing import Optional
 
 from math import sqrt

@@ -98,7 +98,6 @@ class Evaluator:
             return metrics, results
         return metrics
 
-
     def update(self, key, stat, metrics):
         """
         metric = sum_batches( mean of batch )

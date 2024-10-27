@@ -12,7 +12,7 @@ def log_fixed_point_error(
     info, step, datasplit=None, split=None, log_trace_freq=None, save_to_file=False
 ):
     """Log fixed point error to wandb.
-    
+
     datasplit: 'train', 'val', 'test' will be manually appended to the wandb log key "key_datasplit" ("nstep_train)
     split: 'train', 'val', 'test' will be manually appended to the wandb log key "split/key"
     """
@@ -39,19 +39,23 @@ def log_fixed_point_error(
         # log, but as a list instead of table
         if log_trace_freq is None:
             log_trace_freq = log_every_step_major
-        if (step % log_trace_freq == 0) or datasplit in ["test", "val"] or split in ["test", "val"]:
+        if (
+            (step % log_trace_freq == 0)
+            or datasplit in ["test", "val"]
+            or split in ["test", "val"]
+        ):
             # print('Logging fixed point error', f"abs_fixed_point_error_traj{n}")
             # log the fixed point error along the solver trajectory
             # https://github.com/wandb/wandb/issues/3966
             _abs = f_abs_trace.cpu().numpy().tolist()
             _rel = f_rel_trace.cpu().numpy().tolist()
-            
+
             # only log if the list does not contain NaNs or Nones
             if all([x is not None for x in _abs]) and all(
                 [x is not None for x in _rel]
             ):
                 # print('   _abs', 'not None')
-                
+
                 wandb.log(
                     {
                         f"{npre}abs_fixed_point_error_traj{n}": _abs,
@@ -60,7 +64,7 @@ def log_fixed_point_error(
                     step=step,
                     # split=split,
                 )
-                
+
             # log again in float64 format
             if "abs_trace64" in info:
                 _abs64 = (

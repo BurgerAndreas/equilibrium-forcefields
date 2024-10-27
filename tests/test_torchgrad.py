@@ -7,6 +7,7 @@ import torch
 A = torch.tensor(1.0, requires_grad=True)
 print("Tensor A:", A)
 
+
 # define a function using A tensor
 def f(x):
     B = x + 1

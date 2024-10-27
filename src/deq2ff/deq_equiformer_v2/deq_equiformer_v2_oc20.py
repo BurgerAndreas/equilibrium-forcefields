@@ -108,16 +108,16 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             sphere_channels_fixedpoint = sphere_channels
         self.sphere_channels_fixedpoint = sphere_channels_fixedpoint
 
-        if self.inp_inj == "cat": 
+        if self.inp_inj == "cat":
             # TODO should be if == "add"?
             # do we cat along the channel or l dimension?
             assert self.sphere_channels_fixedpoint == sphere_channels
-        
+
         # self.stacks = stacks
         # self.num_layers = num_layers
 
         super().__init__(
-            sphere_channels=sphere_channels, num_layers=num_layers,**kwargs
+            sphere_channels=sphere_channels, num_layers=num_layers, **kwargs
         )
         if self.inp_inj == "lc":
             # linear combination: two scalar learnable weights
@@ -152,7 +152,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         self.torchdeq_norm = torchdeq_norm
         self.deq_kwargs = deq_kwargs
         self._init_deq(
-            torchdeq_norm=torchdeq_norm, 
+            torchdeq_norm=torchdeq_norm,
             deq_kwargs=deq_kwargs,
             deq_kwargs_eval=deq_kwargs_eval,
             deq_kwargs_fpr=deq_kwargs_fpr,
@@ -164,9 +164,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         for i in range(self.num_layers):
             sphere_channels_in = self.sphere_channels
             if (i == 0) and (self.inp_inj == "cat"):
-                    sphere_channels_in = (
-                        self.sphere_channels_fixedpoint + self.sphere_channels
-                    )
+                sphere_channels_in = (
+                    self.sphere_channels_fixedpoint + self.sphere_channels
+                )
             block = TransBlockV2(
                 # sphere_channels=self.sphere_channels,
                 sphere_channels=sphere_channels_in,
@@ -210,7 +210,9 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             self.blocks.append(block)
 
     def _init_deq(self, torchdeq_norm, deq_kwargs, **kwargs):
-        return _init_deq(self, torchdeq_norm=torchdeq_norm, deq_kwargs=deq_kwargs, **kwargs)
+        return _init_deq(
+            self, torchdeq_norm=torchdeq_norm, deq_kwargs=deq_kwargs, **kwargs
+        )
 
     def set_current_deq(self, reuse=False):
         """We use different DEQ solvers for training, evaluation, and fixed-point reuse."""
@@ -222,6 +224,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         else:
             self.deq_current = self.deq
 
+    @torch.compile
     @conditional_grad(torch.enable_grad())
     def forward(
         self,
@@ -262,7 +265,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         ###############################################################
 
         # In Equiformer x are the node features,
-        # where x is initialized in the "encoder" and then updated in the transformer blocks. 
+        # where x is initialized in the "encoder" and then updated in the transformer blocks.
         # In DEQ x is also initialized in the "encoder" but then used as the input injection.
         emb = x.embedding
 
@@ -357,8 +360,17 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
 
     @conditional_grad(torch.enable_grad())
     def deq_implicit_layer(
-        self, z: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, batch,
-        step=None, datasplit=None, solver_step=None, stack=0,
+        self,
+        z: torch.Tensor,
+        emb,
+        edge_index,
+        edge_distance,
+        atomic_numbers,
+        batch,
+        step=None,
+        datasplit=None,
+        solver_step=None,
+        stack=0,
     ) -> torch.Tensor:
         """Implicit layer for DEQ that defines the fixed-point.
         Make sure to inputs and outputs are torch.tensor, not SO3_Embedding, to not break TorchDEQ.
@@ -372,7 +384,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             z = z.view(self.shape_batched)
         # we can't use previous of x because we initialize z as 0
         # will be flattened to 1D and the 2-norm of the resulting vector will be computed
-        
+
         """ Input injection and normalize """
         z = (z + emb) * torch.linalg.norm(emb) / torch.linalg.norm(z + emb)
         z = SO3_Embedding(
@@ -404,7 +416,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         if self.batchify_for_torchdeq:
             z = z.view(self.shape_unbatched)
         return z
-    
+
     # @conditional_grad(torch.enable_grad())
     # def deq_implicit_layer(
     #     self, z: torch.Tensor, emb, edge_index, edge_distance, atomic_numbers, batch,
@@ -452,7 +464,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
     #         z = inj_w1 * z + inj_w2 * emb
     #     else:
     #         raise ValueError(f"Invalid inp_inj: {self.inp_inj}")
-        
+
     #     """ Normalize after input injection """
     #     # print_values(z, "injprenorm", log=False)
     #     if self.inj_norm == "prev":
@@ -517,20 +529,20 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
             )
         elif self.z0 == "emb":
             return emb
-        elif self.z0.startswith('rand'):
+        elif self.z0.startswith("rand"):
             # rand_0.1
-            if len(self.z0.split('_')) > 1:
-                mult = float(self.z0.split('_')[1])
+            if len(self.z0.split("_")) > 1:
+                mult = float(self.z0.split("_")[1])
             else:
                 mult = 1.0
             return torch.rand(shape, device=self.device) * mult
-        elif self.z0.startswith('normal'):
+        elif self.z0.startswith("normal"):
             # normal_mean_std
             return torch.normal(
-                mean = float(self.z0.split('_')[1]),
-                std = float(self.z0.split('_')[2]),
-                size = shape,
-                device = self.device,
+                mean=float(self.z0.split("_")[1]),
+                std=float(self.z0.split("_")[2]),
+                size=shape,
+                device=self.device,
             )
         else:
             raise ValueError(f"Invalid z0: {self.z0}")

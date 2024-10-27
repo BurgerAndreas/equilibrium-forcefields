@@ -130,12 +130,12 @@ def set_style_after(ax, fs=15, legend=True, loc="best"):
     plt.tight_layout(pad=0)
 
     return
-    
+
 
 def reset_plot_styles():
     # Reset matplotlib settings to defaults
     plt.rcdefaults()
-    
+
     # Reset seaborn settings to defaults
     sns.reset_orig()
 
@@ -143,9 +143,10 @@ def reset_plot_styles():
     plt.rcParams.update(plt.rcParamsDefault)
 
     # Clear any active styling
-    plt.style.use('default')
+    plt.style.use("default")
 
     return
+
 
 labels = {
     "avg_n_fsolver_steps_test_fpreuse": "Number of solver steps, FP-reuse",
@@ -201,13 +202,14 @@ mol_names = {
     "buckyball_catcher": "Buckyball catcher",
     "Ac_Ala3_NHMe": "Ac-Ala3-NHMe",
     #
-    '200k e3': 'OC20 200k',
+    "200k e3": "OC20 200k",
 }
 
 # https://stackoverflow.com/a/64403147/18361030
 # marks = ["o", "s", "^"]
 marks = ["o", "X", "^", "P", "D"]
 # marks = ["o", "P", "^"]
+
 
 def combine_legend(ax, colorstyle_dict, markerstyle):
     # https://stackoverflow.com/questions/68591271/how-can-i-combine-hue-and-style-groups-in-a-seaborn-legend

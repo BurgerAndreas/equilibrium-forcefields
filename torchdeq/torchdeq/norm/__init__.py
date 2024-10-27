@@ -27,7 +27,6 @@ Example:
     >>> register_norm_module(Conv2d, 'custom_norm', 'weight', 0)
 """
 
-
 from .base_norm import (
     apply_norm,
     register_norm,

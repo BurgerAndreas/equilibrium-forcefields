@@ -24,6 +24,8 @@ load_stats: False
 # Use molecule of dataset average statistics. only has an effect if load_stats is True
 use_dataset_avg_stats: False 
 
+compile_train_step: False
+
 # how to split the dataset into training, validation, and testing
 # equiformer # default. randomly shuffles dataset into train, val, test without any overlap
 # fpreuse_overlapping # consecutive across batches, test split overlaps with train split, train and val splits are the same as in Equiformer

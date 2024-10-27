@@ -3,6 +3,7 @@ Spectral Normalization from https://arxiv.org/abs/1802.05957
 References:
     https://github.com/pytorch/pytorch/blob/main/torch/nn/utils/spectral_norm.py
 """
+
 import torch
 from torch import nn
 from torch.nn import functional as F

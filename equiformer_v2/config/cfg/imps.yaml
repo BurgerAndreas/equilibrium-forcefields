@@ -3,6 +3,11 @@
 
 # test implementation speed
 
+
+defaults:
+  - ../use/deq
+  - _self_
+
 target: benzene
 
 deq_kwargs:

@@ -53,7 +53,6 @@ class CosineLRLambda:
             f"\nmax_epochs: {self.max_epochs}"
             f"\nlr_min_factor: {self.lr_min_factor}"
         )
-        
 
     def __call__(self, current_step):
         # `warmup_epochs` is already multiplied with the num of iterations

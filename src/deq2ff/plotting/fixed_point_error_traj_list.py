@@ -78,17 +78,17 @@ def plot_full_fptraj_list(
         history = run.scan_history(keys=[artifact_name, "_step"])
 
         # https://github.com/wandb/wandb/blob/v0.18.0/wandb/apis/public/history.py#L80
-        print(f'History: {type(history)}, len={len(history.rows)}')
+        print(f"History: {type(history)}, len={len(history.rows)}")
 
         # turn history into dataframe
         df = pd.DataFrame(history)
         # rename artifact_name to error_type
         df = df.rename(columns={artifact_name: error_type})
-        print(f'len(df) of downloaded history: {len(df)}')
+        print(f"len(df) of downloaded history: {len(df)}")
 
         # drop rows that are None
         df = df.dropna(subset=[error_type])
-        print(f'len(df) after dropping na: {len(df)}')
+        print(f"len(df) after dropping na: {len(df)}")
 
         # turn _step into a list of same length as trace
         length = len(df[error_type].iloc[0])
@@ -103,8 +103,8 @@ def plot_full_fptraj_list(
 
         # flatten
         df = df.explode(["train_step", "solver_step", error_type])
-        print(f'len(df) after flatten: {len(df)}')
-        
+        print(f"len(df) after flatten: {len(df)}")
+
         # print('df: \n', df.head())
 
         # save dataframe using runname

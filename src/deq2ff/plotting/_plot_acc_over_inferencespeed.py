@@ -743,9 +743,11 @@ print(
 # TODO: remove this
 # crutch for old data colection: set test_fpreuse_f_mae to test_f_mae if it is float("inf")
 df_ablation["test_fpreuse_f_mae"] = df_ablation.apply(
-    lambda x: x["test_f_mae"]
-    if x["test_fpreuse_f_mae"] == float("inf")
-    else x["test_fpreuse_f_mae"],
+    lambda x: (
+        x["test_f_mae"]
+        if x["test_fpreuse_f_mae"] == float("inf")
+        else x["test_fpreuse_f_mae"]
+    ),
     axis=1,
 )
 

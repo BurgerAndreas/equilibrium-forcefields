@@ -3,6 +3,7 @@ Weight Normalization from https://arxiv.org/abs/1602.07868
 References:
     https://github.com/pytorch/pytorch/blob/main/torch/nn/utils/weight_norm.py
 """
+
 import torch
 from torch import nn
 from torch.nn import functional as F

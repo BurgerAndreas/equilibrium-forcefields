@@ -127,8 +127,7 @@ def balanced_partition(sizes, num_parts):
 @runtime_checkable
 class _HasMetadata(Protocol):
     @property
-    def metadata_path(self) -> Path:
-        ...
+    def metadata_path(self) -> Path: ...
 
 
 class BalancedBatchSampler(Sampler):

@@ -173,9 +173,7 @@ class TensorProductRescale(torch.nn.Module):
         #    for (slice, slice_sqrt_k) in self.slices_sqrt_k.values():
         #        out[:, slice] /= slice_sqrt_k
         if self.use_bias:
-            for (_, slice, bias) in zip(
-                self.bias_slice_idx, self.bias_slices, self.bias
-            ):
+            for _, slice, bias in zip(self.bias_slice_idx, self.bias_slices, self.bias):
                 # out[:, slice] += bias
                 out.narrow(1, slice.start, slice.stop - slice.start).add_(bias)
         return out

@@ -24,9 +24,14 @@ from deq2ff.plotting.style import (
 
 
 def plot_nsteps_list(
-    run_id: str, ymax=None, xmax=None, logscale=False,
-    as_perecent=False, show=False, palette=None,
-    ):
+    run_id: str,
+    ymax=None,
+    xmax=None,
+    logscale=False,
+    as_perecent=False,
+    show=False,
+    palette=None,
+):
     # https://github.com/wandb/wandb/issues/3966
 
     api = wandb.Api()
@@ -153,7 +158,6 @@ def plot_nsteps_list(
     #         'size'   : 22}
     # matplotlib.rc('font', **font)
 
-
     g = sns.catplot(
         data=_df,
         x="nstep",
@@ -197,8 +201,7 @@ def plot_nsteps_list(
 
     # set font size of labels
     g.set_axis_labels(
-        "Fixed-point solver steps", "Number of occurences", 
-        fontsize=myrc["font.size"]
+        "Fixed-point solver steps", "Number of occurences", fontsize=myrc["font.size"]
     )
     # g.set_titles("Solver steps with and without fixed-point reuse", fontsize=myrc["font.size"])
     g.set_xticklabels(fontsize=myrc["font.size"])
@@ -264,6 +267,7 @@ def plot_nsteps_list(
     plt.cla()
     plt.clf()
     plt.close()
+
 
 def search_for_runs():
     # get all runs with tag 'inference_speed'
@@ -339,15 +343,15 @@ def search_for_runs():
 
     return infos
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
 
     # run_id = "xpz4crad"
     # run_id = "o732ps0t"
     # plot_nsteps_list(run_id, logscale=False, xmax=15)
     # plot_nsteps_list(run_id, logscale=True)
 
-    # pDEQs apt inf-bs1acc 
+    # pDEQs apt inf-bs1acc
     run_id = "b321vc1w"
     plot_nsteps_list(run_id, logscale=False, xmax=9, as_perecent=True)
     # plot_nsteps_list(run_id, logscale=True)
@@ -357,7 +361,7 @@ if __name__ == "__main__":
     run_id = "o16dbur0"
     plot_nsteps_list(run_id, logscale=False, xmax=9, as_perecent=True)
     plot_nsteps_list(run_id, logscale=True, as_perecent=True)
-    
+
     # pDEQs ap ln-pre malonaldehyde
     # 7x83gn1c
     # # fpiter

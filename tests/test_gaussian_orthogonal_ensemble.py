@@ -21,7 +21,8 @@ def goe_matrix(dim, v=0.01, div_dim=False):
     mean 0 and variance V/N off-diagonal,
     mean 0 and variance 2V/N diagonal,
     and the matrix is symmetric.
-    The eigenvalues of a GOE matrix are real and follow the Wigner semicircle distribution."""
+    The eigenvalues of a GOE matrix are real and follow the Wigner semicircle distribution.
+    """
     _div = dim if div_dim else 1.0
 
     # V1 - symmetric but wrong variance

@@ -92,7 +92,7 @@ def get_data(datadir, task, split, del_intmd_files, download_only=False):
 
     if del_intmd_files:
         cleanup(filename, dirname)
-    
+
     logging.info("Data preprocessing complete.")
 
 

@@ -296,9 +296,11 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target):
         lambda x: f"{x['Model']} {x['Layers']}", axis=1
     )
     df_clustered["run_name"] = df_clustered.apply(
-        lambda x: x["run_name"] + f" {x['fpreuse_f_tol']:.0e}"
-        if x["fpreuse_f_tol"] != 0.0
-        else x["run_name"],
+        lambda x: (
+            x["run_name"] + f" {x['fpreuse_f_tol']:.0e}"
+            if x["fpreuse_f_tol"] != 0.0
+            else x["run_name"]
+        ),
         axis=1,
     )
     # print('\nAfter renaming:\n', df_clustered[["run_name", "Model", "Layers", acc_metric, time_metric, "fpreuse_f_tol"]])

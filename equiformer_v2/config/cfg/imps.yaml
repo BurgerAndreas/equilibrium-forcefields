@@ -3,6 +3,8 @@
 
 # test implementation speed
 
+targe: benzene
+
 deq_kwargs:
   # core: sliced
   f_solver: 'anderson'

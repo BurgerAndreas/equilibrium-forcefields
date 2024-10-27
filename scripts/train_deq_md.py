@@ -1429,7 +1429,8 @@ def train_one_epoch(
         data = data.to(device)
         data = data.to(device, dtype)
 
-        loss, loss_e, loss_f, pred_y, pred_dy, grad_norm, info = train_step(model, data)        
+        loss, loss_e, loss_f, pred_y, pred_dy, grad_norm, info = train_step(
+            data, model, model_ema, model_ema2, args, global_step, optimizer, criterion_energy, criterion_force, normalizers, grad_norm_epoch_avg)        
 
         #######################################
         # Logging

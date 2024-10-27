@@ -3,7 +3,7 @@
 
 # test implementation speed
 
-targe: benzene
+target: benzene
 
 deq_kwargs:
   # core: sliced

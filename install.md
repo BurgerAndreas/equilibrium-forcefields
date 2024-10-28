@@ -136,35 +136,61 @@ ln -s ${projdir}/checkpoints checkpoints
 nvidia-smi
 # https://github.com/pyg-team/pytorch_geometric/issues/999#issuecomment-606565132
 pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse torch-spline-conv -y
-pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.2.0 --index-url https://download.pytorch.org/whl/cu118
 pip install --no-index pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
 # OCP requires torch-geometric<=2.0.4
 pip install torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
-# pip install torch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1 --index-url https://data.pyg.org/whl/torch-1.11.0+cu115.html
-# pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu118
+# pip install torch==1.13.1 torchaudio==0.13.1 --index-url https://data.pyg.org/whl/torch-1.11.0+cu115.html
+# pip install torch==2.2.0 --index-url https://download.pytorch.org/whl/cu118
 # pip install torch_geometric pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.2.0+cu118.html
 
 # double check cuda version
 # ls ~/miniforge3/envs/deq/lib/python3.9/site-packages/
 pip freeze | grep nvidia
 mamba list -n deq | grep cu
+```
 
-# 2) AMD ROCm
+### AMD ROCm
+```bash
+# module avail
+# pytorch-geometric/2.3.0-pytorch-1.13.0-rocm-5.3
 rocm-smi
 apt show rocm-libs -a
+```
+
+#### ROCm 5.3
+```bash
 # Package: rocm-libs Version: 5.3.0.50300-63~22.04
 pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse torch-spline-conv -y
-pip3 install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/rocm5.3
+pip3 install torch==2.0.1 --index-url https://download.pytorch.org/whl/rocm5.3
 # https://github.com/Looong01/pyg-rocm-build/releases
-# V2
 wget https://github.com/Looong01/pyg-rocm-build/releases/download/3/torch-2.0-rocm-5.4.3-py310-linux_x86_64.zip
 unzip torch-2.0-rocm-5.4.3-py310-linux_x86_64.zip
 cd torch-2.0-rocm-5.4.3-py310-linux_x86_64
 pip install ./*
 cd ..
+```
 
-# module avail
-# pytorch-geometric/2.3.0-pytorch-1.13.0-rocm-5.3
+#### ROCm 5.7
+```bash
+export ROCM_PATH=/opt/rocm-5.7.0                  
+export LD_LIBRARY_PATH=/opt/rocm-5.7.0/lib:$LD_LIBRARY_PATH
+export PATH=/opt/rocm-5.7.0/bin:$PATH    
+rocm-smi
+apt show rocm-libs -a
+
+mamba env config vars set ROCM_PATH=/opt/rocm-5.7.0                  
+mamba env config vars set LD_LIBRARY_PATH=/opt/rocm-5.7.0/lib:$LD_LIBRARY_PATH
+mamba env config vars set PATH=/opt/rocm-5.7.0/bin:$PATH    
+
+pip uninstall torch torchvision torch-cluster torch-geometric torch-scatter torch-sparse torch-spline-conv -y
+pip3 install torch==2.2 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/rocm5.7
+# https://github.com/Looong01/pyg-rocm-build/releases
+wget https://github.com/Looong01/pyg-rocm-build/releases/download/4/torch-2.2-rocm-5.7-py310-linux_x86_64.zip
+unzip torch-2.2-rocm-5.7-py310-linux_x86_64.zip
+cd torch-2.2-rocm-5.7-py310-linux_x86_64
+pip install ./*
+cd ..
 
 # All
 # after changing torch-geometric all datasets need to be reprocessed

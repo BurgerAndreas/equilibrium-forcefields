@@ -111,6 +111,18 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 import gc
 
+import inspect
+def get_collate(dataset, follow_batch=None, exclude_keys=None):
+    # torch geometric 2.2 and 2.4 have different call signatures
+    if len(inspect.signature(Collater).parameters) == 3:
+        # 2.4 https://github.com/pyg-team/pytorch_geometric/blob/b823c7e80d9396ee5095c2ef8cea0475d8ce7945/torch_geometric/loader/dataloader.py#L13
+        return Collater(dataset, follow_batch=follow_batch, exclude_keys=exclude_keys)
+    elif len(inspect.signature(Collater).parameters) == 2:
+        # 2.2 https://github.com/pyg-team/pytorch_geometric/blob/ca4e5f8e308cf4ee7a221cb0979bb12d9e37a318/torch_geometric/loader/dataloader.py#L11
+        return Collater(follow_batch=follow_batch, exclude_keys=exclude_keys)
+    else:
+        raise ValueError("Unknown Collater signature")
+
 # https://github.com/pytorch/pytorch/issues/973
 # torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -333,7 +345,7 @@ def train_md(args):
             num_test_patches=args.test_patches,
         )
         # assert that dataset is consecutive
-        samples = Collater(follow_batch=None, exclude_keys=None)(
+        samples = get_collate(all_dataset, follow_batch=None, exclude_keys=None)(
             [all_dataset[i] for i in range(10)]
         )
         assert torch.allclose(
@@ -851,7 +863,7 @@ def train_md(args):
                 filelog.info(f"Failed to stop recording memory history {e}")
 
     if args.equivariance:
-        collate = Collater(follow_batch=None, exclude_keys=None)
+        collate = get_collate(train_dataset, follow_batch=None, exclude_keys=None)
         equivariance_test(
             args,
             model,
@@ -1014,7 +1026,7 @@ def train_md(args):
                 train_dataset,
                 test_dataset_full,
                 device,
-                Collater(follow_batch=None, exclude_keys=None),
+                get_collate(train_dataset, follow_batch=None, exclude_keys=None),
                 step=global_step,
             )
         else:
@@ -1168,8 +1180,8 @@ def train_md(args):
             filelog.info(f"Failed to stop recording memory history {e}")
 
     # all epochs done
-    # equivariance test
-    collate = Collater(follow_batch=None, exclude_keys=None)
+    # equivariance test            
+    collate = get_collate(train_dataset, follow_batch=None, exclude_keys=None)
     # device = list(model.parameters())[0].device
     equivariance_test(
         args, model, train_dataset, test_dataset_full, device, collate, step=global_step
@@ -1378,7 +1390,7 @@ def train_one_epoch(
     """Train for one epoch.
     Keys in dataloader: ['z', 'pos', 'batch', 'y', 'dy']
     """
-    collate = Collater(None, None)
+    collate = get_collate(all_dataset, None, None)
 
     model.train()
 

@@ -100,6 +100,18 @@ import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
+import inspect
+def get_collate(dataset, follow_batch=None, exclude_keys=None):
+    # torch geometric 2.2 and 2.4 have different call signatures
+    if len(inspect.signature(Collater).parameters) == 3:
+        # 2.4 https://github.com/pyg-team/pytorch_geometric/blob/b823c7e80d9396ee5095c2ef8cea0475d8ce7945/torch_geometric/loader/dataloader.py#L13
+        return Collater(dataset, follow_batch=follow_batch, exclude_keys=exclude_keys)
+    elif len(inspect.signature(Collater).parameters) == 2:
+        # 2.2 https://github.com/pyg-team/pytorch_geometric/blob/ca4e5f8e308cf4ee7a221cb0979bb12d9e37a318/torch_geometric/loader/dataloader.py#L11
+        return Collater(follow_batch=follow_batch, exclude_keys=exclude_keys)
+    else:
+        raise ValueError("Unknown Collater signature")
+
 
 fdir = "/ssd/gen/equilibrium-forcefields/models/md17/deq_equiformer_v2_oc20/ethanol/DEQE2FPCfpcrwpathdrop005targetethanol"
 fname = "pathological_ep@95_e@nan_f@nan.pth.tar"
@@ -214,7 +226,7 @@ def main(args):
             order=md_all.get_order(args),
         )
         # assert that dataset is consecutive
-        samples = Collater(follow_batch=None, exclude_keys=None)(
+        samples = get_collate(train_dataset, follow_batch=None, exclude_keys=None)(
             [all_dataset[i] for i in range(10)]
         )
         assert torch.allclose(
@@ -580,7 +592,7 @@ def main(args):
 
     """ Training Loop """
     data_loader = train_loader
-    collate = Collater(None, None)
+    collate = get_collate(train_dataset, None, None)
     model.train()
 
     solver_kwargs = {}

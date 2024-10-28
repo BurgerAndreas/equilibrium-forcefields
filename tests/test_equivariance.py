@@ -21,6 +21,17 @@ from scripts.train_deq_md import train_md, equivariance_test
 # register all models
 import deq2ff.register_all_models
 
+import inspect
+def get_collate(dataset, follow_batch=None, exclude_keys=None):
+    # torch geometric 2.2 and 2.4 have different call signatures
+    if len(inspect.signature(Collater).parameters) == 3:
+        # 2.4 https://github.com/pyg-team/pytorch_geometric/blob/b823c7e80d9396ee5095c2ef8cea0475d8ce7945/torch_geometric/loader/dataloader.py#L13
+        return Collater(dataset, follow_batch=follow_batch, exclude_keys=exclude_keys)
+    elif len(inspect.signature(Collater).parameters) == 2:
+        # 2.2 https://github.com/pyg-team/pytorch_geometric/blob/ca4e5f8e308cf4ee7a221cb0979bb12d9e37a318/torch_geometric/loader/dataloader.py#L11
+        return Collater(follow_batch=follow_batch, exclude_keys=exclude_keys)
+    else:
+        raise ValueError("Unknown Collater signature")
 
 @hydra.main(
     config_name="md17", config_path="../equiformer_v2/config", version_base="1.3"
@@ -48,7 +59,7 @@ def hydra_wrapper(args: DictConfig) -> None:
     # device = model.device
     device = list(model.parameters())[0].device
 
-    collate = Collater(follow_batch=None, exclude_keys=None)
+    collate = get_collate(train_dataset, follow_batch=None, exclude_keys=None)
     equivariance_test(args, model, train_dataset, test_dataset_full, device, collate)
 
     print("\nDone!")

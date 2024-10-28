@@ -224,7 +224,7 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         else:
             self.deq_current = self.deq
 
-    # @torch.compile
+    @torch.compile
     @conditional_grad(torch.enable_grad())
     def forward(
         self,

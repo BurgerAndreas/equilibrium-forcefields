@@ -841,7 +841,7 @@ class EquiformerV2_OC20(BaseModel):
 
     # from OCP models to predict F=dE/dx
     # not needed since we are predicting forces directly with another head
-    @torch.compile
+    # @torch.compile
     @conditional_grad(torch.enable_grad())
     def forward(
         self, data, step=None, datasplit=None, return_fixedpoint=False, **kwargs

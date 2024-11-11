@@ -1,0 +1,11 @@
+# @package _global_
+# this @package directive solves any nesting problem (if this file is included in another folder)
+
+# Original datasplit split that Equiformer used
+
+datasplit: "equiformer"
+test_patches: 1
+test_max_iter: 1000
+test_patch_size: null
+eval_batch_size: 8 # 24
+fpreuse_test: False

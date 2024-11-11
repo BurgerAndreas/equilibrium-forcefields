@@ -1,0 +1,35 @@
+# @package _global_
+# this @package directive solves any nesting problem (if this file is included in another folder)
+
+# test implementation speed
+
+
+defaults:
+  - ../use/deq
+  - _self_
+
+target: benzene
+
+deq_kwargs:
+  # core: sliced
+  f_solver: 'anderson'
+  f_stop_mode: 'rel'
+  f_tol: 1e-2
+  # b_solver: 'anderson'
+  # b_stop_mode: 'rel'
+  # b_tol: 1e-6
+  ift: True
+  # n_states: 3
+  
+  force_train_mode: False
+
+model:
+  torchdeq_norm:
+    norm_type: null
+  path_drop: 0.05
+  use_variational_path_drop: True
+  # ln_type: rms_norm_sh # rms_norm_sh layer_norm_sh
+
+epochs: 100
+optim:
+  max_epochs: 1

@@ -1,0 +1,32 @@
+# @package _global_
+# this @package directive solves any nesting problem (if this file is included in another folder)
+
+# dot_product_attention_transformer_exp_l2_md17
+
+override_test: 0
+
+model:
+  num_layers: 6
+  number_of_basis: 128
+  atomref: null
+  irreps_node_attr: "1x0e"
+  basis_type: "exp"
+  irreps_pre_attn: null
+  rescale_degree: False
+  nonlinear_message: False
+  norm_layer: "layer"
+  # most import for parameter count?
+  fc_neurons: [64, 64]
+  irreps_node_embedding_injection: "64x0e+32x1e+16x2e"
+  irreps_node_embedding: "128x0e+64x1e+32x2e"
+  irreps_feature: "512x0e"  # scalars only
+  irreps_sh: "1x0e+1x1e+1x2e"
+  irreps_head: "32x0e+16x1e+8x2e"
+  num_heads: 4
+  irreps_mlp_mid: "384x0e+192x1e+96x2e"
+  # regularization
+  alpha_drop: 0.0
+  proj_drop: 0.0
+  out_drop: 0.0
+  path_drop: 0.0
+  scale: null

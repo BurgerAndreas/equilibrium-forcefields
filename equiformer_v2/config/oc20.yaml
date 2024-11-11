@@ -1,0 +1,126 @@
+# @package _global_
+# this @package directive solves any nesting problem (if this file is included in another folder)
+
+defaults:
+  # if _self_ is the first entry, compositions will overwrite this config
+  # if _self_ is the last entry, this config will overwrite compositions (default)
+  # https://hydra.cc/docs/1.3/upgrades/1.0_to_1.1/default_composition_order/
+  - preset: mini # ChangeS 
+  - data: 200k
+  - _self_
+
+# TODO
+model:
+  # Statistics of IS2RE 100K
+  # IS2RE: 100k, max_radius = 5, max_neighbors = 100
+  _AVG_NUM_NODES: 77.81317
+  _AVG_DEGREE: 23.395238876342773
+  max_neighbors: 20           # 20 for OC20
+  max_radius: 12.0               # 12.0 for OC20
+
+####################################################
+# from ocp/ocpmodels/common/flags.py:
+
+# Whether to train the model, make predictions, or to run relaxations
+# choices=[train, predict, run-relaxations, validate]
+mode: train
+config_yml: "" # Path to a config file listing data, model, optim parameters.
+identifier: "" # Experiment identifier to append to checkpoint/log/result directory
+debug: False # Whether this is a debugging run or not
+run_dir: "./" # Directory to store checkpoint/log/result directory
+print_every: 10 # Log every N iterations (default: 10)
+seed: 0 # Seed for torch, cuda, numpy
+amp: False # Use mixed-precision training
+checkpoint: null # Model checkpoint to load
+timestamp_id: null # Override time stamp ID. Useful for seamlessly continuing model training in logger.
+test_w_eval_mode: False # use model.eval() during evaluation (bool)
+
+# Cluster args
+sweep_yml: null # Path to a config file with parameter sweeps
+submit: False # Submit job to cluster
+summit: False # Running on Summit cluster
+logdir: "logs" # Where to store logs
+slurm_partition: "ocp" # Name of partition
+slurm_mem: 80 # Memory (in gigabytes)
+slurm_timeout: 72 # Time (in hours)
+num_gpus: 1 # int: Number of GPUs to request
+distributed: False # Run with DDP
+cpu: False # Run CPU only training
+num_nodes: 1 # Number of Nodes to request
+distributed_port: 13356 # Port on master for DDP
+distributed_backend: "nccl" # Backend for DDP
+local_rank: 0 # Local rank
+no_ddp: False # Do not use DDP
+# int: Number of GPUs to split the graph over (only for Graph Parallel training)
+gp_gpus: null
+
+####################################################
+
+# https://github.com/atomicarchitects/equiformer_v2/blob/f9641b453fb28d075b915accf8345941d29319b3/oc20/configs/s2ef/2M/equiformer_v2/equiformer_v2_N%4012_L%406_M%402.yml#L78
+optim:
+  batch_size:                   4         # 6
+  eval_batch_size:              4         # 6
+  grad_accumulation_steps:      1         # gradient accumulation: effective batch size = `grad_accumulation_steps` * `batch_size` * (num of GPUs)
+  load_balancing: atoms
+  num_workers: 8
+  lr_initial:                   0.0002    # [0.0002, 0.0004], eSCN uses 0.0008 for batch size 96
+  
+  optimizer: AdamW
+  optimizer_params:
+    weight_decay: 0.001
+    
+  scheduler: LambdaLR
+  scheduler_params:
+    lambda_type: cosine
+    warmup_factor: 0.2
+    warmup_epochs: 0.1
+    lr_min_factor: 0.01         
+
+  max_epochs: 3
+  force_coefficient: 100
+  energy_coefficient: 2
+  clip_grad_norm: 100
+  ema_decay: 0.999
+  # ema_decay: False
+  loss_energy: mae
+  loss_force: l2mae
+
+  # 200k: len(train_loader)=50k (one epoch)
+  eval_every: 5000
+  checkpoint_every: 5000
+
+  maxdata: -1
+
+  set_grad_to_none: True
+  
+val_max_iter: 1000
+hide_eval_progressbar: False      
+logger: wandb
+wandb: True
+wandb_run_name: null
+wandb_group: null
+slurm_job_id: null
+model_name: ${model.name}
+
+####################################################
+# added
+
+checkpoint_path: auto
+checkpoint_wandb_name: null # only used if checkpoint_path is auto. will be filled by wandb
+assert_checkpoint: False
+
+
+fpreuse_test: False
+contrastive_loss: False
+
+# wandb.watch gradients, activations, model parameters (bool)
+watch_model: False
+wandb_tags: null
+
+# variables we can access in our code
+job_name: 'results'
+# job_name: ${hydra:job.name}
+config_name: ${hydra:job.config_name}
+# Stores the command line arguments overrides
+override_dirname: ${hydra:job.override_dirname}
+

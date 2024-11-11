@@ -1,0 +1,254 @@
+import seaborn as sns
+import matplotlib.pyplot as plt
+import pandas as pd
+import wandb
+import copy
+import os, sys, pathlib
+
+"""
+Fixed point convergence
+abs_trace over forward-solver-iteration-steps
+https://colab.research.google.com/drive/12HiUnde7qLadeZGGtt7FITnSnbUmJr-I?usp=sharing#scrollTo=V5Zff4FHqR5d
+"""
+
+from deq2ff.plotting.style import (
+    set_seaborn_style,
+    PALETTE,
+    entity,
+    projectmd,
+    plotfolder,
+    set_style_after,
+)
+
+
+# columns = ['abs', 'rel', 'solver_step', 'train_step']
+
+
+def plot_full_fptraj_list(
+    run_id: str,
+    datasplit: str = "train",
+    error_type="abs",
+    ymax=None,
+    logscale=False,
+    xmax=None,
+    save_plot=True,
+    download=False,
+    palette=None,
+):
+    # https://github.com/wandb/wandb/issues/3966
+
+    artifact_name = f"{error_type}_fixed_point_error_traj_{datasplit}"
+    alias = "latest"
+
+    api = wandb.Api()
+    run = api.run(projectmd + "/" + run_id)
+    run_name = run.name
+    print("\nrun_id:", run_id)
+    print("name:", run.name)
+
+    # artifact = run.logged_artifacts()
+    # print(f"len(artifact): {len(artifact)}")
+    # artifact = artifact[-1]
+    # table = artifact.get(artifact_name)
+    # dict_table = {column: table.get_column(column) for column in table.columns}
+    # df = pd.DataFrame(dict_table)
+
+    # run = wandb.init()
+    # artifact = run.use_artifact(f'{entity}/{project}/{artifact_name}:{alias}')
+    # artifact_table = artifact.get(artifact_name)
+    # my_df = pd.DataFrame(data=artifact_table.data, columns=artifact_table.columns)
+    # wandb.finish()
+
+    # metrics_dataframe = run.history()
+    mname = "".join(e for e in run_name if e.isalnum())
+    csvname = (
+        f"{plotfolder}/{run.id}_{error_type}_fixed_point_error_traj_{datasplit}.csv"
+    )
+    # try to load from csv
+    if download == False:
+        try:
+            df = pd.read_csv(csvname)
+            print(f"Loaded from csv: {csvname}")
+
+        except FileNotFoundError:
+            download = True
+            print(f"File not found: {csvname}")
+    if download:
+        print("Downloading run history...")
+        history = run.scan_history(keys=[artifact_name, "_step"])
+
+        # https://github.com/wandb/wandb/blob/v0.18.0/wandb/apis/public/history.py#L80
+        print(f"History: {type(history)}, len={len(history.rows)}")
+
+        # turn history into dataframe
+        df = pd.DataFrame(history)
+        # rename artifact_name to error_type
+        df = df.rename(columns={artifact_name: error_type})
+        print(f"len(df) of downloaded history: {len(df)}")
+
+        # drop rows that are None
+        df = df.dropna(subset=[error_type])
+        print(f"len(df) after dropping na: {len(df)}")
+
+        # turn _step into a list of same length as trace
+        length = len(df[error_type].iloc[0])
+        # df["train_step"] = df["_step"].astype(int)
+        # df["train_step"] = df["_step"].astype(str)
+        df["train_step"] = df["_step"].apply(lambda x: [x] * length)
+
+        # solver_step is a list [0, 1, 2, ...]
+        # df["solver_step"] = df.index
+        df["solver_step"] = df[error_type].apply(lambda x: list(range(len(x))))
+        # print('df: \n', df.head())
+
+        # flatten
+        df = df.explode(["train_step", "solver_step", error_type])
+        print(f"len(df) after flatten: {len(df)}")
+
+        # print('df: \n', df.head())
+
+        # save dataframe using runname
+        df.to_csv(csvname)
+
+    # dataframe with three colums: error_type, train_step, solver_step
+    # print(df)
+
+    set_seaborn_style()
+
+    fig, ax = plt.subplots()
+
+    # plot: x=solver_step, y=error_type, hue=train_step
+    sns.lineplot(
+        data=df,
+        x="solver_step",
+        y=error_type,
+        hue="train_step",
+        ax=ax,
+        palette=palette,
+        # paleette="tab10",
+    )
+    plt.xlabel("Fixed-point solver step")
+    plt.ylabel(f"Fixed-point error ({error_type})")
+    if logscale:
+        plt.yscale("log")
+    if ymax is not None:
+        # cant plot 0 on logscale
+        # plt.ylim(1e-12, ymax)
+        plt.ylim(top=ymax)
+    plt.xlim(left=0)
+    if xmax is not None:
+        plt.xlim(right=xmax)
+    # legend title
+    # plt.title(f"{run_name}")
+    plt.title(f"Fixed-Point Trace over Training")
+
+    # set_style_after(ax, fs=10)
+    set_style_after(ax)
+
+    # title legend
+    # plt.legend(title="Training step", fontsize=10)
+    plt.legend(title="Training step")
+
+    # legend outside the plot on the right
+    # plt.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
+    # ax.get_legend().get_frame().set_linewidth(0.0)
+
+    if save_plot:
+        fname = f"{plotfolder}/fixed_point_error_traj_{datasplit}_{error_type}_{run_id.split('/')[-1]}_{mname}.png"
+        plt.savefig(fname)
+        print(f"Saved plot to \n {fname}")
+
+    return fig, ax
+
+    # close the plot
+    # plt.cla()
+    # plt.clf()
+    # plt.close()
+
+
+if __name__ == "__main__":
+
+    # ----------------- E2 paper -----------------
+    # DEQE2 fpcof droppathrate-005 numlayers-2 target-aspirin 44347 y74fi59q
+    run_id = "y74fi59q"
+    plot_full_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # DEQE2 fpcof droppathrate-005 numlayers-2 seed-3 44235 l4967hbt
+    run_id = "l4967hbt"
+    plot_full_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=False)
+
+    # DEQE2 fpcof numlayers-2 44195 6ovbmv0v
+    run_id = "6ovbmv0v"
+    plot_full_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=False)
+    plot_full_fptraj_list(run_id, error_type="rel", datasplit="train", logscale=False)
+
+    # DEQE2 fpcof numlayers-2 seed-2 44196 ef3trp9e
+    run_id = "ef3trp9e"
+    plot_full_fptraj_list(run_id, error_type="abs", datasplit="train", logscale=False)
+    plot_full_fptraj_list(run_id, error_type="rel", datasplit="train", logscale=False)
+
+    # launchrun +use=deq +cfg=[fpc_of,fptrace] model.num_layers=2
+
+    # ----------------- E2 -----------------
+    # E2 aauf 8uuq632s
+    # not converged
+    run_id = "8uuq632s"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # E2 normlayer-norm aauf 8dqpu458
+    # not converged
+    # run_id = "8dqpu458"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # E2 fmaxiter-10 aauf c7jgk0p7
+    # not converged
+    run_id = "c7jgk0p7"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # E2 anderson add-inj-prev (aa) 1hwg7al5
+    # not converged
+    run_id = "1hwg7al5"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # E2 anderson by8radv7
+    # somewhat converged
+    run_id = "by8radv7"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # E2 nl7jlh8q
+    # somewhat converged
+    run_id = "nl7jlh8q"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # E2 fsolver-broyden alphadrop-0 droppathrate-0 1hjry1oh
+    run_id = "1hjry1oh"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # E2 alphadrop-0 droppathrate-0 12uk3wdo
+    run_id = "12uk3wdo"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
+
+    # ----------------- E1 -----------------
+    # broyden pathnorm: f9bg18sp
+    # main("f9bg18sp", datasplit="train")
+    # main("f9bg18sp", datasplit="train", ymax=0.01)
+    # main("f9bg18sp", datasplit="train", logscale=True)
+    # main("f9bg18sp", datasplit="train", logscale=True, ymax=0.001)
+    # main("f9bg18sp", error_type='rel', datasplit="train", logscale=True, ymax=0.001)
+    # main("f9bg18sp", error_type='rel', datasplit="train", logscale=True, ymax=0.001)
+
+    # broyden pathnorm 64precision
+    # run_id = "6cfnokgr"
+    # main(run_id, error_type="abs", datasplit="train", logscale=True)
+    # main(run_id, error_type="rel", datasplit="train", logscale=True)
+    # main(run_id, error_type='abs64', datasplit="train", logscale=True)
+    # main(run_id, error_type='rel64', datasplit="train", logscale=True)
+    # main(run_id, error_type='abs64', datasplit="train", logscale=True, ymax=0.001)
+    # main(run_id, error_type='rel64', datasplit="train", logscale=True, ymax=0.001)
+
+    # broyden: iptk3b73
+    # anderson: neo7e1vi
+    # z0-ones: gzifpvwe
+    # 6 layers: yuqbla4u
+    # FPreuse: auffq4x0
+    # Tanh: ii3gls8d

@@ -1,0 +1,9 @@
+# @package _global_
+# this @package directive solves any nesting problem (if this file is included in another folder)
+
+# for Equiformer
+model:
+  path_drop: 0.05
+  # use_variational_path_drop: True
+  alpha_drop: 0.1
+  # use_variational_alpha_drop: True

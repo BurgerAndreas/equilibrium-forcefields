@@ -1,0 +1,297 @@
+# @package _global_
+# this @package directive solves any nesting problem (if this file is included in another folder)
+
+model:
+  # Statistics of QM9 with cutoff max_radius = 5
+  # For simplicity, use the same statistics for MD17
+  _AVG_NUM_NODES: 18.03065905448718
+  _AVG_DEGREE: 15.57930850982666
+
+# [md17, rmd17og, rmd17, md22]
+# rmd17: use revised version of MD17 with more accurate energies and forces 
+# rmd17og: use the non-revised (old) data but downloaded from the revised dataset (should be the same as md17)
+dname: "md17"
+use_original_datasetcreation: False # will only work with dname=md17
+# (str)
+data_path: "datasets"
+# http://www.sgdml.org/#datasets
+target: "aspirin"
+# (str)
+# output_dir: models/md17/equiformer/test
+output_dir: auto
+# if to overwrite _AVG_NUM_NODES and _AVG_DEGREE with the dataset statistics (bool)
+load_stats: False
+# Use molecule of dataset average statistics. only has an effect if load_stats is True
+use_dataset_avg_stats: False 
+
+compile_train_step: False
+
+# how to split the dataset into training, validation, and testing
+# equiformer # default. randomly shuffles dataset into train, val, test without any overlap
+# fpreuse_overlapping # consecutive across batches, test split overlaps with train split, train and val splits are the same as in Equiformer
+# fpreuse_ordered # dataset is split into train, val, test without any shuffling. Testset is reordered to be consecutive across batches
+# rmd17 # datasplit indices delivered with the revised MD17 dataset, only works with md17 or rmd17
+datasplit: "fpreuse_overlapping" # ChangeS equiformer
+# for fpreuse we might want multiple consecutive dataloaders
+test_patches: 1000 # ChangeS 1
+
+# size of training dataset (int)
+train_size: 950
+# size of validation dataset (int)
+val_size: 50
+compute_stats: False
+# epoch interval to evaluate on the testing set (int)
+test_interval: 50
+# max iteration (num batches) to evaluate on the testing set (int)
+test_max_iter: -1 # ChangeS 1000
+# test_patch_size*test_patches = max samples to evaluate on the testing set (int)
+test_patch_size: 2 # ChangeS null
+do_final_test: False
+# after training is done (-1 means whole test set ~ 100-600k) (int)
+test_max_iter_final: -1
+
+shuffle: True
+shuffle_test: False
+drop_last_train: True
+drop_last_val: True
+drop_last_test: True
+
+# It's a mess but this is the settings I suggest for the different datasplits:
+# (1) default
+# train, test, and val are random indices, no overlap, non-consecutive.
+# the test size is limited by test_max_iter.
+# cannot be used for fixed-point reuse.
+# (2) fpreuse_test=True, eval_batch_size>=4, datasplit=fpreuse_overlapping
+# the test set is consecutive across batches, with overlap with the training set.
+# the overlap is minor since on MD17 the training set is ~0.5% of all data (~200k).
+# along the batch dimension the test set are evenly spaced across the dataset
+# if eval_batch_size is too small, we will test e.g. idx=[42,...1042], 
+# which is not representative of the whole dataset.
+# if eval_batch_size=4, test_max_iter=800 we will test 
+# e.g. idx=[[42,...242][50042,...50242][100042,...100242][150042,...150242]]
+# (3) fpreuse_test=True, eval_batch_size=1, test_patches>=4, test_patch_size=1000//test_patches, datasplit=fpreuse_overlapping
+# Only useful for evaluate=True (not training).
+# When evaluating fixed-point reuse in DEQs, it is better to use eval_batch_size=1.
+# test_patches will concat multiple consecutive streaks of idxs for the test set,
+# e.g. for test_patch_size=200: idx=[42,...242,50042,...50242,100042,...100242,150042,...150242]
+# the jumps are excluded in the nstep and time measurements
+
+# (int)
+epochs: 500 # ChangeS 1000
+# if you want to change the number of training epochs 
+# without affecting how the learning rate is decayed (int)
+max_epochs: ${epochs}
+# If you want multiple runs over the dataset per epoch, e.g. for overfitting a single batch (int)
+epochs_per_epochs: 1
+# (int)
+batch_size: 4
+# (int)
+eval_batch_size: 1 # ChangeS 24
+# (int)
+model_ema: False
+# (float)
+model_ema_decay: 0.9999
+# (float)
+model_ema_force_cpu: False
+
+# exponential moving average implementation from OC20 / EquiformerV2
+ema2: False
+ema_decay: 0.999
+eval_with_ema: False
+
+# float16, bfloat16, float32 or float64
+dtype: float32
+
+# .zero_grad(set_to_none=True) will delete the .grad attributes and will thus free memory
+set_grad_to_none: True
+
+# 'Optimizer (default: adamw' (str)
+opt: "adamw"
+# Optimizer Epsilon (default: 1e-8 (float)
+opt_eps: 1e-8
+# Optimizer Betas (default: None (float) -> (0.9, 0.999))
+opt_betas: null
+# Clip gradient norm (default: None (float)
+# clip_grad: null
+# SGD momentum (default: 0.9 (float)
+momentum: 0.9
+# weight decay (default: 5e-3 (float) # 1e-6 for paper
+weight_decay: 5e-3 
+# when multiplying the batch size by k, one should multiply the learning rate by sqrt(k)
+bsscale: null
+# only for root-free optimizers
+opt_kwargs:
+  batch_averaged: True
+opt_batch_size: null
+
+# 'LR scheduler (default: cosine' (str)
+sched: "cosine"
+# learning rate (default: 5e-4 or 1.5e-4) (float)
+lr: 5e-4
+# learning rate noise on/off epoch percentages (float)
+lr_noise: null
+# learning rate noise limit percent (default: 0.67 (float)
+lr_noise_pct: 0.67
+# learning rate noise std-dev (default: 1.0 (float)
+lr_noise_std: 1.0
+# warmup learning rate (default: 1e-6 (float)
+warmup_lr: 1e-6
+# lower lr bound for cyclic schedulers that hit 0 (1e-6 (float)
+min_lr: 1e-6
+# epoch interval to decay LR (float)
+decay_epochs: 30
+# epochs to warmup LR (int)
+warmup_epochs: 10
+# epochs to cooldown LR at min_lr (int)
+cooldown_epochs: 10
+# patience epochs for Plateau LR scheduler (default: 10 (int)
+patience_epochs: 10
+# LR decay rate (default: 0.1 (float)
+decay_rate: 0.1
+
+#
+loss_energy: l2mae
+loss_force: l2mae
+# loss multiplier
+energy_weight: 0.2 # 1
+force_weight: 0.8 # 80
+# (int)
+seed: 1
+seedrun: null
+# (int)
+# Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU. (bool)
+pin_mem: True
+# (int)
+num_workers: 4
+persistent_workers: False
+
+# load checkpoint (str)
+load_checkpoint: True
+checkpoint_path: auto
+checkpoint_wandb_name: null # only used if checkpoint_path is auto. will be filled by wandb
+save_best_test_checkpoint: True
+save_best_val_checkpoint: False
+save_checkpoint_after_test: True
+save_final_checkpoint: True
+assert_checkpoint: False
+max_checkpoints: 2
+# Only run inference on the test set, then stop (nool)
+evaluate: False
+# run a version of evaluate simplified for speed testing (bool)
+eval_speed: False
+# Only run equivariance test, then stop (bool)
+equivariance: False
+# Stop after the data is loaded and return the dataloaders (bool)
+return_data: False
+# Stop after the model is created and return the model (bool)
+return_model: False
+return_model_and_data: False
+# Include force in loss calculation. (str2bool)
+meas_force: True
+clip_grad_norm: 1000 # False, 5.0, 100
+
+# use model.eval() during evaluation (bool)
+test_w_eval_mode: True
+# use torch.no_grad() during evaluation (bool)
+test_w_grad: False
+
+# default: energies are standardized by e = e - mean_e / std_e
+# default: forces are standardized by f = f / std_e
+
+# logging
+# (int)
+print_freq: 100
+# major stuff (int)
+log_every_step_major: 1000
+# minor stuff (int)
+log_every_step_minor: 100
+
+# if to stop after one forward pass (bool)
+test_forward: False
+wandb: True
+wandb_run_name: null
+wandb_group: null
+wandb_tags: null
+slurm_job_id: null
+model_is_deq: False
+
+# reuse fixed-point of previous step
+# DEQ Optical Flow used FPR only during inference
+fpreuse_test: True # ChangeS False
+fpreuse_test_only: False
+fpreuse_last_test_only: True
+equiform_allow_fpreuse: True
+
+# reuse fixed-points across epochs
+fpreuse_across_epochs: False
+fp_on_gpu: False # if to save on GPU memory
+fpreuse_start_epoch: 0 # epoch to start reusing fixed-points
+
+# (sparse) fixed-point correction
+fpc_loss: l2
+fpc_freq: 0 # how many fixed-point estimates to pick for the loss. -1 means all, 0 means none. 1-4 is reasonable
+fpc_rand: False # if to pick fixed-point estimates unform randomly or uniformly spaced
+fpc_weight: 0.8 # weight for the fixed-point correction loss
+fpc_wfunc: const # weighting of loss in time. 'const' (constant), 'linear', and 'exp'
+
+# contrastive fixed-point loss
+contrastive_loss: False # False, next, triplet
+contrastive_weight: 0.8 # weight for the contrastive fixed-point loss
+contrastive_w_grad: False # if to use gradients in the contrastive fixed-point loss
+tripletloss_margin: 0.0 # margin for triplet loss
+
+# fixed-point reuse loss
+fpr_loss: False
+fpr_w_eval: False
+fpr_w_grad: False
+fpr_weight: 1.0
+
+unsqueeze_e_dim: False # if to reshape model output [B] (OC20) -> [B,1] (MD17)
+squeeze_e_dim: False # if to reshape data [B,1] (MD17) -> [B] (OC20)
+
+norm_by_natoms: False # if to divide the loss by the number of atoms
+norm_by_natoms_mul: 21 # if norm_by_atoms is True, multiply the loss by this number
+
+# if false, torchdeq treats each node as a separate batch
+# if true, torchdeq treats each graph (molecule) as a separate batch. # [B*N, D, C] -> [B, N, D, C]
+batchify_for_torchdeq: False 
+
+# log fixed_point_trace
+log_fixed_point_trace_train: False
+log_trace_freq: null
+
+# wandb.watch gradients, activations, model parameters (bool)
+watch_model: False
+torch_profile: False
+
+# log memory usage
+torch_record_memory: False
+max_num_of_mem_events_per_snapshot: 100000
+
+# print stack trace on error instead of e.g. silent NaNs
+torch_detect_anomaly: False
+
+# set environment variables for torchdeq
+broyden_print_values: null
+fix_broyden: null
+
+# grokfast https://github.com/ironjr/grokfast
+grokfast: False # False, ema, ma
+gf_alpha: null # 0.98
+gf_lambda: null # 2.0
+gf_ws: null # window size 0.1
+
+# hyperparameter tuning
+tune:
+  days_per_run: 1
+  days: 10
+  concurrent: 1
+
+# variables we can access in our code
+job_name: 'results'
+# job_name: ${hydra:job.name}
+config_name: ${hydra:job.config_name}
+# Stores the command line arguments overrides
+override_dirname: ${hydra:job.override_dirname}
+# Changes the current working directory to the output directory for each job
+# hydra.job.chdir: False

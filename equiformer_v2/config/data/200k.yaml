@@ -1,0 +1,27 @@
+# @package _global_
+# this @package directive solves any nesting problem (if this file is included in another folder)
+
+trainer: forces_v2
+
+# https://github.com/Open-Catalyst-Project/ocp/blob/main/configs/s2ef/200k/base.yml
+dataset:
+  - src: ocp/data/s2ef/200k/train/
+    normalize_labels: True
+    target_mean: -0.7554450631141663 
+    target_std: 2.887317180633545
+    grad_target_mean: 0.0
+    grad_target_std: 2.887317180633545
+  - src: ocp/data/s2ef/all/val_id/
+
+datasplit: 200k
+
+task:
+  dataset: trajectory_lmdb_v2 # default: trajectory_lmdb, equiformer_v2: trajectory_lmdb_v2
+  description: "Regressing to energies and forces for DFT trajectories from OCP"
+  type: regression
+  metric: force_mae # default: mae, equiformer_v2: force_mae
+  labels:
+    - potential energy
+  grad_input: atomic forces
+  train_on_free_atoms: True
+  eval_on_free_atoms: True

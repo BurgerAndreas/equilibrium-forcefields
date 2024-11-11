@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH --time=00:01:00
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=8
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu=2000
+#SBATCH --job-name=test 
+#SBATCH --output=slurmtest.txt 
+#SBATCH --error=slurmtest.txt
+
+# module load python pytorch
+module load miniforge3
+
+echo " "
+echo "rocm-smi"
+rocm-smi
+
+echo " "
+echo "apt show rocm-libs -a"
+apt show rocm-libs -a
+
+echo " "
+echo "rocminfo"
+rocminfo
+

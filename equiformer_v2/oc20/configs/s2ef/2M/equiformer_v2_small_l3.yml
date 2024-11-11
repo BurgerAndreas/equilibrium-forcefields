@@ -1,0 +1,9 @@
+includes:
+- equiformer_v2/oc20/configs/s2ef/2M/equiformer_v2_small.yml
+
+model: 
+  lmax_list: [3] # [4] [6]
+
+# optim:
+#   batch_size:                   1         # 4 6 8
+#   eval_batch_size:              4         # 6 # 12

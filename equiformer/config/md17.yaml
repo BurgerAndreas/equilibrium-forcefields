@@ -1,0 +1,75 @@
+# @package _global_
+# this @package directive solves any nesting problem (if this file is included in another folder)
+
+# call:
+# equiformer/main_md17.py wandb=False +preset=md17_aspirin_sel2.yaml
+
+defaults:
+  # if _self_ is the first entry, compositions will overwrite this config
+  # if _self_ is the last entry, this config will overwrite compositions (default)
+  # https://hydra.cc/docs/1.3/upgrades/1.0_to_1.1/default_composition_order/
+  # - preset: md17_defaults
+  - trainer_base
+  - _self_
+
+override_test: md17
+
+# DEQ E1 needs that: because torchdeq and E=dF/dx
+# use model.eval() during evaluation (bool)
+test_w_eval_mode: False
+# use torch.no_grad() during evaluation (bool)
+test_w_grad: True
+
+# passed into model
+model:
+  # dot_product_attention_transformer_exp_l2_md17
+  # name="graph_attention_transformer_nonlinear_l2_md17" # paper
+  # name: "graph_attention_transformer_nonlinear_l2_md17"
+  name: "dot_product_attention_transformer_exp_l2_md17"
+  # (int)
+  num_layers: 6
+  activation: "SiLU" 
+  number_of_basis: 128
+  atomref: null
+  irreps_node_attr: "1x0e"
+  basis_type: "exp"
+  irreps_pre_attn: null
+  rescale_degree: False
+  nonlinear_message: False
+  norm_layer: "layer"
+  # most import for parameter count?
+  fc_neurons: [64, 64]
+  irreps_node_embedding_injection: "64x0e+32x1e+16x2e"
+  irreps_node_embedding: "128x0e+64x1e+32x2e"
+  irreps_feature: "512x0e"  # scalars only
+  irreps_sh: "1x0e+1x1e+1x2e"
+  irreps_head: "32x0e+16x1e+8x2e"
+  num_heads: 4
+  irreps_mlp_mid: "384x0e+192x1e+96x2e"
+  # regularization
+  alpha_drop: 0.0 # 0.2
+  proj_drop: 0.0 # 0.1
+  out_drop: 0.0
+  path_drop: 0.0 # 0.05
+  scale: null
+  # (str)
+  irreps_in: null
+  # (float)
+  max_radius: 5.0 # 5 = 50 Angstrom?
+  # normalization for TensorProduct (see o3 library)
+  # https://docs.e3nn.org/en/stable/api/o3/o3_tp.html#e3nn.o3.TensorProduct
+  tp_path_norm: "path" # element, path, default="none"
+  tp_irrep_norm: null # None = 'element'
+  outhead_tp_path_norm: "none" # element, path, default="none"
+  outhead_tp_irrep_norm: null # None = 'element'
+  affine_ln: True
+  bias: True
+  # instead of F=dE/dx, use a prediction head DPTransBlock,
+  force_head: null 
+  # if False, moves the last TransformerBlock to the implicit layers
+  # and uses a IdentityBlock instead of the TransformerBlock in the decoder.
+  # only works if force_head is set and irreps_feature=irreps_node_embedding
+  dec: True
+
+  override_test: md17
+

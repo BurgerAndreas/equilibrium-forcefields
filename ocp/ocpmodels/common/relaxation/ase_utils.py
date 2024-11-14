@@ -80,6 +80,7 @@ class OCPCalculator(Calculator):
         max_neighbors=50,
         device="cpu",
         identifier="",
+        increment_trainer_step=False,
     ):
         """
         OCP-ASE Calculator
@@ -191,7 +192,7 @@ class OCPCalculator(Calculator):
             r_edges=False,
         )
         
-        # self.fixedpoint = None
+        self.increment_trainer_step = increment_trainer_step
 
     def load_checkpoint(self, checkpoint_path):
         """
@@ -220,6 +221,10 @@ class OCPCalculator(Calculator):
         predictions = self.trainer.predict(
             batch, per_image=False, disable_tqdm=True, 
         )
+        
+        # useful for wandb logging
+        if self.increment_trainer_step:
+            self.trainer.step += 1
         
         if self.trainer.name == "s2ef":
             self.results["energy"] = predictions["energy"].item()

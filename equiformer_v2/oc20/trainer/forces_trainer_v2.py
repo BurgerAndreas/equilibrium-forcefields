@@ -540,7 +540,7 @@ class ForcesTrainerV2(BaseTrainerV2):
 
                     if self.config["task"].get("eval_relaxations", False):
                         if "relax_dataset" not in self.config["task"]:
-                            logging.warning(
+                            self.file_logger.warning(
                                 "Cannot evaluate relaxations, relax_dataset not specified"
                             )
                         else:
@@ -569,7 +569,6 @@ class ForcesTrainerV2(BaseTrainerV2):
                 self.save(checkpoint_file="checkpoint.pt", training_state=True)
 
         # end of training
-        # from datetime import datetime
         # self.file_logger.info(f'Finished training at time {datetime.now().time()}.')
 
         self.file_logger.info(f"Finished training at time {time.ctime()}.")

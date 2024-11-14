@@ -107,11 +107,12 @@ def hydra_wrapper_relax(args: DictConfig) -> None:
             cutoff=max_radius,
             max_neighbors=max_neighbors,
             device=0,
-            identifier=argsstep['wandb_run_name']
+            identifier=argsstep['wandb_run_name'],
+            increment_trainer_step=True,
         )
         ocp_calculator.trainer.fpreuse_test = args['fpreuse_test']
-        ocp_calculator.model.module.eval()
-        ocp_calculator.model.eval()
+        ocp_calculator.trainer.model.module.eval()
+        ocp_calculator.trainer.model.eval()
 
         print("-"*50)
         if args['relax']['system'] == "oc20":
@@ -178,7 +179,9 @@ def hydra_wrapper_relax(args: DictConfig) -> None:
         time_taken = time.time() - start
         times.append(time_taken)
         times_per_step.append(time_taken / dyn.nsteps)
-        nstep = torch.tensor(ocp_calculator.trainer.metrics["nstep"]).mean().item()
+        nstep = torch.tensor(
+            ocp_calculator.trainer.prediction_metrics["nstep"]
+        ).mean().item()
         nstep_trainer.append(nstep)
         
         _logs = {

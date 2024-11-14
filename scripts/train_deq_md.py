@@ -1,15 +1,9 @@
-import argparse
 import datetime
-import itertools
-import pickle
-import subprocess
 import time
 import torch
 import numpy as np
 from torch_geometric.loader import DataLoader
 from torch_geometric.loader.dataloader import Collater
-
-# from torch_geometric.data import collate
 
 import os
 import sys
@@ -21,43 +15,24 @@ import traceback
 import tracemalloc
 import pprint
 
-# add the root of the project to the path so it can find equiformer
-# root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-# print("root_dir:", root_dir)
-# sys.path.append(root_dir)
-
 from pathlib import Path
 from typing import Iterable, Optional
 
-import distutils
-from equiformer.oc20.trainer.logger import FileLogger
-import equiformer.nets as nets
+from equiformer_v2.oc20.trainer.loggertofile import FileLogger
+
 from equiformer.nets import model_entrypoint
+from equiformer.optim_factory import create_optimizer, scale_batchsize_lr
+from equiformer.engine import AverageMeter, compute_stats
+
 
 from timm.utils import ModelEmaV2, get_state_dict
 from timm.scheduler import create_scheduler
-from equiformer.optim_factory import create_optimizer, scale_batchsize_lr
-
-from equiformer.engine import AverageMeter, compute_stats
-
-import torch.nn as nn
-from torch_cluster import radius_graph
-from torch_scatter import scatter
 
 from torch.profiler import profile, record_function, ProfilerActivity
 
-from torchdeq import get_deq
-from torchdeq.norm import apply_norm, reset_norm
-from torchdeq.loss import fp_correction
-
-import skimage
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-import e3nn
 from e3nn import o3
-from e3nn.util.jit import compile_mode
-from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
 
 import hydra
 import omegaconf
@@ -301,8 +276,7 @@ def train_md(args):
         os.makedirs(args.output_dir, exist_ok=True)
     wandb.run.config.update({"output_dir": args.output_dir}, allow_val_change=True)
 
-    if distutils.is_master():
-        filelog = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
+    filelog = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
 
     # _log.info(
     #     f"Args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}"

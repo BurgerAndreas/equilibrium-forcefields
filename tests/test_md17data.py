@@ -11,7 +11,7 @@ import sys, os
 
 import equiformer.datasets.pyg.md17 as md17_dataset
 
-from equiformer.oc20.trainer.logger import FileLogger
+from equiformer.oc20.trainer.loggertofile import FileLogger
 
 # import equiformer.nets
 from equiformer.nets import model_entrypoint

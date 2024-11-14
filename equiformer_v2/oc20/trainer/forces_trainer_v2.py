@@ -184,8 +184,8 @@ class ForcesTrainerV2(BaseTrainerV2):
                     )
                     self.normalizers["grad_target"].mean.fill_(0)
 
-    def init_metrics(self):
-        self.metrics = {
+    def init_prediction_metrics(self):
+        self.prediction_metrics = {
             "loss": [],
             "nstep": [],
         }
@@ -305,7 +305,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         info = out["info"]
         if "nstep" in info:
             nstep = info["nstep"].mean().item()
-            self.metrics["nstep"].append(nstep)
+            self.prediction_metrics["nstep"].append(nstep)
             self.logger.log({"nstep": nstep}, step=self.step)
 
     def update_best(
@@ -338,11 +338,11 @@ class ForcesTrainerV2(BaseTrainerV2):
         # pretty print the config.
 
         pp = pprint.PrettyPrinter(depth=4)
-        logging.info(f"ForcesTrainerV2: self.config:")
+        self.file_logger.info(f"ForcesTrainerV2: self.config:")
         pp.pprint(self.config)
-        logging.info(f"------------------------------")
+        self.file_logger.info(f"------------------------------")
         self.logger.config.update(self.config)
-        logging.info(f"Size training set: {len(self.train_loader)}")
+        self.file_logger.info(f"Size training set: {len(self.train_loader)}")
         self.logger.log({"num_training_steps": len(self.train_loader)}, step=self.step)
 
         # eval at least once per epoch
@@ -387,8 +387,8 @@ class ForcesTrainerV2(BaseTrainerV2):
         else:
             max_steps = len(self.train_loader)
 
-        logging.info(f"Starting training at step {self.step}.")
-        logging.info(f"Steps per epoch: {max_steps}")
+        self.file_logger.info(f"Starting training at step {self.step}.")
+        self.file_logger.info(f"Steps per epoch: {max_steps}")
         self.logger.log(
             {
                 "max_steps": int(max_steps * self.config["optim"]["max_epochs"]),
@@ -457,7 +457,8 @@ class ForcesTrainerV2(BaseTrainerV2):
                 # DEQ logging
                 info = out["info"]
                 if "nstep" in info:
-                    log_dict["nstep"] = out["nstep"].mean().item()
+                    log_dict["nstep"] = info["nstep"].mean().item()
+                    
                 if "abs_trace" in info.keys():
                     # log fixed-point trajectory once per evaluation
                     logging_utils_deq.log_fixed_point_error(
@@ -501,7 +502,7 @@ class ForcesTrainerV2(BaseTrainerV2):
 
                 if checkpoint_every != -1 and self.step % checkpoint_every == 0:
                     self.save(checkpoint_file="checkpoint.pt", training_state=True)
-                    logging.info(f"Saved checkpoint at step {self.step}.")
+                    self.file_logger.info(f"Saved checkpoint at step {self.step}.")
 
                 # Evaluate on val set every `eval_every` iterations.
                 if self.step % eval_every == 0 or i == (len(self.train_loader) - 1):
@@ -569,9 +570,9 @@ class ForcesTrainerV2(BaseTrainerV2):
 
         # end of training
         # from datetime import datetime
-        # logging.info(f'Finished training at time {datetime.now().time()}.')
+        # self.file_logger.info(f'Finished training at time {datetime.now().time()}.')
 
-        logging.info(f"Finished training at time {time.ctime()}.")
+        self.file_logger.info(f"Finished training at time {time.ctime()}.")
 
         pbar.close()
         self.train_dataset.close_db()
@@ -1040,7 +1041,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         max_iter = self.config.get("val_max_iter", -1)
         if max_iter == -1:
             max_iter = len(loader)
-        logging.info(f"Validate max steps: {max_iter}")
+        self.file_logger.info(f"Validate max steps: {max_iter}")
 
         def get_pbar_desc(step):
             return f"Validate (device {distutils.get_rank()}) Step={step}"
@@ -1111,7 +1112,7 @@ class ForcesTrainerV2(BaseTrainerV2):
                 split=split,
             )
         else:
-            logging.info(f"validate: self.logger is None. log_dict: {log_dict}")
+            self.file_logger.info(f"validate: self.logger is None. log_dict: {log_dict}")
 
         if self.ema and use_ema:
             self.ema.restore()

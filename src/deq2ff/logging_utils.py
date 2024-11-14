@@ -84,7 +84,8 @@ def fix_args_set_name(args: OmegaConf):
     args.checkpoint_wandb_name = name_from_config(args, is_checkpoint_name=True)
     # we can only set the name after the checkpoint name is set
     args.wandb_run_name = wandb_run_name
-    args['logger']['identifier'] = wandb_run_name
+    if 'logger' in args:
+        args['logger']['identifier'] = wandb_run_name
 
     return args
 

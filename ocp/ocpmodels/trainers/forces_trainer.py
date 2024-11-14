@@ -111,8 +111,8 @@ class ForcesTrainer(BaseTrainer):
         self.fixedpoint = None
         self.fpreuse_test = False
     
-    def init_metrics(self):
-        self.metrics = {
+    def init_prediction_metrics(self):
+        self.prediction_metrics = {
             "loss": [],
             "nstep": [],
         }
@@ -266,7 +266,7 @@ class ForcesTrainer(BaseTrainer):
         info = out["info"]
         if "nstep" in info:
             nstep = info["nstep"].mean().item()
-            self.metrics["nstep"].append(nstep)
+            self.prediction_metrics["nstep"].append(nstep)
             self.logger.log({"nstep": nstep}, step=self.step)
 
     def update_best(

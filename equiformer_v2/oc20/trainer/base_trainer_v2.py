@@ -392,10 +392,10 @@ class BaseTrainerV2(BaseTrainer):
 
         self.evaluator = Evaluator(task=name)
         
-        self.init_metrics()
+        self.init_prediction_metrics()
         
-    def init_metrics(self):
-        self.metrics = {
+    def init_prediction_metrics(self):
+        self.prediction_metrics = {
             "loss": [],
             "nstep": [],
         }

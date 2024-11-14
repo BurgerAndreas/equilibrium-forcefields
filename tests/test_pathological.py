@@ -23,7 +23,7 @@ import yaml
 from pathlib import Path
 from typing import Iterable, Optional
 
-from equiformer.oc20.trainer.logger import FileLogger
+from equiformer.oc20.trainer.loggertofile import FileLogger
 import equiformer.nets as nets
 from equiformer.nets import model_entrypoint
 

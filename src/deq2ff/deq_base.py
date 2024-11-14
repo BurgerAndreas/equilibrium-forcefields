@@ -22,19 +22,19 @@ def _init_deq(
     self.deq_mode = True
     # print(f"Passed deq_kwargs: {deq_kwargs}")
     # self.deq = get_deq(f_solver='broyden', f_max_iter=20, f_tol=1e-6)
-    self.deq_kwargs = deq_kwargs.copy()
-    self.deq = get_deq(**deq_kwargs)
+    self.kwargs_deq = deq_kwargs.copy()
+    self.deq = get_deq(**deq_kwargs, name="deq_train")
 
-    deq_kwargs1 = copy.deepcopy(deq_kwargs)
-    deq_kwargs1.update(deq_kwargs_eval)
-    self.deq_kwargs_eval = deq_kwargs1.copy()
-    self.deq_eval = get_deq(**deq_kwargs1)
+    kwargs_deq1 = copy.deepcopy(deq_kwargs)
+    kwargs_deq1.update(deq_kwargs_eval)
+    self.kwargs_deq_eval = kwargs_deq1.copy()
+    self.deq_eval = get_deq(**kwargs_deq1, name="deq_eval")
 
-    deq_kwargs2 = copy.deepcopy(deq_kwargs)
-    # deq_kwargs2.update(deq_kwargs_eval)
-    deq_kwargs2.update(deq_kwargs_fpr)
-    self.deq_kwargs_fpr = deq_kwargs2.copy()
-    self.deq_eval_fpr = get_deq(**deq_kwargs2)
+    kwargs_deq2 = copy.deepcopy(deq_kwargs)
+    # kwargs_deq2.update(deq_kwargs_eval)
+    kwargs_deq2.update(deq_kwargs_fpr)
+    self.kwargs_deq_fpr = kwargs_deq2.copy()
+    self.deq_eval_fpr = get_deq(**kwargs_deq2, name="deq_eval_fpr")
 
     self.deq_current = self.deq
 

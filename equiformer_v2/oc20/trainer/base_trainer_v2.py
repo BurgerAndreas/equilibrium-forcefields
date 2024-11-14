@@ -391,6 +391,14 @@ class BaseTrainerV2(BaseTrainer):
         self.load(skip_dataset=skip_dataset)
 
         self.evaluator = Evaluator(task=name)
+        
+        self.init_metrics()
+        
+    def init_metrics(self):
+        self.metrics = {
+            "loss": [],
+            "nstep": [],
+        }
 
     def look_for_checkpoint(self):
         if distutils.is_master():

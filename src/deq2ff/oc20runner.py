@@ -42,25 +42,8 @@ import omegaconf
 from omegaconf import DictConfig, OmegaConf
 
 from ocpmodels.common.registry import registry
-from ocpmodels.common.loggercloud import Logger
 
-@registry.register_logger("dummy")
-class DummyLogger(Logger):
-    def __init__(self, config):
-        super().__init__(config)
 
-    def watch(self, model):
-        """Log gradients"""
-        pass
-
-    def log(self, update_dict, step=None, split=""):
-        pass
-
-    def log_plots(self, plots, caption=""):
-        pass
-
-    def mark_preempting(self):
-        pass
 
 class Runner(submitit.helpers.Checkpointable):
     def __init__(self):

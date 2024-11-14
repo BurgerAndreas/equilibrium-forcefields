@@ -1750,7 +1750,7 @@ def evaluate(
                     # reset fixed-point
                     fixedpoint = None
                     prev_idx = None
-                    # for time and nsteps only keep samples where we used the fixed-point
+                    # for time and nstep only keep samples where we used the fixed-point
                     log_fp = False
                 # filelog.info(f"Setting DEQ")
                 # filelog.logger.handlers[0].flush() # flush logger

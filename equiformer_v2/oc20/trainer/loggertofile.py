@@ -65,11 +65,10 @@ class FileLogger:
         console.setLevel(logging.DEBUG)
         logger.addHandler(console)
 
+        # prevent double logging
         # Reference: https://stackoverflow.com/questions/21127360/python-2-7-log-displayed-twice-when-logging-module-is-used-in-two-python-scri
         logger.propagate = False
         
-        print(f"FileLogger handlers after setup:\n {logger.handlers}")
-
         return logger
 
     def console(self, *args):
@@ -98,7 +97,6 @@ class FileLogger:
         for hdlr in self.logger.handlers:
             self.logger.removeHandler(hdlr) 
             hdlr.close()
-        print(f"FileLogger hasHandlers after close: {self.logger.handlers}")
         del self.logger
         close_all_log_handlers()
 

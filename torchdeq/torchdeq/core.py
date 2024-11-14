@@ -85,11 +85,13 @@ class DEQBase(nn.Module):
         eval_factor=1.0,
         eval_f_max_iter=0,
         force_train_mode=False,
+        name="",
         **kwargs,
     ):
         super(DEQBase, self).__init__()
         # print(f"\n{self.__class__.__name__} TorchDEQ kwargs:", kwargs)
 
+        self.name = name
         self.args = DEQConfig(args)
         self.args.update(**kwargs)
 
@@ -278,14 +280,14 @@ class DEQIndexing(DEQBase):
         # set the gradient function self.prduce_grad
         self.set_grad(self.grad_args)
 
-        print(
-            f"\n{self.__class__.__name__} TorchDEQ args set:",
-            f"\n{yaml.dump(self.grad_args)}",
-            "n_states =",
-            n_states,
-            "\nindexing =",
-            self.indexing,
-        )
+        # print(
+        #     f"\n{self.__class__.__name__} TorchDEQ args set:",
+        #     f"\n{yaml.dump(self.grad_args)}",
+        #     "n_states =",
+        #     n_states,
+        #     "\nindexing =",
+        #     self.indexing,
+        # )
 
     def set_grad(self, grad_args={}):
         """Define gradient functions through the backward factory.
@@ -621,14 +623,14 @@ class DEQSliced(DEQBase):
         # set the gradient function self.prduce_grad
         self.set_grad(self.grad_args)
 
-        print(
-            f"\n{self.__class__.__name__} TorchDEQ args set:",
-            f"\n{yaml.dump(self.args)}",
-            "n_states =",
-            n_states,
-            "\nindexing =",
-            self.indexing,
-        )
+        # print(
+        #     f"\n{self.__class__.__name__} TorchDEQ args set:",
+        #     f"\n{yaml.dump(self.args)}",
+        #     "n_states =",
+        #     n_states,
+        #     "\nindexing =",
+        #     self.indexing,
+        # )
 
     def set_grad(self, grad_args={}):
         """Define gradient functions through the backward factory.

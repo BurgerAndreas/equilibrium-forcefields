@@ -168,6 +168,8 @@ IGNORE_OVERRIDES = [
     "basemodel",
     "wandb_group",
     "wandb",
+    "relax",
+    "logger",
 ]
 
 # some stuff is not relevant for the checkpoint

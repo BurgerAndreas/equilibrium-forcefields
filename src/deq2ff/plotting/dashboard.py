@@ -234,7 +234,7 @@ def preprocess_df(df, project, error_metric):
     # n_states: replace nans with 0
     df["config.deq_kwargs.n_states"] = df["config.deq_kwargs.n_states"].replace(nans, 0)
 
-    # add nsteps (solver steps) / NFE (number of function evaluations) as columns
+    # add nstep (solver steps) / NFE (number of function evaluations) as columns
     if project == projectmd:
         y = "summary.avg_n_fsolver_steps_test_fpreuse"
     elif project == projectoc:

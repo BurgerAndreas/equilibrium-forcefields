@@ -358,12 +358,12 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target, tol=None):
     mfp = m.replace("test", "test_fpreuse")
     # dfc[f"{m}_lowest"] = dfc.apply(lambda x: min(x[m], x[mfp]), axis=1)
 
-    # rename column avg_n_fsolver_steps_test_fpreuse -> nsteps
-    dfc = dfc.rename(columns={"avg_n_fsolver_steps_test_fpreuse": "nsteps"})
-    # dfc = dfc.rename(columns={"f_steps_to_fixed_point_test_fpreuse": "nsteps"})
+    # rename column avg_n_fsolver_steps_test_fpreuse -> nstep
+    dfc = dfc.rename(columns={"avg_n_fsolver_steps_test_fpreuse": "nstep"})
+    # dfc = dfc.rename(columns={"f_steps_to_fixed_point_test_fpreuse": "nstep"})
 
-    # new column nfe = nsteps * Layers
-    dfc["nfe"] = dfc["nsteps"] * dfc["Layers"]
+    # new column nfe = nstep * Layers
+    dfc["nfe"] = dfc["nstep"] * dfc["Layers"]
 
     color_palette = sns.color_palette("muted")
     color_equiformer = color_palette[0]

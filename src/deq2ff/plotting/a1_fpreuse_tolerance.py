@@ -25,13 +25,13 @@ nans = ["NaN", pd.NA, None, float("inf"), np.nan]
 
 def plot_acc_over_ftol(dfc, runs_with_dropout, target):
     """Plot accuracy over fpreuse_f_tol"""
-    # rename column avg_n_fsolver_steps_test_fpreuse -> nsteps
-    dfc = dfc.rename(columns={"avg_n_fsolver_steps_test_fpreuse": "nsteps"})
-    # dfc = dfc.rename(columns={"f_steps_to_fixed_point_test_fpreuse": "nsteps"})
+    # rename column avg_n_fsolver_steps_test_fpreuse -> nstep
+    dfc = dfc.rename(columns={"avg_n_fsolver_steps_test_fpreuse": "nstep"})
+    # dfc = dfc.rename(columns={"f_steps_to_fixed_point_test_fpreuse": "nstep"})
 
-    # new column nfe = nsteps * Layers
-    # dfc["nfe"] = dfc["nsteps"] * dfc["Layers"]
-    dfc["nfe"] = dfc["nsteps"]
+    # new column nfe = nstep * Layers
+    # dfc["nfe"] = dfc["nstep"] * dfc["Layers"]
+    dfc["nfe"] = dfc["nstep"]
 
     df_fpreuse = dfc[dfc["Model"] == "DEQ"]
 
@@ -139,13 +139,13 @@ def plot_acc_over_ftol(dfc, runs_with_dropout, target):
 # source multiruns/tolerance_sweep_fpreuseablation.sh
 def plot_acc_over_ftol_wo_fpreuse(dfc, runs_with_dropout, target):
     """Plot accuracy over fpreuse_f_tol"""
-    # rename column avg_n_fsolver_steps_test_fpreuse -> nsteps
-    dfc = dfc.rename(columns={"avg_n_fsolver_steps_test_fpreuse": "nsteps"})
-    # dfc = dfc.rename(columns={"f_steps_to_fixed_point_test_fpreuse": "nsteps"})
+    # rename column avg_n_fsolver_steps_test_fpreuse -> nstep
+    dfc = dfc.rename(columns={"avg_n_fsolver_steps_test_fpreuse": "nstep"})
+    # dfc = dfc.rename(columns={"f_steps_to_fixed_point_test_fpreuse": "nstep"})
 
-    # new column nfe = nsteps * Layers
-    # dfc["nfe"] = dfc["nsteps"] * dfc["Layers"]
-    dfc["nfe"] = dfc["nsteps"]
+    # new column nfe = nstep * Layers
+    # dfc["nfe"] = dfc["nstep"] * dfc["Layers"]
+    dfc["nfe"] = dfc["nstep"]
 
     df_fpreuse = dfc[dfc["Model"] == "DEQ"]
 
@@ -268,12 +268,12 @@ def plot_acc_over_nfe(dfc, runs_with_dropout, target):
     mfp = m.replace("test", "test_fpreuse")
     # dfc[f"{m}_lowest"] = dfc.apply(lambda x: min(x[m], x[mfp]), axis=1)
 
-    # rename column avg_n_fsolver_steps_test_fpreuse -> nsteps
-    dfc = dfc.rename(columns={"avg_n_fsolver_steps_test_fpreuse": "nsteps"})
-    # dfc = dfc.rename(columns={"f_steps_to_fixed_point_test_fpreuse": "nsteps"})
+    # rename column avg_n_fsolver_steps_test_fpreuse -> nstep
+    dfc = dfc.rename(columns={"avg_n_fsolver_steps_test_fpreuse": "nstep"})
+    # dfc = dfc.rename(columns={"f_steps_to_fixed_point_test_fpreuse": "nstep"})
 
-    # new column nfe = nsteps * Layers
-    dfc["nfe"] = dfc["nsteps"] * dfc["Layers"]
+    # new column nfe = nstep * Layers
+    dfc["nfe"] = dfc["nstep"] * dfc["Layers"]
 
     color_palette = sns.color_palette("muted")
     color_equiformer = color_palette[0]

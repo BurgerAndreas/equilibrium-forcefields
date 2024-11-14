@@ -171,6 +171,12 @@ class OCPCalculator(Calculator):
             cpu=True if device == "cpu" else False,
             skip_dataset=True,
             logger=config.get("logger", "tensorboard"),
+            # added
+            val_max_iter=config.get("val_max_iter", -1),
+            model_is_deq=config.get("model_is_deq", False),
+            deq_kwargs=config.get("deq_kwargs", {}),
+            deq_kwargs_eval=config.get("deq_kwargs_eval", {}),
+            deq_kwargs_fpr=config.get("deq_kwargs_fpr", {}),
         )
 
         if checkpoint is not None:

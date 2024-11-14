@@ -14,7 +14,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 from ocpmodels.common.registry import registry
 
-
 class Logger(ABC):
     """Generic class to interface with various logging modules.
     e.g. wandb, tensorboard, etc.
@@ -50,7 +49,24 @@ class Logger(ABC):
     def mark_preempting(self):
         pass
 
+@registry.register_logger("dummy")
+class DummyLogger(Logger):
+    def __init__(self, config):
+        super().__init__(config)
 
+    def watch(self, model):
+        """Log gradients"""
+        pass
+
+    def log(self, update_dict, step=None, split=""):
+        pass
+
+    def log_plots(self, plots, caption=""):
+        pass
+
+    def mark_preempting(self):
+        pass
+    
 @registry.register_logger("wandb")
 class WandBLogger(Logger):
     def __init__(self, config):

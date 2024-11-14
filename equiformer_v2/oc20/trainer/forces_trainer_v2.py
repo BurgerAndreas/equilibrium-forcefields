@@ -184,6 +184,12 @@ class ForcesTrainerV2(BaseTrainerV2):
                     )
                     self.normalizers["grad_target"].mean.fill_(0)
 
+    def init_metrics(self):
+        self.metrics = {
+            "loss": [],
+            "nstep": [],
+        }
+    
     # Takes in a new data source and generates predictions on it.
     @torch.no_grad()
     def predict(
@@ -272,14 +278,11 @@ class ForcesTrainerV2(BaseTrainerV2):
                 predictions["energy"] = out["energy"].detach()
                 predictions["forces"] = out["forces"].detach()
                 
-                info = out["info"]
-                if "nsteps" in info:
-                    nsteps = info["nsteps"].mean().item()
-                    self.logger.log({"nsteps": nsteps}, step=self.step)
-
+                self.log_nstep(out)
 
                 if self.ema:
                     self.ema.restore()
+                    
                 return predictions
 
         predictions["forces"] = np.array(predictions["forces"])
@@ -290,16 +293,20 @@ class ForcesTrainerV2(BaseTrainerV2):
             predictions, results_file, keys=["energy", "forces", "chunk_idx"]
         )
         
-        # logging
-        info = out["info"]
-        if "nsteps" in info:
-            nsteps = info["nsteps"].mean().item()
-            self.logger.log({"nsteps": nsteps}, step=self.step)
+        self.log_nstep(out)
 
         if self.ema:
             self.ema.restore()
 
         return predictions
+    
+    def log_nstep(self, out):
+        # logging
+        info = out["info"]
+        if "nstep" in info:
+            nstep = info["nstep"].mean().item()
+            self.metrics["nstep"].append(nstep)
+            self.logger.log({"nstep": nstep}, step=self.step)
 
     def update_best(
         self,
@@ -449,8 +456,8 @@ class ForcesTrainerV2(BaseTrainerV2):
 
                 # DEQ logging
                 info = out["info"]
-                if "nsteps" in info:
-                    log_dict["nsteps"] = out["nsteps"].mean().item()
+                if "nstep" in info:
+                    log_dict["nstep"] = out["nstep"].mean().item()
                 if "abs_trace" in info.keys():
                     # log fixed-point trajectory once per evaluation
                     logging_utils_deq.log_fixed_point_error(

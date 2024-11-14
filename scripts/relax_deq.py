@@ -7,7 +7,7 @@
 # Usage:
 # launchrelax preset=reg +use=deq +cfg=ap2
 # launchrelax preset=reg +use=deq +cfg=ap2 fpreuse_test=False
-# launchrelax preset=reg +use=deq +cfg=ap2 deq_kwargs_fpr.f_tol=1e-1
+# launchrelax preset=reg +use=deq +cfg=ap2 +deq_kwargs_fpr.f_tol=1e-1
 # launchrelax preset=reg +cfg=dd model.num_layers=12
 
 # bash command to download model checkpoint checkpoints/pDEQsap2reg/best_checkpoint.pt
@@ -26,7 +26,7 @@ import hydra
 import omegaconf
 from omegaconf import DictConfig, OmegaConf
 import time
-
+import yaml
 from deq2ff.oc20runner import get_OC20runner
 from ocpmodels.common.relaxation.ase_utils import OCPCalculator
 from deq2ff.logging_utils import init_wandb, fix_args_set_name
@@ -81,8 +81,11 @@ def hydra_wrapper_relax(args: DictConfig) -> None:
 
     train_loader = runner.trainer.train_loader
     del runner, reference
-    print("train_loader", train_loader, len(train_loader))
+    print("train_loader:", len(train_loader))
     
+    times = []
+    times_per_step = []
+    nstep_trainer = []
     for i, sample in enumerate(train_loader):
         if i >= args['relax']['n_samples']:
             break
@@ -106,13 +109,16 @@ def hydra_wrapper_relax(args: DictConfig) -> None:
             device=0,
             identifier=argsstep['wandb_run_name']
         )
-        ocp_calculator.trainer.fpreuse_test = True
+        ocp_calculator.trainer.fpreuse_test = args['fpreuse_test']
+        ocp_calculator.model.module.eval()
+        ocp_calculator.model.eval()
 
+        print("-"*50)
         if args['relax']['system'] == "oc20":
             # get sample from OC20 dataset
             data = _forward_otf_graph(sample[0], max_radius, max_neighbors)
             atoms = batch_to_atoms(data)
-            print("atoms", atoms)
+            # print("atoms", atoms)
             adslab = atoms[0]
             
         else:
@@ -140,11 +146,11 @@ def hydra_wrapper_relax(args: DictConfig) -> None:
             adslab.set_constraint(constraint)
         
         
-        print("adslab.cell", adslab.cell)
-        print("adslab.pbc", adslab.pbc)
+        # print("adslab.cell", adslab.cell)
+        # print("adslab.pbc", adslab.pbc)
         # atom positions
-        for atom in adslab:
-            print(atom.symbol, atom.position)
+        # for atom in adslab:
+        #     print(atom.symbol, atom.position)
 
         # Set the calculator
         adslab.set_calculator(ocp_calculator)
@@ -170,8 +176,20 @@ def hydra_wrapper_relax(args: DictConfig) -> None:
             steps=args['relax']['steps']
         )
         time_taken = time.time() - start
+        times.append(time_taken)
+        times_per_step.append(time_taken / dyn.nsteps)
+        nstep = torch.tensor(ocp_calculator.trainer.metrics["nstep"]).mean().item()
+        nstep_trainer.append(nstep)
         
-        wandb.log({"time_taken": time_taken, "relax_nsteps": dyn.nsteps, "time_per_step": time_taken / dyn.nsteps})
+        _logs = {
+                "time_taken": time_taken, 
+                "relax_nstep": dyn.nsteps, 
+                "time_per_step": time_taken / dyn.nsteps,
+                "nstep_trainer_avg": nstep,
+            }
+        
+        wandb.log(_logs)
+        print(yaml.dump(_logs))
         
         wandb.finish()
         
@@ -180,7 +198,10 @@ def hydra_wrapper_relax(args: DictConfig) -> None:
         ocp_calculator.trainer.file_logger.close()
         del ocp_calculator
     
-    print("Relaxations completed ✅")
+    print("\nRelaxations completed ✅\n")
+    print(f"Time: {torch.tensor(times).mean():.2f} ± {torch.tensor(times).std():.2f} s")
+    print(f"Time per step: {torch.tensor(times_per_step).mean():.4f} ± {torch.tensor(times_per_step).std():.4f} s")
+    print(f"nstep: {torch.tensor(nstep_trainer).mean():.2f} ± {torch.tensor(nstep_trainer).std():.2f}")
     
 if __name__ == "__main__":
     hydra_wrapper_relax()

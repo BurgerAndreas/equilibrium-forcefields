@@ -23,7 +23,7 @@ from deq2ff.plotting.style import (
 )
 
 
-def plot_nsteps_list(
+def plot_nstep_list(
     run_id: str,
     ymax=None,
     xmax=None,
@@ -102,7 +102,7 @@ def plot_nsteps_list(
     #     # remove special characters
     #     mname = "".join(e for e in mname if e.isalnum())
     #     fname = (
-    #         f"{plotfolder}/nsteps_traj"
+    #         f"{plotfolder}/nstep_traj"
     #         + f"{'_fpreuse' if fpreuse else ''}"
     #         + f"_{mname}.png"
     #     )
@@ -258,7 +258,7 @@ def plot_nsteps_list(
     mname = "".join(e for e in mname if e.isalnum())
     if logscale:
         mname += "_logscale"
-    fname = f"{plotfolder}/nsteps_wo_fpreuse_{mname}.png"
+    fname = f"{plotfolder}/nstep_wo_fpreuse_{mname}.png"
     plt.savefig(fname)
     print(f"Saved plot to \n {fname}")
 
@@ -348,23 +348,23 @@ if __name__ == "__main__":
 
     # run_id = "xpz4crad"
     # run_id = "o732ps0t"
-    # plot_nsteps_list(run_id, logscale=False, xmax=15)
-    # plot_nsteps_list(run_id, logscale=True)
+    # plot_nstep_list(run_id, logscale=False, xmax=15)
+    # plot_nstep_list(run_id, logscale=True)
 
     # pDEQs apt inf-bs1acc
     run_id = "b321vc1w"
-    plot_nsteps_list(run_id, logscale=False, xmax=9, as_perecent=True)
-    # plot_nsteps_list(run_id, logscale=True)
-    plot_nsteps_list(run_id, logscale=True, as_perecent=True)
+    plot_nstep_list(run_id, logscale=False, xmax=9, as_perecent=True)
+    # plot_nstep_list(run_id, logscale=True)
+    plot_nstep_list(run_id, logscale=True, as_perecent=True)
 
     # fpiter
     run_id = "o16dbur0"
-    plot_nsteps_list(run_id, logscale=False, xmax=9, as_perecent=True)
-    plot_nsteps_list(run_id, logscale=True, as_perecent=True)
+    plot_nstep_list(run_id, logscale=False, xmax=9, as_perecent=True)
+    plot_nstep_list(run_id, logscale=True, as_perecent=True)
 
     # pDEQs ap ln-pre malonaldehyde
     # 7x83gn1c
     # # fpiter
     run_id = "7x83gn1c"
-    plot_nsteps_list(run_id, logscale=False, xmax=9, as_perecent=True)
-    plot_nsteps_list(run_id, logscale=True, as_perecent=True)
+    plot_nstep_list(run_id, logscale=False, xmax=9, as_perecent=True)
+    plot_nstep_list(run_id, logscale=True, as_perecent=True)

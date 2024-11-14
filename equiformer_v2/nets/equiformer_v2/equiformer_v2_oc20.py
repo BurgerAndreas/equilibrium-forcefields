@@ -185,7 +185,7 @@ class EquiformerV2_OC20(BaseModel):
         if len(kwargs) > 0:
             print(
                 f"-"*50 + "\n"
-                f"Ignoring kwargs in {self.__class__.__name__}:", kwargs
+                f"Ignoring kwargs in {self.__class__.__name__}:\n", kwargs
             )
 
         # added

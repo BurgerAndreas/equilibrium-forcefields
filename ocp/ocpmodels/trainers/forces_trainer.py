@@ -110,6 +110,12 @@ class ForcesTrainer(BaseTrainer):
         )
         self.fixedpoint = None
         self.fpreuse_test = False
+    
+    def init_metrics(self):
+        self.metrics = {
+            "loss": [],
+            "nstep": [],
+        }
 
     def load_task(self):
         self.file_logger.info(f"Loading dataset: {self.config['task']['dataset']}")
@@ -228,11 +234,16 @@ class ForcesTrainer(BaseTrainer):
                     per_image_forces = _per_image_free_forces
                     predictions["chunk_idx"].extend(_chunk_idx)
                 predictions["forces"].extend(per_image_forces)
+            
             else:
                 predictions["energy"] = out["energy"].detach()
                 predictions["forces"] = out["forces"].detach()
+                
+                self.log_nstep(out)
+
                 if self.ema:
                     self.ema.restore()
+                    
                 return predictions
 
         predictions["forces"] = np.array(predictions["forces"])
@@ -243,16 +254,20 @@ class ForcesTrainer(BaseTrainer):
             predictions, results_file, keys=["energy", "forces", "chunk_idx"]
         )
         
-        # logging
-        info = out["info"]
-        if "nsteps" in info:
-            nsteps = info["nsteps"].mean().item()
-            self.logger.log({"nsteps": nsteps}, step=self.fpreuse_test)
-            
+        self.log_nstep(out)
+
         if self.ema:
             self.ema.restore()
 
         return predictions
+    
+    def log_nstep(self, out):
+        # logging
+        info = out["info"]
+        if "nstep" in info:
+            nstep = info["nstep"].mean().item()
+            self.metrics["nstep"].append(nstep)
+            self.logger.log({"nstep": nstep}, step=self.step)
 
     def update_best(
         self,

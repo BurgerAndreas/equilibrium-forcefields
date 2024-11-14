@@ -8,7 +8,6 @@ LICENSE file in the root directory of this source tree.
 import datetime
 import errno
 import json
-import logging
 import os
 import random
 import subprocess
@@ -51,6 +50,7 @@ from ocpmodels.modules.loss import DDPLoss, L2MAELoss
 from ocpmodels.modules.normalizer import Normalizer
 from ocpmodels.modules.scheduler import LRScheduler
 
+from .loggertofile import FileLogger
 
 @registry.register_trainer("base")
 class BaseTrainer(ABC):
@@ -103,7 +103,9 @@ class BaseTrainer(ABC):
             # but there are no gpu devices available
         if run_dir is None:
             run_dir = os.getcwd()
-
+        self.run_dir = run_dir
+        self.get_logger_to_console_file()
+            
         if timestamp_id is None:
             timestamp = torch.tensor(datetime.datetime.now().timestamp()).to(
                 self.device
@@ -139,7 +141,7 @@ class BaseTrainer(ABC):
             commit_hash = None
 
         logger_name = logger if isinstance(logger, str) else logger["name"]
-        print(f"In BaseTrainer: {logger_name} (from {logger})")
+        self.file_logger.info(f"BaseTrainer E2: : {logger_name} (from {logger})")
         
         self.config = {
             "task": task,
@@ -202,7 +204,7 @@ class BaseTrainer(ABC):
         # This supports the legacy way of providing norm parameters in dataset
         if self.config.get("dataset", None) is not None and normalizer is None:
             self.normalizer = self.config["dataset"]
-        logging.info(f"{self.__class__.__name__} Normalizer: {self.normalizer}")
+        self.file_logger.info(f"BaseTrainer E2: Normalizer: {self.normalizer}")
 
         if not is_debug and distutils.is_master() and not is_hpo:
             os.makedirs(self.config["cmd"]["checkpoint_dir"], exist_ok=True)
@@ -223,12 +225,20 @@ class BaseTrainer(ABC):
             self.hpo_checkpoint_every = self.config["optim"].get("checkpoint_every", -1)
 
         # if distutils.is_master():
-        #     logging.info(f"{self.__class__.__name__} Config:")
-        #     logging.info(yaml.dump(self.config, default_flow_style=False))
+        #     self.file_logger.info(f"BaseTrainer E2:  Config:")
+        #     self.file_logger.info(yaml.dump(self.config, default_flow_style=False))
         self.load()
 
         self.evaluator = Evaluator(task=name)
-
+    
+    def get_logger_to_console_file(self):
+        if not hasattr(self, "file_logger"):
+            self.file_logger = FileLogger(
+                is_master=distutils.is_master(),
+                is_rank0=distutils.is_master(),
+                output_dir=self.run_dir,
+            )
+    
     def load(self):
         self.load_seed_from_config()
         self.load_logger()
@@ -253,6 +263,7 @@ class BaseTrainer(ABC):
         torch.backends.cudnn.benchmark = False
 
     def load_logger(self):
+        """Get Wandb or Tensorboard logger."""
         self.logger = None
         if not self.is_debug and distutils.is_master() and not self.is_hpo:
             assert self.config["logger"] is not None, "Specify logger in config"
@@ -313,7 +324,7 @@ class BaseTrainer(ABC):
             # AttributeError: 'Subset' object has no attribute 'close_db'
             # if self.maxdata > 0:
             #     self.train_dataset = torch.utils.data.Subset(self.train_dataset, indices=range(self.maxdata))
-            #     logging.info(f"Using only {self.maxdata} training samples.")
+            #     self.file_logger.info(f"Using only {self.maxdata} training samples.")
 
             # wandb add train_dataset size
             if wandb.run is not None:
@@ -394,7 +405,7 @@ class BaseTrainer(ABC):
     def load_model(self):
         # Build model
         if distutils.is_master():
-            logging.info(f"Loading model: {self.config['model']}")
+            self.file_logger.info(f"Loading model: {self.config['model']}")
 
         # TODO: depreicated, remove.
         bond_feat_dim = None
@@ -415,7 +426,7 @@ class BaseTrainer(ABC):
         ).to(self.device)
 
         if distutils.is_master():
-            logging.info(
+            self.file_logger.info(
                 f"Loaded {self.model.__class__.__name__} with "
                 f"{self.model.num_params} parameters."
             )
@@ -443,7 +454,7 @@ class BaseTrainer(ABC):
         # You can either add a nn.DataParallel temporarily in your network for loading purposes,
         # or you can load the weights file, create a new ordered dict without the module prefix, and load it back.
 
-        logging.info(f"Loading checkpoint from: {checkpoint_path}")
+        self.file_logger.info(f"BaseTrainerOC20 E2: Loading checkpoint from: {checkpoint_path}")
         map_location = torch.device("cpu") if self.cpu else self.device
         checkpoint = torch.load(checkpoint_path, map_location=map_location)
         self.epoch = checkpoint.get("epoch", 0)
@@ -473,19 +484,19 @@ class BaseTrainer(ABC):
             try:
                 self.optimizer.load_state_dict(checkpoint["optimizer"])
             except:
-                logging.info(
+                self.file_logger.info(
                     f"Warning: Failed to load optimizer state_dict."
                     f"\nKeys: \n{checkpoint['optimizer'].keys()}"
                     f"\nOptimizer keys: \n{self.optimizer.state_dict().keys()}"
                 )
-            logging.info("Loaded optimizer state dict.")
+            self.file_logger.info("Loaded optimizer state dict.")
         if "scheduler" in checkpoint and checkpoint["scheduler"] is not None:
             self.scheduler.scheduler.load_state_dict(checkpoint["scheduler"])
-            logging.info("Loaded scheduler state dict.")
+            self.file_logger.info("Loaded scheduler state dict.")
         if "ema" in checkpoint and checkpoint["ema"] is not None:
             if self.ema is not None:
                 self.ema.load_state_dict(checkpoint["ema"])
-                logging.info("Loaded EMA state dict.")
+                self.file_logger.info("Loaded EMA state dict.")
         else:
             self.ema = None
 
@@ -658,7 +669,7 @@ class BaseTrainer(ABC):
     @torch.no_grad()
     def validate(self, split="val", disable_tqdm=False):
         if distutils.is_master():
-            logging.info(f"Evaluating on {split}.")
+            self.file_logger.info(f"Evaluating on {split}.")
         if self.is_hpo:
             disable_tqdm = True
 
@@ -707,7 +718,7 @@ class BaseTrainer(ABC):
         log_dict.update({"epoch": self.epoch})
         if distutils.is_master():
             log_str = ["{}: {:.4f}".format(k, v) for k, v in log_dict.items()]
-            logging.info(", ".join(log_str))
+            self.file_logger.info(", ".join(log_str))
 
         # Make plots.
         if self.logger is not None:
@@ -741,7 +752,7 @@ class BaseTrainer(ABC):
                 else:
                     if not hasattr(self, "warned_shared_param_no_grad"):
                         self.warned_shared_param_no_grad = True
-                        logging.warning(
+                        self.file_logger.warning(
                             "Some shared parameters do not have a gradient. "
                             "Please check if all shared parameters are used "
                             "and point to PyTorch parameters."
@@ -809,5 +820,5 @@ class BaseTrainer(ABC):
                 else:
                     gather_results[k] = np.array(gather_results[k])[idx]
 
-            logging.info(f"Writing results to {full_path}")
+            self.file_logger.info(f"Writing results to {full_path}")
             np.savez_compressed(full_path, **gather_results)

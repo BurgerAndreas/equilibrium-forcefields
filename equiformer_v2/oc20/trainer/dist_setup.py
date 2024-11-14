@@ -3,13 +3,12 @@
     2. Add OpenMPI multi-node training as Submitit is not supported.
 """
 
-import logging
 import os
 import subprocess
 
 import torch
 import torch.distributed as dist
-
+import logging
 
 def setup(config):
     if config["submit"]:

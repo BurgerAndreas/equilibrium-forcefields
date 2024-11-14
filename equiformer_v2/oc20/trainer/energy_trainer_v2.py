@@ -10,7 +10,6 @@ LICENSE file in the root directory of this source tree.
     
 """
 
-import logging
 import os
 from collections import defaultdict
 

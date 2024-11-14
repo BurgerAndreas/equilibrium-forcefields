@@ -79,6 +79,7 @@ class OCPCalculator(Calculator):
         cutoff=6,
         max_neighbors=50,
         device="cpu",
+        identifier="",
     ):
         """
         OCP-ASE Calculator
@@ -96,7 +97,7 @@ class OCPCalculator(Calculator):
                 Maximum amount of neighbors to store for a given atom.
         """
         setup_imports()
-        setup_logging()
+        setup_logging() # logging to console / file
         Calculator.__init__(self)
 
         # Either the config path or the checkpoint path needs to be provided
@@ -163,7 +164,7 @@ class OCPCalculator(Calculator):
             dataset=None,
             normalizer=config["normalizer"],
             optimizer=config["optim"],
-            identifier="",
+            identifier=identifier,
             slurm=config.get("slurm", {}),
             local_rank=config.get("local_rank", device),
             is_debug=config.get("is_debug", False),

@@ -1,4 +1,3 @@
-import logging
 import time
 import math
 import numpy as np

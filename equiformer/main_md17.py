@@ -11,7 +11,7 @@ import sys
 import os
 
 
-from equiformer.logger import FileLogger
+from equiformer.oc20.trainer.logger import FileLogger
 
 # import equiformer.nets
 from equiformer.nets import model_entrypoint

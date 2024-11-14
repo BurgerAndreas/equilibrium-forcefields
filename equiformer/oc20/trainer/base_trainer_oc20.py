@@ -45,7 +45,7 @@ from ocpmodels.modules.exponential_moving_average import (
 from ocpmodels.modules.loss import DDPLoss, L2MAELoss
 from ocpmodels.modules.normalizer import Normalizer
 from ocpmodels.modules.scheduler import LRScheduler
-
+from .loggertofile import FileLogger
 
 @registry.register_trainer("base")
 class BaseTrainer(ABC):
@@ -84,6 +84,9 @@ class BaseTrainer(ABC):
             # but there are no gpu devices available
         if run_dir is None:
             run_dir = os.getcwd()
+
+        self.run_dir = run_dir
+        self.get_logger_to_console_file()
 
         if timestamp_id is None:
             timestamp = torch.tensor(datetime.datetime.now().timestamp()).to(
@@ -196,6 +199,16 @@ class BaseTrainer(ABC):
         self.load()
 
         self.evaluator = Evaluator(task=name)
+    
+    def get_logger_to_console_file(self):
+        # if not yet created, create logger to console and file
+        if not hasattr(self, "file_logger"):
+            self.file_logger = FileLogger(
+                is_master=distutils.is_master(),
+                is_rank0=distutils.is_master(),
+                output_dir=self.run_dir,
+                log_to_file=False,
+            )
 
     def load(self):
         self.load_seed_from_config()
@@ -221,6 +234,7 @@ class BaseTrainer(ABC):
         torch.backends.cudnn.benchmark = False
 
     def load_logger(self):
+        """Load WandB or Tensorboard logger"""
         self.logger = None
         if not self.is_debug and distutils.is_master() and not self.is_hpo:
             assert self.config["logger"] is not None, "Specify logger in config"
@@ -383,7 +397,8 @@ class BaseTrainer(ABC):
                 errno.ENOENT, "Checkpoint file not found", checkpoint_path
             )
 
-        logging.info(f"Loading checkpoint from: {checkpoint_path}")
+        if distutils.is_master():
+            logging.info(f"BaseTrainerOC20: Loading checkpoint from: {checkpoint_path}")
         map_location = torch.device("cpu") if self.cpu else self.device
         checkpoint = torch.load(checkpoint_path, map_location=map_location)
         self.epoch = checkpoint.get("epoch", 0)

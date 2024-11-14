@@ -101,7 +101,10 @@ class DotProductAttentionTransformerMD17(EquiformerDEQBase, torch.nn.Module):
         kwargs = self._set_deq_vars(
             irreps_node_embedding, irreps_feature, num_layers, **kwargs
         )
-        print(f"{self.__class__.__name__} ignoring kwargs: {kwargs}")
+        print(
+            f"-"*50 + "\n"
+            f"{self.__class__.__name__} ignoring kwargs: {kwargs}"
+        )
 
         self.max_radius = max_radius
         self.number_of_basis = number_of_basis

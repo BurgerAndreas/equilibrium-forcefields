@@ -306,7 +306,7 @@ def setup_imports(config: Optional[dict] = None):
     try:
         project_root = _get_project_root()
         logging.info(f"Project root: {project_root}")
-        importlib.import_module("ocpmodels.common.logger")
+        importlib.import_module("ocpmodels.common.loggercloud")
 
         import_keys = ["trainers", "datasets", "models", "tasks"]
         for key in import_keys:

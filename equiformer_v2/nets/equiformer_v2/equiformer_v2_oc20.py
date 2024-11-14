@@ -1,4 +1,3 @@
-import logging
 import time
 import math
 import numpy as np
@@ -184,7 +183,10 @@ class EquiformerV2_OC20(BaseModel):
         super().__init__()
 
         if len(kwargs) > 0:
-            print(f"\nIgnoring kwargs in {self.__class__.__name__}:", kwargs)
+            print(
+                f"-"*50 + "\n"
+                f"Ignoring kwargs in {self.__class__.__name__}:", kwargs
+            )
 
         # added
         self._AVG_NUM_NODES = _AVG_NUM_NODES

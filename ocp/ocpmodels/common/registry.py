@@ -143,7 +143,7 @@ class Registry:
         """
 
         def wrap(func):
-            from ocpmodels.common.logger import Logger
+            from ocpmodels.common.loggercloud import Logger
 
             assert issubclass(func, Logger), "All loggers must inherit Logger class"
             cls.mapping["logger_name_mapping"][name] = func

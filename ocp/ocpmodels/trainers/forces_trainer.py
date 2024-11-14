@@ -112,7 +112,7 @@ class ForcesTrainer(BaseTrainer):
         self.fpreuse_test = False
 
     def load_task(self):
-        logging.info(f"Loading dataset: {self.config['task']['dataset']}")
+        self.file_logger.info(f"Loading dataset: {self.config['task']['dataset']}")
 
         if "relax_dataset" in self.config["task"]:
             self.relax_dataset = registry.get_dataset_class("lmdb")(
@@ -163,7 +163,7 @@ class ForcesTrainer(BaseTrainer):
         ensure_fitted(self._unwrapped_model)
 
         if distutils.is_master() and not disable_tqdm:
-            logging.info("Predicting on test.")
+            self.file_logger.info("Predicting on test.")
         assert isinstance(
             data_loader,
             (
@@ -345,7 +345,7 @@ class ForcesTrainer(BaseTrainer):
                     and not self.is_hpo
                 ):
                     log_str = ["{}: {:.2e}".format(k, v) for k, v in log_dict.items()]
-                    logging.info(", ".join(log_str))
+                    self.file_logger.info(", ".join(log_str))
                     self.metrics = {}
 
                 if self.logger is not None:
@@ -567,7 +567,7 @@ class ForcesTrainer(BaseTrainer):
     def run_relaxations(self, split="val"):
         ensure_fitted(self._unwrapped_model)
 
-        logging.info("Running ML-relaxations")
+        self.file_logger.info("Running ML-relaxations")
         self.model.eval()
         if self.ema:
             self.ema.store()
@@ -602,7 +602,7 @@ class ForcesTrainer(BaseTrainer):
             if check_traj_files(
                 batch, self.config["task"]["relax_opt"].get("traj_dir", None)
             ):
-                logging.info(f"Skipping batch: {batch[0].sid.tolist()}")
+                self.file_logger.info(f"Skipping batch: {batch[0].sid.tolist()}")
                 continue
 
             relaxed_batch = ml_relax(
@@ -704,7 +704,7 @@ class ForcesTrainer(BaseTrainer):
                     :-1
                 ]  # np.split does not need last idx, assumes n-1:end
 
-                logging.info(f"Writing results to {full_path}")
+                self.file_logger.info(f"Writing results to {full_path}")
                 np.savez_compressed(full_path, **gather_results)
 
         if split == "val":
@@ -739,7 +739,7 @@ class ForcesTrainer(BaseTrainer):
                     )
 
                 if distutils.is_master():
-                    logging.info(metrics)
+                    self.file_logger.info(metrics)
 
         if self.ema:
             self.ema.restore()

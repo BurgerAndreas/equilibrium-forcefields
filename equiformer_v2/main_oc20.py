@@ -112,7 +112,7 @@ main_oc20.py [-h] --mode {train,predict,run-relaxations,validate} --config-yml C
 """
 
 if __name__ == "__main__":
-    setup_logging()
+    # setup_logging()
 
     # ocpmodels
     parser = flags.get_parser()

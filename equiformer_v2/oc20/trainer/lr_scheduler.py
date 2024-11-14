@@ -47,6 +47,7 @@ class CosineLRLambda:
 
         # log the parameters with explanation
         print(
+            f"-"*50 + "\n",
             f"Initializing CosineLRLambda with params:"
             f"\nwarmup_epochs: {self.warmup_epochs}"
             f"\nwarmup_factor: {self.lr_warmup_factor}"

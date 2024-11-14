@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Iterable, Optional
 
-from equiformer.logger import FileLogger
+from equiformer.oc20.trainer.logger import FileLogger
 import equiformer.nets as nets
 from equiformer.nets import model_entrypoint
 

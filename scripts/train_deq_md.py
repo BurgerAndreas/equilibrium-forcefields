@@ -29,7 +29,8 @@ import pprint
 from pathlib import Path
 from typing import Iterable, Optional
 
-from equiformer.logger import FileLogger
+import distutils
+from equiformer.oc20.trainer.logger import FileLogger
 import equiformer.nets as nets
 from equiformer.nets import model_entrypoint
 
@@ -300,7 +301,9 @@ def train_md(args):
         os.makedirs(args.output_dir, exist_ok=True)
     wandb.run.config.update({"output_dir": args.output_dir}, allow_val_change=True)
 
-    filelog = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
+    if distutils.is_master():
+        filelog = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
+
     # _log.info(
     #     f"Args passed to {__file__} main():\n {omegaconf.OmegaConf.to_yaml(args)}"
     # )

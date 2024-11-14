@@ -42,7 +42,7 @@ import omegaconf
 from omegaconf import DictConfig, OmegaConf
 
 from ocpmodels.common.registry import registry
-from ocpmodels.common.logger import Logger
+from ocpmodels.common.loggercloud import Logger
 
 @registry.register_logger("dummy")
 class DummyLogger(Logger):
@@ -169,14 +169,14 @@ valid_symbols = ['Ag', 'Y', 'N', 'Fe', 'Zr', 'Zn', 'Cu', 'Pb', 'S', 'Pt', 'W', '
     config_name="oc20", config_path="../../equiformer_v2/config", version_base="1.3"
 )
 def hydra_wrapper_oc20(args: DictConfig) -> None:
-    from deq2ff.logging_utils import fix_args
+    from deq2ff.logging_utils import fix_args_set_name
     import numpy as np
     
     args.wandb = False
     args.optim.batch_size = 1
     args.logger = "dummy"
     
-    args = fix_args(args)
+    args = fix_args_set_name(args)
 
     # turn args into dictionary for compatibility with ocpmodels
     # args: omegaconf.dictconfig.DictConfig -> dict

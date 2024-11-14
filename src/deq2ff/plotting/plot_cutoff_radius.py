@@ -15,7 +15,6 @@ from typing import Iterable, Optional
 
 import equiformer.datasets.pyg.md_all as rmd17_dataset
 
-from equiformer.logger import FileLogger
 
 # import equiformer.nets
 from equiformer.nets import model_entrypoint

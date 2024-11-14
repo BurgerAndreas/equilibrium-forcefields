@@ -8,7 +8,6 @@ LICENSE file in the root directory of this source tree.
 import datetime
 import errno
 import json
-import logging
 import os
 import random
 import subprocess
@@ -54,7 +53,7 @@ from ocpmodels.modules.normalizer import Normalizer
 from ocpmodels.modules.scheduler import LRScheduler as LRSchedulerOC20
 
 from .base_trainer_oc20 import BaseTrainer
-from .logger import FileLogger
+from .loggertofile import FileLogger
 from .lr_scheduler import LRScheduler
 from .engine import AverageMeter
 
@@ -364,11 +363,7 @@ class BaseTrainerV2(BaseTrainer):
 
         # if distutils.is_master():
         #    print(yaml.dump(self.config, default_flow_style=False))
-        self.file_logger = FileLogger(
-            is_master=distutils.is_master(),
-            is_rank0=distutils.is_master(),
-            output_dir=run_dir,
-        )
+        self.get_logger_to_console_file()
         # self.file_logger.info(f"In BaseTrainerV2.__init__")
         # self.file_logger.info(yaml.dump(self.config, default_flow_style=False))
 
@@ -398,7 +393,8 @@ class BaseTrainerV2(BaseTrainer):
         self.evaluator = Evaluator(task=name)
 
     def look_for_checkpoint(self):
-        logging.info("\nLooking for checkpoint...")
+        if distutils.is_master():
+            self.file_logger.info("-"*50 + "\n" + "BaseTrainerV2: Looking for checkpoint...")
         checkpoint_loaded = False
         checkpoint_path = self.config["cmd"].get("checkpoint_path", None)
         if (checkpoint_path is not None) and self.config["cmd"].get(
@@ -411,7 +407,7 @@ class BaseTrainerV2(BaseTrainer):
                 checkpoint_path = os.path.join(
                     self.config["cmd"]["checkpoint_dir"], "checkpoint.pt"
                 )
-                logging.info(f"Loading checkpoint from {checkpoint_path}")
+                self.file_logger.info(f"BaseTrainerV2: Loading checkpoint from {checkpoint_path}")
             else:
                 # checkpoint_path = checkpoint_path
                 pass
@@ -423,11 +419,11 @@ class BaseTrainerV2(BaseTrainer):
                 )
             else:
                 if distutils.is_master():
-                    logging.warning(f"Checkpoint not found at {checkpoint_path}")
+                    self.file_logger.warning(f"BaseTrainerV2: Checkpoint not found at {checkpoint_path}")
 
         else:
             if distutils.is_master():
-                logging.info("No checkpoint provided. Skipping checkpoint loading.")
+                self.file_logger.info("BaseTrainerV2: No checkpoint provided. Skipping checkpoint loading.")
 
         if self.config["cmd"].get("assert_checkoint", False) and not checkpoint_loaded:
             raise FileNotFoundError(f"No checkpoint not found at {checkpoint_path}.")
@@ -443,7 +439,7 @@ class BaseTrainerV2(BaseTrainer):
         self.load_extras(skip_dataset=skip_dataset)
         self.look_for_checkpoint()
         self.logger.log({"start_epoch": self.epoch}, step=self.step)
-        logging.info("Trainer loaded.")
+        self.file_logger.info("BaseTrainerV2 loaded.")
 
     def load_seed_from_config(self):
         # https://pytorch.org/docs/stable/notes/randomness.html
@@ -461,7 +457,7 @@ class BaseTrainerV2(BaseTrainer):
     def load_model(self):
         # Build model
         # if distutils.is_master():
-        #    logging.info(f"Loading model: {self.config['model']}")
+        #    self.file_logger.info(f"Loading model: {self.config['model']}")
         self.file_logger.info(f"Loading model: {self.config['model']}")
 
         # TODO: depricated, remove.
@@ -496,7 +492,7 @@ class BaseTrainerV2(BaseTrainer):
             self.model_params_no_wd = self.model.no_weight_decay()
 
         # if distutils.is_master():
-        #    logging.info(
+        #    self.file_logger.info(
         #        f"Loaded {self.model.__class__.__name__} with "
         #        f"{self.model.num_params} parameters."
         #    )
@@ -739,7 +735,7 @@ class BaseTrainerV2(BaseTrainer):
                 else:
                     if not hasattr(self, "warned_shared_param_no_grad"):
                         self.warned_shared_param_no_grad = True
-                        logging.warning(
+                        self.file_logger.warning(
                             "Some shared parameters do not have a gradient. "
                             "Please check if all shared parameters are used "
                             "and point to PyTorch parameters."

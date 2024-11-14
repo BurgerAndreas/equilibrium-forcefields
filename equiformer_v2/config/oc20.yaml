@@ -106,16 +106,18 @@ model_name: ${model.name}
 logger: 
   name: wandb
   project: oc20-ev2
+  identifier: null # display name for wandb run
 
 ####################################################
 # added
 
 relax:
   system: "oc20"
-  fmax: 0.02
-  steps: 1000
-  
-# noddp: True
+  fmax: 0.001 # early stopping criterion
+  steps: 100 # max steps per relaxation
+  n_samples: 10 # number of samples from OC20 to relax
+
+# noddp: True # no data parallelism
 
 checkpoint_path: auto
 checkpoint_wandb_name: null # only used if checkpoint_path is auto. will be filled by wandb

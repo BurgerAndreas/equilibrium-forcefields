@@ -1,16 +1,14 @@
-# 
-# Download a pre-trained OCP model checkpoint.
-# Set up the OCP calculator using the downloaded checkpoint.
-# Create a Cu(100) surface with a CH3O adsorbate using ASE.
-# Fix the bottom two layers of the slab to mimic bulk behavior.
-# Set the OCP calculator for the adslab system.
-# Run the relaxation using the LBFGS optimizer for a maximum of 100 steps or until the maximum force on any atom is below 0.03 eV/Å1
-# The relaxation trajectory will be saved in the "data" directory as "Cu100_CH3O_relaxation.traj". You can analyze this trajectory using ASE tools or visualize it using software like ASE's GUI or OVITO.
+# Run relxation, starting from configurations in the OC20 dataset
+# Run the relaxation using the LBFGS optimizer for a maximum of 
+# ... steps or until the maximum force on any atom is below ... eV/Å1
+# The relaxation trajectory will be saved in the "data" directory as ...
+# and logged to wandb.
 
-# TODOs
-# - [ ] measure time taken
-# - [ ] start from sample from the OC20 dataset
-# - [ ] log nsteps in DEQ to wandb (OCPCalculator?)
+# Usage:
+# launchrelax preset=reg +use=deq +cfg=ap2
+# launchrelax preset=reg +use=deq +cfg=ap2 fpreuse_test=False
+# launchrelax preset=reg +use=deq +cfg=ap2 deq_kwargs_fpr.f_tol=1e-1
+# launchrelax preset=reg +cfg=dd model.num_layers=12
 
 # bash command to download model checkpoint checkpoints/pDEQsap2reg/best_checkpoint.pt
 # from andreasburger@tacozoid.accelerationconsortium.ai
@@ -31,7 +29,7 @@ import time
 
 from deq2ff.oc20runner import get_OC20runner
 from ocpmodels.common.relaxation.ase_utils import OCPCalculator
-from deq2ff.logging_utils import init_wandb, fix_args
+from deq2ff.logging_utils import init_wandb, fix_args_set_name
 
 from ocpmodels.common.utils import radius_graph_pbc
 
@@ -59,16 +57,21 @@ def hydra_wrapper_relax(args: DictConfig) -> None:
     args.optim.batch_size = 1
     args.logger.project = "relaxOC20"
     
-    args = fix_args(args)
+    # sets wandb_run_name
+    args = fix_args_set_name(args)
 
     # turn args into dictionary for compatibility with ocpmodels
     # args: omegaconf.dictconfig.DictConfig -> dict
     args = OmegaConf.to_container(args, resolve=True)
     
-    args1 = copy.deepcopy(args)
-    args1['wandb'] = False
-    args1['logger'] = "dummy"
-    runner = get_OC20runner(args1)
+    # Hacky way to make sure we have the exactly same config 
+    # for the relaxation as for training.
+    # We load the trainer, get the relevant info, delete the trainer,
+    # and then use that info to create the runner for relaxation.
+    argsref = copy.deepcopy(args)
+    argsref['wandb'] = False
+    argsref['logger'] = "dummy"
+    runner = get_OC20runner(argsref)
     reference = runner.trainer
     del reference.model
     
@@ -77,82 +80,107 @@ def hydra_wrapper_relax(args: DictConfig) -> None:
     checkpoint_path += "/best_checkpoint.pt"
 
     train_loader = runner.trainer.train_loader
-    sample = next(iter(train_loader))
-    sample = copy.deepcopy(sample)
     del runner, reference
-
-    # TODO: not sure if to run: 
-    # with forces_v2 or don't specify
-    # with config_yml or don't specify
-    max_radius = 12.0
-    max_neighbors = 20
-    ocp_calculator = OCPCalculator(
-        # config_yml="equiformer_v2/config/oc20.yaml",
-        config_yml=args,
-        checkpoint=checkpoint_path,
-        trainer="forces_v2", # forces, forces_v2
-        cutoff=max_radius,
-        max_neighbors=max_neighbors,
-        device=0,
-    )
-    ocp_calculator.trainer.fpreuse_test = True
-
-    if args['relax']['system'] == "oc20":
-        # get sample from OC20 dataset
-        data = _forward_otf_graph(sample[0], max_radius, max_neighbors)
-        atoms = batch_to_atoms(data)
-        print("atoms", atoms)
-        adslab = atoms[0]
-    else:
-        # Create an adslab system using ASE. 
-        # Cu(100) surface with a CH3O adsorbate:
-        args['relax']['system'] = "Cu100_CH3O"
-        
-        # Create the Cu(100) surface
-        adslab = fcc100("Cu", size=(3, 3, 3))
+    print("train_loader", train_loader, len(train_loader))
     
-        # Add the CH3O adsorbate
-        adsorbate = molecule("CH3O")
-        adslab.extend(adsorbate)
+    for i, sample in enumerate(train_loader):
+        if i >= args['relax']['n_samples']:
+            break
         
-        # adslab: Atoms
-        # Symbols('Cu27COH3')
-        # PBC array([ True,  True, False])
-        # Cell([7.65796644025031, 7.65796644025031, 0.0])
+        # Trainer will pop keys out of args
+        argsstep = copy.deepcopy(args)
 
-        # Fix the bottom two layers of the slab
-        constraint = FixAtoms(
-            indices=[atom.index for atom in adslab if atom.position[2] < 7]
+        # TODO: not sure if to run: 
+        # with forces_v2 or don't specify
+        # with config_yml or don't specify
+        max_radius = argsstep['model']['max_radius']
+        max_neighbors = argsstep['model']['max_neighbors']
+        argsstep['wandb_run_name'] = argsstep['wandb_run_name'] + f" s{i}"
+        ocp_calculator = OCPCalculator(
+            # config_yml="equiformer_v2/config/oc20.yaml",
+            config_yml=argsstep,
+            checkpoint=checkpoint_path,
+            trainer="forces_v2", # forces, forces_v2
+            cutoff=max_radius,
+            max_neighbors=max_neighbors,
+            device=0,
+            identifier=argsstep['wandb_run_name']
         )
-        adslab.set_constraint(constraint)
+        ocp_calculator.trainer.fpreuse_test = True
+
+        if args['relax']['system'] == "oc20":
+            # get sample from OC20 dataset
+            data = _forward_otf_graph(sample[0], max_radius, max_neighbors)
+            atoms = batch_to_atoms(data)
+            print("atoms", atoms)
+            adslab = atoms[0]
+            
+        else:
+            raise NotImplementedError(f"System {args['relax']['system']} not implemented")
+            # Create an adslab system using ASE. 
+            # Cu(100) surface with a CH3O adsorbate:
+            args['relax']['system'] = "Cu100_CH3O"
+            
+            # Create the Cu(100) surface
+            adslab = fcc100("Cu", size=(3, 3, 3))
+        
+            # Add the CH3O adsorbate
+            adsorbate = molecule("CH3O")
+            adslab.extend(adsorbate)
+            
+            # adslab: Atoms
+            # Symbols('Cu27COH3')
+            # PBC array([ True,  True, False])
+            # Cell([7.65796644025031, 7.65796644025031, 0.0])
+
+            # Fix the bottom two layers of the slab
+            constraint = FixAtoms(
+                indices=[atom.index for atom in adslab if atom.position[2] < 7]
+            )
+            adslab.set_constraint(constraint)
+        
+        
+        print("adslab.cell", adslab.cell)
+        print("adslab.pbc", adslab.pbc)
+        # atom positions
+        for atom in adslab:
+            print(atom.symbol, atom.position)
+
+        # Set the calculator
+        adslab.set_calculator(ocp_calculator)
+
+        # Create a directory to store the trajectory
+        logdir = "relax_logs"
+        os.makedirs(logdir, exist_ok=True)
+
+        # Set up the optimizer
+        dyn = LBFGS(
+            adslab, 
+            trajectory=os.path.join(
+                logdir, f"{args['relax']['system']}.traj"
+            )
+        )
+
+        # Run the relaxation
+        print("Running relaxation...")
+        print("-"*50)
+        start = time.time()
+        dyn.run(
+            fmax=args['relax']['fmax'], 
+            steps=args['relax']['steps']
+        )
+        time_taken = time.time() - start
+        
+        wandb.log({"time_taken": time_taken, "relax_nsteps": dyn.nsteps, "time_per_step": time_taken / dyn.nsteps})
+        
+        wandb.finish()
+        
+        # delete open loggers
+        # ocp_calculator.trainer.logger.close() # WandB / Tensorboard
+        ocp_calculator.trainer.file_logger.close()
+        del ocp_calculator
     
-    
-    print("adslab.cell", adslab.cell)
-    print("adslab.pbc", adslab.pbc)
-    # atom positions
-    for atom in adslab:
-        print(atom.symbol, atom.position)
-
-    # Set the calculator
-    adslab.set_calculator(ocp_calculator)
-
-    # Create a directory to store the trajectory
-    logdir = "relax_logs"
-    os.makedirs(logdir, exist_ok=True)
-
-    # Set up the optimizer
-    dyn = LBFGS(adslab, trajectory=os.path.join(logdir, f"{args['relax']['system']}.traj"))
-
-    # Run the relaxation
-    start = time.time()
-    dyn.run(
-        fmax=args['relax']['fmax'], 
-        steps=args['relax']['steps']
-    )
-    time_taken = time.time() - start
-    wandb.log({"time_taken": time_taken})
-    
-    wandb.finish()
+    print("Relaxations completed ✅")
     
 if __name__ == "__main__":
     hydra_wrapper_relax()

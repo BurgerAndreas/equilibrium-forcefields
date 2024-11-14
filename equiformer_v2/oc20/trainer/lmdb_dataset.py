@@ -12,7 +12,6 @@ LICENSE file in the root directory of this source tree.
 """
 
 import bisect
-import logging
 import math
 import pickle
 import random

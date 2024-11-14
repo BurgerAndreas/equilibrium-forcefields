@@ -13,7 +13,7 @@ from equiformer.config.paths import ROOT_DIR
 from equiformer.optim_factory import scale_batchsize_lr
 
 
-def fix_args(args: OmegaConf):
+def fix_args_set_name(args: OmegaConf):
     """Fix invalid arg combinations and add runtime information."""
     slurm_job_id = os.environ.get("SLURM_JOB_ID", None)
     args.slurm_job_id = int(slurm_job_id) if slurm_job_id is not None else None
@@ -84,6 +84,7 @@ def fix_args(args: OmegaConf):
     args.checkpoint_wandb_name = name_from_config(args, is_checkpoint_name=True)
     # we can only set the name after the checkpoint name is set
     args.wandb_run_name = wandb_run_name
+    args['logger']['identifier'] = wandb_run_name
 
     return args
 
@@ -94,7 +95,7 @@ def init_wandb(args: OmegaConf, project="Equi2") -> int:
         run_id: int
     """
 
-    args = fix_args(args)
+    args = fix_args_set_name(args)
 
     if args.wandb == False:
         # wandb.init(mode="disabled")

@@ -10,7 +10,6 @@ Copy force trainer from https://github.com/Open-Catalyst-Project/ocp/tree/6cd108
 """
 
 
-import logging
 import os
 import pathlib
 from collections import defaultdict

@@ -53,7 +53,7 @@ from ocpmodels.modules.normalizer import Normalizer
 from ocpmodels.modules.scheduler import LRScheduler as LRSchedulerOC20
 
 from .base_trainer_oc20 import BaseTrainer
-from .logger import FileLogger
+from .loggertofile import FileLogger
 from .lr_scheduler import LRScheduler
 from .engine import AverageMeter
 

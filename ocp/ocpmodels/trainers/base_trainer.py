@@ -65,7 +65,7 @@ class BaseTrainer(ABC):
         is_debug=False,
         is_hpo=False,
         print_every=100,
-        seed=None,
+        seed=0,
         logger="tensorboard",
         local_rank=0,
         amp=False,
@@ -73,6 +73,7 @@ class BaseTrainer(ABC):
         name="base_trainer",
         slurm={},
         noddp=False,
+        skip_dataset=False,
     ):
         self.name = name
         self.cpu = cpu
@@ -197,13 +198,19 @@ class BaseTrainer(ABC):
             # default is no checkpointing
             self.hpo_checkpoint_every = self.config["optim"].get("checkpoint_every", -1)
 
-        if distutils.is_master():
-            print(yaml.dump(self.config, default_flow_style=False))
-        self.load()
+        # if distutils.is_master():
+        #     print(f"In BaseTrainer.__init__")
+        #     print(yaml.dump(self.config, default_flow_style=False))
+        
+        self.load(skip_dataset=skip_dataset)
 
         self.evaluator = Evaluator(task=name)
+        
+        # for DEQ
+        self.fixedpoint = None
+        self.fpreuse = False
 
-    def load(self):
+    def load(self, skip_dataset=False):
         self.load_seed_from_config()
         self.load_logger()
         self.load_datasets()

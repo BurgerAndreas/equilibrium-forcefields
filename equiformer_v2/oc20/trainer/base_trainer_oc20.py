@@ -76,7 +76,7 @@ class BaseTrainer(ABC):
         is_debug=False,
         is_hpo=False,
         print_every=100,
-        seed=None,
+        seed=0,
         logger="tensorboard",
         local_rank=0,
         amp=False,
@@ -139,6 +139,8 @@ class BaseTrainer(ABC):
             commit_hash = None
 
         logger_name = logger if isinstance(logger, str) else logger["name"]
+        print(f"In BaseTrainer: {logger_name} (from {logger})")
+        
         self.config = {
             "task": task,
             "model": model.pop("name"),
@@ -220,9 +222,9 @@ class BaseTrainer(ABC):
             # default is no checkpointing
             self.hpo_checkpoint_every = self.config["optim"].get("checkpoint_every", -1)
 
-        if distutils.is_master():
-            logging.info(f"{self.__class__.__name__} Config:")
-            logging.info(yaml.dump(self.config, default_flow_style=False))
+        # if distutils.is_master():
+        #     logging.info(f"{self.__class__.__name__} Config:")
+        #     logging.info(yaml.dump(self.config, default_flow_style=False))
         self.load()
 
         self.evaluator = Evaluator(task=name)
@@ -292,6 +294,7 @@ class BaseTrainer(ABC):
         return loader
 
     def load_datasets(self):
+        """Load dataset and normalizers."""
         self.parallel_collater = ParallelCollater(
             0 if self.cpu else 1,
             self.config["model_attributes"].get("otf_graph", False),
@@ -761,6 +764,7 @@ class BaseTrainer(ABC):
             self.ema.update()
 
     def save_results(self, predictions, results_file, keys):
+        """Save results to a file."""
         if results_file is None:
             return
 

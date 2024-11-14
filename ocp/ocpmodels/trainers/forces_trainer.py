@@ -84,6 +84,7 @@ class ForcesTrainer(BaseTrainer):
         cpu=False,
         slurm={},
         noddp=False,
+        skip_dataset=False,
     ):
         super().__init__(
             task=task,
@@ -105,7 +106,10 @@ class ForcesTrainer(BaseTrainer):
             name="s2ef",
             slurm=slurm,
             noddp=noddp,
+            skip_dataset=skip_dataset,
         )
+        self.fixedpoint = None
+        self.fpreuse_test = False
 
     def load_task(self):
         logging.info(f"Loading dataset: {self.config['task']['dataset']}")
@@ -191,11 +195,12 @@ class ForcesTrainer(BaseTrainer):
             disable=disable_tqdm,
         ):
             with torch.cuda.amp.autocast(enabled=self.scaler is not None):
-                out = self._forward(batch_list)
+                out = self._forward(batch_list, fpreuse=self.fpreuse_test)
 
             if self.normalizers is not None and "target" in self.normalizers:
                 out["energy"] = self.normalizers["target"].denorm(out["energy"])
                 out["forces"] = self.normalizers["grad_target"].denorm(out["forces"])
+            
             if per_image:
                 systemids = [
                     str(i) + "_" + str(j)
@@ -237,7 +242,13 @@ class ForcesTrainer(BaseTrainer):
         self.save_results(
             predictions, results_file, keys=["energy", "forces", "chunk_idx"]
         )
-
+        
+        # logging
+        info = out["info"]
+        if "nsteps" in info:
+            nsteps = info["nsteps"].mean().item()
+            self.logger.log({"nsteps": nsteps}, step=self.fpreuse_test)
+            
         if self.ema:
             self.ema.restore()
 
@@ -394,18 +405,27 @@ class ForcesTrainer(BaseTrainer):
         if self.config.get("test_dataset", False):
             self.test_dataset.close_db()
 
-    def _forward(self, batch_list):
+    def _forward(self, batch_list, fpreuse=False):
         # forward pass.
         if self.config["model_attributes"].get("regress_forces", True):
-            out_energy, out_forces = self.model(batch_list)
+            if fpreuse:
+                out_energy, out_forces, fp, info = self.model(batch_list, fixedpoint=self.fixedpoint, return_fixedpoint=True)
+                self.fixedpoint = fp
+            else:
+                out_energy, out_forces, info = self.model(batch_list)
         else:
-            out_energy = self.model(batch_list)
+            if fpreuse:
+                out_energy, fp, info = self.model(batch_list, fixedpoint=self.fixedpoint, return_fixedpoint=True)
+                self.fixedpoint = fp
+            else:
+                out_energy, info = self.model(batch_list)
 
         if out_energy.shape[-1] == 1:
             out_energy = out_energy.view(-1)
 
         out = {
             "energy": out_energy,
+            "info": info,
         }
 
         if self.config["model_attributes"].get("regress_forces", True):

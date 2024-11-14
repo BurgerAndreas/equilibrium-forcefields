@@ -590,6 +590,11 @@ def radius_graph_pbc(
 
     cross_a2a3 = torch.cross(data.cell[:, 1], data.cell[:, 2], dim=-1)
     cell_vol = torch.sum(data.cell[:, 0] * cross_a2a3, dim=-1, keepdim=True)
+    
+    # cross product of two parallel vectors is zero
+    # or if one of the vectors is zero
+    # assert torch.is_nonzero(cross_a2a3).all(), f"cross_a2a3: {cross_a2a3}"
+    # assert torch.is_nonzero(cell_vol).all(), f"cell_vol: {cell_vol}"
 
     if pbc[0]:
         inv_min_dist_a1 = torch.norm(cross_a2a3 / cell_vol, p=2, dim=-1)
@@ -620,7 +625,8 @@ def radius_graph_pbc(
 
     # Tensor of unit cells
     cells_per_dim = [
-        torch.arange(-rep, rep + 1, device=device, dtype=torch.float) for rep in max_rep
+        torch.arange(-rep, rep + 1, device=device, dtype=torch.float) 
+        for rep in max_rep
     ]
     unit_cell = torch.cartesian_prod(*cells_per_dim)
     num_cells = len(unit_cell)
@@ -828,7 +834,8 @@ def setup_logging():
 
         log_formatter = logging.Formatter(
             "%(asctime)s (%(levelname)s): %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
+            # datefmt="%Y-%m-%d %H:%M:%S",
+            datefmt="%H:%M",
         )
 
         # Send INFO to stdout

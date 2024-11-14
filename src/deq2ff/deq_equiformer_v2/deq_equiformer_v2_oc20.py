@@ -304,8 +304,15 @@ class DEQ_EquiformerV2_OC20(EquiformerV2_OC20):
         # find fixed-point
         # During training, returns the sampled fixed point trajectory (tracked gradients) according to ``n_states`` or ``indexing``.
         # During inference, returns a list containing the fixed point solution only.
-        z_pred, info = self.deq_current(func=f, z_init=z, solver_kwargs=solver_kwargs)
+        # z_pred, info = self.deq_current(func=f, z_init=z, solver_kwargs=solver_kwargs)
 
+        if self.training:
+            z_pred, info = self.deq(func=f, z_init=z, solver_kwargs=solver_kwargs)
+        elif reuse:
+            z_pred, info = self.deq_eval_fpr(func=f, z_init=z, solver_kwargs=solver_kwargs)
+        else:
+            z_pred, info = self.deq_eval(func=f, z_init=z, solver_kwargs=solver_kwargs)
+        
         # [B, N, D, C] -> [B*N, D, C] # torchdeq batchify
         if self.batchify_for_torchdeq:
             z_pred = [_z.view(self.shape_batched) for _z in z_pred]

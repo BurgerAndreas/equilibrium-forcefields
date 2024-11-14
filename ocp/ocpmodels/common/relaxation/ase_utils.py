@@ -15,10 +15,12 @@ import logging
 import os
 
 import torch
+import torch_geometric as tg
+
 import yaml
 from ase import Atoms
 from ase.calculators.calculator import Calculator
-from ase.calculators.singlepoint import SinglePointCalculator as sp
+from ase.calculators.singlepoint import SinglePointCalculator as spcalc
 from ase.constraints import FixAtoms
 
 from ocpmodels.common.registry import registry
@@ -31,7 +33,10 @@ from ocpmodels.datasets import data_list_collater
 from ocpmodels.preprocessing import AtomsToGraphs
 
 
-def batch_to_atoms(batch):
+def batch_to_atoms(batch) -> list[Atoms]:
+    """convert LMDB data objects into ASE objects.
+    https://github.com/FAIR-Chem/fairchem/blob/6fb3e794eef31559db990300198eca20f41d8f37/ocpmodels/common/relaxation/ase_utils.py#L33-L62
+    """
     n_systems = batch.neighbors.shape[0]
     natoms = batch.natoms.tolist()
     numbers = torch.split(batch.atomic_numbers, natoms)
@@ -52,7 +57,7 @@ def batch_to_atoms(batch):
             constraint=FixAtoms(mask=fixed[idx].tolist()),
             pbc=[True, True, True],
         )
-        calc = sp(
+        calc = spcalc(
             atoms=atoms,
             energy=energies[idx],
             forces=forces[idx].cpu().detach().numpy(),
@@ -117,6 +122,7 @@ class OCPCalculator(Calculator):
         else:
             # Loads the config from the checkpoint directly
             config = torch.load(checkpoint, map_location=torch.device(device))["config"]
+        
         if trainer is not None:  # passing the arg overrides everything else
             config["trainer"] = trainer
         else:
@@ -160,8 +166,10 @@ class OCPCalculator(Calculator):
             identifier="",
             slurm=config.get("slurm", {}),
             local_rank=config.get("local_rank", device),
-            is_debug=config.get("is_debug", True),
+            is_debug=config.get("is_debug", False),
             cpu=True if device == "cpu" else False,
+            skip_dataset=True,
+            logger=config.get("logger", "tensorboard"),
         )
 
         if checkpoint is not None:
@@ -175,6 +183,8 @@ class OCPCalculator(Calculator):
             r_distances=False,
             r_edges=False,
         )
+        
+        # self.fixedpoint = None
 
     def load_checkpoint(self, checkpoint_path):
         """
@@ -192,9 +202,18 @@ class OCPCalculator(Calculator):
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
         data_object = self.a2g.convert(atoms)
-        batch = data_list_collater([data_object], otf_graph=True)
+        
+        # a single sample
+        batch: tg.data.batch.DataBatch = data_list_collater([data_object], otf_graph=True)
+        
+        # only for DEQ
+        # reuse = False if self.trainer.fixedpoint is None else True
+        # self.trainer.model.set_current_deq(reuse=reuse)
 
-        predictions = self.trainer.predict(batch, per_image=False, disable_tqdm=True)
+        predictions = self.trainer.predict(
+            batch, per_image=False, disable_tqdm=True, 
+        )
+        
         if self.trainer.name == "s2ef":
             self.results["energy"] = predictions["energy"].item()
             self.results["forces"] = predictions["forces"].cpu().numpy()

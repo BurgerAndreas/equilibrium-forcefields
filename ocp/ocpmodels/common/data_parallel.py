@@ -42,6 +42,7 @@ class OCPDataParallel(torch.nn.DataParallel):
         if self.cpu:
             super(torch.nn.DataParallel, self).__init__()
             self.module = module
+            print("Warning: OCPDataParallel: CPU mode")
 
         else:
             super(OCPDataParallel, self).__init__(
@@ -52,10 +53,16 @@ class OCPDataParallel(torch.nn.DataParallel):
 
     def forward(self, batch_list, **kwargs):
         if self.cpu:
-            return self.module(batch_list[0])
+            return self.module(
+                batch_list[0],
+                **kwargs
+            )
 
         if len(self.device_ids) == 1:
-            return self.module(batch_list[0].to(f"cuda:{self.device_ids[0]}"), **kwargs)
+            return self.module(
+                batch_list[0].to(f"cuda:{self.device_ids[0]}"),
+                **kwargs
+            )
 
         for t in chain(self.module.parameters(), self.module.buffers()):
             if t.device != self.src_device:

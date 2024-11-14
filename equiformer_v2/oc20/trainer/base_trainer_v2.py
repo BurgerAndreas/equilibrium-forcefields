@@ -169,7 +169,7 @@ class BaseTrainerV2(BaseTrainer):
         is_debug=False,
         is_hpo=False,
         print_every=100,
-        seed=None,
+        seed=0,
         logger="tensorboard",
         local_rank=0,
         amp=False,
@@ -184,6 +184,7 @@ class BaseTrainerV2(BaseTrainer):
         model_is_deq=False,
         val_max_iter=-1,
         test_w_eval_mode=True,
+        skip_dataset=False,
     ):
         self.name = name
         self.cpu = cpu
@@ -368,7 +369,8 @@ class BaseTrainerV2(BaseTrainer):
             is_rank0=distutils.is_master(),
             output_dir=run_dir,
         )
-        self.file_logger.info(yaml.dump(self.config, default_flow_style=False))
+        # self.file_logger.info(f"In BaseTrainerV2.__init__")
+        # self.file_logger.info(yaml.dump(self.config, default_flow_style=False))
 
         # auxiliary task
         self.auxiliary_task_weight = self.config["optim"].get(
@@ -391,7 +393,7 @@ class BaseTrainerV2(BaseTrainer):
             "grad_accumulation_steps", 1
         )
 
-        self.load()
+        self.load(skip_dataset=skip_dataset)
 
         self.evaluator = Evaluator(task=name)
 
@@ -430,7 +432,7 @@ class BaseTrainerV2(BaseTrainer):
         if self.config["cmd"].get("assert_checkoint", False) and not checkpoint_loaded:
             raise FileNotFoundError(f"No checkpoint not found at {checkpoint_path}.")
 
-    def load(self):
+    def load(self, skip_dataset=False):
         self.load_seed_from_config()
         self.load_logger()
         self.load_datasets()
@@ -438,7 +440,7 @@ class BaseTrainerV2(BaseTrainer):
         self.load_model()
         self.load_loss()
         self.load_optimizer()
-        self.load_extras()
+        self.load_extras(skip_dataset=skip_dataset)
         self.look_for_checkpoint()
         self.logger.log({"start_epoch": self.epoch}, step=self.step)
         logging.info("Trainer loaded.")
@@ -447,7 +449,7 @@ class BaseTrainerV2(BaseTrainer):
         # https://pytorch.org/docs/stable/notes/randomness.html
         seed = self.config["cmd"]["seed"]
         if seed is None:
-            raise ValueError
+            seed = 0
 
         random.seed(seed)
         np.random.seed(seed)
@@ -499,7 +501,7 @@ class BaseTrainerV2(BaseTrainer):
         #        f"{self.model.num_params} parameters."
         #    )
         self.file_logger.info("BaseTrainerV2: load_model")
-        self.file_logger.info(self.model)
+        # self.file_logger.info(self.model)
         self.file_logger.info(
             f"Loaded {self.model.__class__.__name__} with "
             f"{self.model.num_params} parameters."
@@ -575,7 +577,7 @@ class BaseTrainerV2(BaseTrainer):
             )
         """
 
-    def load_extras(self):
+    def load_extras(self, skip_dataset=False):
         def multiply(obj, num):
             if isinstance(obj, list):
                 for i in range(len(obj)):
@@ -598,43 +600,44 @@ class BaseTrainerV2(BaseTrainer):
             "lr_initial"
         ]
 
-        # convert epochs into number of steps
-        n_iter_per_epoch = len(self.train_loader)
-        if self.grad_accumulation_steps != 1:
-            n_iter_per_epoch = n_iter_per_epoch // self.grad_accumulation_steps
-        scheduler_params = self.config["optim"]["scheduler_params"]
-        for k in scheduler_params.keys():
-            if "epochs" in k:
-                if isinstance(scheduler_params[k], (int, float, list)):
-                    scheduler_params[k] = multiply(
-                        scheduler_params[k], n_iter_per_epoch
-                    )
+        if not skip_dataset:
+            # convert epochs into number of steps
+            n_iter_per_epoch = len(self.train_loader)
+            if self.grad_accumulation_steps != 1:
+                n_iter_per_epoch = n_iter_per_epoch // self.grad_accumulation_steps
+            scheduler_params = self.config["optim"]["scheduler_params"]
+            for k in scheduler_params.keys():
+                if "epochs" in k:
+                    if isinstance(scheduler_params[k], (int, float, list)):
+                        scheduler_params[k] = multiply(
+                            scheduler_params[k], n_iter_per_epoch
+                        )
 
-        print(f'Initializing scheduler with params: {self.config["optim"]}')
-        self.scheduler = LRScheduler(self.optimizer, self.config["optim"])
+            # print(f'Initializing scheduler with params: {self.config["optim"]}')
+            self.scheduler = LRScheduler(self.optimizer, self.config["optim"])
 
-        print(
-            f"Number of epochs: {max_epochs}"
-            f"\nNumber of steps per epoch: {n_iter_per_epoch}"
-            f"\nNumber of steps: {max_epochs * n_iter_per_epoch}"
-        )
+            print(
+                f"Number of epochs: {max_epochs}"
+                f"\nNumber of steps per epoch: {n_iter_per_epoch}"
+                f"\nNumber of steps: {max_epochs * n_iter_per_epoch}"
+            )
 
-        # Print the learning rate schedule
-        sched = copy.deepcopy(self.scheduler)
-        # get all the lrs
-        lrs = []
-        for i in range((len(self.train_loader) + 1) * max_epochs):
-            lrs.append(sched.get_lr())
-            sched.step()
-        # print the first lr
-        print(
-            f"First LR: {lrs[0]}"
-            f"\nLast LR: {lrs[-1]}"
-            f"\nMax LR: {max(lrs):.2e} (index: {lrs.index(max(lrs))}"
-            f" = {lrs.index(max(lrs)) / n_iter_per_epoch} epochs)"
-            f"\nMin LR: {min(lrs)} (index: {lrs.index(min(lrs))}"
-            f" = {lrs.index(min(lrs)) / n_iter_per_epoch} epochs)"
-        )
+            # Print the learning rate schedule
+            sched = copy.deepcopy(self.scheduler)
+            # get all the lrs
+            lrs = []
+            for i in range((len(self.train_loader) + 1) * max_epochs):
+                lrs.append(sched.get_lr())
+                sched.step()
+            # print the first lr
+            print(
+                f"First LR: {lrs[0]}"
+                f"\nLast LR: {lrs[-1]}"
+                f"\nMax LR: {max(lrs):.2e} (index: {lrs.index(max(lrs))}"
+                f" = {lrs.index(max(lrs)) / n_iter_per_epoch} epochs)"
+                f"\nMin LR: {min(lrs)} (index: {lrs.index(min(lrs))}"
+                f" = {lrs.index(min(lrs)) / n_iter_per_epoch} epochs)"
+            )
 
         self.clip_grad_norm = self.config["optim"].get("clip_grad_norm")
         self.ema_decay = self.config["optim"].get("ema_decay")

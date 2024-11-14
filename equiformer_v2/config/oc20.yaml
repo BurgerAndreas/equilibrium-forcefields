@@ -17,6 +17,7 @@ model:
   _AVG_DEGREE: 23.395238876342773
   max_neighbors: 20           # 20 for OC20
   max_radius: 12.0               # 12.0 for OC20
+  cutoff: ${model.max_radius}
 
 ####################################################
 # from ocp/ocpmodels/common/flags.py:
@@ -95,21 +96,32 @@ optim:
   
 val_max_iter: 1000
 hide_eval_progressbar: False      
-logger: wandb
-wandb: True
+wandb: False
 wandb_run_name: null
 wandb_group: null
 slurm_job_id: null
 model_name: ${model.name}
 
+# logger: wandb
+logger: 
+  name: wandb
+  project: oc20-ev2
+
 ####################################################
 # added
+
+relax:
+  system: "oc20"
+  fmax: 0.02
+  steps: 1000
+  
+# noddp: True
 
 checkpoint_path: auto
 checkpoint_wandb_name: null # only used if checkpoint_path is auto. will be filled by wandb
 assert_checkpoint: False
 
-
+is_debug: False
 fpreuse_test: False
 contrastive_loss: False
 

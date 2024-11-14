@@ -190,8 +190,9 @@ class BaseTrainer(ABC):
             # default is no checkpointing
             self.hpo_checkpoint_every = self.config["optim"].get("checkpoint_every", -1)
 
-        if distutils.is_master():
-            print(yaml.dump(self.config, default_flow_style=False))
+        # if distutils.is_master():
+        #     print(f"In BaseTrainer.__init__")
+        #     print(yaml.dump(self.config, default_flow_style=False))
         self.load()
 
         self.evaluator = Evaluator(task=name)
@@ -210,7 +211,7 @@ class BaseTrainer(ABC):
         # https://pytorch.org/docs/stable/notes/randomness.html
         seed = self.config["cmd"]["seed"]
         if seed is None:
-            return
+            seed = 0
 
         random.seed(seed)
         np.random.seed(seed)

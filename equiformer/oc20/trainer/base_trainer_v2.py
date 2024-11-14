@@ -340,7 +340,7 @@ class BaseTrainerV2(BaseTrainer):
         # https://pytorch.org/docs/stable/notes/randomness.html
         seed = self.config["cmd"]["seed"]
         if seed is None:
-            raise ValueError
+            seed = 0
 
         random.seed(seed)
         np.random.seed(seed)

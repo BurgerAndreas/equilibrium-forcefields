@@ -95,7 +95,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         is_debug=False,
         is_hpo=False,
         print_every=100,
-        seed=None,
+        seed=0,
         logger="tensorboard",
         local_rank=0,
         amp=False,
@@ -105,6 +105,7 @@ class ForcesTrainerV2(BaseTrainerV2):
         # added
         val_max_iter=-1,
         test_w_eval_mode=True,
+        skip_dataset=False,
         **kwargs,
     ):
         super().__init__(
@@ -135,9 +136,12 @@ class ForcesTrainerV2(BaseTrainerV2):
             # added
             val_max_iter=val_max_iter,
             test_w_eval_mode=test_w_eval_mode,
+            skip_dataset=skip_dataset,
             **kwargs,
         )
-
+        self.fixedpoint = None
+        self.fpreuse_test = False
+        
     def load_task(self):
         self.file_logger.info(f"Loading dataset: {self.config['task']['dataset']}")
 
@@ -231,12 +235,13 @@ class ForcesTrainerV2(BaseTrainerV2):
             disable=disable_tqdm,
         ):
             with torch.cuda.amp.autocast(enabled=self.scaler is not None):
-                out = self._forward(batch_list)
+                out = self._forward(batch_list, fpreuse=self.fpreuse_test)
 
             if self.normalizers is not None and "target" in self.normalizers:
                 out["energy"] = self.normalizers["target"].denorm(out["energy"])
                 out["forces"] = self.normalizers["grad_target"].denorm(out["forces"])
-            if per_image:
+                
+            if per_image: # False by default
                 systemids = [
                     str(i) + "_" + str(j)
                     for i, j in zip(
@@ -263,9 +268,17 @@ class ForcesTrainerV2(BaseTrainerV2):
                     per_image_forces = _per_image_free_forces
                     predictions["chunk_idx"].extend(_chunk_idx)
                 predictions["forces"].extend(per_image_forces)
+            
             else:
                 predictions["energy"] = out["energy"].detach()
                 predictions["forces"] = out["forces"].detach()
+                
+                info = out["info"]
+                if "nsteps" in info:
+                    nsteps = info["nsteps"].mean().item()
+                    self.logger.log({"nsteps": nsteps}, step=self.step)
+
+
                 if self.ema:
                     self.ema.restore()
                 return predictions
@@ -277,6 +290,12 @@ class ForcesTrainerV2(BaseTrainerV2):
         self.save_results(
             predictions, results_file, keys=["energy", "forces", "chunk_idx"]
         )
+        
+        # logging
+        info = out["info"]
+        if "nsteps" in info:
+            nsteps = info["nsteps"].mean().item()
+            self.logger.log({"nsteps": nsteps}, step=self.step)
 
         if self.ema:
             self.ema.restore()
@@ -555,14 +574,22 @@ class ForcesTrainerV2(BaseTrainerV2):
         if self.config.get("test_dataset", False):
             self.test_dataset.close_db()
 
-    def _forward(self, batch_list):
+    def _forward(self, batch_list, fpreuse=False):
         # forward pass.
         if self.config["model_attributes"].get("regress_forces", True) or self.config[
             "model_attributes"
         ].get("use_auxiliary_task", False):
-            out_energy, out_forces, info = self.model(batch_list)
+            if fpreuse:
+                out_energy, out_forces, fp, info = self.model(batch_list, fixedpoint=self.fixedpoint, return_fixedpoint=True)
+                self.fixedpoint = fp
+            else:
+                out_energy, out_forces, info = self.model(batch_list)
         else:
-            out_energy, info = self.model(batch_list)
+            if fpreuse:
+                out_energy, fp, info = self.model(batch_list, fixedpoint=self.fixedpoint, return_fixedpoint=True)
+                self.fixedpoint = fp
+            else:
+                out_energy, info = self.model(batch_list)
 
         if out_energy.shape[-1] == 1:
             out_energy = out_energy.view(-1)

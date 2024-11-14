@@ -137,7 +137,7 @@ class LRScheduler:
         assert "scheduler_params" in self.config.keys()
         self.scheduler_type = self.config["scheduler"]
         self.scheduler_params = self.config["scheduler_params"].copy()
-        print(f"Initializing LRScheduler with params: {self.scheduler_params}")
+        # print(f"Initializing LRScheduler with params: {self.scheduler_params}")
 
         # Use `LambdaLR` for multi-step and cosine learning rate
         if self.scheduler_type == "LambdaLR":

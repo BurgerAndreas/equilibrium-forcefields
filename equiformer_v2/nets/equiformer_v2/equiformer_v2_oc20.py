@@ -844,7 +844,7 @@ class EquiformerV2_OC20(BaseModel):
     # @torch.compile
     @conditional_grad(torch.enable_grad())
     def forward(
-        self, data, step=None, datasplit=None, return_fixedpoint=False, **kwargs
+        self, data, step=None, datasplit=None, return_fixedpoint=False, fixedpoint=None, **kwargs
     ):
 
         x, pos, atomic_numbers, edge_distance, edge_index = self.encode(data)

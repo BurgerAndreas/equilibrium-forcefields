@@ -13,7 +13,8 @@ defaults:
 # batch_size: ${optim.batch_size}
 # eval_batch_size: ${optim.eval_batch_size}
 
-unsqueeze_e_dim: True
+unsqueeze_e_dim: True # if to reshape model output [B] (OC20) -> [B,1] (MD17)
+# squeeze_e_dim: False # if to reshape data [B,1] (MD17) -> [B] (OC20)
 force_weight: 80
 energy_weight: 1
 

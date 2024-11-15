@@ -124,7 +124,10 @@ def set_style_after(ax, fs=15, legend=True, loc="best"):
     elif legend is None:
         pass
     else:
-        ax.get_legend().remove()
+        try:
+            ax.get_legend().remove()
+        except:
+            pass
 
     # plt.tight_layout(pad=0.1)
     plt.tight_layout(pad=0)

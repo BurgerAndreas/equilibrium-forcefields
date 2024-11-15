@@ -248,12 +248,13 @@ def get_normalizers(args, train_dataset, device, task_mean, task_std):
 
 
 def train_md(args):
+    
+    if wandb.run is None:
+        os.environ["WANDB_MODE"] = "disabled"
+        # wandb.require("disable")
+        wandb.init(mode="disabled")
 
-    # set environment values if they are not None
-    # if args.broyden_print_values is not None:
-    #     os.environ["PRINT_VALUES"] = args.broyden_print_values
-    # if args.fix_broyden is not None:
-    #     os.environ["FIX_BROYDEN"] = args.fix_broyden
+    # only use it for debugging
     torch.autograd.set_detect_anomaly(args.torch_detect_anomaly)
 
     dtype = eval("torch." + args.dtype)
@@ -274,7 +275,8 @@ def train_md(args):
         print(f"Set output directory: {args.output_dir}")
     if args.output_dir is not None:
         os.makedirs(args.output_dir, exist_ok=True)
-    wandb.run.config.update({"output_dir": args.output_dir}, allow_val_change=True)
+    if wandb.run is not None:
+        wandb.run.config.update({"output_dir": args.output_dir}, allow_val_change=True)
 
     filelog = FileLogger(is_master=True, is_rank0=True, output_dir=args.output_dir)
 
@@ -596,7 +598,7 @@ def train_md(args):
 
     # watch gradients, weights, and activations
     # https://docs.wandb.ai/ref/python/watch
-    if args.watch_model:
+    if args.watch_model and wandb.run is not None:
         wandb.watch(model, log="all", log_freq=args.log_every_step_major)
 
     if args.return_model:
@@ -613,6 +615,8 @@ def train_md(args):
             "test_loader": test_loader,
             "train_loader": train_loader,
             "normalizers": normalizers,
+            "criterion_energy": criterion_energy,
+            "criterion_force": criterion_force,
             "idx_to_indices": idx_to_indices,
             "indices_to_idx": indices_to_idx,
         }

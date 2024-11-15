@@ -8,14 +8,16 @@
 # launchrelax preset=reg +use=deq +cfg=ap2
 # launchrelax preset=reg +use=deq +cfg=ap2 fpreuse_test=False
 # launchrelax preset=reg +use=deq +cfg=ap2 +deq_kwargs_fpr.f_tol=1e-1
-# launchrelax preset=reg +cfg=dd model.num_layers=12
+# launchrelax preset=reg +cfg=dd model.num_layers=14
 
 # bash command to download model checkpoint checkpoints/pDEQsap2reg/best_checkpoint.pt
 # from andreasburger@tacozoid.accelerationconsortium.ai
 # mkdir -p checkpoints/pDEQsap2reg
 # scp andreasburger@tacozoid.accelerationconsortium.ai:/home/andreasburger/equilibrium-forcefields/checkpoints/pDEQsap2reg/best_checkpoint.pt ./checkpoints/pDEQsap2reg/best_checkpoint.pt
-# mkdir -p checkpoints/pEsddnumlayers12reg
-# scp andreasburger@tacozoid.accelerationconsortium.ai:/home/andreasburger/equilibrium-forcefields/checkpoints/pEsddnumlayers12reg/best_checkpoint.pt ./checkpoints/pEsddnumlayers12reg/best_checkpoint.pt
+# mkdir -p checkpoints/pEsddnumlayers14reg
+# scp andreasburger@tacozoid.accelerationconsortium.ai:/home/andreasburger/equilibrium-forcefields/checkpoints/pEsddnumlayers14reg/best_checkpoint.pt ./checkpoints/pEsddnumlayers14reg/best_checkpoint.pt
+# mkdir -p checkpoints/pDEQsap2regnumlayers2
+# scp andreasburger@tacozoid.accelerationconsortium.ai:/home/andreasburger/equilibrium-forcefields/checkpoints/pDEQsap2regnumlayers2/best_checkpoint.pt ./checkpoints/pDEQsap2regnumlayers2/best_checkpoint.pt
 
 import os
 import wandb
@@ -113,6 +115,7 @@ def hydra_wrapper_relax(args: DictConfig) -> None:
         ocp_calculator.trainer.fpreuse_test = args['fpreuse_test']
         ocp_calculator.trainer.model.module.eval()
         ocp_calculator.trainer.model.eval()
+        ocp_calculator.trainer.step = 0
 
         print("-"*50)
         if args['relax']['system'] == "oc20":
@@ -185,16 +188,17 @@ def hydra_wrapper_relax(args: DictConfig) -> None:
         nstep_trainer.append(nstep)
         
         _logs = {
-                "time_taken": time_taken, 
-                "relax_nstep": dyn.nsteps, 
-                "time_per_step": time_taken / dyn.nsteps,
-                "nstep_trainer_avg": nstep,
-            }
+            "time_taken": time_taken, 
+            "relax_nstep": dyn.nsteps, 
+            "time_per_step": time_taken / dyn.nsteps,
+            "nstep_trainer_avg": nstep,
+        }
         
         wandb.log(_logs)
         print(yaml.dump(_logs))
         
         wandb.finish()
+        time.sleep(5)
         
         # delete open loggers
         # ocp_calculator.trainer.logger.close() # WandB / Tensorboard
